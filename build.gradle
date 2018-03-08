@@ -60,9 +60,9 @@ uploadArchives {
                 url 'https://github.com/pellse/assembler'
 
                 scm {
-                    connection 'scm:git@github.com:pellse/decorator.git'
-                    developerConnection 'scm:git@github.com:pellse/decorator.git'
-                    url 'scm:git@github.com:pellse/decorator.git'
+                    connection 'scm:git@github.com:pellse/assembler.git'
+                    developerConnection 'scm:git@github.com:pellse/assembler.git'
+                    url 'scm:git@github.com:pellse/assembler.git'
                 }
 
                 licenses {
