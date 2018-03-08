@@ -109,12 +109,15 @@ public final class QueryUtils {
     Stream<? extends R> safeApply(C coll, CheckedFunction1<C, D, EX> queryFunction) throws EX {
         return Optional.ofNullable(coll)
                 .filter(not(Collection::isEmpty))
-                .map(unchecked(queryFunction)).stream().flatMap(Collection::stream)
+                .map(unchecked(queryFunction))
+                .stream()
+                .flatMap(Collection::stream)
                 .filter(Objects::nonNull);
     }
 
-    private static <K, V> Map<K, V> merge(Map<K, V> map1, Map<K, V> map2) {
-        return Stream.of(map1, map2)
+    @SafeVarargs
+    private static <K, V> Map<K, V> merge(Map<K, V>... maps) {
+        return Stream.of(maps)
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
                 .collect(toMap(Entry::getKey, Entry::getValue));

@@ -24,10 +24,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.github.pellse.assembler.synchronous.SynchronousEntityAssembler.entityAssembler;
+import static io.github.pellse.assembler.synchronous.SynchronousAssembler.entityAssembler;
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 
-public class EntityAssemblerBuilder<T, ID, C extends Collection<T>, IDC extends Collection<ID>> {
+public class AssemblerBuilder<T, ID, C extends Collection<T>, IDC extends Collection<ID>> {
 
     @FunctionalInterface
     interface TopLevelEntitiesSupplier<T, ID, C extends Collection<T>, IDC extends Collection<ID>> {
@@ -41,11 +41,11 @@ public class EntityAssemblerBuilder<T, ID, C extends Collection<T>, IDC extends 
 
     @FunctionalInterface
     interface CollectionFactoryFunction<T, ID, C extends Collection<T>, IDC extends Collection<ID>> {
-        EntityAssemblerBuilder<T, ID, C, IDC> idCollectionFactory(Supplier<IDC> idCollectionFactory);
+        AssemblerBuilder<T, ID, C, IDC> idCollectionFactory(Supplier<IDC> idCollectionFactory);
     }
 
     public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>> TopLevelEntitiesSupplier<T, ID, C, IDC> builder() {
-        return entitiesProvider -> entityIdExtractor -> idCollectionFactory -> new EntityAssemblerBuilder<>(entitiesProvider, entityIdExtractor, idCollectionFactory);
+        return entitiesProvider -> entityIdExtractor -> idCollectionFactory -> new AssemblerBuilder<>(entitiesProvider, entityIdExtractor, idCollectionFactory);
     }
 
     private final CheckedSupplier<C, Throwable> topLevelEntitiesProvider;
@@ -54,18 +54,18 @@ public class EntityAssemblerBuilder<T, ID, C extends Collection<T>, IDC extends 
 
     private Consumer<Throwable> errorHandler = e -> sneakyThrow(new UncheckedException(e));
 
-    private EntityAssemblerBuilder(CheckedSupplier<C, Throwable> topLevelEntitiesProvider, Function<T, ID> idExtractor, Supplier<IDC> idCollectionFactory) {
+    private AssemblerBuilder(CheckedSupplier<C, Throwable> topLevelEntitiesProvider, Function<T, ID> idExtractor, Supplier<IDC> idCollectionFactory) {
         this.topLevelEntitiesProvider = topLevelEntitiesProvider;
         this.idExtractor = idExtractor;
         this.idCollectionFactory = idCollectionFactory;
     }
 
-    public EntityAssemblerBuilder<T, ID, C, IDC> errorHandler(Consumer<Throwable> errorHandler) {
+    public AssemblerBuilder<T, ID, C, IDC> errorHandler(Consumer<Throwable> errorHandler) {
         this.errorHandler = errorHandler;
         return this;
     }
 
-    public SynchronousEntityAssembler<T, ID, C, IDC> build() {
+    public SynchronousAssembler<T, ID, C, IDC> build() {
         return entityAssembler(topLevelEntitiesProvider, idExtractor, idCollectionFactory, errorHandler);
     }
 }

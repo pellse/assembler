@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static io.github.pellse.assembler.synchronous.SynchronousEntityAssembler.entityAssembler;
+import static io.github.pellse.assembler.synchronous.SynchronousAssembler.entityAssembler;
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static io.github.pellse.util.query.Mapper.oneToManyMapping;
 import static io.github.pellse.util.query.Mapper.oneToManyMappingAsList;
@@ -41,7 +41,7 @@ import static org.junit.Assert.assertThat;
 /**
  * @author Sebastien Pelletier
  */
-public class SynchronousEntityAssemblerTest {
+public class SynchronousAssemblerTest {
 
     private BillingInfo billingInfo1 = new BillingInfo(1L, "4540977822220971");
     private BillingInfo billingInfo2 = new BillingInfo(2L, "4530987722349872");
@@ -59,9 +59,12 @@ public class SynchronousEntityAssemblerTest {
     private Customer customer2 = new Customer(2L, "Erick Daria");
     private Customer customer3 = new Customer(3L, "Brenden Jacob");
 
-    private Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(orderItem11, orderItem12, orderItem13));
-    private Transaction transaction2 = new Transaction(customer2, billingInfo2Unknown, List.of(orderItem21, orderItem22));
-    private Transaction transaction2WithNullBillingInfo = new Transaction(customer2, null, List.of(orderItem21, orderItem22));
+    private Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(orderItem11, orderItem12,
+            orderItem13));
+    private Transaction transaction2 = new Transaction(customer2, billingInfo2Unknown, List.of(orderItem21,
+            orderItem22));
+    private Transaction transaction2WithNullBillingInfo = new Transaction(customer2, null, List.of(orderItem21,
+            orderItem22));
     private Transaction transaction3 = new Transaction(customer3, billingInfo3, emptyList());
 
     @Test
@@ -69,14 +72,15 @@ public class SynchronousEntityAssemblerTest {
 
         CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
 
-        List<Transaction> transactions = EntityAssemblerBuilder.<Customer, Long, List<Customer>, List<Long>>builder()
+        List<Transaction> transactions = AssemblerBuilder.<Customer, Long, List<Customer>, List<Long>>builder()
                 .entitiesProvider(customerProvider)
                 .entityIdExtractor(Customer::getCustomerId)
                 .idCollectionFactory(LinkedList::new)
                 .errorHandler(e -> sneakyThrow(new UncheckedException(e)))
                 .build()
                 .assemble(
-                        oneToOneMapping(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToOneMapping(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId,
+                                BillingInfo::new),
                         oneToManyMappingAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .collect(toList());
@@ -104,7 +108,8 @@ public class SynchronousEntityAssemblerTest {
 
         CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
 
-        List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new, this::throwUncheckedException)
+        List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new,
+                this::throwUncheckedException)
                 .assemble(
                         oneToOneMapping(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId),
                         oneToManyMapping(this::queryDatabaseForAllOrders, OrderItem::getCustomerId, ArrayList::new),
@@ -119,7 +124,8 @@ public class SynchronousEntityAssemblerTest {
 
         CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
 
-        List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new, this::throwUncheckedException)
+        List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new,
+                this::throwUncheckedException)
                 .assemble(
                         oneToOneMapping(this::queryDatabaseForBillingInfosAndThrow, BillingInfo::getCustomerId),
                         oneToManyMappingAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
@@ -191,7 +197,8 @@ public class SynchronousEntityAssemblerTest {
 
         @Override
         public String toString() {
-            return "Transaction [customer=" + customer + ", billingInfo=" + billingInfo + ", orderItems=" + orderItems + "]";
+            return "Transaction [customer=" + customer + ", billingInfo=" + billingInfo + ", orderItems=" +
+                    orderItems + "]";
         }
     }
 

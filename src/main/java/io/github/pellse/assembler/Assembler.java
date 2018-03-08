@@ -22,7 +22,7 @@ import io.github.pellse.util.query.Mapper;
 import java.util.Collection;
 import java.util.function.BiFunction;
 
-public interface EntityAssembler<T, ID, IDC extends Collection<ID>, RC> {
+public interface Assembler<T, ID, IDC extends Collection<ID>, RC> {
 
     <E1, R> RC assemble(
             Mapper<ID, E1, IDC, Throwable> mapper1,

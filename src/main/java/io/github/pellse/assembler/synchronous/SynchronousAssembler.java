@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.synchronous;
 
-import io.github.pellse.assembler.EntityAssembler;
+import io.github.pellse.assembler.Assembler;
 import io.github.pellse.util.function.*;
 import io.github.pellse.util.function.checked.CheckedFunction2;
 import io.github.pellse.util.function.checked.CheckedSupplier;
@@ -38,18 +38,18 @@ import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Stream.empty;
 
-public class SynchronousEntityAssembler<T, ID, C extends Collection<T>, IDC extends Collection<ID>>
-        implements EntityAssembler<T, ID, IDC, Stream<?>> {
+public class SynchronousAssembler<T, ID, C extends Collection<T>, IDC extends Collection<ID>>
+        implements Assembler<T, ID, IDC, Stream<?>> {
 
     private final CheckedSupplier<C, Throwable> topLevelEntitiesProvider;
     private final Function<T, ID> idExtractor;
     private final Supplier<IDC> idCollectionFactory;
     private final Consumer<Throwable> errorHandler;
 
-    private SynchronousEntityAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
-                                       Function<T, ID> idExtractor,
-                                       Supplier<IDC> idCollectionFactory,
-                                       Consumer<Throwable> errorHandler) {
+    private SynchronousAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+                                 Function<T, ID> idExtractor,
+                                 Supplier<IDC> idCollectionFactory,
+                                 Consumer<Throwable> errorHandler) {
 
         this.topLevelEntitiesProvider = topLevelEntitiesProvider;
         this.idExtractor = idExtractor;
@@ -187,6 +187,128 @@ public class SynchronousEntityAssembler<T, ID, C extends Collection<T>, IDC exte
         });
     }
 
+    public <E1, E2, E3, E4, E5, E6, E7, E8, R> Stream<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Mapper<ID, E7, IDC, Throwable> mapper7,
+            Mapper<ID, E8, IDC, Throwable> mapper8,
+            Function9<T, E1, E2, E3, E4, E5, E6, E7, E8, R> domainObjectBuilderFunction) {
+
+        return assemble((topLevelEntities, entityIDs) -> {
+            Map<ID, E1> mapE1 = mapper1.map(entityIDs);
+            Map<ID, E2> mapE2 = mapper2.map(entityIDs);
+            Map<ID, E3> mapE3 = mapper3.map(entityIDs);
+            Map<ID, E4> mapE4 = mapper4.map(entityIDs);
+            Map<ID, E5> mapE5 = mapper5.map(entityIDs);
+            Map<ID, E6> mapE6 = mapper6.map(entityIDs);
+            Map<ID, E7> mapE7 = mapper7.map(entityIDs);
+            Map<ID, E8> mapE8 = mapper8.map(entityIDs);
+
+            return buildDomainObjectStream(topLevelEntities,
+                    (t, id) -> domainObjectBuilderFunction.apply(t, mapE1.get(id), mapE2.get(id), mapE3.get(id),
+                            mapE4.get(id), mapE5.get(id), mapE6.get(id), mapE7.get(id), mapE8.get(id)));
+        });
+    }
+
+    public <E1, E2, E3, E4, E5, E6, E7, E8, E9, R> Stream<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Mapper<ID, E7, IDC, Throwable> mapper7,
+            Mapper<ID, E8, IDC, Throwable> mapper8,
+            Mapper<ID, E9, IDC, Throwable> mapper9,
+            Function10<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, R> domainObjectBuilderFunction) {
+
+        return assemble((topLevelEntities, entityIDs) -> {
+            Map<ID, E1> mapE1 = mapper1.map(entityIDs);
+            Map<ID, E2> mapE2 = mapper2.map(entityIDs);
+            Map<ID, E3> mapE3 = mapper3.map(entityIDs);
+            Map<ID, E4> mapE4 = mapper4.map(entityIDs);
+            Map<ID, E5> mapE5 = mapper5.map(entityIDs);
+            Map<ID, E6> mapE6 = mapper6.map(entityIDs);
+            Map<ID, E7> mapE7 = mapper7.map(entityIDs);
+            Map<ID, E8> mapE8 = mapper8.map(entityIDs);
+            Map<ID, E9> mapE9 = mapper9.map(entityIDs);
+
+            return buildDomainObjectStream(topLevelEntities,
+                    (t, id) -> domainObjectBuilderFunction.apply(t, mapE1.get(id), mapE2.get(id), mapE3.get(id),
+                            mapE4.get(id), mapE5.get(id), mapE6.get(id), mapE7.get(id), mapE8.get(id), mapE9.get(id)));
+        });
+    }
+
+    public <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> Stream<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Mapper<ID, E7, IDC, Throwable> mapper7,
+            Mapper<ID, E8, IDC, Throwable> mapper8,
+            Mapper<ID, E9, IDC, Throwable> mapper9,
+            Mapper<ID, E10, IDC, Throwable> mapper10,
+            Function11<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> domainObjectBuilderFunction) {
+
+        return assemble((topLevelEntities, entityIDs) -> {
+            Map<ID, E1> mapE1 = mapper1.map(entityIDs);
+            Map<ID, E2> mapE2 = mapper2.map(entityIDs);
+            Map<ID, E3> mapE3 = mapper3.map(entityIDs);
+            Map<ID, E4> mapE4 = mapper4.map(entityIDs);
+            Map<ID, E5> mapE5 = mapper5.map(entityIDs);
+            Map<ID, E6> mapE6 = mapper6.map(entityIDs);
+            Map<ID, E7> mapE7 = mapper7.map(entityIDs);
+            Map<ID, E8> mapE8 = mapper8.map(entityIDs);
+            Map<ID, E9> mapE9 = mapper9.map(entityIDs);
+            Map<ID, E10> mapE10 = mapper10.map(entityIDs);
+
+            return buildDomainObjectStream(topLevelEntities,
+                    (t, id) -> domainObjectBuilderFunction.apply(t, mapE1.get(id), mapE2.get(id), mapE3.get(id),
+                            mapE4.get(id), mapE5.get(id), mapE6.get(id), mapE7.get(id), mapE8.get(id), mapE9.get(id),
+                            mapE10.get(id)));
+        });
+    }
+
+    public <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> Stream<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Mapper<ID, E7, IDC, Throwable> mapper7,
+            Mapper<ID, E8, IDC, Throwable> mapper8,
+            Mapper<ID, E9, IDC, Throwable> mapper9,
+            Mapper<ID, E10, IDC, Throwable> mapper10,
+            Mapper<ID, E11, IDC, Throwable> mapper11,
+            Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> domainObjectBuilderFunction) {
+
+        return assemble((topLevelEntities, entityIDs) -> {
+            Map<ID, E1> mapE1 = mapper1.map(entityIDs);
+            Map<ID, E2> mapE2 = mapper2.map(entityIDs);
+            Map<ID, E3> mapE3 = mapper3.map(entityIDs);
+            Map<ID, E4> mapE4 = mapper4.map(entityIDs);
+            Map<ID, E5> mapE5 = mapper5.map(entityIDs);
+            Map<ID, E6> mapE6 = mapper6.map(entityIDs);
+            Map<ID, E7> mapE7 = mapper7.map(entityIDs);
+            Map<ID, E8> mapE8 = mapper8.map(entityIDs);
+            Map<ID, E9> mapE9 = mapper9.map(entityIDs);
+            Map<ID, E10> mapE10 = mapper10.map(entityIDs);
+            Map<ID, E11> mapE11 = mapper11.map(entityIDs);
+
+            return buildDomainObjectStream(topLevelEntities,
+                    (t, id) -> domainObjectBuilderFunction.apply(t, mapE1.get(id), mapE2.get(id), mapE3.get(id),
+                            mapE4.get(id), mapE5.get(id), mapE6.get(id), mapE7.get(id), mapE8.get(id), mapE9.get(id),
+                            mapE10.get(id), mapE11.get(id)));
+        });
+    }
+
     private <R> Stream<R> assemble(CheckedFunction2<C, IDC, Stream<R>, Throwable> domainObjectBuilder) {
 
         try {
@@ -211,32 +333,32 @@ public class SynchronousEntityAssembler<T, ID, C extends Collection<T>, IDC exte
     // Static factory methods
 
     public static <T, ID>
-    SynchronousEntityAssembler<T, ID, List<T>, List<ID>> entityAssembler(
+    SynchronousAssembler<T, ID, List<T>, List<ID>> entityAssembler(
             CheckedSupplier<List<T>, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor) {
 
         return entityAssembler(topLevelEntitiesProvider, idExtractor, ArrayList::new,
-                SynchronousEntityAssembler::throwUncheckedException);
+                SynchronousAssembler::throwUncheckedException);
     }
 
     public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>>
-    SynchronousEntityAssembler<T, ID, C, IDC> entityAssembler(
+    SynchronousAssembler<T, ID, C, IDC> entityAssembler(
             CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
             Supplier<IDC> idCollectionFactory) {
 
         return entityAssembler(topLevelEntitiesProvider, idExtractor, idCollectionFactory,
-                SynchronousEntityAssembler::throwUncheckedException);
+                SynchronousAssembler::throwUncheckedException);
     }
 
     public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>>
-    SynchronousEntityAssembler<T, ID, C, IDC> entityAssembler(
+    SynchronousAssembler<T, ID, C, IDC> entityAssembler(
             CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
             Supplier<IDC> idCollectionFactory,
             Consumer<Throwable> errorHandler) {
 
-        return new SynchronousEntityAssembler<>(topLevelEntitiesProvider, idExtractor, idCollectionFactory,
+        return new SynchronousAssembler<>(topLevelEntitiesProvider, idExtractor, idCollectionFactory,
                 errorHandler);
     }
 

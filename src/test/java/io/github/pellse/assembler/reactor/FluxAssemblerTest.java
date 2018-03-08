@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static io.github.pellse.assembler.reactor.FluxEntityAssembler.entityAssembler;
+import static io.github.pellse.assembler.reactor.FluxAssembler.entityAssembler;
 import static io.github.pellse.util.query.Mapper.oneToManyMappingAsList;
 import static io.github.pellse.util.query.Mapper.oneToOneMapping;
 import static java.time.Duration.ofMillis;
@@ -34,7 +34,7 @@ import static java.util.stream.Collectors.toList;
 import static reactor.core.publisher.Flux.interval;
 import static reactor.core.publisher.Flux.zip;
 
-public class FluxEntityAssemblerTest {
+public class FluxAssemblerTest {
 
     private BillingInfo billingInfo1 = new BillingInfoProjection(1L, "4540977822220971");
     private BillingInfo address2 = new BillingInfoProjection(2L, "4530987722349872");
@@ -77,7 +77,7 @@ public class FluxEntityAssemblerTest {
                                 oneToOneMapping(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId),
                                 oneToManyMappingAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
                                 SimpleTransaction::new))
-                .doOnError(System.out::println)
+                .doOnError(e -> System.out.println("error: " + e))
                 .subscribe(e -> System.out.println(Thread.currentThread().getName() + ", " + e));
 
         Thread.sleep(500000);

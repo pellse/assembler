@@ -16,20 +16,10 @@
 
 package io.github.pellse.util;
 
-import java.util.function.Function;
-
-public class ExceptionUtils {
-
-    private ExceptionUtils() {
-    }
-
-    public static <R, E extends Throwable> R sneakyThrow(Throwable e,
-                                                         Function<Throwable, E> checkedExceptionConverter) {
-        return sneakyThrow(checkedExceptionConverter.apply(e));
-    }
+public interface ExceptionUtils {
 
     @SuppressWarnings("unchecked")
-    public static <T, E extends Throwable> T sneakyThrow(Throwable e) throws E {
+    static <T, E extends Throwable> T sneakyThrow(Throwable e) throws E {
         throw (E) e;
     }
 }

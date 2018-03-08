@@ -124,7 +124,7 @@ public final class Unchecked {
         try {
             return supplier.checkedGet();
         } catch (Throwable e) {
-            return sneakyThrow(e, errorConverter);
+            return sneakyThrow(errorConverter.apply(e));
         }
     }
 }
