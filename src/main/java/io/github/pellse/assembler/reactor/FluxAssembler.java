@@ -63,7 +63,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
         return assemble((topLevelEntities, entityIDs) -> {
             Mono<Map<ID, E1>> m1 = Mono.fromSupplier(unchecked(() -> mapper1.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id)))
@@ -83,7 +83,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E1>> m1 = Mono.fromSupplier(unchecked(() -> mapper1.map(entityIDs)));
             Mono<Map<ID, E2>> m2 = Mono.fromSupplier(unchecked(() -> mapper2.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
@@ -106,7 +106,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E2>> m2 = Mono.fromSupplier(unchecked(() -> mapper2.map(entityIDs)));
             Mono<Map<ID, E3>> m3 = Mono.fromSupplier(unchecked(() -> mapper3.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2, m3), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
@@ -132,7 +132,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E3>> m3 = Mono.fromSupplier(unchecked(() -> mapper3.map(entityIDs)));
             Mono<Map<ID, E4>> m4 = Mono.fromSupplier(unchecked(() -> mapper4.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2, m3, m4), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
@@ -161,7 +161,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E4>> m4 = Mono.fromSupplier(unchecked(() -> mapper4.map(entityIDs)));
             Mono<Map<ID, E5>> m5 = Mono.fromSupplier(unchecked(() -> mapper5.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2, m3, m4, m5), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
@@ -193,7 +193,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E5>> m5 = Mono.fromSupplier(unchecked(() -> mapper5.map(entityIDs)));
             Mono<Map<ID, E6>> m6 = Mono.fromSupplier(unchecked(() -> mapper6.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2, m3, m4, m5, m6), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
@@ -228,7 +228,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E6>> m6 = Mono.fromSupplier(unchecked(() -> mapper6.map(entityIDs)));
             Mono<Map<ID, E7>> m7 = Mono.fromSupplier(unchecked(() -> mapper7.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2, m3, m4, m5, m6, m7), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
@@ -266,7 +266,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E7>> m7 = Mono.fromSupplier(unchecked(() -> mapper7.map(entityIDs)));
             Mono<Map<ID, E8>> m8 = Mono.fromSupplier(unchecked(() -> mapper8.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2, m3, m4, m5, m6, m7, m8), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
@@ -307,7 +307,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E8>> m8 = Mono.fromSupplier(unchecked(() -> mapper8.map(entityIDs)));
             Mono<Map<ID, E9>> m9 = Mono.fromSupplier(unchecked(() -> mapper9.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2, m3, m4, m5, m6, m7, m8, m9), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
@@ -351,7 +351,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E9>> m9 = Mono.fromSupplier(unchecked(() -> mapper9.map(entityIDs)));
             Mono<Map<ID, E10>> m10 = Mono.fromSupplier(unchecked(() -> mapper10.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2, m3, m4, m5, m6, m7, m8, m9, m10), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
@@ -398,7 +398,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
             Mono<Map<ID, E10>> m10 = Mono.fromSupplier(unchecked(() -> mapper10.map(entityIDs)));
             Mono<Map<ID, E11>> m11 = Mono.fromSupplier(unchecked(() -> mapper11.map(entityIDs)));
 
-            return Flux.combineLatest(
+            return Flux.zip(
                     List.of(m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11), maps -> buildDomainObjectStream(topLevelEntities,
                             (t, id) -> domainObjectBuilderFunction.apply(t,
                                     ((Map<ID, E1>) maps[0]).get(id),
