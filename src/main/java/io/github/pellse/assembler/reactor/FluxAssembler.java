@@ -55,21 +55,19 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
         this.errorConverter = errorConverter;
     }
 
-    @SuppressWarnings("unchecked")
     public <E1, R> Flux<List<R>> assemble(
-            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E1, IDC, Throwable> mapper,
             BiFunction<T, E1, R> domainObjectBuilderFunction) {
 
-        return assemble((topLevelEntities, entityIDs) -> {
-            Mono<Map<ID, E1>> m1 = Mono.fromSupplier(unchecked(() -> mapper1.map(entityIDs)));
+        return assemble((topLevelEntities, entityIDs) ->
 
-            return Flux.zip(
-                    List.of(m1), maps -> buildDomainObjectStream(topLevelEntities,
-                            (t, id) -> domainObjectBuilderFunction.apply(t,
-                                    ((Map<ID, E1>) maps[0]).get(id)))
+            Mono.fromSupplier(unchecked(() -> mapper.map(entityIDs)))
+                    .flux()
+                    .map(mapperResult -> buildDomainObjectStream(topLevelEntities,
+                            (t, id) -> domainObjectBuilderFunction.apply(t, mapperResult.get(id)))
                             .collect(toList())
-            );
-        });
+                    )
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -428,10 +426,10 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
                 .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
     }
 
-    private <R> Stream<R> buildDomainObjectStream(C topLevelEntities, BiFunction<T, ID, R> function) {
+    private <R> Stream<R> buildDomainObjectStream(C topLevelEntities, BiFunction<T, ID, R> domainObjectBuilderFunction) {
 
         return topLevelEntities.stream()
-                .map(e -> function.apply(e, idExtractor.apply(e)));
+                .map(e -> domainObjectBuilderFunction.apply(e, idExtractor.apply(e)));
     }
 
     // Static factory methods
