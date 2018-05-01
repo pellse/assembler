@@ -16,7 +16,6 @@
 
 package io.github.pellse.assembler.reactor;
 
-import io.github.pellse.util.query.Mapper;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 
@@ -25,8 +24,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static io.github.pellse.util.query.Mapper.oneToManyAsList;
-import static io.github.pellse.util.query.Mapper.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static java.time.Duration.ofMillis;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -71,6 +70,7 @@ public class FluxAssemblerTest {
 
         intervalCustomerFlux
                 .log()
+                //.windowTimeout(3, ofMillis(200))
                 .bufferTimeout(3, ofMillis(200))
                 .flatMap(customers -> FluxAssembler.of(customers, Customer::getCustomerId)
                         .assemble(

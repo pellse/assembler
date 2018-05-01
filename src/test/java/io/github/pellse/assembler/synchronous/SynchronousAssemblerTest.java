@@ -18,7 +18,6 @@ package io.github.pellse.assembler.synchronous;
 
 import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.function.checked.UncheckedException;
-import io.github.pellse.util.query.Mapper;
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -30,9 +29,9 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.synchronous.SynchronousAssembler.entityAssembler;
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
-import static io.github.pellse.util.query.Mapper.oneToMany;
-import static io.github.pellse.util.query.Mapper.oneToManyAsList;
-import static io.github.pellse.util.query.Mapper.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToMany;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -112,7 +111,7 @@ public class SynchronousAssemblerTest {
         List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new,
                 this::throwUncheckedException)
                 .assemble(
-                        Mapper.oneToOne(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId),
+                        oneToOne(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId),
                         oneToMany(this::queryDatabaseForAllOrders, OrderItem::getCustomerId, ArrayList::new),
                         Transaction::new)
                 .collect(toList());
@@ -128,7 +127,7 @@ public class SynchronousAssemblerTest {
         List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new,
                 this::throwUncheckedException)
                 .assemble(
-                        Mapper.oneToOne(this::queryDatabaseForBillingInfosAndThrow, BillingInfo::getCustomerId),
+                        oneToOne(this::queryDatabaseForBillingInfosAndThrow, BillingInfo::getCustomerId),
                         oneToManyAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .collect(toList());
