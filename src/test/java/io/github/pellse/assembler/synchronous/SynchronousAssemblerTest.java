@@ -18,6 +18,7 @@ package io.github.pellse.assembler.synchronous;
 
 import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.function.checked.UncheckedException;
+import io.github.pellse.util.query.Mapper;
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -29,9 +30,9 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.synchronous.SynchronousAssembler.entityAssembler;
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
-import static io.github.pellse.util.query.Mapper.oneToManyMapping;
-import static io.github.pellse.util.query.Mapper.oneToManyMappingAsList;
-import static io.github.pellse.util.query.Mapper.oneToOneMapping;
+import static io.github.pellse.util.query.Mapper.oneToMany;
+import static io.github.pellse.util.query.Mapper.oneToManyAsList;
+import static io.github.pellse.util.query.Mapper.oneToOne;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -79,9 +80,9 @@ public class SynchronousAssemblerTest {
                 .errorHandler(e -> sneakyThrow(new UncheckedException(e)))
                 .build()
                 .assemble(
-                        oneToOneMapping(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId,
+                        oneToOne(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId,
                                 BillingInfo::new),
-                        oneToManyMappingAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
+                        oneToManyAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .collect(toList());
 
@@ -95,8 +96,8 @@ public class SynchronousAssemblerTest {
 
         List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId)
                 .assemble(
-                        oneToOneMapping(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyMappingAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
+                        oneToOne(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .collect(toList());
 
@@ -111,8 +112,8 @@ public class SynchronousAssemblerTest {
         List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new,
                 this::throwUncheckedException)
                 .assemble(
-                        oneToOneMapping(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId),
-                        oneToManyMapping(this::queryDatabaseForAllOrders, OrderItem::getCustomerId, ArrayList::new),
+                        Mapper.oneToOne(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId),
+                        oneToMany(this::queryDatabaseForAllOrders, OrderItem::getCustomerId, ArrayList::new),
                         Transaction::new)
                 .collect(toList());
 
@@ -127,8 +128,8 @@ public class SynchronousAssemblerTest {
         List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new,
                 this::throwUncheckedException)
                 .assemble(
-                        oneToOneMapping(this::queryDatabaseForBillingInfosAndThrow, BillingInfo::getCustomerId),
-                        oneToManyMappingAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
+                        Mapper.oneToOne(this::queryDatabaseForBillingInfosAndThrow, BillingInfo::getCustomerId),
+                        oneToManyAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .collect(toList());
 

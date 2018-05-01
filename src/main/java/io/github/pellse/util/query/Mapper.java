@@ -31,15 +31,15 @@ import static io.github.pellse.util.query.QueryUtils.*;
 public interface Mapper<ID, R, IDC extends Collection<ID>, EX extends Throwable> {
 
     static <ID, IDC extends Collection<ID>, R, D extends Collection<R>, EX extends Throwable>
-    Mapper<ID, R, IDC, EX> oneToOneMapping(
+    Mapper<ID, R, IDC, EX> oneToOne(
             CheckedFunction1<IDC, D, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
-        return oneToOneMapping(queryFunction, idExtractorFromQueryResults, id -> null);
+        return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null);
     }
 
     static <ID, IDC extends Collection<ID>, R, D extends Collection<R>, EX extends Throwable>
-    Mapper<ID, R, IDC, EX> oneToOneMapping(
+    Mapper<ID, R, IDC, EX> oneToOne(
             CheckedFunction1<IDC, D, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider) {
@@ -48,7 +48,7 @@ public interface Mapper<ID, R, IDC extends Collection<ID>, EX extends Throwable>
     }
 
     static <ID, IDC extends Collection<ID>, R, D extends Collection<R>, EX extends Throwable>
-    Mapper<ID, D, IDC,  EX> oneToManyMapping(
+    Mapper<ID, D, IDC,  EX> oneToMany(
             CheckedFunction1<IDC, D, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<D> collectionFactory) {
@@ -57,7 +57,7 @@ public interface Mapper<ID, R, IDC extends Collection<ID>, EX extends Throwable>
     }
 
     static <ID, IDC extends Collection<ID>, R, EX extends Throwable>
-    Mapper<ID, List<R>, IDC, EX> oneToManyMappingAsList(
+    Mapper<ID, List<R>, IDC, EX> oneToManyAsList(
             CheckedFunction1<IDC, List<R>, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
@@ -65,7 +65,7 @@ public interface Mapper<ID, R, IDC extends Collection<ID>, EX extends Throwable>
     }
 
     static <ID, IDC extends Collection<ID>, R, EX extends Throwable>
-    Mapper<ID, Set<R>, IDC, EX> oneToManyMappingAsSet(
+    Mapper<ID, Set<R>, IDC, EX> oneToManyAsSet(
             CheckedFunction1<IDC, Set<R>, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 

@@ -16,6 +16,7 @@
 
 package io.github.pellse.assembler.reactor;
 
+import io.github.pellse.util.query.Mapper;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 
@@ -24,9 +25,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static io.github.pellse.assembler.reactor.FluxAssembler.entityAssembler;
-import static io.github.pellse.util.query.Mapper.oneToManyMappingAsList;
-import static io.github.pellse.util.query.Mapper.oneToOneMapping;
+import static io.github.pellse.util.query.Mapper.oneToManyAsList;
+import static io.github.pellse.util.query.Mapper.oneToOne;
 import static java.time.Duration.ofMillis;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -72,10 +72,10 @@ public class FluxAssemblerTest {
         intervalCustomerFlux
                 .log()
                 .bufferTimeout(3, ofMillis(200))
-                .flatMap(customers -> entityAssembler(customers, Customer::getCustomerId)
+                .flatMap(customers -> FluxAssembler.of(customers, Customer::getCustomerId)
                         .assemble(
-                                oneToOneMapping(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId),
-                                oneToManyMappingAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
+                                oneToOne(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId),
+                                oneToManyAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
                                 SimpleTransaction::new))
                 .doOnError(e -> System.out.println("error: " + e))
                 .subscribe(e -> System.out.println(Thread.currentThread().getName() + ", " + e));

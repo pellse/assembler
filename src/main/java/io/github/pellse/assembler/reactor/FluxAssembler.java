@@ -256,22 +256,21 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
 
     // Static factory methods
 
-    public static <T, ID> FluxAssembler<T, ID, List<T>, List<ID>> entityAssembler(
+    public static <T, ID> FluxAssembler<T, ID, List<T>, List<ID>> of(
             List<T> topLevelEntities,
             Function<T, ID> idExtractor) {
 
-        return entityAssembler(() -> topLevelEntities, idExtractor, ArrayList::new, UncheckedException::new);
+        return of(() -> topLevelEntities, idExtractor, ArrayList::new, UncheckedException::new);
     }
 
-    public static <T, ID> FluxAssembler<T, ID, List<T>, List<ID>> entityAssembler(
+    public static <T, ID> FluxAssembler<T, ID, List<T>, List<ID>> of(
             CheckedSupplier<List<T>, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor) {
 
-        return entityAssembler(topLevelEntitiesProvider, idExtractor, ArrayList::new, UncheckedException::new);
+        return of(topLevelEntitiesProvider, idExtractor, ArrayList::new, UncheckedException::new);
     }
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>> FluxAssembler<T, ID, C, IDC>
-    entityAssembler(
+    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>> FluxAssembler<T, ID, C, IDC> of(
             CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
             Supplier<IDC> idCollectionFactory,
