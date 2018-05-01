@@ -97,12 +97,6 @@ public final class QueryUtils {
                 .forEach(id -> resultMap.put(id, defaultResultProvider.apply(id)));
 
         return resultMap;
-
-        /*Map<ID, E> defaultValueMap = ids.stream()
-                .filter(not(idsFromQueryResult::contains))
-                .collect(toMap(identity(), defaultResultProvider));
-
-        return merge(resultMap, defaultValueMap);*/
     }
 
     public static <T, R, C extends Collection<? extends T>, D extends Collection<? extends R>, EX extends Throwable>

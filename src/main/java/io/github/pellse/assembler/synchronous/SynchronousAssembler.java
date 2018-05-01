@@ -309,6 +309,11 @@ public class SynchronousAssembler<T, ID, C extends Collection<T>, IDC extends Co
         });
     }
 
+    @Override
+    public <R> Stream<?> assemble(BiFunction<T, ? super Object[], R> domainObjectBuilderFunction, Mapper<ID, ?, IDC, Throwable>[] mappers) {
+        return null;
+    }
+
     private <R> Stream<R> assemble(CheckedFunction2<C, IDC, Stream<R>, Throwable> domainObjectBuilder) {
 
         try {

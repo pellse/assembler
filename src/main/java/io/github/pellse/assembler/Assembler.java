@@ -25,7 +25,7 @@ import java.util.function.BiFunction;
 public interface Assembler<T, ID, IDC extends Collection<ID>, RC> {
 
     <E1, R> RC assemble(
-            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E1, IDC, Throwable> mapper,
             BiFunction<T, E1, R> domainObjectBuilderFunction);
 
     <E1, E2, R> RC assemble(
@@ -122,4 +122,6 @@ public interface Assembler<T, ID, IDC extends Collection<ID>, RC> {
             Mapper<ID, E10, IDC, Throwable> mapper10,
             Mapper<ID, E11, IDC, Throwable> mapper11,
             Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> domainObjectBuilderFunction);
+
+    <R> RC assemble(BiFunction<T, ? super Object[], R> domainObjectBuilderFunction, Mapper<ID, ?, IDC, Throwable>[] mappers);
 }
