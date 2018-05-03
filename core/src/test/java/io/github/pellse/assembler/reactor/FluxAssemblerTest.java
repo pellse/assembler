@@ -16,6 +16,7 @@
 
 package io.github.pellse.assembler.reactor;
 
+import io.github.pellse.assembler.core.CoreAssembler;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 

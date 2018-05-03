@@ -1,78 +1,81 @@
-group 'io.github.pellse'
-version '1.0-SNAPSHOT'
 
-apply plugin: 'java'
-apply plugin: 'maven'
-apply plugin: 'signing'
+subprojects {
+    group 'io.github.pellse'
+    version '1.0-SNAPSHOT'
 
-sourceCompatibility = 1.9
+    apply plugin: 'java'
+    apply plugin: 'maven'
+    apply plugin: 'signing'
 
-repositories {
-    mavenCentral()
-}
+    sourceCompatibility = 1.10
 
-dependencies {
-    compile group: 'io.projectreactor', name: 'reactor-core', version: '3.1.6.RELEASE'
-
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    testCompile 'org.hamcrest:hamcrest-library:1.3'
-}
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-artifacts {
-    archives jar, javadocJar, sourcesJar
-}
-
-signing {
-    sign configurations.archives
-}
-
-uploadArchives {
     repositories {
-        mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+        mavenCentral()
+    }
 
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
+    dependencies {
+        compile group: 'io.projectreactor', name: 'reactor-core', version: '3.1.6.RELEASE'
 
-            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
+        testCompile group: 'junit', name: 'junit', version: '4.12'
+        testCompile 'org.hamcrest:hamcrest-library:1.3'
+    }
 
-            pom.project {
-                name 'assembler'
-                version '0.0.3'
-                packaging 'jar'
-                description 'Small library allowing to efficiently assemble entities from querying/merging external datasources or aggregating microservices'
-                url 'https://github.com/pellse/assembler'
+    task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
 
-                scm {
-                    connection 'scm:git@github.com:pellse/assembler.git'
-                    developerConnection 'scm:git@github.com:pellse/assembler.git'
-                    url 'scm:git@github.com:pellse/assembler.git'
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    artifacts {
+        archives jar, javadocJar, sourcesJar
+    }
+
+    signing {
+        sign configurations.archives
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
                 }
 
-                licenses {
-                    license {
-                        name 'The Apache License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                pom.project {
+                    //name 'assembler'
+                    version '0.0.3'
+                    packaging 'jar'
+                    description 'Small library allowing to efficiently assemble entities from querying/merging external datasources or aggregating microservices'
+                    url 'https://github.com/pellse/assembler'
+
+                    scm {
+                        connection 'scm:git@github.com:pellse/assembler.git'
+                        developerConnection 'scm:git@github.com:pellse/assembler.git'
+                        url 'scm:git@github.com:pellse/assembler.git'
                     }
-                }
 
-                developers {
-                    developer {
-                        id 'pellse'
-                        name 'Sebastien Pelletier'
+                    licenses {
+                        license {
+                            name 'The Apache License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id 'pellse'
+                            name 'Sebastien Pelletier'
+                        }
                     }
                 }
             }

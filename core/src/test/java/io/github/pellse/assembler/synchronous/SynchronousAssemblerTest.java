@@ -22,17 +22,12 @@ import org.junit.Test;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static io.github.pellse.assembler.synchronous.SynchronousAssembler.entityAssembler;
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
-import static io.github.pellse.util.query.MapperUtils.oneToMany;
-import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
-import static io.github.pellse.util.query.MapperUtils.oneToOne;
-import static java.util.Arrays.asList;
+import static io.github.pellse.util.query.MapperUtils.*;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -67,33 +62,13 @@ public class SynchronousAssemblerTest {
             orderItem22));
     private Transaction transaction3 = new Transaction(customer3, billingInfo3, emptyList());
 
-    @Test
-    public void testAssembleWithBuilder() {
-
-        CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
-
-        List<Transaction> transactions = AssemblerBuilder.<Customer, Long, List<Customer>, List<Long>>builder()
-                .entitiesProvider(customerProvider)
-                .entityIdExtractor(Customer::getCustomerId)
-                .idCollectionFactory(LinkedList::new)
-                .errorHandler(e -> sneakyThrow(new UncheckedException(e)))
-                .build()
-                .assemble(
-                        oneToOne(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId,
-                                BillingInfo::new),
-                        oneToManyAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
-                        Transaction::new)
-                .collect(toList());
-
-        assertThat(transactions, equalTo(asList(transaction1, transaction2, transaction3)));
-    }
 
     @Test
     public void testAssemble() {
 
         CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
 
-        List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId)
+        List<Transaction> transactions = SynchronousAssembler.of(customerProvider, Customer::getCustomerId)
                 .assemble(
                         oneToOne(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(this::queryDatabaseForAllOrders, OrderItem::getCustomerId),
@@ -108,7 +83,7 @@ public class SynchronousAssemblerTest {
 
         CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
 
-        List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new,
+        List<Transaction> transactions = SynchronousAssembler.of(customerProvider, Customer::getCustomerId, ArrayList::new,
                 this::throwUncheckedException)
                 .assemble(
                         oneToOne(this::queryDatabaseForBillingInfos, BillingInfo::getCustomerId),
@@ -124,7 +99,7 @@ public class SynchronousAssemblerTest {
 
         CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
 
-        List<Transaction> transactions = entityAssembler(customerProvider, Customer::getCustomerId, ArrayList::new,
+        List<Transaction> transactions = SynchronousAssembler.of(customerProvider, Customer::getCustomerId, ArrayList::new,
                 this::throwUncheckedException)
                 .assemble(
                         oneToOne(this::queryDatabaseForBillingInfosAndThrow, BillingInfo::getCustomerId),
@@ -143,13 +118,13 @@ public class SynchronousAssemblerTest {
         throw new SQLException("Unable to query database");
     }
 
-    private List<BillingInfo> queryDatabaseForBillingInfos(List<Long> customerIds) throws SQLException {
+    private List<BillingInfo> queryDatabaseForBillingInfos(List<Long> customerIds) {
         return Stream.of(billingInfo1, null, billingInfo3)
                 .filter(adr -> adr == null || customerIds.contains(adr.getCustomerId()))
                 .collect(toList());
     }
 
-    private List<OrderItem> queryDatabaseForAllOrders(List<Long> customerIds) throws SQLException {
+    private List<OrderItem> queryDatabaseForAllOrders(List<Long> customerIds) {
         //throw new SQLException("Throwable in queryDatabaseForAllOrders");
         return Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()))
