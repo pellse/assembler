@@ -1,0 +1,5 @@
+dependencies {
+    compile project(':core')
+
+    compile group: 'io.projectreactor', name: 'reactor-core', version: '3.1.6.RELEASE'
+}

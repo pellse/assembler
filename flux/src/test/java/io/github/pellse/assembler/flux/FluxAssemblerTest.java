@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.reactor;
+package io.github.pellse.assembler.flux;
 
-import io.github.pellse.assembler.core.CoreAssembler;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 

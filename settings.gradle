@@ -1,3 +1,3 @@
 rootProject.name = 'assembler'
 
-include 'core'
+include 'core', 'flux', 'synchronous', 'util'

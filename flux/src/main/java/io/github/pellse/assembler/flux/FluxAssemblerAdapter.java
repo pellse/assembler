@@ -1,4 +1,4 @@
-package io.github.pellse.assembler.reactor;
+package io.github.pellse.assembler.flux;
 
 import io.github.pellse.assembler.AssemblerAdapter;
 import reactor.core.publisher.Flux;
