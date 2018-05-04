@@ -1,79 +1,152 @@
-
 subprojects {
-    group 'io.github.pellse'
-    version '1.0-SNAPSHOT'
-
     apply plugin: 'java'
-    apply plugin: 'maven'
+    apply plugin: 'maven-publish'
     apply plugin: 'signing'
 
-    sourceCompatibility = 1.10
+    sourceCompatibility = 1.9
 
     repositories {
         mavenCentral()
     }
 
     dependencies {
-        testCompile group: 'junit', name: 'junit', version: '4.12'
+        compile 'org.projectlombok:lombok:1.16.20'
+
+        testCompile 'junit:junit:4.+'
         testCompile 'org.hamcrest:hamcrest-library:1.3'
     }
 
-    task javadocJar(type: Jar) {
-        classifier = 'javadoc'
-        from javadoc
+    test {
+        // show standard out and standard error of the test JVM(s) on the console
+        testLogging.showStandardStreams = true
     }
 
-    task sourcesJar(type: Jar) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
+    task sourceJar(type: Jar) {
+        classifier "sources"
+        from sourceSets.main.allJava
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        classifier "javadoc"
+        from javadoc.destinationDir
     }
 
     artifacts {
-        archives jar, javadocJar, sourcesJar
+        archives jar
+        archives sourceJar
+        archives javadocJar
     }
 
     signing {
         sign configurations.archives
     }
 
-    uploadArchives {
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                customizePom(pom)
+                groupId 'io.github.pellse'
+                artifactId project.name
+                version '0.0.3'
+
+                from components.java
+
+                // create the sign pom artifact
+                pom.withXml {
+                    def pomFile = file("${project.buildDir}/generated-pom.xml")
+                    writeTo(pomFile)
+                    def pomAscFile = signing.sign(pomFile).signatureFiles[0]
+                    artifact(pomAscFile) {
+                        classifier = null
+                        extension = 'pom.asc'
+                    }
+                }
+
+                artifact(sourceJar) {
+                    classifier = 'sources'
+                }
+                artifact(javadocJar) {
+                    classifier = 'javadoc'
+                }
+
+                // create the signed artifacts
+                project.tasks.signArchives.signatureFiles.each {
+                    artifact(it) {
+                        def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
+                        if (matcher.find()) {
+                            classifier = matcher.group(1)
+                        } else {
+                            classifier = null
+                        }
+                        extension = 'jar.asc'
+                    }
+                }
+            }
+        }
         repositories {
-            mavenDeployer {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
+            maven {
+                url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+                credentials {
+                    username ossrhUsername
+                    password ossrhPassword
                 }
+            }
+        }
+    }
 
-                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
+    model {
+        tasks.generatePomFileForMavenJavaPublication {
+            destination = file("$buildDir/generated-pom.xml")
+        }
+        tasks.publishMavenJavaPublicationToMavenLocal {
+            dependsOn project.tasks.signArchives
+        }
+        tasks.publishMavenJavaPublicationToMavenRepository {
+            dependsOn project.tasks.signArchives
+        }
+    }
+}
+
+def customizePom(pom) {
+    pom.withXml {
+        def root = asNode()
+
+        // eliminate test-scoped dependencies (no need in maven central POMs)
+        root.dependencies.removeAll { dep ->
+            dep.scope == "test"
+        }
+
+        // add all items necessary for maven central publication
+        root.children().last() + {
+            resolveStrategy = Closure.DELEGATE_FIRST
+
+            description 'Small library allowing to efficiently assemble entities from querying/merging external datasources or aggregating microservices'
+            name project.name
+            url 'https://github.com/pellse/assembler'
+            organization {
+                name 'io.github.pellse'
+                url 'https://github.com/pellse'
+            }
+            issueManagement {
+                system 'GitHub'
+                url 'https://github.com/pellse/assembler/issues'
+            }
+            licenses {
+                license {
+                    name 'The Apache License, Version 2.0'
+                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    distribution 'repo'
                 }
-
-                pom.project {
-                    version '0.0.3'
-                    packaging 'jar'
-                    description 'Small library allowing to efficiently assemble entities from querying/merging external datasources or aggregating microservices'
-                    url 'https://github.com/pellse/assembler'
-
-                    scm {
-                        connection 'scm:git@github.com:pellse/assembler.git'
-                        developerConnection 'scm:git@github.com:pellse/assembler.git'
-                        url 'scm:git@github.com:pellse/assembler.git'
-                    }
-
-                    licenses {
-                        license {
-                            name 'The Apache License, Version 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id 'pellse'
-                            name 'Sebastien Pelletier'
-                        }
-                    }
+            }
+            scm {
+                connection 'scm:git@github.com:pellse/assembler.git'
+                developerConnection 'scm:git@github.com:pellse/assembler.git'
+                url 'scm:git@github.com:pellse/assembler.git'
+            }
+            developers {
+                developer {
+                    id 'pellse'
+                    name 'Sebastien Pelletier'
                 }
             }
         }
