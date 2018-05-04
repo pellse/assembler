@@ -43,11 +43,11 @@ public class CoreAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
 
     private final AssemblerAdapter<ID, M, RC> assemblerAdapter;
 
-    public CoreAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
-                         Function<T, ID> idExtractor,
-                         Supplier<IDC> idCollectionFactory,
-                         Function<Throwable, RuntimeException> errorConverter,
-                         AssemblerAdapter<ID, M, RC> assemblerAdapter) {
+    private CoreAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+                          Function<T, ID> idExtractor,
+                          Supplier<IDC> idCollectionFactory,
+                          Function<Throwable, RuntimeException> errorConverter,
+                          AssemblerAdapter<ID, M, RC> assemblerAdapter) {
 
         this.topLevelEntitiesProvider = topLevelEntitiesProvider;
         this.idExtractor = idExtractor;
@@ -234,7 +234,8 @@ public class CoreAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
                         (t, id) -> domainObjectBuilder.apply(t,
                                 mapperResults.stream()
                                         .map(mapperResult -> mapperResult.get(id))
-                                        .toArray())));
+                                        .toArray())),
+                errorConverter);
     }
 
     private <R> Stream<R> buildDomainObjectStream(C topLevelEntities, BiFunction<T, ID, R> domainObjectBuilder) {

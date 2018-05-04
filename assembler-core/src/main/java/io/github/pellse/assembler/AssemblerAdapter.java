@@ -10,5 +10,7 @@ public interface AssemblerAdapter<ID, M, RC> {
 
     M convertMapperSupplier(Supplier<Map<ID, ?>> mapperSupplier);
 
-    <R> RC convertMapperSources(List<M> sources, Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder);
+    <R> RC convertMapperSources(List<M> sources,
+                                Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
+                                Function<Throwable, RuntimeException> errorConverter);
 }

@@ -38,7 +38,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
 
     private final CoreAssembler<T, ID, C, IDC, Mono<Map<ID, ?>>, Flux<?>> coreAssembler;
 
-    public FluxAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+    private FluxAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                          Function<T, ID> idExtractor,
                          Supplier<IDC> idCollectionFactory,
                          Function<Throwable, RuntimeException> errorConverter) {

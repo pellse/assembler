@@ -37,7 +37,7 @@ public class SynchronousAssembler<T, ID, C extends Collection<T>, IDC extends Co
 
     private final CoreAssembler<T, ID, C, IDC, Supplier<Map<ID, ?>>, Stream<?>> coreAssembler;
 
-    public SynchronousAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+    private SynchronousAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                                 Function<T, ID> idExtractor,
                                 Supplier<IDC> idCollectionFactory,
                                 Function<Throwable, RuntimeException> errorConverter) {

@@ -10,6 +10,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static java.util.stream.Collectors.toList;
 
 class FluxAssemblerAdapter<ID> implements AssemblerAdapter<ID, Mono<Map<ID, ?>>, Flux<?>> {
@@ -22,12 +23,13 @@ class FluxAssemblerAdapter<ID> implements AssemblerAdapter<ID, Mono<Map<ID, ?>>,
     @SuppressWarnings("unchecked")
     @Override
     public <R> Flux<R> convertMapperSources(List<Mono<Map<ID, ?>>> sources,
-                                            Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
+                                            Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
+                                            Function<Throwable, RuntimeException> errorConverter) {
         return Flux.zip(sources, mapperResults -> domainObjectStreamBuilder.apply(
                 Stream.of(mapperResults)
                         .map(mapResult -> (Map<ID, ?>) mapResult)
                         .collect(toList())))
-                .flatMap(Flux::fromStream);
-                //.doOnError(e -> sneakyThrow(errorConverter.apply(e)));
+                .flatMap(Flux::fromStream)
+                .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
     }
 }

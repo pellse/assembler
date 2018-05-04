@@ -17,7 +17,6 @@
 package io.github.pellse.assembler.synchronous;
 
 import io.github.pellse.assembler.AssemblerTestUtils;
-import io.github.pellse.assembler.BillingInfo;
 import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.function.checked.UncheckedException;
 import org.junit.Test;
@@ -26,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
-import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static io.github.pellse.util.query.MapperUtils.*;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.core.IsEqual.equalTo;

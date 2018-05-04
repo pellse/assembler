@@ -17,10 +17,10 @@
 package io.github.pellse.assembler.flux;
 
 import io.github.pellse.assembler.AssemblerTestUtils;
+import io.github.pellse.assembler.AssemblerTestUtils.BillingInfo;
 import io.github.pellse.assembler.AssemblerTestUtils.Customer;
 import io.github.pellse.assembler.AssemblerTestUtils.OrderItem;
 import io.github.pellse.assembler.AssemblerTestUtils.Transaction;
-import io.github.pellse.assembler.BillingInfo;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 

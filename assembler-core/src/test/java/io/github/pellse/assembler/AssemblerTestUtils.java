@@ -70,6 +70,19 @@ public final class AssemblerTestUtils {
 
     @Data
     @AllArgsConstructor
+    public static class BillingInfo {
+        private static final String UNKNOWN = "unknown";
+
+        private final Long customerId;
+        private final String creditCardNumber;
+
+        public BillingInfo(Long customerId) {
+            this(customerId, UNKNOWN);
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
     public static class OrderItem {
         private final Long customerId;
         private final String orderDescription;
