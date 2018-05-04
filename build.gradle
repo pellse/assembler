@@ -50,7 +50,6 @@ subprojects {
                 }
 
                 pom.project {
-                    name 'assembler'
                     version '0.0.3'
                     packaging 'jar'
                     description 'Small library allowing to efficiently assemble entities from querying/merging external datasources or aggregating microservices'

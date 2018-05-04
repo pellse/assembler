@@ -32,7 +32,7 @@ public interface CheckedRunnable<E extends Throwable> extends Runnable {
         }
     }
 
-    public static <E1 extends Throwable> CheckedRunnable<E1> of(CheckedRunnable<E1> runnable) {
+    static <E1 extends Throwable> CheckedRunnable<E1> of(CheckedRunnable<E1> runnable) {
         return runnable;
     }
 }
