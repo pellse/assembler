@@ -42,8 +42,8 @@ public class SynchronousAssemblerTest {
 
         List<Transaction> transactions = SynchronousAssembler.of(customerProvider, Customer::getCustomerId)
                 .assemble(
-                        oneToOne(AssemblerTestUtils::queryBillingInfoForAllCustomersIn, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::queryAllOrdersForAllCustomersIn, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .collect(toList());
 
@@ -57,8 +57,8 @@ public class SynchronousAssemblerTest {
 
         List<Transaction> transactions = SynchronousAssembler.of(customerProvider, Customer::getCustomerId)
                 .assemble(
-                        oneToOne(AssemblerTestUtils::queryBillingInfoForAllCustomersIn, BillingInfo::getCustomerId),
-                        oneToMany(AssemblerTestUtils::queryAllOrdersForAllCustomersIn, OrderItem::getCustomerId, ArrayList::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+                        oneToMany(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, ArrayList::new),
                         Transaction::new)
                 .collect(toList());
 
@@ -73,7 +73,7 @@ public class SynchronousAssemblerTest {
         List<Transaction> transactions = SynchronousAssembler.of(customerProvider, Customer::getCustomerId)
                 .assemble(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId),
-                        oneToManyAsList(AssemblerTestUtils::queryAllOrdersForAllCustomersIn, OrderItem::getCustomerId),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .collect(toList());
 

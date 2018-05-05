@@ -28,21 +28,22 @@ public final class AssemblerTestUtils {
     public static final Customer customer2 = new Customer(2L, "Erick Daria");
     public static final Customer customer3 = new Customer(3L, "Brenden Jacob");
 
+    public static final Transaction transaction2WithNullBillingInfo = new Transaction(customer2, null,
+            List.of(orderItem21, orderItem22));
+
     public static final Transaction transaction1 = new Transaction(customer1, billingInfo1,
             List.of(orderItem11, orderItem12, orderItem13));
     public static final Transaction transaction2 = new Transaction(customer2, billingInfo2Unknown,
             List.of(orderItem21, orderItem22));
-    public static final Transaction transaction2WithNullBillingInfo = new Transaction(customer2, null,
-            List.of(orderItem21, orderItem22));
     public static final Transaction transaction3 = new Transaction(customer3, billingInfo3, emptyList());
 
-    public static List<BillingInfo> queryBillingInfoForAllCustomersIn(List<Long> customerIds) throws SQLException {
+    public static List<BillingInfo> getBillingInfoForCustomers(List<Long> customerIds) throws SQLException {
         return Stream.of(billingInfo1, null, billingInfo3)
                 .filter(adr -> adr == null || customerIds.contains(adr.getCustomerId()))
                 .collect(toList());
     }
 
-    public static List<OrderItem> queryAllOrdersForAllCustomersIn(List<Long> customerIds) throws SQLException {
+    public static List<OrderItem> getAllOrdersForCustomers(List<Long> customerIds) throws SQLException {
         //throw new SQLException("Exception in queryDatabaseForAllOrders");
         return Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()))

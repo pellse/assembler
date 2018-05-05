@@ -17,49 +17,49 @@
 package io.github.pellse.assembler.flux;
 
 import io.github.pellse.assembler.AssemblerTestUtils;
-import io.github.pellse.assembler.AssemblerTestUtils.BillingInfo;
-import io.github.pellse.assembler.AssemblerTestUtils.Customer;
-import io.github.pellse.assembler.AssemblerTestUtils.OrderItem;
-import io.github.pellse.assembler.AssemblerTestUtils.Transaction;
+import io.github.pellse.assembler.AssemblerTestUtils.*;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 
-import static io.github.pellse.assembler.AssemblerTestUtils.customer1;
-import static io.github.pellse.assembler.AssemblerTestUtils.customer2;
-import static io.github.pellse.assembler.AssemblerTestUtils.customer3;
+import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
-import static java.time.Duration.ofMillis;
 import static java.util.Arrays.asList;
-import static reactor.core.publisher.Flux.interval;
-import static reactor.core.publisher.Flux.zip;
 
 public class FluxAssemblerTest {
 
     @Test
-    public void testAssembleWithFlux() throws Exception {
+    public void testAssembleWithFlux() {
 
-        List<Customer> customerList = asList(customer1, customer2, customer3);
+        List<Customer> customerList = asList(customer1, customer2, customer3, customer1, customer2);
 
-        Flux<Customer> customerFlux = Flux.generate(() -> 0, (index, sink) -> {
-            sink.next(customerList.get(index));
-            return ++index % 3;
-        });
-        Flux<Customer> intervalCustomerFlux = zip(customerFlux, interval(ofMillis(200)), (cust, l) -> cust);
+        StepVerifier.create(FluxAssembler.of(customerList, Customer::getCustomerId)
+                .assemble(
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
+                .expectComplete()
+                .verify();
+    }
 
-        intervalCustomerFlux
-                .log()
-                .bufferTimeout(3, ofMillis(200))
+    @Test
+    public void testAssembleWithFluxWithBuffering() {
+
+        StepVerifier.create(Flux.just(customer1, customer2, customer3, customer1, customer2)
+                .buffer(3)
                 .flatMap(customers -> FluxAssembler.of(customers, Customer::getCustomerId)
                         .assemble(
-                                oneToOne(AssemblerTestUtils::queryBillingInfoForAllCustomersIn, BillingInfo::getCustomerId),
-                                oneToManyAsList(AssemblerTestUtils::queryAllOrdersForAllCustomersIn, OrderItem::getCustomerId),
-                                Transaction::new))
-                .doOnError(e -> System.out.println("error: " + e))
-                .subscribe(e -> System.out.println(Thread.currentThread().getName() + ", " + e));
-
-        Thread.sleep(500000);
+                                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                                Transaction::new)))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
+                .expectComplete()
+                .verify();
     }
 }
