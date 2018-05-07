@@ -20,6 +20,7 @@ import io.github.pellse.assembler.Assembler;
 import io.github.pellse.assembler.AssemblerAdapter;
 import io.github.pellse.util.function.*;
 import io.github.pellse.util.function.checked.CheckedSupplier;
+import io.github.pellse.util.function.checked.UncheckedException;
 import io.github.pellse.util.query.Mapper;
 
 import java.util.Collection;
@@ -30,6 +31,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
@@ -49,11 +51,11 @@ public class CoreAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
                           Function<Throwable, RuntimeException> errorConverter,
                           AssemblerAdapter<ID, M, RC> assemblerAdapter) {
 
-        this.topLevelEntitiesProvider = topLevelEntitiesProvider;
-        this.idExtractor = idExtractor;
-        this.idCollectionFactory = idCollectionFactory;
-        this.errorConverter = errorConverter;
-        this.assemblerAdapter = assemblerAdapter;
+        this.topLevelEntitiesProvider = requireNonNull(topLevelEntitiesProvider);
+        this.idExtractor = requireNonNull(idExtractor);
+        this.idCollectionFactory = requireNonNull(idCollectionFactory);
+        this.errorConverter = errorConverter != null ? errorConverter : UncheckedException::new;
+        this.assemblerAdapter = requireNonNull(assemblerAdapter);
     }
 
     @SuppressWarnings("unchecked")
