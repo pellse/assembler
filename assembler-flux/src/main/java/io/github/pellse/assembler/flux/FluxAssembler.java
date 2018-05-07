@@ -39,9 +39,9 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
     private final CoreAssembler<T, ID, C, IDC, Mono<Map<ID, ?>>, Flux<?>> coreAssembler;
 
     private FluxAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
-                         Function<T, ID> idExtractor,
-                         Supplier<IDC> idCollectionFactory,
-                         Function<Throwable, RuntimeException> errorConverter) {
+                          Function<T, ID> idExtractor,
+                          Supplier<IDC> idCollectionFactory,
+                          Function<Throwable, RuntimeException> errorConverter) {
 
         coreAssembler = CoreAssembler.of(topLevelEntitiesProvider, idExtractor, idCollectionFactory, errorConverter,
                 new FluxAssemblerAdapter<>());
@@ -49,133 +49,144 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper,
-                                    BiFunction<T, E1, R> domainObjectBuilder) {
+    public <E1, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper,
+            BiFunction<T, E1, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                        Mapper<ID, E2, IDC, Throwable> mapper2,
-                                        Function3<T, E1, E2, R> domainObjectBuilder) {
+    public <E1, E2, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Function3<T, E1, E2, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, E3, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                            Mapper<ID, E2, IDC, Throwable> mapper2,
-                                            Mapper<ID, E3, IDC, Throwable> mapper3,
-                                            Function4<T, E1, E2, E3, R> domainObjectBuilder) {
+    public <E1, E2, E3, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Function4<T, E1, E2, E3, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, mapper3, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, E3, E4, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                                Mapper<ID, E2, IDC, Throwable> mapper2,
-                                                Mapper<ID, E3, IDC, Throwable> mapper3,
-                                                Mapper<ID, E4, IDC, Throwable> mapper4,
-                                                Function5<T, E1, E2, E3, E4, R> domainObjectBuilder) {
+    public <E1, E2, E3, E4, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Function5<T, E1, E2, E3, E4, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, mapper3, mapper4, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, E3, E4, E5, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                                    Mapper<ID, E2, IDC, Throwable> mapper2,
-                                                    Mapper<ID, E3, IDC, Throwable> mapper3,
-                                                    Mapper<ID, E4, IDC, Throwable> mapper4,
-                                                    Mapper<ID, E5, IDC, Throwable> mapper5,
-                                                    Function6<T, E1, E2, E3, E4, E5, R> domainObjectBuilder) {
+    public <E1, E2, E3, E4, E5, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Function6<T, E1, E2, E3, E4, E5, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, mapper3, mapper4, mapper5, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, E3, E4, E5, E6, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                                        Mapper<ID, E2, IDC, Throwable> mapper2,
-                                                        Mapper<ID, E3, IDC, Throwable> mapper3,
-                                                        Mapper<ID, E4, IDC, Throwable> mapper4,
-                                                        Mapper<ID, E5, IDC, Throwable> mapper5,
-                                                        Mapper<ID, E6, IDC, Throwable> mapper6,
-                                                        Function7<T, E1, E2, E3, E4, E5, E6, R> domainObjectBuilder) {
+    public <E1, E2, E3, E4, E5, E6, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Function7<T, E1, E2, E3, E4, E5, E6, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, E3, E4, E5, E6, E7, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                                            Mapper<ID, E2, IDC, Throwable> mapper2,
-                                                            Mapper<ID, E3, IDC, Throwable> mapper3,
-                                                            Mapper<ID, E4, IDC, Throwable> mapper4,
-                                                            Mapper<ID, E5, IDC, Throwable> mapper5,
-                                                            Mapper<ID, E6, IDC, Throwable> mapper6,
-                                                            Mapper<ID, E7, IDC, Throwable> mapper7,
-                                                            Function8<T, E1, E2, E3, E4, E5, E6, E7, R> domainObjectBuilder) {
+    public <E1, E2, E3, E4, E5, E6, E7, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Mapper<ID, E7, IDC, Throwable> mapper7,
+            Function8<T, E1, E2, E3, E4, E5, E6, E7, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, E3, E4, E5, E6, E7, E8, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                                                Mapper<ID, E2, IDC, Throwable> mapper2,
-                                                                Mapper<ID, E3, IDC, Throwable> mapper3,
-                                                                Mapper<ID, E4, IDC, Throwable> mapper4,
-                                                                Mapper<ID, E5, IDC, Throwable> mapper5,
-                                                                Mapper<ID, E6, IDC, Throwable> mapper6,
-                                                                Mapper<ID, E7, IDC, Throwable> mapper7,
-                                                                Mapper<ID, E8, IDC, Throwable> mapper8,
-                                                                Function9<T, E1, E2, E3, E4, E5, E6, E7, E8, R> domainObjectBuilder) {
+    public <E1, E2, E3, E4, E5, E6, E7, E8, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Mapper<ID, E7, IDC, Throwable> mapper7,
+            Mapper<ID, E8, IDC, Throwable> mapper8,
+            Function9<T, E1, E2, E3, E4, E5, E6, E7, E8, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, E3, E4, E5, E6, E7, E8, E9, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                                                    Mapper<ID, E2, IDC, Throwable> mapper2,
-                                                                    Mapper<ID, E3, IDC, Throwable> mapper3,
-                                                                    Mapper<ID, E4, IDC, Throwable> mapper4,
-                                                                    Mapper<ID, E5, IDC, Throwable> mapper5,
-                                                                    Mapper<ID, E6, IDC, Throwable> mapper6,
-                                                                    Mapper<ID, E7, IDC, Throwable> mapper7,
-                                                                    Mapper<ID, E8, IDC, Throwable> mapper8,
-                                                                    Mapper<ID, E9, IDC, Throwable> mapper9,
-                                                                    Function10<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, R> domainObjectBuilder) {
+    public <E1, E2, E3, E4, E5, E6, E7, E8, E9, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Mapper<ID, E7, IDC, Throwable> mapper7,
+            Mapper<ID, E8, IDC, Throwable> mapper8,
+            Mapper<ID, E9, IDC, Throwable> mapper9,
+            Function10<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, mapper9, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                                                         Mapper<ID, E2, IDC, Throwable> mapper2,
-                                                                         Mapper<ID, E3, IDC, Throwable> mapper3,
-                                                                         Mapper<ID, E4, IDC, Throwable> mapper4,
-                                                                         Mapper<ID, E5, IDC, Throwable> mapper5,
-                                                                         Mapper<ID, E6, IDC, Throwable> mapper6,
-                                                                         Mapper<ID, E7, IDC, Throwable> mapper7,
-                                                                         Mapper<ID, E8, IDC, Throwable> mapper8,
-                                                                         Mapper<ID, E9, IDC, Throwable> mapper9,
-                                                                         Mapper<ID, E10, IDC, Throwable> mapper10,
-                                                                         Function11<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> domainObjectBuilder) {
+    public <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Mapper<ID, E7, IDC, Throwable> mapper7,
+            Mapper<ID, E8, IDC, Throwable> mapper8,
+            Mapper<ID, E9, IDC, Throwable> mapper9,
+            Mapper<ID, E10, IDC, Throwable> mapper10,
+            Function11<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, mapper9, mapper10, domainObjectBuilder);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> Flux<R> assemble(Mapper<ID, E1, IDC, Throwable> mapper1,
-                                                                              Mapper<ID, E2, IDC, Throwable> mapper2,
-                                                                              Mapper<ID, E3, IDC, Throwable> mapper3,
-                                                                              Mapper<ID, E4, IDC, Throwable> mapper4,
-                                                                              Mapper<ID, E5, IDC, Throwable> mapper5,
-                                                                              Mapper<ID, E6, IDC, Throwable> mapper6,
-                                                                              Mapper<ID, E7, IDC, Throwable> mapper7,
-                                                                              Mapper<ID, E8, IDC, Throwable> mapper8,
-                                                                              Mapper<ID, E9, IDC, Throwable> mapper9,
-                                                                              Mapper<ID, E10, IDC, Throwable> mapper10,
-                                                                              Mapper<ID, E11, IDC, Throwable> mapper11,
-                                                                              Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> domainObjectBuilder) {
+    public <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> Flux<R> assemble(
+            Mapper<ID, E1, IDC, Throwable> mapper1,
+            Mapper<ID, E2, IDC, Throwable> mapper2,
+            Mapper<ID, E3, IDC, Throwable> mapper3,
+            Mapper<ID, E4, IDC, Throwable> mapper4,
+            Mapper<ID, E5, IDC, Throwable> mapper5,
+            Mapper<ID, E6, IDC, Throwable> mapper6,
+            Mapper<ID, E7, IDC, Throwable> mapper7,
+            Mapper<ID, E8, IDC, Throwable> mapper8,
+            Mapper<ID, E9, IDC, Throwable> mapper9,
+            Mapper<ID, E10, IDC, Throwable> mapper10,
+            Mapper<ID, E11, IDC, Throwable> mapper11,
+            Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> domainObjectBuilder) {
         return (Flux<R>) coreAssembler.assemble(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, mapper9, mapper10, mapper11, domainObjectBuilder);
     }
 
