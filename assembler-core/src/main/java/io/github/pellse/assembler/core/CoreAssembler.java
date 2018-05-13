@@ -25,6 +25,7 @@ import io.github.pellse.util.query.Mapper;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -33,9 +34,8 @@ import java.util.stream.Stream;
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toCollection;
-import static java.util.stream.Collectors.toList;
 
-public class CoreAssembler<T, ID, C extends Collection<T>, IDC extends Collection<ID>, M, RC>
+public class CoreAssembler<T, ID, C extends Collection<T>, IDC extends Collection<ID>, RC>
         implements Assembler<T, ID, IDC, RC> {
 
     private final Supplier<C> topLevelEntitiesProvider;
@@ -43,13 +43,13 @@ public class CoreAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
     private final Supplier<IDC> idCollectionFactory;
     private final Function<Throwable, RuntimeException> errorConverter;
 
-    private final AssemblerAdapter<ID, M, RC> assemblerAdapter;
+    private final AssemblerAdapter<ID, RC> assemblerAdapter;
 
     private CoreAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                           Function<T, ID> idExtractor,
                           Supplier<IDC> idCollectionFactory,
                           Function<Throwable, RuntimeException> errorConverter,
-                          AssemblerAdapter<ID, M, RC> assemblerAdapter) {
+                          AssemblerAdapter<ID, RC> assemblerAdapter) {
 
         this.topLevelEntitiesProvider = requireNonNull(topLevelEntitiesProvider);
         this.idExtractor = requireNonNull(idExtractor);
@@ -227,9 +227,8 @@ public class CoreAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
                 .map(idExtractor)
                 .collect(toCollection(idCollectionFactory));
 
-        List<M> sources = mappers.stream()
-                .map(mapper -> assemblerAdapter.convertMapperSupplier(unchecked(() -> mapper.map(entityIDs))))
-                .collect(toList());
+        Stream<Supplier<Map<ID, ?>>> sources = mappers.stream()
+                .map(mapper -> unchecked(() -> mapper.map(entityIDs)));
 
         return assemblerAdapter.convertMapperSources(sources,
                 mapperResults -> buildDomainObjectStream(topLevelEntities,
@@ -248,12 +247,12 @@ public class CoreAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
 
     // Static factory methods
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, M, RC> CoreAssembler<T, ID, C, IDC, M, RC> of(
+    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, RC> CoreAssembler<T, ID, C, IDC, RC> of(
             CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
             Supplier<IDC> idCollectionFactory,
             Function<Throwable, RuntimeException> errorConverter,
-            AssemblerAdapter<ID, M, RC> assemblerAdapter) {
+            AssemblerAdapter<ID, RC> assemblerAdapter) {
 
         return new CoreAssembler<>(topLevelEntitiesProvider, idExtractor, idCollectionFactory, errorConverter, assemblerAdapter);
     }

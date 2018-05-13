@@ -32,11 +32,15 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
+import static java.util.stream.Collectors.toList;
 
 public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collection<ID>>
         implements Assembler<T, ID, IDC, Flux<?>> {
 
-    private final CoreAssembler<T, ID, C, IDC, Mono<Map<ID, ?>>, Flux<?>> coreAssembler;
+    private final CoreAssembler<T, ID, C, IDC, Flux<?>> coreAssembler;
 
     private FluxAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                           Function<T, ID> idExtractor,
@@ -44,7 +48,7 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
                           Function<Throwable, RuntimeException> errorConverter) {
 
         coreAssembler = CoreAssembler.of(topLevelEntitiesProvider, idExtractor, idCollectionFactory, errorConverter,
-                new FluxAssemblerAdapter<>());
+                this::convertMapperSources);
     }
 
     @Override
@@ -194,6 +198,26 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
     @SuppressWarnings("unchecked")
     public <R> Flux<R> assemble(BiFunction<T, ? super Object[], R> domainObjectBuilder, List<Mapper<ID, ?, IDC, Throwable>> mappers) {
         return (Flux<R>) coreAssembler.assemble(domainObjectBuilder, mappers);
+    }
+
+    private <R> Flux<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
+                                             Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
+                                             Function<Throwable, RuntimeException> errorConverter) {
+
+        return Flux.zip(sources.map(Mono::fromSupplier).collect(toList()), mapperResults -> domainObjectStreamBuilder.apply(transform(mapperResults)))
+                .flatMap(Flux::fromStream)
+                .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
+    }
+
+    private List<Map<ID, ?>> transform(Object[] mapperResults) {
+        return Stream.of(mapperResults)
+                .map(this::cast)
+                .collect(toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<ID, ?> cast(Object mapResult) {
+        return (Map<ID, ?>) mapResult;
     }
 
     // Static factory methods

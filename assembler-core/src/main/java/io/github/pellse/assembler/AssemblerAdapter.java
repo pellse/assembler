@@ -22,11 +22,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public interface AssemblerAdapter<ID, M, RC> {
+public interface AssemblerAdapter<ID, RC> {
 
-    M convertMapperSupplier(Supplier<Map<ID, ?>> mapperSupplier);
-
-    <R> RC convertMapperSources(List<M> sources,
+    <R> RC convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
                                 Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
                                 Function<Throwable, RuntimeException> errorConverter);
 }

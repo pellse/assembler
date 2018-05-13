@@ -32,10 +32,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toList;
+
 public class SynchronousAssembler<T, ID, C extends Collection<T>, IDC extends Collection<ID>>
         implements Assembler<T, ID, IDC, Stream<?>> {
 
-    private final CoreAssembler<T, ID, C, IDC, Supplier<Map<ID, ?>>, Stream<?>> coreAssembler;
+    private final CoreAssembler<T, ID, C, IDC, Stream<?>> coreAssembler;
 
     private SynchronousAssembler(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                                  Function<T, ID> idExtractor,
@@ -43,7 +45,7 @@ public class SynchronousAssembler<T, ID, C extends Collection<T>, IDC extends Co
                                  Function<Throwable, RuntimeException> errorConverter) {
 
         coreAssembler = CoreAssembler.of(topLevelEntitiesProvider, idExtractor, idCollectionFactory, errorConverter,
-                new SynchronousAssemblerAdapter<>());
+                this::convertMapperSources);
     }
 
     @Override
@@ -193,6 +195,18 @@ public class SynchronousAssembler<T, ID, C extends Collection<T>, IDC extends Co
     @SuppressWarnings("unchecked")
     public <R> Stream<R> assemble(BiFunction<T, ? super Object[], R> domainObjectBuilder, List<Mapper<ID, ?, IDC, Throwable>> mappers) {
         return (Stream<R>) coreAssembler.assemble(domainObjectBuilder, mappers);
+    }
+
+    private <R> Stream<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
+                                              Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
+                                              Function<Throwable, RuntimeException> errorConverter) {
+        try {
+            return domainObjectStreamBuilder.apply(sources
+                    .map(Supplier::get)
+                    .collect(toList()));
+        } catch(Throwable t) {
+            throw errorConverter.apply(t);
+        }
     }
 
     // Static factory methods
