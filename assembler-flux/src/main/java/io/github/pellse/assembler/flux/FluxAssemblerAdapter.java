@@ -42,12 +42,12 @@ class FluxAssemblerAdapter<ID> implements AssemblerAdapter<ID, Mono<Map<ID, ?>>,
                                             Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
                                             Function<Throwable, RuntimeException> errorConverter) {
 
-        return Flux.zip(sources, mapperResults -> domainObjectStreamBuilder.apply(cast(mapperResults)))
+        return Flux.zip(sources, mapperResults -> domainObjectStreamBuilder.apply(transform(mapperResults)))
                 .flatMap(Flux::fromStream)
                 .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
     }
 
-    private List<Map<ID, ?>> cast(Object[] mapperResults) {
+    private List<Map<ID, ?>> transform(Object[] mapperResults) {
         return Stream.of(mapperResults)
                 .map(this::cast)
                 .collect(toList());

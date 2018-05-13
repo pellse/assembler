@@ -31,12 +31,14 @@ import static java.util.Arrays.asList;
 
 public class FluxAssemblerTest {
 
+    private List<Customer> getCustomers() {
+        return asList(customer1, customer2, customer3, customer1, customer2);
+    }
+
     @Test
     public void testAssembleWithFlux() {
 
-        List<Customer> customerList = asList(customer1, customer2, customer3, customer1, customer2);
-
-        StepVerifier.create(FluxAssembler.of(customerList, Customer::getCustomerId)
+        StepVerifier.create(FluxAssembler.of(this::getCustomers, Customer::getCustomerId)
                 .assemble(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -50,7 +52,7 @@ public class FluxAssemblerTest {
     @Test
     public void testAssembleWithFluxWithBuffering() {
 
-        StepVerifier.create(Flux.just(customer1, customer2, customer3, customer1, customer2)
+        StepVerifier.create(Flux.fromIterable(getCustomers())
                 .buffer(3)
                 .flatMap(customers -> FluxAssembler.of(customers, Customer::getCustomerId)
                         .assemble(

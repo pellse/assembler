@@ -17,7 +17,6 @@
 package io.github.pellse.assembler.synchronous;
 
 import io.github.pellse.assembler.AssemblerTestUtils;
-import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.function.checked.UncheckedException;
 import org.junit.Test;
 
@@ -26,6 +25,7 @@ import java.util.List;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.util.query.MapperUtils.*;
+import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
@@ -35,12 +35,14 @@ import static org.junit.Assert.assertThat;
  */
 public class SynchronousAssemblerTest {
 
+    private List<Customer> getCustomers() {
+        return asList(customer1, customer2, customer3);
+    }
+
     @Test
     public void testAssemble() {
 
-        CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
-
-        List<Transaction> transactions = SynchronousAssembler.of(customerProvider, Customer::getCustomerId)
+        List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Customer::getCustomerId)
                 .assemble(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -53,9 +55,7 @@ public class SynchronousAssemblerTest {
     @Test
     public void testAssembleWithNullBillingInfo() {
 
-        CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
-
-        List<Transaction> transactions = SynchronousAssembler.of(customerProvider, Customer::getCustomerId)
+        List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Customer::getCustomerId)
                 .assemble(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId),
                         oneToMany(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, ArrayList::new),
@@ -68,9 +68,7 @@ public class SynchronousAssemblerTest {
     @Test(expected = UncheckedException.class)
     public void testAssembleWithUncheckedException() {
 
-        CheckedSupplier<List<Customer>, Throwable> customerProvider = () -> List.of(customer1, customer2, customer3);
-
-        List<Transaction> transactions = SynchronousAssembler.of(customerProvider, Customer::getCustomerId)
+        List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Customer::getCustomerId)
                 .assemble(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
