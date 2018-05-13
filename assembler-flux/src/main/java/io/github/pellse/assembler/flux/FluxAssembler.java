@@ -22,6 +22,7 @@ import io.github.pellse.util.function.*;
 import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.function.checked.UncheckedException;
 import io.github.pellse.util.query.Mapper;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -204,19 +205,21 @@ public class FluxAssembler<T, ID, C extends Collection<T>, IDC extends Collectio
                                              Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
                                              Function<Throwable, RuntimeException> errorConverter) {
 
-        return Flux.zip(sources.map(Mono::fromSupplier).collect(toList()), mapperResults -> domainObjectStreamBuilder.apply(transform(mapperResults)))
+        List<? extends Publisher<Map<ID, ?>>> publishers = sources.map(Mono::fromSupplier).collect(toList());
+
+        return Flux.zip(publishers, mapperResults -> domainObjectStreamBuilder.apply(transform(mapperResults)))
                 .flatMap(Flux::fromStream)
                 .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
     }
 
     private List<Map<ID, ?>> transform(Object[] mapperResults) {
         return Stream.of(mapperResults)
-                .map(this::cast)
+                .map(this::castToMap)
                 .collect(toList());
     }
 
     @SuppressWarnings("unchecked")
-    private Map<ID, ?> cast(Object mapResult) {
+    private Map<ID, ?> castToMap(Object mapResult) {
         return (Map<ID, ?>) mapResult;
     }
 
