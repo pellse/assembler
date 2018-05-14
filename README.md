@@ -68,7 +68,7 @@ Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers())
 ## What's next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
 
-Currently the following implementations are supported:
+Currently the following implementations are supported (with links to their respective Maven repositories):
 1. [Synchronous](https://github.com/pellse/assembler/tree/master/assembler-synchronous)
 2. [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 
