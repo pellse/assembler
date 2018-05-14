@@ -74,4 +74,4 @@ Currently the following implementations are supported:
 
 A `CompletableFuture` and Akka Stream implementation will be available soon.
 
-This page is currently weak in terms of more detailed explanations regarding how the library works and comparisons with other solutions, but stay tuned for better documentation very soon...
+This page is currently weak in terms of more detailed explanations regarding how the library works and comparisons with other solutions, but stay tuned for better documentation very soon, a dedicated series of blog posts is also coming on https://javatechnicalwealth.com/blog/
