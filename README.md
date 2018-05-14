@@ -45,7 +45,7 @@ List<OrderItem> getAllOrdersForCustomers(List<Long> customerIds); // This could 
 
 So if we have 50 customers, instead of having to make a call per *customerId* to retrieve each customer's associated `BillingInfo` list (50 calls) we can only make 1 call to retrieve all `BillingInfo`s for all `Customer`s returned by `getCustomer()`, same for `OrderItem`s. This implies though that combining of `Customer`s, `BillingInfo`s and `OrderItem`s into `Transaction`s using *customerId* as a correlation id between all those entities has to be done outside those datasources, which is what this library was implemented for:
 
-To build the `Transaction` entity we can simply combine the invocation of the methods declared above using:
+To build the `Transaction` entity we can simply combine the invocation of the methods declared above using (from [SynchronousAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-synchronous/src/test/java/io/github/pellse/assembler/synchronous/SynchronousAssemblerTest.java)):
 ```java
 List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Customer::getCustomerId)
     .assemble(
@@ -55,7 +55,7 @@ List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Cus
     .collect(toList());
 ```
 
-Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) :
+Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
 ```java
 Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers())
     .buffer(3)
