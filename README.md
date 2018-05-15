@@ -57,8 +57,8 @@ List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Cus
 
 Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
 ```java
-Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers())
-    .buffer(3)
+Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just getCustomerFlux()
+    .buffer(10) // or bufferTimeout(10, orSeconds(5)) to e.g. batch every 5 seconds or max of 10 customers
     .flatMap(customers -> FluxAssembler.of(customers, Customer::getCustomerId)
         .assemble(
              oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
