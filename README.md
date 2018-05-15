@@ -10,21 +10,21 @@ Assuming the following data model and api to return those entities:
 ```java
 @Data
 @AllArgsConstructor
-public static class Customer {
+public class Customer {
     private final Long customerId;
     private final String name;
 }
 
 @Data
 @AllArgsConstructor
-public static class BillingInfo {
+public class BillingInfo {
     private final Long customerId;
     private final String creditCardNumber;
 }
 
 @Data
 @AllArgsConstructor
-public static class OrderItem {
+public class OrderItem {
     private final Long customerId;
     private final String orderDescription;
     private final Double price;
@@ -32,7 +32,7 @@ public static class OrderItem {
 
 @Data
 @AllArgsConstructor
-public static class Transaction {
+public class Transaction {
     private final Customer customer;
     private final BillingInfo billingInfo;
     private final List<OrderItem> orderItems;
@@ -43,7 +43,7 @@ List<BillingInfo> getBillingInfoForCustomers(List<Long> customerIds); // This co
 List<OrderItem> getAllOrdersForCustomers(List<Long> customerIds); // This could be a call to an Oracle database
 ```
 
-So if we have 50 customers, instead of having to make one call per *customerId* to retrieve each customer's associated `BillingInfo` list (which would result in 50 network calls) we can only make 1 call to retrieve all at once all `BillingInfo`s for all `Customer`s returned by `getCustomer()`, same for `OrderItem`s. This implies though that combining `Customer`s, `BillingInfo`s and `OrderItem`s into `Transaction`s using *customerId* as a correlation id between all those entities has to be done outside those datasources, which is what this library was implemented for:
+So if `getCustomers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` list (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo`s for all `Customer`s returned by `getCustomer()`, same for `OrderItem`s. This implies though that combining `Customer`s, `BillingInfo`s and `OrderItem`s into `Transaction`s using *customerId* as a correlation id between all those entities has to be done outside those datasources, which is what this library was implemented for:
 
 To build the `Transaction` entity we can simply combine the invocation of the methods declared above using (from [SynchronousAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-synchronous/src/test/java/io/github/pellse/assembler/synchronous/SynchronousAssemblerTest.java)):
 ```java
@@ -55,7 +55,7 @@ List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Cus
     .collect(toList());
 ```
 
-Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
+Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
 ```java
 Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers())
     .buffer(3)
