@@ -38,12 +38,12 @@ public static class Transaction {
     private final List<OrderItem> orderItems;
 }
 
-List<Customer> getCustomers(); // This could be a REST call to an already created microservice
+List<Customer> getCustomers(); // This could be a REST call to an already existing microservice
 List<BillingInfo> getBillingInfoForCustomers(List<Long> customerIds); // This could be a call to MongoDB
 List<OrderItem> getAllOrdersForCustomers(List<Long> customerIds); // This could be a call to an Oracle database
 ```
 
-So if we have 50 customers, instead of having to make a call per *customerId* to retrieve each customer's associated `BillingInfo` list (50 calls) we can only make 1 call to retrieve all `BillingInfo`s for all `Customer`s returned by `getCustomer()`, same for `OrderItem`s. This implies though that combining of `Customer`s, `BillingInfo`s and `OrderItem`s into `Transaction`s using *customerId* as a correlation id between all those entities has to be done outside those datasources, which is what this library was implemented for:
+So if we have 50 customers, instead of having to make one call per *customerId* to retrieve each customer's associated `BillingInfo` list (which would result in 50 network calls) we can only make 1 call to retrieve all at once all `BillingInfo`s for all `Customer`s returned by `getCustomer()`, same for `OrderItem`s. This implies though that combining `Customer`s, `BillingInfo`s and `OrderItem`s into `Transaction`s using *customerId* as a correlation id between all those entities has to be done outside those datasources, which is what this library was implemented for:
 
 To build the `Transaction` entity we can simply combine the invocation of the methods declared above using (from [SynchronousAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-synchronous/src/test/java/io/github/pellse/assembler/synchronous/SynchronousAssemblerTest.java)):
 ```java
