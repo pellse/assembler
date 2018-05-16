@@ -72,6 +72,6 @@ Currently the following implementations are supported (with links to their respe
 1. [Synchronous](https://github.com/pellse/assembler/tree/master/assembler-synchronous)
 2. [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 
-A `CompletableFuture` and Akka Stream implementation will be available soon.
+A `CompletableFuture`, Akka Stream and RxJava implementation will be available soon.
 
 Stay tuned for more complete documentation very soon in terms of more detailed explanations regarding how the library works and comparisons with other solutions, a dedicated series of blog posts is also coming on https://javatechnicalwealth.com/blog/
