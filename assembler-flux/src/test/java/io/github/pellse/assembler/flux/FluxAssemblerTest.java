@@ -18,13 +18,19 @@ package io.github.pellse.assembler.flux;
 
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
+import io.github.pellse.assembler.CoreAssemblerConfig;
+import org.junit.Ignore;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.util.List;
 
+import static io.github.pellse.assembler.Assembler.assemble;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
+import static io.github.pellse.assembler.flux.FluxAssemblerAdapter.fluxAssemblerAdapter;
+import static io.github.pellse.assembler.flux.FluxAssemblerConfig.from;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static java.util.Arrays.asList;
@@ -38,8 +44,9 @@ public class FluxAssemblerTest {
     @Test
     public void testAssembleWithFlux() {
 
-        StepVerifier.create(FluxAssembler.of(this::getCustomers, Customer::getCustomerId)
-                .assemble(
+        StepVerifier.create(
+                assemble(
+                        from(this::getCustomers, Customer::getCustomerId, Schedulers.immediate()),
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new))
@@ -54,8 +61,9 @@ public class FluxAssemblerTest {
 
         StepVerifier.create(Flux.fromIterable(getCustomers())
                 .buffer(3)
-                .flatMap(customers -> FluxAssembler.of(customers, Customer::getCustomerId)
-                        .assemble(
+                .flatMap(customers ->
+                        assemble(
+                                from(customers, Customer::getCustomerId, Schedulers.immediate()),
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)))
@@ -63,5 +71,21 @@ public class FluxAssemblerTest {
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()
                 .verify();
+    }
+
+    @Test
+    @Ignore
+    public void testAssembleWithFluxWithBufferingAndParallelScheduler() {
+
+        Flux.fromIterable(getCustomers())
+                .buffer(3)
+                .flatMap(customers ->
+                        assemble(
+                                CoreAssemblerConfig.from(() -> customers, Customer::getCustomerId, fluxAssemblerAdapter()),
+                                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                                Transaction::new))
+                .doOnNext(System.out::println)
+                .blockLast();
     }
 }

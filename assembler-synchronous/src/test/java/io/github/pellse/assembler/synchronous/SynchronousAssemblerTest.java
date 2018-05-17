@@ -23,7 +23,9 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.github.pellse.assembler.Assembler.assemble;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
+import static io.github.pellse.assembler.synchronous.SynchronousAssemblerConfig.from;
 import static io.github.pellse.util.query.MapperUtils.*;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
@@ -42,11 +44,11 @@ public class SynchronousAssemblerTest {
     @Test
     public void testAssemble() {
 
-        List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Customer::getCustomerId)
-                .assemble(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                        Transaction::new)
+        List<Transaction> transactions = assemble(
+                    from(this::getCustomers, Customer::getCustomerId),
+                    oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                    oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                    Transaction::new)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
@@ -55,11 +57,11 @@ public class SynchronousAssemblerTest {
     @Test
     public void testAssembleWithNullBillingInfo() {
 
-        List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Customer::getCustomerId)
-                .assemble(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-                        oneToMany(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, ArrayList::new),
-                        Transaction::new)
+        List<Transaction> transactions = assemble(
+                from(this::getCustomers, Customer::getCustomerId),
+                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+                oneToMany(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, ArrayList::new),
+                Transaction::new)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2WithNullBillingInfo, transaction3)));
@@ -68,11 +70,11 @@ public class SynchronousAssemblerTest {
     @Test(expected = UncheckedException.class)
     public void testAssembleWithUncheckedException() {
 
-        List<Transaction> transactions = SynchronousAssembler.of(this::getCustomers, Customer::getCustomerId)
-                .assemble(
-                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                        Transaction::new)
+        List<Transaction> transactions = assemble(
+                from(this::getCustomers, Customer::getCustomerId),
+                oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId),
+                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                Transaction::new)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2WithNullBillingInfo, transaction3)));

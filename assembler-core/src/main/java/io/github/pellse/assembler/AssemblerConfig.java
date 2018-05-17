@@ -16,15 +16,21 @@
 
 package io.github.pellse.assembler;
 
-import java.util.List;
-import java.util.Map;
+import io.github.pellse.util.function.checked.CheckedSupplier;
+
+import java.util.Collection;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
-public interface AssemblerAdapter<ID, R, RC> {
+public interface AssemblerConfig<T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> {
 
-    RC convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
-                            Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
-                            Function<Throwable, RuntimeException> errorConverter);
+    CheckedSupplier<C, Throwable> getTopLevelEntitiesProvider();
+
+    Function<T, ID> getIdExtractor();
+
+    Supplier<IDC> getIdCollectionFactory();
+
+    Function<Throwable, RuntimeException> getErrorConverter();
+
+    AssemblerAdapter<ID, R, RC> getAssemblerAdapter();
 }
