@@ -76,7 +76,7 @@ Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just
     .flatMap(customers ->
         assemble(
             from(customers, Customer::getCustomerId), // parallel scheduler used by default
-            oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+            oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
             oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
             Transaction::new))
 ```
