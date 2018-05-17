@@ -5,6 +5,10 @@ More specifically it was designed as a lightweight solution to resolve the N + 1
 
 One key feature is that the caller doesn't need to worry about the order of the data returned by the different datasources, so no need for example to modify any SQL query to add an ORDER BY clause.
 
+## Use cases
+
+One interesting use case would be for example to build a materialized view in a microservice architecture supporting Event Sourcing and Command Query Responsibility Segregation (CQRS). In this context, if you have an incoming stream of events where each event needs to be enriched with some sort of external data before being stored (e.g. stream of GPS coordinates enriched with location service and/or weather service), it would be convenient to be able to easily batch those events instead of hitting those external services for every single event.
+
 ## Usage examples
 Assuming the following data model and api to return those entities:
 ```java
@@ -58,7 +62,7 @@ List<Transaction> transactions = assemble(
 Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated, for example (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
 ```java
 Flux<Transaction> transactionFlux = assemble(
-    from(this::getCustomers, Customer::getCustomerId),
+    from(this::getCustomers, Customer::getCustomerId, Schedulers.elastic()),
     oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
     oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
     Transaction::new))
@@ -69,7 +73,7 @@ Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just
     .buffer(10) // or bufferTimeout(10, ofSeconds(5)) to e.g. batch every 5 seconds or max of 10 customers
     .flatMap(customers ->
         assemble(
-            from(customers, Customer::getCustomerId),
+            from(customers, Customer::getCustomerId), // parallel scheduler used by default
             oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
             oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
             Transaction::new))
