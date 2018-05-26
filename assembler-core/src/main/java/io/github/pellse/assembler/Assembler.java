@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -215,12 +216,12 @@ public interface Assembler {
         Stream<Supplier<Map<ID, ?>>> sources = mappers.stream()
                 .map(mapper -> unchecked(() -> mapper.map(entityIDs)));
 
-        return config.getAssemblerAdapter().convertMapperSources(sources,
-                mapperResults -> topLevelEntities.stream()
-                        .map(e -> domainObjectBuilder.apply(e,
-                                mapperResults.stream()
-                                        .map(mapperResult -> mapperResult.get(config.getIdExtractor().apply(e)))
-                                        .toArray())),
-                config.getErrorConverter());
+        Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder = mapperResults -> topLevelEntities.stream()
+                .map(e -> domainObjectBuilder.apply(e,
+                        mapperResults.stream()
+                                .map(mapperResult -> mapperResult.get(config.getIdExtractor().apply(e)))
+                                .toArray()));
+
+        return config.getAssemblerAdapter().convertMapperSources(sources, domainObjectStreamBuilder, config.getErrorConverter());
     }
 }

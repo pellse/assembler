@@ -29,11 +29,13 @@ import java.util.List;
 
 import static io.github.pellse.assembler.Assembler.assemble;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
+import static io.github.pellse.assembler.CoreAssemblerConfig.from;
 import static io.github.pellse.assembler.flux.FluxAssemblerAdapter.fluxAssemblerAdapter;
 import static io.github.pellse.assembler.flux.FluxAssemblerConfig.from;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static java.util.Arrays.asList;
+import static reactor.core.scheduler.Schedulers.immediate;
 
 public class FluxAssemblerTest {
 
@@ -46,7 +48,7 @@ public class FluxAssemblerTest {
 
         StepVerifier.create(
                 assemble(
-                        from(this::getCustomers, Customer::getCustomerId, Schedulers.immediate()),
+                        from(this::getCustomers, Customer::getCustomerId, immediate()),
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new))
@@ -63,7 +65,7 @@ public class FluxAssemblerTest {
                 .buffer(3)
                 .flatMap(customers ->
                         assemble(
-                                from(customers, Customer::getCustomerId, Schedulers.immediate()),
+                                from(customers, Customer::getCustomerId, immediate()),
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)))
@@ -81,7 +83,7 @@ public class FluxAssemblerTest {
                 .buffer(3)
                 .flatMap(customers ->
                         assemble(
-                                CoreAssemblerConfig.from(() -> customers, Customer::getCustomerId, fluxAssemblerAdapter()),
+                                from(customers, Customer::getCustomerId, fluxAssemblerAdapter()),
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new))

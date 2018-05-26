@@ -70,6 +70,33 @@ public class CoreAssemblerConfig<T, ID, C extends Collection<T>, IDC extends Col
     }
 
     public static <T, ID, R, RC> CoreAssemblerConfig<T, ID, List<T>, List<ID>, R, RC> from(
+            List<T> topLevelEntities,
+            Function<T, ID> idExtractor,
+            AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+
+        return from(topLevelEntities, idExtractor, ArrayList::new, assemblerAdapter);
+    }
+
+    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> CoreAssemblerConfig<T, ID, C, IDC, R, RC> from(
+            C topLevelEntities,
+            Function<T, ID> idExtractor,
+            Supplier<IDC> idCollectionFactory,
+            AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+
+        return from(topLevelEntities, idExtractor, idCollectionFactory, UncheckedException::new, assemblerAdapter);
+    }
+
+    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> CoreAssemblerConfig<T, ID, C, IDC, R, RC> from(
+            C topLevelEntities,
+            Function<T, ID> idExtractor,
+            Supplier<IDC> idCollectionFactory,
+            Function<Throwable, RuntimeException> errorConverter,
+            AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+
+        return new CoreAssemblerConfig<>(() -> topLevelEntities, idExtractor, idCollectionFactory, errorConverter, assemblerAdapter);
+    }
+
+    public static <T, ID, R, RC> CoreAssemblerConfig<T, ID, List<T>, List<ID>, R, RC> from(
             CheckedSupplier<List<T>, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
             AssemblerAdapter<ID, R, RC> assemblerAdapter) {

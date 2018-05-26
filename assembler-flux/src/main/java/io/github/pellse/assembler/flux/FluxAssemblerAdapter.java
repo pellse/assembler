@@ -37,7 +37,7 @@ public class FluxAssemblerAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux
 
     private final Scheduler scheduler;
 
-    public FluxAssemblerAdapter(Scheduler scheduler) {
+    private FluxAssemblerAdapter(Scheduler scheduler) {
         this.scheduler = requireNonNull(scheduler);
     }
 
@@ -45,17 +45,18 @@ public class FluxAssemblerAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux
     public Flux<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
                                         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
                                         Function<Throwable, RuntimeException> errorConverter) {
+
         List<? extends Publisher<Map<ID, ?>>> publishers = sources
-                .map(supplier -> Mono.fromSupplier(supplier).subscribeOn(scheduler))
+                .map(mappingSupplier -> Mono.fromSupplier(mappingSupplier).subscribeOn(scheduler))
                 .collect(toList());
 
-        return Flux.zip(publishers, mapperResults -> domainObjectStreamBuilder.apply(transform(mapperResults)))
+        return Flux.zip(publishers, mapperResults -> domainObjectStreamBuilder.apply(castToListOfMappings(mapperResults)))
                 .flatMap(Flux::fromStream)
                 .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
     }
 
     @SuppressWarnings("unchecked")
-    private static <ID> List<Map<ID, ?>> transform(Object[] mapperResults) {
+    private static <ID> List<Map<ID, ?>> castToListOfMappings(Object[] mapperResults) {
         return Stream.of(mapperResults)
                 .map(mapResult -> (Map<ID, ?>) mapResult)
                 .collect(toList());
