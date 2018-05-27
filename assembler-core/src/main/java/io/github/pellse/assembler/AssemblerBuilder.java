@@ -24,19 +24,16 @@ import io.github.pellse.util.query.Mapper;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
-import static io.github.pellse.util.function.checked.Unchecked.unchecked;
-import static java.util.stream.Collectors.toCollection;
+import static io.github.pellse.assembler.Assembler.assemble;
 
 public interface AssemblerBuilder {
 
     static <R> FromBuilder<R> assemblerOf(Class<R> outputClass) {
-        return new FromBuilderImpl<>(outputClass);
+        return new FromBuilderImpl<>();
     }
 
     @FunctionalInterface
@@ -234,32 +231,28 @@ public interface AssemblerBuilder {
 
     class FromBuilderImpl<R> implements FromBuilder<R> {
 
-        private final Class<R> outputClass;
+        private FromBuilderImpl() {
 
-        private FromBuilderImpl(Class<R> outputClass) {
-            this.outputClass = outputClass;
         }
 
         @Override
         public <T, ID, C extends Collection<T>, IDC extends Collection<ID>> AssembleWithBuilder<T, ID, C, IDC, R> fromSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                                                                                                                                Function<T, ID> idExtractor,
                                                                                                                                Supplier<IDC> idCollectionFactory) {
-            return new AssembleWithBuilderImpl<>(outputClass, topLevelEntitiesProvider, idExtractor, idCollectionFactory);
+            return new AssembleWithBuilderImpl<>(topLevelEntitiesProvider, idExtractor, idCollectionFactory);
         }
     }
 
     class AssembleWithBuilderImpl<T, ID, C extends Collection<T>, IDC extends Collection<ID>, R> implements AssembleWithBuilder<T, ID, C, IDC, R> {
 
-        private final Class<R> outputClass;
         private final CheckedSupplier<C, Throwable> topLevelEntitiesProvider;
         private final Function<T, ID> idExtractor;
         private final Supplier<IDC> idCollectionFactory;
 
-        private AssembleWithBuilderImpl(Class<R> outputClass,
-                                        CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+        private AssembleWithBuilderImpl(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                                         Function<T, ID> idExtractor,
                                         Supplier<IDC> idCollectionFactory) {
-            this.outputClass = outputClass;
+
             this.topLevelEntitiesProvider = topLevelEntitiesProvider;
             this.idExtractor = idExtractor;
             this.idCollectionFactory = idCollectionFactory;
@@ -268,7 +261,7 @@ public interface AssemblerBuilder {
         @Override
         public AdapterBuilderImpl<T, ID, C, IDC, R> assembleWith(List<Mapper<ID, ?, IDC, Throwable>> mappers,
                                                                  BiFunction<T, ? super Object[], R> domainObjectBuilder) {
-            return new AdapterBuilderImpl<>(outputClass, topLevelEntitiesProvider, idExtractor, idCollectionFactory, mappers, domainObjectBuilder);
+            return new AdapterBuilderImpl<>(topLevelEntitiesProvider, idExtractor, idCollectionFactory, mappers, domainObjectBuilder);
         }
     }
 
@@ -280,8 +273,7 @@ public interface AssemblerBuilder {
         private BiFunction<T, ? super Object[], R> domainObjectBuilder;
         private List<Mapper<ID, ?, IDC, Throwable>> mappers;
 
-        private AdapterBuilderImpl(Class<R> outputClass,
-                                   CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+        private AdapterBuilderImpl(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                                    Function<T, ID> idExtractor,
                                    Supplier<IDC> idCollectionFactory,
                                    List<Mapper<ID, ?, IDC, Throwable>> mappers,
@@ -298,22 +290,8 @@ public interface AssemblerBuilder {
         @Override
         public <RC> RC using(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-            C topLevelEntities = topLevelEntitiesProvider.get();
-
-            IDC entityIDs = topLevelEntities.stream()
-                    .map(idExtractor)
-                    .collect(toCollection(idCollectionFactory));
-
-            Stream<Supplier<Map<ID, ?>>> sources = mappers.stream()
-                    .map(mapper -> unchecked(() -> mapper.map(entityIDs)));
-
-            Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder = mapperResults -> topLevelEntities.stream()
-                    .map(e -> domainObjectBuilder.apply(e,
-                            mapperResults.stream()
-                                    .map(mapperResult -> mapperResult.get(idExtractor.apply(e)))
-                                    .toArray()));
-
-            return assemblerAdapter.convertMapperSources(sources, domainObjectStreamBuilder, UncheckedException::new);
+            return assemble(topLevelEntitiesProvider, idExtractor, idCollectionFactory,
+                    mappers, domainObjectBuilder, assemblerAdapter, UncheckedException::new);
         }
     }
 }

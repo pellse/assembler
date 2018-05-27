@@ -17,6 +17,7 @@
 package io.github.pellse.assembler;
 
 import io.github.pellse.util.function.*;
+import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.query.Mapper;
 
 import java.util.Collection;
@@ -204,14 +205,26 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> RC assemble(AssemblerConfig<T, ID, C, IDC, R, RC> config,
-                            BiFunction<T, ? super Object[], R> domainObjectBuilder,
-                            List<Mapper<ID, ?, IDC, Throwable>> mappers) {
+                                                                                           BiFunction<T, ? super Object[], R> domainObjectBuilder,
+                                                                                           List<Mapper<ID, ?, IDC, Throwable>> mappers) {
+        return assemble(config.getTopLevelEntitiesProvider(), config.getIdExtractor(), config.getIdCollectionFactory(),
+                mappers, domainObjectBuilder, config.getAssemblerAdapter(), config.getErrorConverter());
+    }
 
-        C topLevelEntities = config.getTopLevelEntitiesProvider().get();
+    static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC>
+    RC assemble(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+                Function<T, ID> idExtractor,
+                Supplier<IDC> idCollectionFactory,
+                List<Mapper<ID, ?, IDC, Throwable>> mappers,
+                BiFunction<T, ? super Object[], R> domainObjectBuilder,
+                AssemblerAdapter<ID, R, RC> assemblerAdapter,
+                Function<Throwable, RuntimeException> errorConverter) {
+
+        C topLevelEntities = topLevelEntitiesProvider.get();
 
         IDC entityIDs = topLevelEntities.stream()
-                .map(config.getIdExtractor())
-                .collect(toCollection(config.getIdCollectionFactory()));
+                .map(idExtractor)
+                .collect(toCollection(idCollectionFactory));
 
         Stream<Supplier<Map<ID, ?>>> sources = mappers.stream()
                 .map(mapper -> unchecked(() -> mapper.map(entityIDs)));
@@ -219,9 +232,9 @@ public interface Assembler {
         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder = mapperResults -> topLevelEntities.stream()
                 .map(e -> domainObjectBuilder.apply(e,
                         mapperResults.stream()
-                                .map(mapperResult -> mapperResult.get(config.getIdExtractor().apply(e)))
+                                .map(mapperResult -> mapperResult.get(idExtractor.apply(e)))
                                 .toArray()));
 
-        return config.getAssemblerAdapter().convertMapperSources(sources, domainObjectStreamBuilder, config.getErrorConverter());
+        return assemblerAdapter.convertMapperSources(sources, domainObjectStreamBuilder, errorConverter);
     }
 }
