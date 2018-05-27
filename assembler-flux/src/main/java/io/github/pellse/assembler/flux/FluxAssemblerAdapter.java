@@ -21,7 +21,6 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,7 @@ import java.util.stream.Stream;
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
+import static reactor.core.scheduler.Schedulers.parallel;
 
 public class FluxAssemblerAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
 
@@ -63,7 +63,7 @@ public class FluxAssemblerAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux
     }
 
     public static <ID, R> FluxAssemblerAdapter<ID, R> fluxAssemblerAdapter() {
-        return fluxAssemblerAdapter(Schedulers.parallel());
+        return fluxAssemblerAdapter(parallel());
     }
 
     public static <ID, R> FluxAssemblerAdapter<ID, R> fluxAssemblerAdapter(Scheduler scheduler) {

@@ -22,6 +22,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static io.github.pellse.assembler.Assembler.assemble;
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.TestAssemblerConfig.from;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
@@ -45,6 +46,21 @@ public class AssemblerTest {
                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                 Transaction::new)
+                .collect(toList());
+
+        assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
+    }
+
+    @Test
+    public void testAssembleBuilder() {
+
+        List<Transaction> transactions = assemblerOf(Transaction.class)
+                .fromSupplier(this::getCustomers, Customer::getCustomerId)
+                .assembleWith(
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(TestAssemblerConfig::convertMapperSources)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));

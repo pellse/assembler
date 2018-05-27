@@ -42,7 +42,7 @@ public final class TestAssemblerConfig<T, ID, R> extends CoreAssemblerConfig<T, 
         return new TestAssemblerConfig<>(topLevelEntitiesProvider, idExtractor);
     }
 
-    private static <ID, R> Stream<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
+    static <ID, R> Stream<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
                                                           Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
                                                           Function<Throwable, RuntimeException> errorConverter) {
         try {

@@ -22,6 +22,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+@FunctionalInterface
 public interface AssemblerAdapter<ID, R, RC> {
 
     RC convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,

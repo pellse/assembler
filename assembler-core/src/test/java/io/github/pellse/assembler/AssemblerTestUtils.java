@@ -21,6 +21,7 @@ import lombok.Data;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -54,6 +55,12 @@ public final class AssemblerTestUtils {
     public static final Transaction transaction3 = new Transaction(customer3, billingInfo3, emptyList());
 
     public static List<BillingInfo> getBillingInfoForCustomers(List<Long> customerIds) throws SQLException {
+        return Stream.of(billingInfo1, null, billingInfo3)
+                .filter(adr -> adr == null || customerIds.contains(adr.getCustomerId()))
+                .collect(toList());
+    }
+
+    public static List<BillingInfo> getBillingInfoForCustomersAsSet(Set<Long> customerIds) throws SQLException {
         return Stream.of(billingInfo1, null, billingInfo3)
                 .filter(adr -> adr == null || customerIds.contains(adr.getCustomerId()))
                 .collect(toList());

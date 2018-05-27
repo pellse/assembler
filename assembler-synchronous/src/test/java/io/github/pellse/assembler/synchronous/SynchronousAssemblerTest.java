@@ -24,7 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.github.pellse.assembler.Assembler.assemble;
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
+import static io.github.pellse.assembler.synchronous.SynchronousAssemblerAdapter.synchronousAssemblerAdapter;
 import static io.github.pellse.assembler.synchronous.SynchronousAssemblerConfig.from;
 import static io.github.pellse.util.query.MapperUtils.*;
 import static java.util.Arrays.asList;
@@ -49,6 +51,36 @@ public class SynchronousAssemblerTest {
                     oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                     oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                     Transaction::new)
+                .collect(toList());
+
+        assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
+    }
+
+    @Test
+    public void testAssembleBuilder() {
+
+        List<Transaction> transactions = assemblerOf(Transaction.class)
+                .fromSupplier(this::getCustomers, Customer::getCustomerId)
+                .assembleWith(
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(synchronousAssemblerAdapter())
+                .collect(toList());
+
+        assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
+    }
+
+    @Test
+    public void testAssembleBuilderWithBillingInfosAsSet() {
+
+        List<Transaction> transactions = assemblerOf(Transaction.class)
+                .fromSupplier(this::getCustomers, Customer::getCustomerId)
+                .assembleWith(
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(synchronousAssemblerAdapter())
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
