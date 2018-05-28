@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -55,6 +56,12 @@ public final class AssemblerTestUtils {
     public static final Transaction transaction2 = new Transaction(customer2, billingInfo2Unknown,
             List.of(orderItem21, orderItem22));
     public static final Transaction transaction3 = new Transaction(customer3, billingInfo3, emptyList());
+
+    public static final TransactionSet transactionSet1 = new TransactionSet(customer1, billingInfo1,
+            Set.of(orderItem11, orderItem12, orderItem13));
+    public static final TransactionSet transactionSet2 = new TransactionSet(customer2, billingInfo2Unknown,
+            Set.of(orderItem21, orderItem22));
+    public static final TransactionSet transactionSet3 = new TransactionSet(customer3, billingInfo3, emptySet());
 
     public static List<BillingInfo> getBillingInfoForCustomers(List<Long> customerIds) throws SQLException {
         return Stream.of(billingInfo1, null, billingInfo3)

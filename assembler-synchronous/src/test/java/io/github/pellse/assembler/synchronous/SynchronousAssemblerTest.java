@@ -85,7 +85,7 @@ public class SynchronousAssemblerTest {
                 .using(synchronousAssemblerAdapter())
                 .collect(toList());
 
-        assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
+        assertThat(transactions, equalTo(List.of(transactionSet1, transactionSet2, transactionSet3)));
     }
 
     @Test
