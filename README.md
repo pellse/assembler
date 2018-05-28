@@ -5,6 +5,8 @@ More specifically it was designed as a very lightweight solution to resolve the 
 
 One key feature is that the caller doesn't need to worry about the order of the data returned by the different datasources, so no need for example to modify any SQL query to add an ORDER BY clause.
 
+Stay tuned for more complete documentation very soon in terms of more detailed explanations regarding how the library works and comparisons with other solutions, a dedicated series of blog posts is also coming on https://javatechnicalwealth.com/blog/
+
 ## Supported Technologies
 Currently the following implementations are supported (with links to their respective Maven repositories):
 1. [Synchronous](https://github.com/pellse/assembler/tree/master/assembler-synchronous)
@@ -94,5 +96,3 @@ Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just
 ```
 ## What's next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
-
-Stay tuned for more complete documentation very soon in terms of more detailed explanations regarding how the library works and comparisons with other solutions, a dedicated series of blog posts is also coming on https://javatechnicalwealth.com/blog/
