@@ -23,66 +23,61 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.flux.FluxAssemblerAdapter.fluxAssemblerAdapter;
 
-public final class FluxAssemblerConfig<T, ID, C extends Collection<T>, IDC extends Collection<ID>, R>
-        extends CoreAssemblerConfig<T, ID, C, IDC, R, Flux<R>> {
+public final class FluxAssemblerConfig<T, ID, C extends Collection<T>, R>
+        extends CoreAssemblerConfig<T, ID, C, R, Flux<R>> {
 
     private FluxAssemblerConfig(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                                 Function<T, ID> idExtractor,
-                                Supplier<IDC> idCollectionFactory,
                                 Function<Throwable, RuntimeException> errorConverter,
                                 Scheduler scheduler) {
 
-        super(topLevelEntitiesProvider, idExtractor, idCollectionFactory, errorConverter, fluxAssemblerAdapter(scheduler));
+        super(topLevelEntitiesProvider, idExtractor, errorConverter, fluxAssemblerAdapter(scheduler));
     }
 
-    public static <T, ID, R> FluxAssemblerConfig<T, ID, List<T>, List<ID>, R> from(
+    public static <T, ID, R> FluxAssemblerConfig<T, ID, List<T>, R> from(
             List<T> topLevelEntities,
             Function<T, ID> idExtractor) {
         return from(() -> topLevelEntities, idExtractor);
     }
 
-    public static <T, ID, R> FluxAssemblerConfig<T, ID, List<T>, List<ID>, R> from(
+    public static <T, ID, R> FluxAssemblerConfig<T, ID, List<T>, R> from(
             CheckedSupplier<List<T>, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor) {
         return from(topLevelEntitiesProvider, idExtractor, Schedulers.parallel());
     }
 
-    public static <T, ID, R> FluxAssemblerConfig<T, ID, List<T>, List<ID>, R> from(
+    public static <T, ID, R> FluxAssemblerConfig<T, ID, List<T>, R> from(
             List<T> topLevelEntities,
             Function<T, ID> idExtractor,
             Scheduler scheduler) {
         return from(() -> topLevelEntities, idExtractor, scheduler);
     }
 
-    public static <T, ID, R> FluxAssemblerConfig<T, ID, List<T>, List<ID>, R> from(
+    public static <T, ID, R> FluxAssemblerConfig<T, ID, List<T>, R> from(
             CheckedSupplier<List<T>, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
             Scheduler scheduler) {
-        return from(topLevelEntitiesProvider, idExtractor, ArrayList::new, UncheckedException::new, scheduler);
+        return from(topLevelEntitiesProvider, idExtractor, UncheckedException::new, scheduler);
     }
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R> FluxAssemblerConfig<T, ID, C, IDC, R> from(
+    public static <T, ID, C extends Collection<T>, R> FluxAssemblerConfig<T, ID, C, R> from(
             C topLevelEntities,
             Function<T, ID> idExtractor,
-            Supplier<IDC> idCollectionFactory,
             Function<Throwable, RuntimeException> errorConverter) {
-        return from(() -> topLevelEntities, idExtractor, idCollectionFactory, errorConverter, Schedulers.parallel());
+        return from(() -> topLevelEntities, idExtractor, errorConverter, Schedulers.parallel());
     }
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R> FluxAssemblerConfig<T, ID, C, IDC, R> from(
+    public static <T, ID, C extends Collection<T>, R> FluxAssemblerConfig<T, ID, C, R> from(
             CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
-            Supplier<IDC> idCollectionFactory,
             Function<Throwable, RuntimeException> errorConverter,
             Scheduler scheduler) {
-        return new FluxAssemblerConfig<>(topLevelEntitiesProvider, idExtractor, idCollectionFactory, errorConverter, scheduler);
+        return new FluxAssemblerConfig<>(topLevelEntitiesProvider, idExtractor, errorConverter, scheduler);
     }
 }

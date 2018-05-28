@@ -19,32 +19,27 @@ package io.github.pellse.assembler;
 import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.function.checked.UncheckedException;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
-public class CoreAssemblerConfig<T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC>
-        implements AssemblerConfig<T, ID, C, IDC, R, RC> {
+public class CoreAssemblerConfig<T, ID, C extends Collection<T>, R, RC>
+        implements AssemblerConfig<T, ID, C, R, RC> {
 
     private final CheckedSupplier<C, Throwable> topLevelEntitiesProvider;
     private final Function<T, ID> idExtractor;
-    private final Supplier<IDC> idCollectionFactory;
     private final Function<Throwable, RuntimeException> errorConverter;
     private final AssemblerAdapter<ID, R, RC> assemblerAdapter;
 
     public CoreAssemblerConfig(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                                Function<T, ID> idExtractor,
-                               Supplier<IDC> idCollectionFactory,
                                Function<Throwable, RuntimeException> errorConverter,
                                AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
         this.topLevelEntitiesProvider = requireNonNull(topLevelEntitiesProvider);
         this.idExtractor = requireNonNull(idExtractor);
-        this.idCollectionFactory = requireNonNull(idCollectionFactory);
         this.errorConverter = errorConverter != null ? errorConverter : UncheckedException::new;
         this.assemblerAdapter = requireNonNull(assemblerAdapter);
     }
@@ -57,10 +52,6 @@ public class CoreAssemblerConfig<T, ID, C extends Collection<T>, IDC extends Col
         return idExtractor;
     }
 
-    public Supplier<IDC> getIdCollectionFactory() {
-        return idCollectionFactory;
-    }
-
     public Function<Throwable, RuntimeException> getErrorConverter() {
         return errorConverter;
     }
@@ -69,57 +60,53 @@ public class CoreAssemblerConfig<T, ID, C extends Collection<T>, IDC extends Col
         return assemblerAdapter;
     }
 
-    public static <T, ID, R, RC> CoreAssemblerConfig<T, ID, List<T>, List<ID>, R, RC> from(
+    public static <T, ID, R, RC> CoreAssemblerConfig<T, ID, List<T>, R, RC> from(
             List<T> topLevelEntities,
             Function<T, ID> idExtractor,
             AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-        return from(topLevelEntities, idExtractor, ArrayList::new, assemblerAdapter);
+        return from(topLevelEntities, idExtractor, assemblerAdapter);
     }
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> CoreAssemblerConfig<T, ID, C, IDC, R, RC> from(
+    public static <T, ID, C extends Collection<T>, R, RC> CoreAssemblerConfig<T, ID, C, R, RC> from(
             C topLevelEntities,
             Function<T, ID> idExtractor,
-            Supplier<IDC> idCollectionFactory,
             AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-        return from(topLevelEntities, idExtractor, idCollectionFactory, UncheckedException::new, assemblerAdapter);
+        return from(topLevelEntities, idExtractor, UncheckedException::new, assemblerAdapter);
     }
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> CoreAssemblerConfig<T, ID, C, IDC, R, RC> from(
+    public static <T, ID, C extends Collection<T>, R, RC> CoreAssemblerConfig<T, ID, C, R, RC> from(
             C topLevelEntities,
             Function<T, ID> idExtractor,
-            Supplier<IDC> idCollectionFactory,
             Function<Throwable, RuntimeException> errorConverter,
             AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-        return new CoreAssemblerConfig<>(() -> topLevelEntities, idExtractor, idCollectionFactory, errorConverter, assemblerAdapter);
+        return new CoreAssemblerConfig<>(() -> topLevelEntities, idExtractor, errorConverter, assemblerAdapter);
     }
 
-    public static <T, ID, R, RC> CoreAssemblerConfig<T, ID, List<T>, List<ID>, R, RC> from(
+    public static <T, ID, R, RC> CoreAssemblerConfig<T, ID, List<T>, R, RC> fromSupplier(
             CheckedSupplier<List<T>, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
             AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-        return from(topLevelEntitiesProvider, idExtractor, ArrayList::new, UncheckedException::new, assemblerAdapter);
+        return from(topLevelEntitiesProvider, idExtractor, UncheckedException::new, assemblerAdapter);
     }
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> CoreAssemblerConfig<T, ID, C, IDC, R, RC> from(
+    public static <T, ID, C extends Collection<T>, R, RC> CoreAssemblerConfig<T, ID, C, R, RC> from(
             CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
-            Supplier<IDC> idCollectionFactory,
             AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-        return from(topLevelEntitiesProvider, idExtractor, idCollectionFactory, UncheckedException::new, assemblerAdapter);
+        return from(topLevelEntitiesProvider, idExtractor, UncheckedException::new, assemblerAdapter);
     }
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> CoreAssemblerConfig<T, ID, C, IDC, R, RC> from(
+    public static <T, ID, C extends Collection<T>, R, RC> CoreAssemblerConfig<T, ID, C, R, RC> from(
             CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
-            Supplier<IDC> idCollectionFactory,
             Function<Throwable, RuntimeException> errorConverter,
             AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-        return new CoreAssemblerConfig<>(topLevelEntitiesProvider, idExtractor, idCollectionFactory, errorConverter, assemblerAdapter);
+        return new CoreAssemblerConfig<>(topLevelEntitiesProvider, idExtractor, errorConverter, assemblerAdapter);
     }
 }

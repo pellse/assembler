@@ -20,15 +20,12 @@ import io.github.pellse.util.function.checked.CheckedSupplier;
 
 import java.util.Collection;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-public interface AssemblerConfig<T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> {
+public interface AssemblerConfig<T, ID, C extends Collection<T>, R, RC> {
 
     CheckedSupplier<C, Throwable> getTopLevelEntitiesProvider();
 
     Function<T, ID> getIdExtractor();
-
-    Supplier<IDC> getIdCollectionFactory();
 
     Function<Throwable, RuntimeException> getErrorConverter();
 

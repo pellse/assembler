@@ -20,12 +20,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 public final class AssemblerTestUtils {
 
@@ -60,7 +62,7 @@ public final class AssemblerTestUtils {
                 .collect(toList());
     }
 
-    public static List<BillingInfo> getBillingInfoForCustomersAsSet(Set<Long> customerIds) throws SQLException {
+    public static List<BillingInfo> getBillingInfoForCustomersWithSetIds(Set<Long> customerIds) throws SQLException {
         return Stream.of(billingInfo1, null, billingInfo3)
                 .filter(adr -> adr == null || customerIds.contains(adr.getCustomerId()))
                 .collect(toList());
@@ -73,6 +75,13 @@ public final class AssemblerTestUtils {
                 .collect(toList());
     }
 
+    public static Set<OrderItem> getAllOrdersForCustomersWithLinkedListIds(LinkedList<Long> customerIds) throws SQLException {
+        //throw new SQLException("Exception in queryDatabaseForAllOrders");
+        return Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()))
+                .collect(toSet());
+    }
+
     public static <R> List<R> throwSQLException(List<Long> customerIds) throws SQLException {
         throw new SQLException("Unable to query database");
     }
@@ -83,6 +92,14 @@ public final class AssemblerTestUtils {
         private final Customer customer;
         private final BillingInfo billingInfo;
         private final List<OrderItem> orderItems;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class TransactionSet {
+        private final Customer customer;
+        private final BillingInfo billingInfo;
+        private final Set<OrderItem> orderItems;
     }
 
     @Data

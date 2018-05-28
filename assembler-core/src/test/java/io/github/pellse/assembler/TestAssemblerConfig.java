@@ -19,7 +19,6 @@ package io.github.pellse.assembler;
 import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.function.checked.UncheckedException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -28,12 +27,12 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
-public final class TestAssemblerConfig<T, ID, R> extends CoreAssemblerConfig<T, ID, List<T>, List<ID>, R, Stream<R>> {
+public final class TestAssemblerConfig<T, ID, R> extends CoreAssemblerConfig<T, ID, List<T>, R, Stream<R>> {
 
     private TestAssemblerConfig(CheckedSupplier<List<T>, Throwable> topLevelEntitiesProvider,
                                Function<T, ID> idExtractor) {
 
-        super(topLevelEntitiesProvider, idExtractor, ArrayList::new, UncheckedException::new,
+        super(topLevelEntitiesProvider, idExtractor, UncheckedException::new,
                 TestAssemblerConfig::convertMapperSources);
     }
 

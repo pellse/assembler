@@ -29,14 +29,14 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
-import static java.util.stream.Collectors.toCollection;
+import static java.util.stream.Collectors.toList;
 
 public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper,
             BiFunction<T, E1, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(t, (E1) s[0]), List.of(mapper));
@@ -44,9 +44,9 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
             Function3<T, E1, E2, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(t, (E1) s[0], (E2) s[1]), List.of(mapper1, mapper2));
@@ -54,10 +54,10 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, E3, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
-            Mapper<ID, E3, IDC, Throwable> mapper3,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
+            Mapper<ID, E3, Throwable> mapper3,
             Function4<T, E1, E2, E3, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(t, (E1) s[0], (E2) s[1], (E3) s[2]),
@@ -66,11 +66,11 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, E3, E4, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
-            Mapper<ID, E3, IDC, Throwable> mapper3,
-            Mapper<ID, E4, IDC, Throwable> mapper4,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
+            Mapper<ID, E3, Throwable> mapper3,
+            Mapper<ID, E4, Throwable> mapper4,
             Function5<T, E1, E2, E3, E4, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3]),
@@ -79,12 +79,12 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, E3, E4, E5, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
-            Mapper<ID, E3, IDC, Throwable> mapper3,
-            Mapper<ID, E4, IDC, Throwable> mapper4,
-            Mapper<ID, E5, IDC, Throwable> mapper5,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
+            Mapper<ID, E3, Throwable> mapper3,
+            Mapper<ID, E4, Throwable> mapper4,
+            Mapper<ID, E5, Throwable> mapper5,
             Function6<T, E1, E2, E3, E4, E5, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(
@@ -94,13 +94,13 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, E3, E4, E5, E6, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
-            Mapper<ID, E3, IDC, Throwable> mapper3,
-            Mapper<ID, E4, IDC, Throwable> mapper4,
-            Mapper<ID, E5, IDC, Throwable> mapper5,
-            Mapper<ID, E6, IDC, Throwable> mapper6,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
+            Mapper<ID, E3, Throwable> mapper3,
+            Mapper<ID, E4, Throwable> mapper4,
+            Mapper<ID, E5, Throwable> mapper5,
+            Mapper<ID, E6, Throwable> mapper6,
             Function7<T, E1, E2, E3, E4, E5, E6, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(
@@ -110,14 +110,14 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, E3, E4, E5, E6, E7, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
-            Mapper<ID, E3, IDC, Throwable> mapper3,
-            Mapper<ID, E4, IDC, Throwable> mapper4,
-            Mapper<ID, E5, IDC, Throwable> mapper5,
-            Mapper<ID, E6, IDC, Throwable> mapper6,
-            Mapper<ID, E7, IDC, Throwable> mapper7,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
+            Mapper<ID, E3, Throwable> mapper3,
+            Mapper<ID, E4, Throwable> mapper4,
+            Mapper<ID, E5, Throwable> mapper5,
+            Mapper<ID, E6, Throwable> mapper6,
+            Mapper<ID, E7, Throwable> mapper7,
             Function8<T, E1, E2, E3, E4, E5, E6, E7, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(
@@ -127,15 +127,15 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, E3, E4, E5, E6, E7, E8, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
-            Mapper<ID, E3, IDC, Throwable> mapper3,
-            Mapper<ID, E4, IDC, Throwable> mapper4,
-            Mapper<ID, E5, IDC, Throwable> mapper5,
-            Mapper<ID, E6, IDC, Throwable> mapper6,
-            Mapper<ID, E7, IDC, Throwable> mapper7,
-            Mapper<ID, E8, IDC, Throwable> mapper8,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
+            Mapper<ID, E3, Throwable> mapper3,
+            Mapper<ID, E4, Throwable> mapper4,
+            Mapper<ID, E5, Throwable> mapper5,
+            Mapper<ID, E6, Throwable> mapper6,
+            Mapper<ID, E7, Throwable> mapper7,
+            Mapper<ID, E8, Throwable> mapper8,
             Function9<T, E1, E2, E3, E4, E5, E6, E7, E8, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(
@@ -145,16 +145,16 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, E3, E4, E5, E6, E7, E8, E9, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
-            Mapper<ID, E3, IDC, Throwable> mapper3,
-            Mapper<ID, E4, IDC, Throwable> mapper4,
-            Mapper<ID, E5, IDC, Throwable> mapper5,
-            Mapper<ID, E6, IDC, Throwable> mapper6,
-            Mapper<ID, E7, IDC, Throwable> mapper7,
-            Mapper<ID, E8, IDC, Throwable> mapper8,
-            Mapper<ID, E9, IDC, Throwable> mapper9,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
+            Mapper<ID, E3, Throwable> mapper3,
+            Mapper<ID, E4, Throwable> mapper4,
+            Mapper<ID, E5, Throwable> mapper5,
+            Mapper<ID, E6, Throwable> mapper6,
+            Mapper<ID, E7, Throwable> mapper7,
+            Mapper<ID, E8, Throwable> mapper8,
+            Mapper<ID, E9, Throwable> mapper9,
             Function10<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(
@@ -164,17 +164,17 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
-            Mapper<ID, E3, IDC, Throwable> mapper3,
-            Mapper<ID, E4, IDC, Throwable> mapper4,
-            Mapper<ID, E5, IDC, Throwable> mapper5,
-            Mapper<ID, E6, IDC, Throwable> mapper6,
-            Mapper<ID, E7, IDC, Throwable> mapper7,
-            Mapper<ID, E8, IDC, Throwable> mapper8,
-            Mapper<ID, E9, IDC, Throwable> mapper9,
-            Mapper<ID, E10, IDC, Throwable> mapper10,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
+            Mapper<ID, E3, Throwable> mapper3,
+            Mapper<ID, E4, Throwable> mapper4,
+            Mapper<ID, E5, Throwable> mapper5,
+            Mapper<ID, E6, Throwable> mapper6,
+            Mapper<ID, E7, Throwable> mapper7,
+            Mapper<ID, E8, Throwable> mapper8,
+            Mapper<ID, E9, Throwable> mapper9,
+            Mapper<ID, E10, Throwable> mapper10,
             Function11<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(
@@ -184,18 +184,18 @@ public interface Assembler {
 
     @SuppressWarnings("unchecked")
     static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R, RC> RC assemble(
-            AssemblerConfig<T, ID, C, IDC, R, RC> config,
-            Mapper<ID, E1, IDC, Throwable> mapper1,
-            Mapper<ID, E2, IDC, Throwable> mapper2,
-            Mapper<ID, E3, IDC, Throwable> mapper3,
-            Mapper<ID, E4, IDC, Throwable> mapper4,
-            Mapper<ID, E5, IDC, Throwable> mapper5,
-            Mapper<ID, E6, IDC, Throwable> mapper6,
-            Mapper<ID, E7, IDC, Throwable> mapper7,
-            Mapper<ID, E8, IDC, Throwable> mapper8,
-            Mapper<ID, E9, IDC, Throwable> mapper9,
-            Mapper<ID, E10, IDC, Throwable> mapper10,
-            Mapper<ID, E11, IDC, Throwable> mapper11,
+            AssemblerConfig<T, ID, C, R, RC> config,
+            Mapper<ID, E1, Throwable> mapper1,
+            Mapper<ID, E2, Throwable> mapper2,
+            Mapper<ID, E3, Throwable> mapper3,
+            Mapper<ID, E4, Throwable> mapper4,
+            Mapper<ID, E5, Throwable> mapper5,
+            Mapper<ID, E6, Throwable> mapper6,
+            Mapper<ID, E7, Throwable> mapper7,
+            Mapper<ID, E8, Throwable> mapper8,
+            Mapper<ID, E9, Throwable> mapper9,
+            Mapper<ID, E10, Throwable> mapper10,
+            Mapper<ID, E11, Throwable> mapper11,
             Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> domainObjectBuilder) {
 
         return assemble(config, (t, s) -> domainObjectBuilder.apply(
@@ -204,27 +204,26 @@ public interface Assembler {
     }
 
     @SuppressWarnings("unchecked")
-    static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> RC assemble(AssemblerConfig<T, ID, C, IDC, R, RC> config,
+    static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC> RC assemble(AssemblerConfig<T, ID, C, R, RC> config,
                                                                                            BiFunction<T, ? super Object[], R> domainObjectBuilder,
-                                                                                           List<Mapper<ID, ?, IDC, Throwable>> mappers) {
-        return assemble(config.getTopLevelEntitiesProvider(), config.getIdExtractor(), config.getIdCollectionFactory(),
+                                                                                           List<Mapper<ID, ?, Throwable>> mappers) {
+        return assemble(config.getTopLevelEntitiesProvider(), config.getIdExtractor(),
                 mappers, domainObjectBuilder, config.getAssemblerAdapter(), config.getErrorConverter());
     }
 
-    static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R, RC>
+    static <T, ID, C extends Collection<T>, R, RC>
     RC assemble(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                 Function<T, ID> idExtractor,
-                Supplier<IDC> idCollectionFactory,
-                List<Mapper<ID, ?, IDC, Throwable>> mappers,
+                List<Mapper<ID, ?, Throwable>> mappers,
                 BiFunction<T, ? super Object[], R> domainObjectBuilder,
                 AssemblerAdapter<ID, R, RC> assemblerAdapter,
                 Function<Throwable, RuntimeException> errorConverter) {
 
         C topLevelEntities = topLevelEntitiesProvider.get();
 
-        IDC entityIDs = topLevelEntities.stream()
+        List<ID> entityIDs = topLevelEntities.stream()
                 .map(idExtractor)
-                .collect(toCollection(idCollectionFactory));
+                .collect(toList());
 
         Stream<Supplier<Map<ID, ?>>> sources = mappers.stream()
                 .map(mapper -> unchecked(() -> mapper.map(entityIDs)));

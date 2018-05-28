@@ -21,6 +21,8 @@ import io.github.pellse.util.function.checked.UncheckedException;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import static io.github.pellse.assembler.Assembler.assemble;
@@ -72,14 +74,14 @@ public class SynchronousAssemblerTest {
     }
 
     @Test
-    public void testAssembleBuilderWithBillingInfosAsSet() {
+    public void testAssembleBuilderWithNonListIds() {
 
-        List<Transaction> transactions = assemblerOf(Transaction.class)
+        List<TransactionSet> transactions = assemblerOf(TransactionSet.class)
                 .fromSupplier(this::getCustomers, Customer::getCustomerId)
                 .assembleWith(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                        Transaction::new)
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomersWithSetIds, BillingInfo::getCustomerId, BillingInfo::new, HashSet::new),
+                        oneToManyAsSet(AssemblerTestUtils::getAllOrdersForCustomersWithLinkedListIds, OrderItem::getCustomerId, LinkedList::new),
+                        TransactionSet::new)
                 .using(synchronousAssemblerAdapter())
                 .collect(toList());
 
