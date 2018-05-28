@@ -71,7 +71,7 @@ Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(fluxAssemblerAdapter()) // parallel scheduler used by default
+    .using(fluxAssemblerAdapter(elastic()))
 ```
 or
 ```java
