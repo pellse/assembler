@@ -1,4 +1,4 @@
-# assembler
+# Assembler
 Small library allowing to efficiently assemble entities from querying/merging external datasources or aggregating microservices.
 
 More specifically it was designed as a very lightweight solution to resolve the N + 1 queries problem when aggregating data, not only from database calls (e.g. Spring Data JPA, Hibernate) but from arbitrary datasources (relational databases, NoSQL, REST, local method calls, etc.).
@@ -14,13 +14,13 @@ Currently the following implementations are supported (with links to their respe
 
 A `CompletableFuture`, Akka Stream and RxJava implementation will be available soon.
 
-## Use cases
+## Use Cases
 
 One interesting use case would be for example to build a materialized view in a microservice architecture supporting Event Sourcing and Command Query Responsibility Segregation (CQRS). In this context, if you have an incoming stream of events where each event needs to be enriched with some sort of external data before being stored (e.g. stream of GPS coordinates enriched with location service and/or weather service), it would be convenient to be able to easily batch those events instead of hitting those external services for every single event.
 
 Another use case could be when working with JPA projections (to fetch minimal amount of data) instead of full blown JPA entities (directly with Hibernate of through Spring Data repositories). In some cases the EntityManager might not be of any help to efficiently join multiple entities together or at least it might not be trivial to cache/optimize queries to avoid the N + 1 query problem.
 
-## Usage examples
+## Usage Examples
 Assuming the following data model and api to return those entities:
 ```java
 @Data
@@ -94,5 +94,5 @@ Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just
             Transaction::new)
         .using(fluxAssemblerAdapter())) // parallel scheduler used by default
 ```
-## What's next?
+## What's Next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
