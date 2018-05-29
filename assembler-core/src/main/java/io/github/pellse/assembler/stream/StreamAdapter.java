@@ -30,7 +30,7 @@ public class StreamAdapter<ID, R> implements AssemblerAdapter<ID, R, Stream<R>> 
 
     private final boolean parallel;
 
-    public StreamAdapter(boolean parallel) {
+    private StreamAdapter(boolean parallel) {
         this.parallel = parallel;
     }
 

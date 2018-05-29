@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.allOf;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
@@ -37,7 +38,7 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
 
     private CompletableFutureAdapter(Executor executor, Supplier<CR> collectionFactory) {
         this.executor = executor;
-        this.collectionFactory = collectionFactory;
+        this.collectionFactory = requireNonNull(collectionFactory);
     }
 
     @Override
@@ -50,9 +51,10 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
                 .collect(toList());
 
         return allOf(mappingFutures.toArray(new CompletableFuture[0]))
-                .thenApply(v -> domainObjectStreamBuilder.apply(mappingFutures.stream()
-                        .map(CompletableFuture::join)
-                        .collect(toList()))
+                .thenApply(v -> domainObjectStreamBuilder.apply(
+                        mappingFutures.stream()
+                                .map(CompletableFuture::join)
+                                .collect(toList()))
                         .collect(toCollection(collectionFactory)))
                 .exceptionally(e -> sneakyThrow(errorConverter.apply(e.getCause())));
     }
