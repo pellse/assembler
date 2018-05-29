@@ -217,12 +217,13 @@ public interface AssemblerBuilder {
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9], (E11) s[10]));
         }
 
-        AdapterBuilderImpl<T, ID, C, R> assembleWith(List<Mapper<ID, ?, Throwable>> mappers,
-                                                     BiFunction<T, ? super Object[], R> domainObjectBuilder);
+        AdapterBuilder<ID, R> assembleWith(List<Mapper<ID, ?, Throwable>> mappers,
+                                           BiFunction<T, ? super Object[], R> domainObjectBuilder);
     }
 
-    @FunctionalInterface
     interface AdapterBuilder<ID, R> {
+        AdapterBuilder<ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter);
+
         <RC> RC using(AssemblerAdapter<ID, R, RC> adapter);
     }
 
@@ -251,8 +252,8 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public AdapterBuilderImpl<T, ID, C, R> assembleWith(List<Mapper<ID, ?, Throwable>> mappers,
-                                                            BiFunction<T, ? super Object[], R> domainObjectBuilder) {
+        public AdapterBuilder<ID, R> assembleWith(List<Mapper<ID, ?, Throwable>> mappers,
+                                                  BiFunction<T, ? super Object[], R> domainObjectBuilder) {
             return new AdapterBuilderImpl<>(topLevelEntitiesProvider, idExtractor, mappers, domainObjectBuilder);
         }
     }
@@ -263,6 +264,8 @@ public interface AssemblerBuilder {
         private final Function<T, ID> idExtractor;
         private BiFunction<T, ? super Object[], R> domainObjectBuilder;
         private List<Mapper<ID, ?, Throwable>> mappers;
+
+        private Function<Throwable, RuntimeException> errorConverter = UncheckedException::new;
 
         private AdapterBuilderImpl(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
                                    Function<T, ID> idExtractor,
@@ -277,10 +280,16 @@ public interface AssemblerBuilder {
         }
 
         @Override
+        public AdapterBuilder<ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter) {
+            this.errorConverter = errorConverter;
+            return this;
+        }
+
+        @Override
         public <RC> RC using(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
             return assemble(topLevelEntitiesProvider, idExtractor,
-                    mappers, domainObjectBuilder, assemblerAdapter, UncheckedException::new);
+                    mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
         }
     }
 }
