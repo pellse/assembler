@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.allOf;
+import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
@@ -47,7 +48,7 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
                                                       Function<Throwable, RuntimeException> errorConverter) {
 
         List<CompletableFuture<Map<ID, ?>>> mappingFutures = sources
-                .map(this::supplyAsync)
+                .map(s -> executor != null ? supplyAsync(s, executor) : supplyAsync(s))
                 .collect(toList());
 
         return allOf(mappingFutures.toArray(new CompletableFuture[0]))
@@ -57,12 +58,6 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
                                 .collect(toList()))
                         .collect(toCollection(collectionFactory)))
                 .exceptionally(e -> sneakyThrow(errorConverter.apply(e.getCause())));
-    }
-
-    private <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
-        return Optional.ofNullable(executor)
-                .map(e -> CompletableFuture.supplyAsync(supplier, e))
-                .orElseGet(() -> CompletableFuture.supplyAsync(supplier));
     }
 
     public static <ID, R> CompletableFutureAdapter<ID, R, List<R>> completableFutureAdapter() {
