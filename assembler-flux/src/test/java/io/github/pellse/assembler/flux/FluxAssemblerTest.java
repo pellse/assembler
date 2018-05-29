@@ -24,11 +24,9 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 
-import static io.github.pellse.assembler.Assembler.assemble;
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
-import static io.github.pellse.assembler.flux.FluxAssemblerConfig.from;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static java.util.Arrays.asList;
@@ -38,38 +36,6 @@ public class FluxAssemblerTest {
 
     private List<Customer> getCustomers() {
         return asList(customer1, customer2, customer3, customer1, customer2);
-    }
-
-    @Test
-    public void testAssembleWithFlux() {
-
-        StepVerifier.create(
-                assemble(
-                        from(this::getCustomers, Customer::getCustomerId, immediate()),
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                        Transaction::new))
-                .expectSubscription()
-                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
-                .expectComplete()
-                .verify();
-    }
-
-    @Test
-    public void testAssembleWithFluxWithBuffering() {
-
-        StepVerifier.create(Flux.fromIterable(getCustomers())
-                .buffer(3)
-                .flatMap(customers ->
-                        assemble(
-                                from(customers, Customer::getCustomerId, immediate()),
-                                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                                Transaction::new)))
-                .expectSubscription()
-                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
-                .expectComplete()
-                .verify();
     }
 
     @Test
