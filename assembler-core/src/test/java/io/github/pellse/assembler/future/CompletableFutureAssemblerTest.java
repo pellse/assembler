@@ -66,7 +66,7 @@ public class CompletableFutureAssemblerTest {
                 .fromSupplier(this::getCustomers, Customer::getCustomerId)
                 .assembleWith(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(completableFutureAdapter());
 

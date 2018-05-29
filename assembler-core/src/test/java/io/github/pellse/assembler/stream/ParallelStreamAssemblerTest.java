@@ -60,16 +60,14 @@ public class ParallelStreamAssemblerTest {
     @Test(expected = UncheckedException.class)
     public void testAssembleBuilderWithException() {
 
-        List<Transaction> transactions = assemblerOf(Transaction.class)
+        assemblerOf(Transaction.class)
                 .fromSupplier(this::getCustomers, Customer::getCustomerId)
                 .assembleWith(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(streamAdapter(true))
                 .collect(toList());
-
-        assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
     }
 
     @Test

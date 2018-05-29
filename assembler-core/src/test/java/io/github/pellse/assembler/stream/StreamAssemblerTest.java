@@ -107,7 +107,7 @@ public class StreamAssemblerTest {
         List<Transaction> transactions = assemble(
                 from(this::getCustomers, Customer::getCustomerId),
                 oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId),
-                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                 Transaction::new)
                 .collect(toList());
 
