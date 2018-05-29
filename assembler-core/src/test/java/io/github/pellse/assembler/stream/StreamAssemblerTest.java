@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.assembler.Assembler.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 import static io.github.pellse.util.query.MapperUtils.*;

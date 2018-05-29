@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.assembler.Assembler.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.future.CompletableFutureAdapter.completableFutureAdapter;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
