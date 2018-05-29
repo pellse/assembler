@@ -9,10 +9,11 @@ Stay tuned for more complete documentation very soon in terms of more detailed e
 
 ## Supported Technologies
 Currently the following implementations are supported (with links to their respective Maven repositories):
-1. [Synchronous](https://github.com/pellse/assembler/tree/master/assembler-synchronous)
-2. [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
+1. [Synchronous](https://github.com/pellse/assembler/tree/master/assembler-core)
+2. [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
+3. [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 
-A `CompletableFuture`, Akka Stream and RxJava implementation will be available soon.
+An Akka Stream and RxJava implementation will be available soon.
 
 ## Use Cases
 
@@ -60,7 +61,7 @@ List<OrderItem> getAllOrdersForCustomers(List<Long> customerIds); // This could 
 
 So if `getCustomers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` list (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo`s for all `Customer`s returned by `getCustomer()`, same for `OrderItem`s. This implies though that combining `Customer`s, `BillingInfo`s and `OrderItem`s into `Transaction`s using *customerId* as a correlation id between all those entities has to be done outside those datasources, which is what this library was implemented for:
 
-To build the `Transaction` entity we can simply combine the invocation of the methods declared above using (from [SynchronousAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-synchronous/src/test/java/io/github/pellse/assembler/synchronous/SynchronousAssemblerTest.java)):
+To build the `Transaction` entity we can simply combine the invocation of the methods declared above using (from [SynchronousAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/synchronous/SynchronousAssemblerTest.java)):
 ```java
 List<Transaction> transactions = assemblerOf(Transaction.class)
     .fromSupplier(this::getCustomers, Customer::getCustomerId)
@@ -68,8 +69,19 @@ List<Transaction> transactions = assemblerOf(Transaction.class)
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // supplier of default values
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(synchronousAssemblerAdapter())
+    .using(synchronousAdapter())
     .collect(toList());
+```
+
+It is also possible to bind to a different execution engine (e.g. for parallel processing) just by switching to a different `AssemblerAdapter` implementation. For example, to support the aggregation process through `CompletableFuture`, just plug a `CompletableFutureAdapter` instead (from [CompletableFutureAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/future/CompletableFutureAssemblerTest.java)):
+```java
+CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
+    .fromSupplier(this::getCustomers, Customer::getCustomerId)
+    .assembleWith(
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId)
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(completableFutureAdapter());
 ```
 
 Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated, for example (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
@@ -80,7 +92,7 @@ Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(fluxAssemblerAdapter(elastic()))
+    .using(fluxAdapter(elastic()))
 ```
 or
 ```java
@@ -92,7 +104,7 @@ Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just
             oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
             oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
             Transaction::new)
-        .using(fluxAssemblerAdapter())) // parallel scheduler used by default
+        .using(fluxAdapter())) // parallel scheduler used by default
 ```
 ## What's Next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
