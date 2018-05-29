@@ -17,7 +17,6 @@
 package io.github.pellse.assembler.future;
 
 import io.github.pellse.assembler.AssemblerAdapter;
-import io.github.pellse.util.ExceptionUtils;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -26,6 +25,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static java.util.concurrent.CompletableFuture.allOf;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
@@ -54,7 +54,7 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
                         .map(CompletableFuture::join)
                         .collect(toList()))
                         .collect(toCollection(collectionFactory)))
-                .exceptionally(ExceptionUtils::sneakyThrow);
+                .exceptionally(e -> sneakyThrow(errorConverter.apply(e.getCause())));
     }
 
     private <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {

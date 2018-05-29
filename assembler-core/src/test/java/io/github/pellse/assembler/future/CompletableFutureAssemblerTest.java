@@ -60,7 +60,7 @@ public class CompletableFutureAssemblerTest {
     }
 
     @Test(expected = UncheckedException.class)
-    public void testAssembleBuilderWithException() throws InterruptedException, ExecutionException {
+    public void testAssembleBuilderWithException() throws Throwable {
 
         CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
                 .fromSupplier(this::getCustomers, Customer::getCustomerId)
@@ -70,7 +70,11 @@ public class CompletableFutureAssemblerTest {
                         Transaction::new)
                 .using(completableFutureAdapter());
 
-        assertThat(transactions.get(), equalTo(List.of(transaction1, transaction2, transaction3)));
+        try {
+            transactions.get();
+        } catch( ExecutionException e) {
+            throw e.getCause();
+        }
     }
 
     @Test
