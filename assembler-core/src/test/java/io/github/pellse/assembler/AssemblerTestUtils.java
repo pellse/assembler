@@ -136,4 +136,11 @@ public final class AssemblerTestUtils {
         private final String orderDescription;
         private final Double price;
     }
+
+    public static class UserDefinedRuntimeException extends RuntimeException {
+
+        public UserDefinedRuntimeException(Throwable cause) {
+            super(cause);
+        }
+    }
 }

@@ -73,6 +73,31 @@ public class StreamAssemblerTest {
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
     }
 
+    @Test(expected = UncheckedException.class)
+    public void testAssembleBuilderWithUncheckedException() {
+
+        assemblerOf(Transaction.class)
+                .fromSupplier(this::getCustomers, Customer::getCustomerId)
+                .assembleWith(
+                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(streamAdapter());
+    }
+
+    @Test(expected = UserDefinedRuntimeException.class)
+    public void testAssembleBuilderWithCustomException() {
+
+        assemblerOf(Transaction.class)
+                .fromSupplier(this::getCustomers, Customer::getCustomerId)
+                .assembleWith(
+                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                        Transaction::new)
+                .withErrorConverter(UserDefinedRuntimeException::new)
+                .using(streamAdapter());
+    }
+
     @Test
     public void testAssembleBuilderWithNonListIds() {
 
