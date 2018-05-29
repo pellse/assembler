@@ -17,6 +17,7 @@
 package io.github.pellse.assembler.future;
 
 import io.github.pellse.assembler.AssemblerTestUtils;
+import io.github.pellse.util.function.checked.UncheckedException;
 import org.junit.Test;
 
 import java.util.HashSet;
@@ -51,6 +52,20 @@ public class CompletableFutureAssemblerTest {
                 .fromSupplier(this::getCustomers, Customer::getCustomerId)
                 .assembleWith(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(completableFutureAdapter());
+
+        assertThat(transactions.get(), equalTo(List.of(transaction1, transaction2, transaction3)));
+    }
+
+    @Test(expected = UncheckedException.class)
+    public void testAssembleBuilderWithException() throws InterruptedException, ExecutionException {
+
+        CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
+                .fromSupplier(this::getCustomers, Customer::getCustomerId)
+                .assembleWith(
+                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(completableFutureAdapter());
