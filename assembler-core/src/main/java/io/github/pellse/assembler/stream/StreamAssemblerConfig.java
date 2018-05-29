@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.synchronous;
+package io.github.pellse.assembler.stream;
 
 import io.github.pellse.assembler.CoreAssemblerConfig;
 import io.github.pellse.util.function.checked.CheckedSupplier;
@@ -29,40 +29,40 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
-public final class SynchronousAssemblerConfig<T, ID, C extends Collection<T>, R>
+public final class StreamAssemblerConfig<T, ID, C extends Collection<T>, R>
         extends CoreAssemblerConfig<T, ID, C, R, Stream<R>> {
 
-    private SynchronousAssemblerConfig(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
-                                       Function<T, ID> idExtractor,
-                                       Function<Throwable, RuntimeException> errorConverter) {
+    private StreamAssemblerConfig(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+                                  Function<T, ID> idExtractor,
+                                  Function<Throwable, RuntimeException> errorConverter) {
 
-        super(topLevelEntitiesProvider, idExtractor, errorConverter, SynchronousAssemblerConfig::convertMapperSources);
+        super(topLevelEntitiesProvider, idExtractor, errorConverter, StreamAssemblerConfig::convertMapperSources);
     }
 
-    public static <T, ID, R> SynchronousAssemblerConfig<T, ID, List<T>, R> from(
+    public static <T, ID, R> StreamAssemblerConfig<T, ID, List<T>, R> from(
             List<T> topLevelEntities,
             Function<T, ID> idExtractor) {
         return from(() -> topLevelEntities, idExtractor);
     }
 
-    public static <T, ID, R> SynchronousAssemblerConfig<T, ID, List<T>, R> from(
+    public static <T, ID, R> StreamAssemblerConfig<T, ID, List<T>, R> from(
             CheckedSupplier<List<T>, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor) {
         return from(topLevelEntitiesProvider, idExtractor, UncheckedException::new);
     }
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R> SynchronousAssemblerConfig<T, ID, C, R> from(
+    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R> StreamAssemblerConfig<T, ID, C, R> from(
             C topLevelEntities,
             Function<T, ID> idExtractor,
             Function<Throwable, RuntimeException> errorConverter) {
-        return new SynchronousAssemblerConfig<>(() -> topLevelEntities, idExtractor, errorConverter);
+        return new StreamAssemblerConfig<>(() -> topLevelEntities, idExtractor, errorConverter);
     }
 
-    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R> SynchronousAssemblerConfig<T, ID, C, R> from(
+    public static <T, ID, C extends Collection<T>, IDC extends Collection<ID>, R> StreamAssemblerConfig<T, ID, C, R> from(
             CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
             Function<T, ID> idExtractor,
             Function<Throwable, RuntimeException> errorConverter) {
-        return new SynchronousAssemblerConfig<>(topLevelEntitiesProvider, idExtractor, errorConverter);
+        return new StreamAssemblerConfig<>(topLevelEntitiesProvider, idExtractor, errorConverter);
     }
 
     private static <ID, R> Stream<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,

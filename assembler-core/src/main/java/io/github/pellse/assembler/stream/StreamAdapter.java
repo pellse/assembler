@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.synchronous;
+package io.github.pellse.assembler.stream;
 
 import io.github.pellse.assembler.AssemblerAdapter;
 
@@ -26,22 +26,36 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
-public class SynchronousAdapter<ID, R> implements AssemblerAdapter<ID, R, Stream<R>> {
+public class StreamAdapter<ID, R> implements AssemblerAdapter<ID, R, Stream<R>> {
+
+    private final boolean parallel;
+
+    public StreamAdapter(boolean parallel) {
+        this.parallel = parallel;
+    }
 
     @Override
     public Stream<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
                                           Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
                                           Function<Throwable, RuntimeException> errorConverter) {
         try {
-            return domainObjectStreamBuilder.apply(sources
+            return domainObjectStreamBuilder.apply(parallelSources(sources)
                     .map(Supplier::get)
                     .collect(toList()));
         } catch (Throwable t) {
-            throw errorConverter.apply(t);
+            throw errorConverter.apply(t); // For parallel stream, any exception will be propagated to the caller thread
         }
     }
 
-    public static <ID, R> SynchronousAdapter<ID, R> synchronousAdapter() {
-        return new SynchronousAdapter<>();
+    private Stream<Supplier<Map<ID, ?>>> parallelSources(Stream<Supplier<Map<ID, ?>>> sources) {
+        return parallel ? sources.collect(toList()).parallelStream() : sources;
+    }
+
+    public static <ID, R> StreamAdapter<ID, R> streamAdapter() {
+        return streamAdapter(false);
+    }
+
+    public static <ID, R> StreamAdapter<ID, R> streamAdapter(boolean parallel) {
+        return new StreamAdapter<>(parallel);
     }
 }

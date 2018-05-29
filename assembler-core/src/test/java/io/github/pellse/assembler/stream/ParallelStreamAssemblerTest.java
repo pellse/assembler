@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.synchronous;
+package io.github.pellse.assembler.stream;
 
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.util.function.checked.UncheckedException;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import static io.github.pellse.assembler.Assembler.assemble;
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
-import static io.github.pellse.assembler.synchronous.SynchronousAdapter.synchronousAdapter;
-import static io.github.pellse.assembler.synchronous.SynchronousAssemblerConfig.from;
+import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 import static io.github.pellse.util.query.MapperUtils.*;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
@@ -39,23 +36,10 @@ import static org.junit.Assert.assertThat;
 /**
  * @author Sebastien Pelletier
  */
-public class SynchronousAssemblerTest {
+public class ParallelStreamAssemblerTest {
 
     private List<Customer> getCustomers() {
         return asList(customer1, customer2, customer3);
-    }
-
-    @Test
-    public void testAssemble() {
-
-        List<Transaction> transactions = assemble(
-                from(this::getCustomers, Customer::getCustomerId),
-                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                Transaction::new)
-                .collect(toList());
-
-        assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
     }
 
     @Test
@@ -67,7 +51,22 @@ public class SynchronousAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(synchronousAdapter())
+                .using(streamAdapter(true))
+                .collect(toList());
+
+        assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
+    }
+
+    @Test(expected = UncheckedException.class)
+    public void testAssembleBuilderWithException() {
+
+        List<Transaction> transactions = assemblerOf(Transaction.class)
+                .fromSupplier(this::getCustomers, Customer::getCustomerId)
+                .assembleWith(
+                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(streamAdapter(true))
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
@@ -82,35 +81,9 @@ public class SynchronousAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomersWithSetIds, BillingInfo::getCustomerId, BillingInfo::new, HashSet::new),
                         oneToManyAsSet(AssemblerTestUtils::getAllOrdersForCustomersWithLinkedListIds, OrderItem::getCustomerId, LinkedList::new),
                         TransactionSet::new)
-                .using(synchronousAdapter())
+                .using(streamAdapter(true))
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transactionSet1, transactionSet2, transactionSet3)));
-    }
-
-    @Test
-    public void testAssembleWithNullBillingInfo() {
-
-        List<Transaction> transactions = assemble(
-                from(this::getCustomers, Customer::getCustomerId),
-                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-                oneToMany(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, ArrayList::new),
-                Transaction::new)
-                .collect(toList());
-
-        assertThat(transactions, equalTo(List.of(transaction1, transaction2WithNullBillingInfo, transaction3)));
-    }
-
-    @Test(expected = UncheckedException.class)
-    public void testAssembleWithUncheckedException() {
-
-        List<Transaction> transactions = assemble(
-                from(this::getCustomers, Customer::getCustomerId),
-                oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId),
-                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                Transaction::new)
-                .collect(toList());
-
-        assertThat(transactions, equalTo(List.of(transaction1, transaction2WithNullBillingInfo, transaction3)));
     }
 }
