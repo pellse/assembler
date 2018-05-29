@@ -33,11 +33,11 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.scheduler.Schedulers.parallel;
 
-public class FluxAssemblerAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
+public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
 
     private final Scheduler scheduler;
 
-    private FluxAssemblerAdapter(Scheduler scheduler) {
+    private FluxAdapter(Scheduler scheduler) {
         this.scheduler = requireNonNull(scheduler);
     }
 
@@ -62,11 +62,11 @@ public class FluxAssemblerAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux
                 .collect(toList());
     }
 
-    public static <ID, R> FluxAssemblerAdapter<ID, R> fluxAssemblerAdapter() {
-        return fluxAssemblerAdapter(parallel());
+    public static <ID, R> FluxAdapter<ID, R> fluxAdapter() {
+        return fluxAdapter(parallel());
     }
 
-    public static <ID, R> FluxAssemblerAdapter<ID, R> fluxAssemblerAdapter(Scheduler scheduler) {
-        return new FluxAssemblerAdapter<>(scheduler);
+    public static <ID, R> FluxAdapter<ID, R> fluxAdapter(Scheduler scheduler) {
+        return new FluxAdapter<>(scheduler);
     }
 }

@@ -27,7 +27,7 @@ import java.util.List;
 import static io.github.pellse.assembler.Assembler.assemble;
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
-import static io.github.pellse.assembler.flux.FluxAssemblerAdapter.fluxAssemblerAdapter;
+import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
 import static io.github.pellse.assembler.flux.FluxAssemblerConfig.from;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
@@ -82,7 +82,7 @@ public class FluxAssemblerTest {
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .using(fluxAssemblerAdapter()))
+                        .using(fluxAdapter()))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()
@@ -100,7 +100,7 @@ public class FluxAssemblerTest {
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .using(fluxAssemblerAdapter(immediate()))))
+                        .using(fluxAdapter(immediate()))))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()

@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
-import static io.github.pellse.assembler.flux.FluxAssemblerAdapter.fluxAssemblerAdapter;
+import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
 
 public final class FluxAssemblerConfig<T, ID, C extends Collection<T>, R>
         extends CoreAssemblerConfig<T, ID, C, R, Flux<R>> {
@@ -37,7 +37,7 @@ public final class FluxAssemblerConfig<T, ID, C extends Collection<T>, R>
                                 Function<Throwable, RuntimeException> errorConverter,
                                 Scheduler scheduler) {
 
-        super(topLevelEntitiesProvider, idExtractor, errorConverter, fluxAssemblerAdapter(scheduler));
+        super(topLevelEntitiesProvider, idExtractor, errorConverter, fluxAdapter(scheduler));
     }
 
     public static <T, ID, R> FluxAssemblerConfig<T, ID, List<T>, R> from(

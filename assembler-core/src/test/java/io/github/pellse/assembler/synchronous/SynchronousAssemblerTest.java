@@ -28,7 +28,7 @@ import java.util.List;
 import static io.github.pellse.assembler.Assembler.assemble;
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
-import static io.github.pellse.assembler.synchronous.SynchronousAssemblerAdapter.synchronousAssemblerAdapter;
+import static io.github.pellse.assembler.synchronous.SynchronousAdapter.synchronousAdapter;
 import static io.github.pellse.assembler.synchronous.SynchronousAssemblerConfig.from;
 import static io.github.pellse.util.query.MapperUtils.*;
 import static java.util.Arrays.asList;
@@ -49,10 +49,10 @@ public class SynchronousAssemblerTest {
     public void testAssemble() {
 
         List<Transaction> transactions = assemble(
-                    from(this::getCustomers, Customer::getCustomerId),
-                    oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                    oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                    Transaction::new)
+                from(this::getCustomers, Customer::getCustomerId),
+                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                Transaction::new)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
@@ -67,7 +67,7 @@ public class SynchronousAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(synchronousAssemblerAdapter())
+                .using(synchronousAdapter())
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
@@ -82,7 +82,7 @@ public class SynchronousAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomersWithSetIds, BillingInfo::getCustomerId, BillingInfo::new, HashSet::new),
                         oneToManyAsSet(AssemblerTestUtils::getAllOrdersForCustomersWithLinkedListIds, OrderItem::getCustomerId, LinkedList::new),
                         TransactionSet::new)
-                .using(synchronousAssemblerAdapter())
+                .using(synchronousAdapter())
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transactionSet1, transactionSet2, transactionSet3)));

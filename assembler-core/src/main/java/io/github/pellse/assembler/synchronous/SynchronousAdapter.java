@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
-public class SynchronousAssemblerAdapter<ID, R> implements AssemblerAdapter<ID, R, Stream<R>> {
+public class SynchronousAdapter<ID, R> implements AssemblerAdapter<ID, R, Stream<R>> {
 
     @Override
     public Stream<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
@@ -41,7 +41,7 @@ public class SynchronousAssemblerAdapter<ID, R> implements AssemblerAdapter<ID, 
         }
     }
 
-    public static <ID, R> SynchronousAssemblerAdapter<ID, R> synchronousAssemblerAdapter() {
-        return new SynchronousAssemblerAdapter<>();
+    public static <ID, R> SynchronousAdapter<ID, R> synchronousAdapter() {
+        return new SynchronousAdapter<>();
     }
 }

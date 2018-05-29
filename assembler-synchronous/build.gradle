@@ -1,5 +1,0 @@
-dependencies {
-    compile project(':assembler-core')
-
-    testCompile project(':assembler-core').sourceSets.test.output
-}
