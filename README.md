@@ -9,7 +9,7 @@ Stay tuned for more complete documentation very soon in terms of more detailed e
 
 ## Supported Technologies
 Currently the following implementations are supported (with links to their respective Maven repositories):
-1. [Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
+1. [Java 8 Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
 2. [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
 3. [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 
@@ -61,6 +61,7 @@ List<OrderItem> getAllOrdersForCustomers(List<Long> customerIds); // This could 
 
 So if `getCustomers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` list (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo`s for all `Customer`s returned by `getCustomers()`, same for `OrderItem`s. This implies though that combining `Customer`s, `BillingInfo`s and `OrderItem`s into `Transaction`s using *customerId* as a correlation id between all those entities has to be done outside those datasources, which is what this library was implemented for:
 
+### [Java 8 Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
 To build the `Transaction` entity we can simply combine the invocation of the methods declared above using (from [StreamAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/stream/StreamAssemblerTest.java)):
 ```java
 List<Transaction> transactions = assemblerOf(Transaction.class)
@@ -73,7 +74,7 @@ List<Transaction> transactions = assemblerOf(Transaction.class)
     .using(streamAdapter()) // or streamAdapter(true) for parallel streams
     .collect(toList());
 ```
-
+### [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
 It is also possible to bind to a different execution engine (e.g. for parallel processing) just by switching to a different `AssemblerAdapter` implementation. For example, to support the aggregation process through `CompletableFuture`, just plug a `CompletableFutureAdapter` instead (from [CompletableFutureAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/future/CompletableFutureAssemblerTest.java)):
 ```java
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
@@ -84,7 +85,7 @@ CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.clas
         Transaction::new)
     .using(completableFutureAdapter());
 ```
-
+### [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated, for example (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
 ```java
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
