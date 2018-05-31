@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static io.reactivex.Observable.fromCallable;
+import static io.reactivex.Observable.fromIterable;
 import static io.reactivex.schedulers.Schedulers.computation;
 import static io.reactivex.schedulers.Schedulers.from;
 import static java.util.Objects.requireNonNull;
@@ -56,7 +57,7 @@ public class ObservableAdapter<ID, R> implements AssemblerAdapter<ID, R, Observa
                 mapperResults -> domainObjectStreamBuilder.apply(Stream.of(mapperResults)
                         .map(mapResult -> (Map<ID, ?>) mapResult)
                         .collect(toList())))
-                .flatMap(s -> Observable.fromIterable(s.collect(toList())))
+                .flatMap(stream -> fromIterable(stream::iterator))
                 .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
     }
 
