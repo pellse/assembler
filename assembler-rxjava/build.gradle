@@ -1,0 +1,10 @@
+ext {
+    rxjavaVersion = '2.1.14'
+}
+
+dependencies {
+    compile project(':assembler-core')
+    compile "io.reactivex.rxjava2:rxjava:${rxjavaVersion}"
+
+    testCompile project(':assembler-core').sourceSets.test.output
+}
