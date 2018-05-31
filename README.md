@@ -12,8 +12,9 @@ Currently the following implementations are supported (with links to their respe
 1. [Java 8 Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
 2. [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
 3. [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
+4. [RxJava](https://github.com/pellse/assembler/tree/master/assembler-rxjava)
 
-An Akka Stream and RxJava implementation will be available soon.
+An Akka Stream implementation will be available soon.
 
 ## Use Cases
 
@@ -107,6 +108,29 @@ Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just
             oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
             Transaction::new)
         .using(fluxAdapter())) // parallel scheduler used by default
+```
+### [RxJava](https://github.com/pellse/assembler/tree/master/assembler-rxjava)
+In addition to the Flux implementation, [RxJava](https://github.com/ReactiveX/RxJava) is also supported through `Observable`s and `Flowable`s.
+
+With Observable support (from [ObservableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/ObservableAssemblerTest.java)):
+```java
+Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
+    .fromSupplier(this::getCustomers, Customer::getCustomerId)
+    .assembleWith(
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(observableAdapter(newThread()))
+```
+With Flowable support (from [FlowableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/FlowableAssemblerTest.java)):
+```java
+Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
+    .fromSupplier(this::getCustomers, Customer::getCustomerId)
+    .assembleWith(
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(flowableAdapter(newThread()))
 ```
 ## What's Next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
