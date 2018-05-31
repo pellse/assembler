@@ -120,7 +120,7 @@ Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(observableAdapter(newThread()))
+    .using(observableAdapter())
 ```
 With Flowable support (from [FlowableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/FlowableAssemblerTest.java)):
 ```java
@@ -130,7 +130,7 @@ Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(flowableAdapter(newThread()))
+    .using(flowableAdapter())
 ```
 ## What's Next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
