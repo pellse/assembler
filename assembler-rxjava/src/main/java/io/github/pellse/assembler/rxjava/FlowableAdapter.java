@@ -27,7 +27,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static io.reactivex.Flowable.fromIterable;
 import static io.reactivex.schedulers.Schedulers.computation;
 import static io.reactivex.schedulers.Schedulers.from;
@@ -45,8 +44,7 @@ public class FlowableAdapter<ID, R> implements AssemblerAdapter<ID, R, Flowable<
     @SuppressWarnings("unchecked")
     @Override
     public Flowable<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
-                                            Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
-                                            Function<Throwable, RuntimeException> errorConverter) {
+                                            Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<Flowable<? extends Map<ID, ?>>> flowables = sources
                 .map(mappingSupplier -> Flowable.fromCallable(mappingSupplier::get).subscribeOn(scheduler))
@@ -56,8 +54,7 @@ public class FlowableAdapter<ID, R> implements AssemblerAdapter<ID, R, Flowable<
                 mapperResults -> domainObjectStreamBuilder.apply(Stream.of(mapperResults)
                         .map(mapResult -> (Map<ID, ?>) mapResult)
                         .collect(toList())))
-                .flatMap(stream -> fromIterable(stream::iterator))
-                .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
+                .flatMap(stream -> fromIterable(stream::iterator));
     }
 
     public static <ID, R> FlowableAdapter<ID, R> flowableAdapter() {

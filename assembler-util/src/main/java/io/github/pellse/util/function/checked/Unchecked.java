@@ -36,7 +36,7 @@ public final class Unchecked {
     }
 
     public static <R, E extends Throwable> Supplier<R> unchecked(
-            CheckedSupplier<R, E> supplier, Function<Throwable, Throwable> errorConverter) {
+            CheckedSupplier<R, E> supplier, Function<? super Throwable, ? extends Throwable> errorConverter) {
         return () -> invoke(supplier::checkedGet, errorConverter);
     }
 
@@ -46,7 +46,7 @@ public final class Unchecked {
     }
 
     public static <T1, R, E extends Throwable> Function<T1, R> unchecked(
-            CheckedFunction1<T1, R, E> function, Function<Throwable, Throwable> errorConverter) {
+            CheckedFunction1<T1, R, E> function, Function<? super Throwable, ? extends Throwable> errorConverter) {
         return t1 -> invoke(() -> function.checkedApply(t1), errorConverter);
     }
 
@@ -56,7 +56,7 @@ public final class Unchecked {
     }
 
     public static <T1, T2, R, E extends Throwable> BiFunction<T1, T2, R> unchecked(
-            CheckedFunction2<T1, T2, R, E> function, Function<Throwable, Throwable> errorConverter) {
+            CheckedFunction2<T1, T2, R, E> function, Function<? super Throwable, ? extends Throwable> errorConverter) {
         return (t1, t2) -> invoke(() -> function.checkedApply(t1, t2), errorConverter);
     }
 
@@ -66,7 +66,7 @@ public final class Unchecked {
     }
 
     public static <T1, T2, T3, R, E extends Throwable> Function3<T1, T2, T3, R> unchecked(
-            CheckedFunction3<T1, T2, T3, R, E> function, Function<Throwable, Throwable> errorConverter) {
+            CheckedFunction3<T1, T2, T3, R, E> function, Function<? super Throwable, ? extends Throwable> errorConverter) {
         return (t1, t2, t3) -> invoke(() -> function.checkedApply(t1, t2, t3), errorConverter);
     }
 
@@ -76,7 +76,7 @@ public final class Unchecked {
     }
 
     public static <T1, T2, T3, T4, R, E extends Throwable> Function4<T1, T2, T3, T4, R> unchecked(
-            CheckedFunction4<T1, T2, T3, T4, R, E> function, Function<Throwable, Throwable> errorConverter) {
+            CheckedFunction4<T1, T2, T3, T4, R, E> function, Function<? super Throwable, ? extends Throwable> errorConverter) {
         return (t1, t2, t3, t4) -> invoke(() -> function.checkedApply(t1, t2, t3, t4), errorConverter);
     }
 
@@ -86,7 +86,7 @@ public final class Unchecked {
     }
 
     public static <T1, T2, T3, T4, T5, R, E extends Throwable> Function5<T1, T2, T3, T4, T5, R> unchecked(
-            CheckedFunction5<T1, T2, T3, T4, T5, R, E> function, Function<Throwable, Throwable> errorConverter) {
+            CheckedFunction5<T1, T2, T3, T4, T5, R, E> function, Function<? super Throwable, ? extends Throwable> errorConverter) {
         return (t1, t2, t3, t4, t5) -> invoke(() -> function.checkedApply(t1, t2, t3, t4, t5), errorConverter);
     }
 
@@ -96,7 +96,7 @@ public final class Unchecked {
     }
 
     public static <T1, T2, T3, T4, T5, T6, R, E extends Throwable> Function6<T1, T2, T3, T4, T5, T6, R> unchecked(
-            CheckedFunction6<T1, T2, T3, T4, T5, T6, R, E> function, Function<Throwable, Throwable> errorConverter) {
+            CheckedFunction6<T1, T2, T3, T4, T5, T6, R, E> function, Function<? super Throwable, ? extends Throwable> errorConverter) {
         return (t1, t2, t3, t4, t5, t6) -> invoke(() -> function.checkedApply(t1, t2, t3, t4, t5, t6), errorConverter);
     }
 
@@ -106,7 +106,7 @@ public final class Unchecked {
     }
 
     public static <T1, T2, T3, T4, T5, T6, T7, R, E extends Throwable> Function7<T1, T2, T3, T4, T5, T6, T7, R> unchecked(
-            CheckedFunction7<T1, T2, T3, T4, T5, T6, T7, R, E> function, Function<Throwable, Throwable> errorConverter) {
+            CheckedFunction7<T1, T2, T3, T4, T5, T6, T7, R, E> function, Function<? super Throwable, ? extends Throwable> errorConverter) {
         return (t1, t2, t3, t4, t5, t6, t7) -> invoke(() -> function.checkedApply(t1, t2, t3, t4, t5, t6, t7), errorConverter);
     }
 
@@ -116,11 +116,11 @@ public final class Unchecked {
     }
 
     public static <T1, T2, T3, T4, T5, T6, T7, T8, R, E extends Throwable> Function8<T1, T2, T3, T4, T5, T6, T7, T8, R> unchecked(
-            CheckedFunction8<T1, T2, T3, T4, T5, T6, T7, T8, R, E> function, Function<Throwable, Throwable> errorConverter) {
+            CheckedFunction8<T1, T2, T3, T4, T5, T6, T7, T8, R, E> function, Function<? super Throwable, ? extends Throwable> errorConverter) {
         return (t1, t2, t3, t4, t5, t6, t7, t8) -> invoke(() -> function.checkedApply(t1, t2, t3, t4, t5, t6, t7, t8), errorConverter);
     }
 
-    private static <R> R invoke(CheckedSupplier<R, Throwable> supplier, Function<Throwable, Throwable> errorConverter) {
+    private static <R> R invoke(CheckedSupplier<R, Throwable> supplier, Function<? super Throwable, ? extends Throwable> errorConverter) {
         try {
             return supplier.checkedGet();
         } catch (Throwable e) {

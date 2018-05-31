@@ -54,6 +54,22 @@ public class ObservableAssemblerTest {
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
     }
 
+    @Test(expected = UserDefinedRuntimeException.class)
+    public void testAssemblerBuilderWithErrorWithObservable() {
+
+        Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
+                .fromSupplier(this::getCustomers, Customer::getCustomerId)
+                .assembleWith(
+                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                        Transaction::new)
+                .withErrorConverter(UserDefinedRuntimeException::new)
+                .using(observableAdapter(single()));
+
+        assertThat(transactionObservable.toList().blockingGet(),
+                equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
+    }
+
     @Test
     public void testAssemblerBuilderWithObservableWithBuffering() {
 

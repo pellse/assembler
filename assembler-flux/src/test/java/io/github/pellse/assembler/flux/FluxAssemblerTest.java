@@ -18,6 +18,7 @@ package io.github.pellse.assembler.flux;
 
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
+import io.github.pellse.util.function.checked.UncheckedException;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -52,6 +53,22 @@ public class FluxAssemblerTest {
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void testAssemblerBuilderWithFluxWithError() {
+
+        StepVerifier.create(
+                assemblerOf(Transaction.class)
+                        .fromSupplier(this::getCustomers, Customer::getCustomerId)
+                        .assembleWith(
+                                oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                                oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                                Transaction::new)
+                        .using(fluxAdapter()))
+                .expectSubscription()
+                .expectError(UncheckedException.class)
                 .verify();
     }
 

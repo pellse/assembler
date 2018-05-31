@@ -48,7 +48,7 @@ public interface Assembler {
 
         <T, ID, C extends Collection<T>>
         AssembleWithBuilder<T, ID, C, R> fromSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
-                                                                       Function<T, ID> idExtractor);
+                                                      Function<T, ID> idExtractor);
     }
 
     @FunctionalInterface
@@ -222,7 +222,7 @@ public interface Assembler {
         }
 
         AdapterBuilder<ID, R> assembleWith(List<Mapper<ID, ?, Throwable>> mappers,
-                                                            BiFunction<T, ? super Object[], R> domainObjectBuilder);
+                                           BiFunction<T, ? super Object[], R> domainObjectBuilder);
     }
 
     interface AdapterBuilder<ID, R> {
@@ -238,7 +238,7 @@ public interface Assembler {
 
         @Override
         public <T, ID, C extends Collection<T>> AssembleWithBuilder<T, ID, C, R> fromSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
-                                                                                                               Function<T, ID> idExtractor) {
+                                                                                              Function<T, ID> idExtractor) {
             return new AssembleWithBuilderImpl<>(topLevelEntitiesProvider, idExtractor);
         }
     }
@@ -257,7 +257,7 @@ public interface Assembler {
 
         @Override
         public AdapterBuilder<ID, R> assembleWith(List<Mapper<ID, ?, Throwable>> mappers,
-                                                                   BiFunction<T, ? super Object[], R> domainObjectBuilder) {
+                                                  BiFunction<T, ? super Object[], R> domainObjectBuilder) {
             return new AdapterBuilderImpl<>(topLevelEntitiesProvider, idExtractor, mappers, domainObjectBuilder);
         }
     }
@@ -312,7 +312,7 @@ public interface Assembler {
                 .collect(toList());
 
         Stream<Supplier<Map<ID, ?>>> sources = mappers.stream()
-                .map(mapper -> unchecked(() -> mapper.map(entityIDs)));
+                .map(mapper -> unchecked(() -> mapper.map(entityIDs), errorConverter));
 
         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder = mapperResults -> topLevelEntities.stream()
                 .map(e -> domainObjectBuilder.apply(e,
@@ -320,6 +320,6 @@ public interface Assembler {
                                 .map(mapperResult -> mapperResult.get(idExtractor.apply(e)))
                                 .toArray()));
 
-        return assemblerAdapter.convertMapperSources(sources, domainObjectStreamBuilder, errorConverter);
+        return assemblerAdapter.convertMapperSources(sources, domainObjectStreamBuilder);
     }
 }

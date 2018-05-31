@@ -18,14 +18,16 @@ package io.github.pellse.assembler.future;
 
 import io.github.pellse.assembler.AssemblerAdapter;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.CompletableFuture.allOf;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -44,8 +46,7 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
 
     @Override
     public CompletableFuture<CR> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
-                                                      Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
-                                                      Function<Throwable, RuntimeException> errorConverter) {
+                                                      Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<CompletableFuture<Map<ID, ?>>> mappingFutures = sources
                 .map(s -> executor != null ? supplyAsync(s, executor) : supplyAsync(s))
@@ -56,8 +57,7 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
                         mappingFutures.stream()
                                 .map(CompletableFuture::join)
                                 .collect(toList()))
-                        .collect(toCollection(collectionFactory)))
-                .exceptionally(e -> sneakyThrow(errorConverter.apply(e.getCause())));
+                        .collect(toCollection(collectionFactory)));
     }
 
     public static <ID, R> CompletableFutureAdapter<ID, R, List<R>> completableFutureAdapter() {

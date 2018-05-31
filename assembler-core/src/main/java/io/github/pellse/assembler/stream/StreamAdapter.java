@@ -36,15 +36,10 @@ public class StreamAdapter<ID, R> implements AssemblerAdapter<ID, R, Stream<R>> 
 
     @Override
     public Stream<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
-                                          Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
-                                          Function<Throwable, RuntimeException> errorConverter) {
-        try {
-            return domainObjectStreamBuilder.apply(parallelSources(sources)
-                    .map(Supplier::get)
-                    .collect(toList()));
-        } catch (Throwable t) {
-            throw errorConverter.apply(t); // For parallel stream, any exception will be propagated to the caller thread
-        }
+                                          Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
+        return domainObjectStreamBuilder.apply(parallelSources(sources)
+                .map(Supplier::get)
+                .collect(toList()));
     }
 
     private Stream<Supplier<Map<ID, ?>>> parallelSources(Stream<Supplier<Map<ID, ?>>> sources) {

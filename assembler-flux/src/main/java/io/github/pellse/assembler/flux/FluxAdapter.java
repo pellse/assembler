@@ -28,7 +28,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.scheduler.Schedulers.parallel;
@@ -44,8 +43,7 @@ public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
     @SuppressWarnings("unchecked")
     @Override
     public Flux<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
-                                        Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
-                                        Function<Throwable, RuntimeException> errorConverter) {
+                                        Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<? extends Publisher<Map<ID, ?>>> publishers = sources
                 .map(mappingSupplier -> Mono.fromSupplier(mappingSupplier).subscribeOn(scheduler))
@@ -55,8 +53,7 @@ public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
                 mapperResults -> domainObjectStreamBuilder.apply(Stream.of(mapperResults)
                         .map(mapResult -> (Map<ID, ?>) mapResult)
                         .collect(toList())))
-                .flatMap(Flux::fromStream)
-                .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
+                .flatMap(Flux::fromStream);
     }
 
     public static <ID, R> FluxAdapter<ID, R> fluxAdapter() {

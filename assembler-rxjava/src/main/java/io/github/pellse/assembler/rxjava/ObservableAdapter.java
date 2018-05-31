@@ -27,7 +27,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static io.reactivex.Observable.fromCallable;
 import static io.reactivex.Observable.fromIterable;
 import static io.reactivex.schedulers.Schedulers.computation;
@@ -46,8 +45,7 @@ public class ObservableAdapter<ID, R> implements AssemblerAdapter<ID, R, Observa
     @SuppressWarnings("unchecked")
     @Override
     public Observable<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
-                                        Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder,
-                                        Function<Throwable, RuntimeException> errorConverter) {
+                                        Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<Observable<? extends Map<ID, ?>>> observables = sources
                 .map(mappingSupplier -> fromCallable(mappingSupplier::get).subscribeOn(scheduler))
@@ -57,8 +55,7 @@ public class ObservableAdapter<ID, R> implements AssemblerAdapter<ID, R, Observa
                 mapperResults -> domainObjectStreamBuilder.apply(Stream.of(mapperResults)
                         .map(mapResult -> (Map<ID, ?>) mapResult)
                         .collect(toList())))
-                .flatMap(stream -> fromIterable(stream::iterator))
-                .doOnError(e -> sneakyThrow(errorConverter.apply(e)));
+                .flatMap(stream -> fromIterable(stream::iterator));
     }
 
     public static <ID, R> ObservableAdapter<ID, R> observableAdapter() {
