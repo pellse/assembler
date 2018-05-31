@@ -27,6 +27,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static io.reactivex.Flowable.fromCallable;
 import static io.reactivex.Flowable.fromIterable;
 import static io.reactivex.schedulers.Schedulers.computation;
 import static io.reactivex.schedulers.Schedulers.from;
@@ -47,7 +48,7 @@ public class FlowableAdapter<ID, R> implements AssemblerAdapter<ID, R, Flowable<
                                             Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<Flowable<? extends Map<ID, ?>>> flowables = sources
-                .map(mappingSupplier -> Flowable.fromCallable(mappingSupplier::get).subscribeOn(scheduler))
+                .map(mappingSupplier -> fromCallable(mappingSupplier::get).subscribeOn(scheduler))
                 .collect(toList());
 
         return Flowable.zip(flowables,

@@ -19,7 +19,6 @@ package io.github.pellse.assembler.flux;
 import io.github.pellse.assembler.AssemblerAdapter;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.util.List;
@@ -30,6 +29,7 @@ import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
+import static reactor.core.publisher.Mono.fromSupplier;
 import static reactor.core.scheduler.Schedulers.parallel;
 
 public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
@@ -46,7 +46,7 @@ public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
                                         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<? extends Publisher<Map<ID, ?>>> publishers = sources
-                .map(mappingSupplier -> Mono.fromSupplier(mappingSupplier).subscribeOn(scheduler))
+                .map(mappingSupplier -> fromSupplier(mappingSupplier).subscribeOn(scheduler))
                 .collect(toList());
 
         return Flux.zip(publishers,
