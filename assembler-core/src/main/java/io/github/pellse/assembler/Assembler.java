@@ -315,9 +315,9 @@ public interface Assembler {
                 .map(mapper -> unchecked(() -> mapper.map(entityIDs), errorConverter));
 
         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder = mapperResults -> topLevelEntities.stream()
-                .map(e -> domainObjectBuilder.apply(e,
+                .map(topLevelEntity -> domainObjectBuilder.apply(topLevelEntity,
                         mapperResults.stream()
-                                .map(mapperResult -> mapperResult.get(idExtractor.apply(e)))
+                                .map(mapperResult -> mapperResult.get(idExtractor.apply(topLevelEntity)))
                                 .toArray()));
 
         return assemblerAdapter.convertMapperSources(sources, domainObjectStreamBuilder);

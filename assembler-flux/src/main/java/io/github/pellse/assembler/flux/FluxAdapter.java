@@ -45,7 +45,7 @@ public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
     public Flux<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
                                         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
-        List<? extends Publisher<Map<ID, ?>>> publishers = sources
+        List<Publisher<Map<ID, ?>>> publishers = sources
                 .map(mappingSupplier -> fromSupplier(mappingSupplier).subscribeOn(scheduler))
                 .collect(toList());
 
