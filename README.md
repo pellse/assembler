@@ -183,7 +183,7 @@ Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
                 oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
                 oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
                 Transaction::new)
-            .using(akkaSourceAdapter(true)));
+            .using(akkaSourceAdapter(Source::async))); // Custom underlying sources configuration
         
 customerSource.via(transactionFlow)
     .runWith(Sink.foreach(System.out::println), mat)
