@@ -13,8 +13,7 @@ Currently the following implementations are supported (with links to their respe
 2. [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
 3. [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 4. [RxJava](https://github.com/pellse/assembler/tree/master/assembler-rxjava)
-
-An Akka Stream implementation will be available soon.
+5. [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
 
 ## Use Cases
 
@@ -131,6 +130,64 @@ Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
     .using(flowableAdapter())
+```
+### [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
+By using an `AkkaSourceAdapter` we can support the Akka Stream framework by creating instances of Akka `Source` (from [AkkaSourceAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-akka-stream/src/test/java/io/github/pellse/assembler/akkastream/AkkaSourceAssemblerTest.java)):
+```java
+ActorSystem system = ActorSystem.create();
+Materializer mat = ActorMaterializer.create(system);
+
+Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
+    .fromSupplier(this::getCustomers, Customer::getCustomerId)
+    .assembleWith(
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(akkaSourceAdapter())); // Sequential
+
+transactionSource.runWith(Sink.foreach(System.out::println), mat)
+    .toCompletableFuture().get();
+```
+or
+```java
+ActorSystem system = ActorSystem.create();
+Materializer mat = ActorMaterializer.create(system);
+
+Source<Transaction, NotUsed> transactionSource = Source.from(getCustomers())
+    .groupedWithin(3, ofSeconds(5))
+    .flatMapConcat(customerList ->
+        assemblerOf(Transaction.class)
+            .from(customerList, Customer::getCustomerId)
+            .assembleWith(
+                oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+                oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                Transaction::new)
+            .using(akkaSourceAdapter(true))); // Parallel
+
+transactionSource.runWith(Sink.foreach(System.out::println), mat)
+    .toCompletableFuture().get();
+```
+It is also possible to create an Akka `Flow` from the Assembler DSL:
+```java
+ActorSystem system = ActorSystem.create();
+Materializer mat = ActorMaterializer.create(system);
+
+Source<Customer, NotUsed> customerSource = Source.from(getCustomers());
+
+Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
+    .grouped(3)
+    .flatMapConcat(customerList ->
+        assemblerOf(Transaction.class)
+            .from(customerList, Customer::getCustomerId)
+            .assembleWith(
+                oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+                oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                Transaction::new)
+            .using(akkaSourceAdapter(true)));
+        
+customerSource.via(transactionFlow)
+    .runWith(Sink.foreach(System.out::println), mat)
+    .toCompletableFuture().get();
 ```
 ## What's Next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
