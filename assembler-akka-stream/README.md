@@ -1,4 +1,4 @@
-# assembler-flux
+# assembler-akka-stream
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/assembler-akka-stream/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/assembler-akka-stream)
 
