@@ -4,7 +4,7 @@
 
 ## Usage Example
 
-By using an `AkkaSourceAdapter` we can support the Akka Stream framework by creating instances of Akka `Source`:
+By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io/) framework by creating instances of Akka `Source`:
 ```java
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
