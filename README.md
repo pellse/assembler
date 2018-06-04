@@ -1,5 +1,5 @@
 # Assembler
-Library allowing to efficiently assemble entities from querying/merging external datasources or aggregating microservices.
+Lightweight library allowing to efficiently assemble entities from querying/merging external datasources or aggregating microservices.
 
 More specifically it was designed as a very lightweight solution to resolve the N + 1 queries problem when aggregating data, not only from database calls (e.g. Spring Data JPA, Hibernate) but from arbitrary datasources (relational databases, NoSQL, REST, local method calls, etc.).
 
