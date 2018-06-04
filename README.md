@@ -132,7 +132,7 @@ Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
     .using(flowableAdapter())
 ```
 ### [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
-By using an `AkkaSourceAdapter` we can support the Akka Stream framework by creating instances of Akka `Source` (from [AkkaSourceAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-akka-stream/src/test/java/io/github/pellse/assembler/akkastream/AkkaSourceAssemblerTest.java)):
+By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io/) framework by creating instances of Akka `Source` (from [AkkaSourceAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-akka-stream/src/test/java/io/github/pellse/assembler/akkastream/AkkaSourceAssemblerTest.java)):
 ```java
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
