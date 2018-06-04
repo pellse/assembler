@@ -39,6 +39,7 @@ import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.akkastream.AkkaSourceAdapter.akkaSourceAdapter;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static java.time.Duration.ofSeconds;
 import static java.util.Arrays.asList;
 
 public class AkkaSourceAssemblerTest {
@@ -86,7 +87,7 @@ public class AkkaSourceAssemblerTest {
 
         try {
             future.toCompletableFuture().get();
-        } catch( ExecutionException e) {
+        } catch (ExecutionException e) {
             throw e.getCause();
         }
     }
@@ -103,6 +104,30 @@ public class AkkaSourceAssemblerTest {
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(akkaSourceAdapter(true));
+
+        final CompletionStage<Done> future = transactionSource.runWith(
+                Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
+
+        probe.expectMsgAllOf(transaction1, transaction2, transaction3, transaction1, transaction2);
+
+        future.toCompletableFuture().get();
+    }
+
+    @Test
+    public void testAssemblerBuilderWithAkkaSourceAsyncWithBuffering() throws Exception {
+
+        TestKit probe = new TestKit(system);
+
+        Source<Transaction, NotUsed> transactionSource = Source.from(getCustomers())
+                .groupedWithin(3, ofSeconds(5))
+                .flatMapConcat(customerList ->
+                        assemblerOf(Transaction.class)
+                                .from(customerList, Customer::getCustomerId)
+                                .assembleWith(
+                                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                                        Transaction::new)
+                                .using(akkaSourceAdapter(true)));
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);

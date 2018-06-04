@@ -38,20 +38,19 @@ public class AkkaSourceAdapter<ID, R> implements AssemblerAdapter<ID, R, Source<
         this.sourceTransformer = sourceTransformer;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Source<R, NotUsed> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
                                                    Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<Source<Map<ID, ?>, ?>> akkaSources = sources
-                .map(this::createSource)
+                .map(this::createAkkaSource)
                 .collect(toList());
 
         return zipN(akkaSources)
                 .flatMapConcat(mapperResults -> from(domainObjectStreamBuilder.apply(mapperResults)::iterator));
     }
 
-    private Source<Map<ID, ?>, ?> createSource(Supplier<Map<ID, ?>> mappingSupplier) {
+    private Source<Map<ID, ?>, ?> createAkkaSource(Supplier<Map<ID, ?>> mappingSupplier) {
         return sourceTransformer.apply(lazily(() -> single(mappingSupplier.get())));
     }
 
