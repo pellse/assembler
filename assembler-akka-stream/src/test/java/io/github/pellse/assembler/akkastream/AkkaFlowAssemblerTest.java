@@ -64,7 +64,7 @@ public class AkkaFlowAssemblerTest {
                                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                         Transaction::new)
-                                .using(akkaSourceAdapter(true)));
+                                .using(akkaSourceAdapter(true))); // Parallel
 
         final CompletionStage<Done> future = customerSource.via(transactionFlow).runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
@@ -90,7 +90,7 @@ public class AkkaFlowAssemblerTest {
                                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                         Transaction::new)
-                                .using(akkaSourceAdapter(true)));
+                                .using(akkaSourceAdapter(Source::async))); // Custom underlying sources configuration
 
         final CompletionStage<Done> future = customerSource.via(transactionFlow).runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
