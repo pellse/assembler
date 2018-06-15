@@ -43,12 +43,12 @@ public class FlowableAssemblerTest {
     public void testAssemblerBuilderWithFlowable() {
 
         Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
-                .fromSupplier(this::getCustomers, Customer::getCustomerId)
-                .assembleWith(
+                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(flowableAdapter(single()));
+                .assembleUsing(flowableAdapter(single()));
 
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -58,13 +58,13 @@ public class FlowableAssemblerTest {
     public void testAssemblerBuilderWithErrorWithFlowable() {
 
         Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
-                .fromSupplier(this::getCustomers, Customer::getCustomerId)
-                .assembleWith(
+                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .withErrorConverter(UserDefinedRuntimeException::new)
-                .using(flowableAdapter(single()));
+                .assembleUsing(flowableAdapter(single()));
 
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -76,12 +76,12 @@ public class FlowableAssemblerTest {
         Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers())
                 .buffer(3)
                 .flatMap(customers -> assemblerOf(Transaction.class)
-                        .from(customers, Customer::getCustomerId)
-                        .assembleWith(
+                        .fromSource(customers, Customer::getCustomerId)
+                        .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .using(flowableAdapter(single())));
+                        .assembleUsing(flowableAdapter(single())));
         
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));

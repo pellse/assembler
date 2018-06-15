@@ -43,12 +43,12 @@ public class ObservableAssemblerTest {
     public void testAssemblerBuilderWithObservable() {
 
         Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
-                .fromSupplier(this::getCustomers, Customer::getCustomerId)
-                .assembleWith(
+                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(observableAdapter(single()));
+                .assembleUsing(observableAdapter(single()));
 
         assertThat(transactionObservable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -58,13 +58,13 @@ public class ObservableAssemblerTest {
     public void testAssemblerBuilderWithErrorWithObservable() {
 
         Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
-                .fromSupplier(this::getCustomers, Customer::getCustomerId)
-                .assembleWith(
+                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .withErrorConverter(UserDefinedRuntimeException::new)
-                .using(observableAdapter(single()));
+                .assembleUsing(observableAdapter(single()));
 
         assertThat(transactionObservable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -76,12 +76,12 @@ public class ObservableAssemblerTest {
         Observable<Transaction> transactionObservable = Observable.fromIterable(getCustomers())
                 .buffer(3)
                 .flatMap(customers -> assemblerOf(Transaction.class)
-                        .from(customers, Customer::getCustomerId)
-                        .assembleWith(
+                        .fromSource(customers, Customer::getCustomerId)
+                        .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .using(observableAdapter(single())));
+                        .assembleUsing(observableAdapter(single())));
 
         assertThat(transactionObservable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));

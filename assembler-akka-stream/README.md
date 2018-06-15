@@ -10,12 +10,12 @@ ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
 Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-    .fromSupplier(this::getCustomers, Customer::getCustomerId)
-    .assembleWith(
+    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(akkaSourceAdapter())); // Sequential
+    .assembleUsing(akkaSourceAdapter())); // Sequential
 
 transactionSource.runWith(Sink.foreach(System.out::println), mat)
     .toCompletableFuture().get();
@@ -25,16 +25,16 @@ or
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
-Source<Transaction, NotUsed> transactionSource = Source.from(getCustomers())
+Source<Transaction, NotUsed> transactionSource = Source.fromSource(getCustomers())
     .groupedWithin(3, ofSeconds(5))
     .flatMapConcat(customerList ->
         assemblerOf(Transaction.class)
-            .from(customerList, Customer::getCustomerId)
-            .assembleWith(
+            .fromSource(customerList, Customer::getCustomerId)
+            .withAssemblerRules(
                 oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
                 oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
                 Transaction::new)
-            .using(akkaSourceAdapter(true))); // Parallel
+            .assembleUsing(akkaSourceAdapter(true))); // Parallel
 
 transactionSource.runWith(Sink.foreach(System.out::println), mat)
     .toCompletableFuture().get();
@@ -45,18 +45,18 @@ It is also possible to create an Akka `Flow` from the Assembler DSL:
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
-Source<Customer, NotUsed> customerSource = Source.from(getCustomers());
+Source<Customer, NotUsed> customerSource = Source.fromSource(getCustomers());
 
 Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
     .grouped(3)
     .flatMapConcat(customerList ->
         assemblerOf(Transaction.class)
-            .from(customerList, Customer::getCustomerId)
-            .assembleWith(
+            .fromSource(customerList, Customer::getCustomerId)
+            .withAssemblerRules(
                 oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
                 oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
                 Transaction::new)
-            .using(akkaSourceAdapter(true)));
+            .assembleUsing(akkaSourceAdapter(true)));
         
 customerSource.via(transactionFlow)
     .runWith(Sink.foreach(System.out::println), mat)

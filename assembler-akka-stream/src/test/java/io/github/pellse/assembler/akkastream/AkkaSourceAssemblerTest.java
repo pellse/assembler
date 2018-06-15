@@ -57,12 +57,12 @@ public class AkkaSourceAssemblerTest {
         TestKit probe = new TestKit(system);
 
         Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-                .fromSupplier(this::getCustomers, Customer::getCustomerId)
-                .assembleWith(
+                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(akkaSourceAdapter());
+                .assembleUsing(akkaSourceAdapter());
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
@@ -76,12 +76,12 @@ public class AkkaSourceAssemblerTest {
     public void testAssemblerBuilderWithAkkaSourceWithError() throws Throwable {
 
         Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-                .fromSupplier(this::getCustomers, Customer::getCustomerId)
-                .assembleWith(
+                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(akkaSourceAdapter()); // Sequential
+                .assembleUsing(akkaSourceAdapter()); // Sequential
 
         final CompletionStage<Done> future = transactionSource.runWith(Sink.ignore(), mat);
 
@@ -98,12 +98,12 @@ public class AkkaSourceAssemblerTest {
         TestKit probe = new TestKit(system);
 
         Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-                .fromSupplier(this::getCustomers, Customer::getCustomerId)
-                .assembleWith(
+                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(akkaSourceAdapter(true)); // Parallel
+                .assembleUsing(akkaSourceAdapter(true)); // Parallel
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
@@ -122,12 +122,12 @@ public class AkkaSourceAssemblerTest {
                 .groupedWithin(3, ofSeconds(5))
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .from(customerList, Customer::getCustomerId)
-                                .assembleWith(
+                                .fromSource(customerList, Customer::getCustomerId)
+                                .withAssemblerRules(
                                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                         Transaction::new)
-                                .using(akkaSourceAdapter(Source::async))); // Custom source configuration
+                                .assembleUsing(akkaSourceAdapter(Source::async))); // Custom source configuration
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);

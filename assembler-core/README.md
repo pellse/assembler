@@ -7,32 +7,32 @@
 For synchronous Java 8 Stream implementation:
 ```java
 List<Transaction> transactions = assemblerOf(Transaction.class)
-    .fromSupplier(this::getCustomers, Customer::getCustomerId)
-    .assembleWith(
+    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // supplier of default values
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(streamAdapter())
+    .assembleUsing(streamAdapter())
     .collect(toList());
 ```
 To switch to a parallel Java 8 Stream implementation and asynchronous aggregation, just set the `parallel` flag to `true` on the supplied `StreamAdapter` :
 ```java
 List<Transaction> transactions = assemblerOf(Transaction.class)
-    .fromSupplier(this::getCustomers, Customer::getCustomerId)
-    .assembleWith(
+    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // supplier of default values
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(streamAdapter(true))
+    .assembleUsing(streamAdapter(true))
     .collect(toList());
 ```
 For `CompletableFuture` implementation:
 ```java
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-    .fromSupplier(this::getCustomers, Customer::getCustomerId)
-    .assembleWith(
+    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId)
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(completableFutureAdapter());
+    .assembleUsing(completableFutureAdapter());
 ```

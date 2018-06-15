@@ -59,12 +59,12 @@ public class AkkaFlowAssemblerTest {
         Flow<List<Customer>, Transaction, NotUsed> transactionFlow = Flow.<List<Customer>>create()
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .from(customerList, Customer::getCustomerId)
-                                .assembleWith(
+                                .fromSource(customerList, Customer::getCustomerId)
+                                .withAssemblerRules(
                                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                         Transaction::new)
-                                .using(akkaSourceAdapter(true))); // Parallel
+                                .assembleUsing(akkaSourceAdapter(true))); // Parallel
 
         final CompletionStage<Done> future = customerSource.via(transactionFlow).runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
@@ -85,12 +85,12 @@ public class AkkaFlowAssemblerTest {
                 .grouped(3)
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .from(customerList, Customer::getCustomerId)
-                                .assembleWith(
+                                .fromSource(customerList, Customer::getCustomerId)
+                                .withAssemblerRules(
                                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                         Transaction::new)
-                                .using(akkaSourceAdapter(Source::async))); // Custom underlying sources configuration
+                                .assembleUsing(akkaSourceAdapter(Source::async))); // Custom underlying sources configuration
 
         final CompletionStage<Done> future = customerSource.via(transactionFlow).runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
