@@ -1,10 +1,10 @@
-# assembler-flux
+# assembler-akka-stream
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/assembler-akka-stream/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/assembler-akka-stream)
 
 ## Usage Example
 
-By using an `AkkaSourceAdapter` we can support the Akka Stream framework by creating instances of Akka `Source`:
+By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io/) framework by creating instances of Akka `Source`:
 ```java
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
@@ -56,7 +56,7 @@ Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
                 oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
                 oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
                 Transaction::new)
-            .assembleUsing(akkaSourceAdapter(true)));
+            .assembleUsing(akkaSourceAdapter(Source::async))); // Custom underlying sources configuration
         
 customerSource.via(transactionFlow)
     .runWith(Sink.foreach(System.out::println), mat)
