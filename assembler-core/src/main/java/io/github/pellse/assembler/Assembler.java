@@ -42,13 +42,13 @@ public interface Assembler {
     interface FromSourceBuilder<R> {
 
         default <T, ID, C extends Collection<T>>
-        WithAssemblerRulesBuilder<T, ID, R> fromSource(C topLevelEntities, Function<T, ID> idExtractor) {
-            return fromSourceSupplier(() -> topLevelEntities, idExtractor);
+        WithAssemblerRulesBuilder<T, ID, R> fromSourceSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+                                                               Function<T, ID> idExtractor) {
+            return fromSource(topLevelEntitiesProvider.get(), idExtractor);
         }
 
         <T, ID, C extends Collection<T>>
-        WithAssemblerRulesBuilder<T, ID, R> fromSourceSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
-                                                         Function<T, ID> idExtractor);
+        WithAssemblerRulesBuilder<T, ID, R> fromSource(C topLevelEntities, Function<T, ID> idExtractor);
     }
 
     @FunctionalInterface
@@ -237,46 +237,46 @@ public interface Assembler {
         }
 
         @Override
-        public <T, ID, C extends Collection<T>> WithAssemblerRulesBuilder<T, ID, R> fromSourceSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
-                                                                                                 Function<T, ID> idExtractor) {
-            return new WithAssemblerRulesBuilderImpl<>(topLevelEntitiesProvider, idExtractor);
+        public <T, ID, C extends Collection<T>> WithAssemblerRulesBuilder<T, ID, R> fromSource(C topLevelEntities,
+                                                                                               Function<T, ID> idExtractor) {
+            return new WithAssemblerRulesBuilderImpl<>(topLevelEntities, idExtractor);
         }
     }
 
     class WithAssemblerRulesBuilderImpl<T, ID, C extends Collection<T>, R> implements WithAssemblerRulesBuilder<T, ID, R> {
 
-        private final CheckedSupplier<C, Throwable> topLevelEntitiesProvider;
+        private final C topLevelEntities;
         private final Function<T, ID> idExtractor;
 
-        private WithAssemblerRulesBuilderImpl(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+        private WithAssemblerRulesBuilderImpl(C topLevelEntities,
                                               Function<T, ID> idExtractor) {
 
-            this.topLevelEntitiesProvider = topLevelEntitiesProvider;
+            this.topLevelEntities = topLevelEntities;
             this.idExtractor = idExtractor;
         }
 
         @Override
         public AssembleUsingBuilder<ID, R> withAssemblerRules(List<Mapper<ID, ?, Throwable>> mappers,
                                                               BiFunction<T, ? super Object[], R> domainObjectBuilder) {
-            return new AssembleUsingBuilderImpl<>(topLevelEntitiesProvider, idExtractor, mappers, domainObjectBuilder);
+            return new AssembleUsingBuilderImpl<>(topLevelEntities, idExtractor, mappers, domainObjectBuilder);
         }
     }
 
     class AssembleUsingBuilderImpl<T, ID, C extends Collection<T>, R> implements AssembleUsingBuilder<ID, R> {
 
-        private final CheckedSupplier<C, Throwable> topLevelEntitiesProvider;
+        private final C topLevelEntities;
         private final Function<T, ID> idExtractor;
         private BiFunction<T, ? super Object[], R> domainObjectBuilder;
         private List<Mapper<ID, ?, Throwable>> mappers;
 
         private Function<Throwable, RuntimeException> errorConverter = UncheckedException::new;
 
-        private AssembleUsingBuilderImpl(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+        private AssembleUsingBuilderImpl(C topLevelEntities,
                                          Function<T, ID> idExtractor,
                                          List<Mapper<ID, ?, Throwable>> mappers,
                                          BiFunction<T, ? super Object[], R> domainObjectBuilder) {
 
-            this.topLevelEntitiesProvider = topLevelEntitiesProvider;
+            this.topLevelEntities = topLevelEntities;
             this.idExtractor = idExtractor;
 
             this.domainObjectBuilder = domainObjectBuilder;
@@ -292,20 +292,18 @@ public interface Assembler {
         @Override
         public <RC> RC assembleUsing(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-            return assemble(topLevelEntitiesProvider, idExtractor,
+            return assemble(topLevelEntities, idExtractor,
                     mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
         }
     }
 
     static <T, ID, C extends Collection<T>, R, RC>
-    RC assemble(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
+    RC assemble(C topLevelEntities,
                 Function<T, ID> idExtractor,
                 List<Mapper<ID, ?, Throwable>> mappers,
                 BiFunction<T, ? super Object[], R> domainObjectBuilder,
                 AssemblerAdapter<ID, R, RC> assemblerAdapter,
                 Function<Throwable, RuntimeException> errorConverter) {
-
-        C topLevelEntities = topLevelEntitiesProvider.get();
 
         List<ID> entityIDs = topLevelEntities.stream()
                 .map(idExtractor)
