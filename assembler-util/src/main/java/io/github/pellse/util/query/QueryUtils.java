@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+import static io.github.pellse.util.ObjectUtils.isSafeEqual;
 import static io.github.pellse.util.function.checked.CheckedPredicate1.not;
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static java.util.function.Function.identity;
@@ -87,6 +88,9 @@ public final class QueryUtils {
 
         Map<ID, T> resultMap = safeApply(ids, queryFunction)
                 .collect(mapCollectorFactory);
+
+        if (isSafeEqual(resultMap, ids, Map::size, Collection::size))
+            return resultMap;
 
         Set<ID> idsFromQueryResult = resultMap.keySet();
 
