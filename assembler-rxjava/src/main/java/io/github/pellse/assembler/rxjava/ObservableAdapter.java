@@ -44,10 +44,10 @@ public class ObservableAdapter<ID, R> implements AssemblerAdapter<ID, R, Observa
 
     @SuppressWarnings("unchecked")
     @Override
-    public Observable<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
+    public Observable<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSources,
                                         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
-        List<Observable<? extends Map<ID, ?>>> observables = sources
+        List<Observable<? extends Map<ID, ?>>> observables = mapperSources
                 .map(mappingSupplier -> fromCallable(mappingSupplier::get).subscribeOn(scheduler))
                 .collect(toList());
 

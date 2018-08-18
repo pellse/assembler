@@ -44,10 +44,10 @@ public class FlowableAdapter<ID, R> implements AssemblerAdapter<ID, R, Flowable<
 
     @SuppressWarnings("unchecked")
     @Override
-    public Flowable<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> sources,
+    public Flowable<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSources,
                                             Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
-        List<Flowable<? extends Map<ID, ?>>> flowables = sources
+        List<Flowable<? extends Map<ID, ?>>> flowables = mapperSources
                 .map(mappingSupplier -> fromCallable(mappingSupplier::get).subscribeOn(scheduler))
                 .collect(toList());
 
