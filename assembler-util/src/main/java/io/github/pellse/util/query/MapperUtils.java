@@ -61,7 +61,8 @@ public interface MapperUtils {
             Function<ID, R> defaultResultProvider,
             Supplier<IDC> idCollectionFactory) {
 
-        return delegate(entityIds -> queryOneToOne((IDC) entityIds, queryFunction, idExtractorFromQueryResults, defaultResultProvider), idCollectionFactory);
+        return convertIdTypeDelegate(entityIds ->
+                queryOneToOne((IDC) entityIds, queryFunction, idExtractorFromQueryResults, defaultResultProvider), idCollectionFactory);
     }
 
     static <ID, R, D extends Collection<R>, EX extends Throwable> Mapper<ID, D, EX> oneToMany(
@@ -79,7 +80,8 @@ public interface MapperUtils {
             Supplier<D> collectionFactory,
             Supplier<IDC> idCollectionFactory) {
 
-        return delegate(entityIds -> queryOneToMany((IDC) entityIds, queryFunction, idExtractorFromQueryResults, collectionFactory), idCollectionFactory);
+        return convertIdTypeDelegate(entityIds ->
+                queryOneToMany((IDC) entityIds, queryFunction, idExtractorFromQueryResults, collectionFactory), idCollectionFactory);
     }
 
     static <ID, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
@@ -95,7 +97,8 @@ public interface MapperUtils {
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
 
-        return delegate(entityIds -> queryOneToManyAsList((IDC) entityIds, queryFunction, idExtractorFromQueryResults), idCollectionFactory);
+        return convertIdTypeDelegate(entityIds ->
+                queryOneToManyAsList((IDC) entityIds, queryFunction, idExtractorFromQueryResults), idCollectionFactory);
     }
 
     static <ID, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
@@ -111,12 +114,16 @@ public interface MapperUtils {
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
 
-        return delegate(entityIds -> queryOneToManyAsSet((IDC) entityIds, queryFunction, idExtractorFromQueryResults), idCollectionFactory);
+        return convertIdTypeDelegate(entityIds ->
+                queryOneToManyAsSet((IDC) entityIds, queryFunction, idExtractorFromQueryResults), idCollectionFactory);
     }
 
-    private static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> delegate(
+    private static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> convertIdTypeDelegate(
             Mapper<ID, R, EX> mapper, Supplier<IDC> idCollectionFactory) {
 
-        return entityIds -> mapper.map(stream(entityIds.spliterator(), false).collect(toCollection(idCollectionFactory)));
+        return entityIds -> mapper.map(
+                stream(entityIds.spliterator(), false)
+                        .collect(toCollection(idCollectionFactory))
+        );
     }
 }

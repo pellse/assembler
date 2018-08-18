@@ -31,13 +31,9 @@ import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
-public final class QueryUtils {
+public interface QueryUtils {
 
-    private QueryUtils() {
-
-    }
-
-    public static <ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
     Map<ID, R> queryOneToOne(IDC ids,
                              CheckedFunction1<IDC, D, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults) throws EX {
@@ -45,7 +41,7 @@ public final class QueryUtils {
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null);
     }
 
-    public static <ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
     Map<ID, R> queryOneToOne(IDC ids,
                              CheckedFunction1<IDC, D, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults,
@@ -54,7 +50,7 @@ public final class QueryUtils {
         return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity()));
     }
 
-    public static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
     Map<ID, List<R>> queryOneToManyAsList(IDC ids,
                                           CheckedFunction1<IDC, List<R>, EX> queryFunction,
                                           Function<R, ID> idExtractorFromQueryResults) throws EX {
@@ -62,7 +58,7 @@ public final class QueryUtils {
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, ArrayList::new);
     }
 
-    public static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
     Map<ID, Set<R>> queryOneToManyAsSet(IDC ids,
                                         CheckedFunction1<IDC, Set<R>, EX> queryFunction,
                                         Function<R, ID> idExtractorFromQueryResults) throws EX {
@@ -70,7 +66,7 @@ public final class QueryUtils {
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new);
     }
 
-    public static <ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
     Map<ID, D> queryOneToMany(IDC ids,
                               CheckedFunction1<IDC, D, EX> queryFunction,
                               Function<R, ID> idExtractorFromQueryResults,
@@ -80,7 +76,7 @@ public final class QueryUtils {
                 groupingBy(idExtractorFromQueryResults, toCollection(collectionFactory)));
     }
 
-    public static <T, ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
+    static <T, ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
     Map<ID, T> query(IDC ids,
                      CheckedFunction1<IDC, D, EX> queryFunction,
                      Function<ID, T> defaultResultProvider,
@@ -103,8 +99,13 @@ public final class QueryUtils {
         return resultMap;
     }
 
-    public static <T, R, C extends Collection<? extends T>, D extends Collection<? extends R>, EX extends Throwable>
-    Stream<? extends R> safeApply(C coll, CheckedFunction1<C, D, EX> queryFunction) throws EX {
+    static <T, R, C extends Collection<? extends T>, D extends Collection<? extends R>, EX extends Throwable>
+    Function<C, Stream<? extends R>> safe(CheckedFunction1<C, D, EX> queryFunction) {
+        return coll -> safeApply(coll, queryFunction);
+    }
+
+    static <T, R, C extends Collection<? extends T>, D extends Collection<? extends R>, EX extends Throwable>
+    Stream<? extends R> safeApply(C coll, CheckedFunction1<C, D, EX> queryFunction) {
         return Optional.ofNullable(coll)
                 .filter(not(Collection::isEmpty))
                 .map(unchecked(queryFunction))
