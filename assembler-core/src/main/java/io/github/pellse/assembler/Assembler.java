@@ -309,15 +309,18 @@ public interface Assembler {
                 .map(idExtractor)
                 .collect(toList());
 
-        Stream<Supplier<Map<ID, ?>>> sources = mappers.stream()
+        Stream<Supplier<Map<ID, ?>>> mapperSources = mappers.stream()
                 .map(mapper -> unchecked(() -> mapper.map(entityIDs), errorConverter));
 
-        Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder = mapperResults -> topLevelEntities.stream()
-                .map(topLevelEntity -> domainObjectBuilder.apply(topLevelEntity,
+        BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
+                (topLevelEntity, mapperResults) -> domainObjectBuilder.apply(topLevelEntity,
                         mapperResults.stream()
                                 .map(mapperResult -> mapperResult.get(idExtractor.apply(topLevelEntity)))
-                                .toArray()));
+                                .toArray());
 
-        return assemblerAdapter.convertMapperSources(sources, domainObjectStreamBuilder);
+        Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder = mapperResults -> topLevelEntities.stream()
+                .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
+
+        return assemblerAdapter.convertMapperSources(mapperSources, domainObjectStreamBuilder);
     }
 }
