@@ -189,5 +189,30 @@ customerSource.via(transactionFlow)
     .runWith(Sink.foreach(System.out::println), mat)
     .toCompletableFuture().get();
 ```
+## Caching
+In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `manyToOne()`), `MapperUtils` also provides a simple caching/memoization mechanism through the `cached()` wrapper method.
+
+Below is a rewrite of the first example above but one of the `Mapper`'s is cached (for the `getBillingInfoForCustomers` MongoDB call), so on multiple invocations of the defined assembler, the mapper result from the first invocation will be reused, avoiding to hit the datastore again:
+```java
+var billingInfoMapper = cached(oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId));
+var allOrdersMapper = oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId);
+
+var transactionAssembler = assemblerOf(Transaction.class)
+        .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+        .withAssemblerRules(billingInfoMapper, allOrdersMapper, Transaction::new);
+
+var transactionList = transactionAssembler.assembleUsing(streamAdapter())
+        .collect(toList()); // Will invoke the getBillingInfoForCustomers() MongoDB remote call
+
+var transactionsList2 = transactionAssembler.assembleUsing(streamAdapter())
+        .collect(toList()); // Will reuse the results returned from
+                            // the first invocation of getBillingInfoForCustomers() above
+                            // if the list of Customers is the same (as defined by the list equals() method)
+                            // for both invocations, no remote call here
+```
+This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
+
+Note that an overloaded version of the `cached()` method is also defined to allow plugging your own cache implementation.
+
 ## What's Next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
