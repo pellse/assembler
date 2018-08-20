@@ -1,6 +1,6 @@
 # assembler-flux
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/assembler-flux/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/assembler-flux)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-flux.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-flux%22)
 
 ## Usage Example
 
