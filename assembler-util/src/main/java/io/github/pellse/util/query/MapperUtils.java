@@ -67,7 +67,7 @@ public interface MapperUtils {
             Function<ID, R> defaultResultProvider,
             Supplier<IDC> idCollectionFactory) {
 
-        return convertIdTypeDelegate(entityIds ->
+        return convertIdTypeMapperDelegate(entityIds ->
                 queryOneToOne((IDC) entityIds, queryFunction, idExtractorFromQueryResults, defaultResultProvider), idCollectionFactory);
     }
 
@@ -86,7 +86,7 @@ public interface MapperUtils {
             Supplier<D> collectionFactory,
             Supplier<IDC> idCollectionFactory) {
 
-        return convertIdTypeDelegate(entityIds ->
+        return convertIdTypeMapperDelegate(entityIds ->
                 queryOneToMany((IDC) entityIds, queryFunction, idExtractorFromQueryResults, collectionFactory), idCollectionFactory);
     }
 
@@ -103,7 +103,7 @@ public interface MapperUtils {
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
 
-        return convertIdTypeDelegate(entityIds ->
+        return convertIdTypeMapperDelegate(entityIds ->
                 queryOneToManyAsList((IDC) entityIds, queryFunction, idExtractorFromQueryResults), idCollectionFactory);
     }
 
@@ -120,16 +120,19 @@ public interface MapperUtils {
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
 
-        return convertIdTypeDelegate(entityIds ->
+        return convertIdTypeMapperDelegate(entityIds ->
                 queryOneToManyAsSet((IDC) entityIds, queryFunction, idExtractorFromQueryResults), idCollectionFactory);
     }
 
-    private static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> convertIdTypeDelegate(
+    private static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> convertIdTypeMapperDelegate(
             Mapper<ID, R, EX> mapper, Supplier<IDC> idCollectionFactory) {
 
-        return entityIds -> mapper.map(
-                stream(entityIds.spliterator(), false)
-                        .collect(toCollection(idCollectionFactory))
-        );
+        return entityIds -> mapper.map(refineEntityIDType(entityIds, idCollectionFactory));
+    }
+
+    private static <ID, IDC extends Collection<ID>> IDC refineEntityIDType(Iterable<ID> entityIds, Supplier<IDC> idCollectionFactory) {
+
+        return stream(entityIds.spliterator(), false)
+                .collect(toCollection(idCollectionFactory));
     }
 }

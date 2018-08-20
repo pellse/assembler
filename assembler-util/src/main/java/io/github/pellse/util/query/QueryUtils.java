@@ -100,11 +100,6 @@ public interface QueryUtils {
     }
 
     static <T, R, C extends Collection<? extends T>, D extends Collection<? extends R>, EX extends Throwable>
-    Function<C, Stream<? extends R>> safe(CheckedFunction1<C, D, EX> queryFunction) {
-        return coll -> safeApply(coll, queryFunction);
-    }
-
-    static <T, R, C extends Collection<? extends T>, D extends Collection<? extends R>, EX extends Throwable>
     Stream<? extends R> safeApply(C coll, CheckedFunction1<C, D, EX> queryFunction) {
         return Optional.ofNullable(coll)
                 .filter(not(Collection::isEmpty))
