@@ -16,6 +16,7 @@
 
 package io.github.pellse.assembler.rxjava;
 
+import io.github.pellse.assembler.Assembler.AssemblerBuilder;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.reactivex.Flowable;
@@ -43,13 +44,13 @@ public class FlowableAssemblerTest {
     public void testAssemblerBuilderWithFlowable() {
 
         Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(flowableAdapter(single()))
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
 
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -59,14 +60,14 @@ public class FlowableAssemblerTest {
     public void testAssemblerBuilderWithErrorWithFlowable() {
 
         Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .withErrorConverter(UserDefinedRuntimeException::new)
                 .using(flowableAdapter(single()))
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
 
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -78,14 +79,33 @@ public class FlowableAssemblerTest {
         Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers())
                 .buffer(3)
                 .flatMap(customers -> assemblerOf(Transaction.class)
-                        .fromSource(customers, Customer::getCustomerId)
+                        .withIdExtractor(Customer::getCustomerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
                         .using(flowableAdapter(single()))
-                        .assemble());
-        
+                        .assemble(customers));
+
+        assertThat(transactionFlowable.toList().blockingGet(),
+                equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithFlowableWithBuffering() {
+
+        AssemblerBuilder<Customer, Flowable<Transaction>> assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(flowableAdapter(single()));
+
+        Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers())
+                .buffer(3)
+                .flatMap(assembler::assemble);
+
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
     }

@@ -26,6 +26,7 @@ import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
+import io.github.pellse.assembler.Assembler.AssemblerBuilder;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import org.junit.Test;
@@ -59,13 +60,13 @@ public class AkkaFlowAssemblerTest {
         Flow<List<Customer>, Transaction, NotUsed> transactionFlow = Flow.<List<Customer>>create()
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .fromSource(customerList, Customer::getCustomerId)
+                                .withIdExtractor(Customer::getCustomerId)
                                 .withAssemblerRules(
                                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                         Transaction::new)
                                 .using(akkaSourceAdapter(true))
-                                .assemble()); // Parallel
+                                .assemble(customerList)); // Parallel
 
         final CompletionStage<Done> future = customerSource.via(transactionFlow).runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
@@ -86,13 +87,40 @@ public class AkkaFlowAssemblerTest {
                 .grouped(3)
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .fromSource(customerList, Customer::getCustomerId)
+                                .withIdExtractor(Customer::getCustomerId)
                                 .withAssemblerRules(
                                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                         Transaction::new)
                                 .using(akkaSourceAdapter(Source::async))
-                                .assemble()); // Custom underlying sources configuration
+                                .assemble(customerList)); // Custom underlying sources configuration
+
+        final CompletionStage<Done> future = customerSource.via(transactionFlow).runWith(
+                Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
+
+        probe.expectMsgAllOf(transaction1, transaction2, transaction3, transaction1, transaction2);
+
+        future.toCompletableFuture().get();
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithAkkaFlowWithGroupingInsideFlow() throws Exception {
+
+        TestKit probe = new TestKit(system);
+
+        AssemblerBuilder<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(akkaSourceAdapter(Source::async));
+
+        Source<Customer, NotUsed> customerSource = Source.from(getCustomers());
+
+        Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
+                .grouped(3)
+                .flatMapConcat(assembler::assemble); // Custom underlying sources configuration
 
         final CompletionStage<Done> future = customerSource.via(transactionFlow).runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);

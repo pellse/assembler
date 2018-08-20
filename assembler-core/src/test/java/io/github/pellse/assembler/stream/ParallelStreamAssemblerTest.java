@@ -46,13 +46,13 @@ public class ParallelStreamAssemblerTest {
     public void testAssembleBuilder() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(streamAdapter(true))
-                .assemble()
+                .assembleFromSupplier(this::getCustomers)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
@@ -62,26 +62,26 @@ public class ParallelStreamAssemblerTest {
     public void testAssembleBuilderWithException() {
 
         assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(streamAdapter(true))
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
     }
 
     @Test
     public void testAssembleBuilderWithNonListIds() {
 
         List<TransactionSet> transactions = assemblerOf(TransactionSet.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomersWithSetIds, BillingInfo::getCustomerId, BillingInfo::new, HashSet::new),
                         oneToManyAsSet(AssemblerTestUtils::getAllOrdersForCustomersWithLinkedListIds, OrderItem::getCustomerId, LinkedList::new),
                         TransactionSet::new)
                 .using(streamAdapter(true))
-                .assemble()
+                .assembleFromSupplier(this::getCustomers)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transactionSet1, transactionSet2, transactionSet3)));

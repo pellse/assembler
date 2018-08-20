@@ -16,6 +16,7 @@
 
 package io.github.pellse.assembler.flux;
 
+import io.github.pellse.assembler.Assembler.AssemblerBuilder;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.github.pellse.util.function.checked.UncheckedException;
@@ -44,13 +45,13 @@ public class FluxAssemblerTest {
 
         StepVerifier.create(
                 assemblerOf(Transaction.class)
-                        .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                        .withIdExtractor(Customer::getCustomerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
                         .using(fluxAdapter())
-                        .assemble())
+                        .assembleFromSupplier(this::getCustomers))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()
@@ -62,13 +63,13 @@ public class FluxAssemblerTest {
 
         StepVerifier.create(
                 assemblerOf(Transaction.class)
-                        .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                        .withIdExtractor(Customer::getCustomerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                                 Transaction::new)
                         .using(fluxAdapter())
-                        .assemble())
+                        .assembleFromSupplier(this::getCustomers))
                 .expectSubscription()
                 .expectError(UncheckedException.class)
                 .verify();
@@ -80,13 +81,33 @@ public class FluxAssemblerTest {
         StepVerifier.create(Flux.fromIterable(getCustomers())
                 .buffer(3)
                 .flatMap(customers -> assemblerOf(Transaction.class)
-                        .fromSource(customers, Customer::getCustomerId)
+                        .withIdExtractor(Customer::getCustomerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
                         .using(fluxAdapter(immediate()))
-                        .assemble()))
+                        .assemble(customers)))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithFluxWithBuffering() {
+
+        AssemblerBuilder<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(fluxAdapter(immediate()));
+
+        StepVerifier.create(Flux.fromIterable(getCustomers())
+                .buffer(3)
+                .flatMap(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()

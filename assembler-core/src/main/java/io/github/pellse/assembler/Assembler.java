@@ -34,28 +34,20 @@ import static java.util.stream.Collectors.toList;
 
 public interface Assembler {
 
-    static <R> FromSourceBuilder<R> assemblerOf(Class<R> outputClass) {
-        return new FromSourceBuilderImpl<>();
+    static <R> WithIdExtractorBuilder<R> assemblerOf(Class<R> outputClass) {
+        return new WithIdExtractorBuilderImpl<>();
     }
 
     @FunctionalInterface
-    interface FromSourceBuilder<R> {
-
-        default <T, ID, C extends Collection<T>>
-        WithAssemblerRulesBuilder<T, ID, R> fromSourceSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider,
-                                                               Function<T, ID> idExtractor) {
-            return fromSource(topLevelEntitiesProvider.get(), idExtractor);
-        }
-
-        <T, ID, C extends Collection<T>>
-        WithAssemblerRulesBuilder<T, ID, R> fromSource(C topLevelEntities, Function<T, ID> idExtractor);
+    interface WithIdExtractorBuilder<R> {
+        <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdExtractor(Function<T, ID> idExtractor);
     }
 
     @FunctionalInterface
     interface WithAssemblerRulesBuilder<T, ID, R> {
 
         @SuppressWarnings("unchecked")
-        default <E1> AssembleUsingBuilder<ID, R> withAssemblerRules(
+        default <E1> AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper,
                 BiFunction<T, E1, R> domainObjectBuilder) {
 
@@ -64,7 +56,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Function3<T, E1, E2, R> domainObjectBuilder) {
@@ -74,7 +66,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
@@ -86,7 +78,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
@@ -99,7 +91,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
@@ -113,7 +105,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
@@ -128,7 +120,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
@@ -145,7 +137,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
@@ -163,7 +155,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
@@ -182,7 +174,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
@@ -202,7 +194,7 @@ public interface Assembler {
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11>
-        AssembleUsingBuilder<ID, R> withAssemblerRules(
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
@@ -221,66 +213,64 @@ public interface Assembler {
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9], (E11) s[10]));
         }
 
-        AssembleUsingBuilder<ID, R> withAssemblerRules(List<Mapper<ID, ?, ? extends Throwable>> mappers,
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?, ? extends Throwable>> mappers,
                                                        BiFunction<T, ? super Object[], R> domainObjectBuilder);
     }
 
-    interface AssembleUsingBuilder<ID, R> {
-        AssembleUsingBuilder<ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter);
+    interface AssembleUsingBuilder<T, ID, R> {
+        AssembleUsingBuilder<T, ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter);
 
-        <RC> AssemblerBuilder<RC> using(AssemblerAdapter<ID, R, RC> adapter);
+        <RC> AssemblerBuilder<T, RC> using(AssemblerAdapter<ID, R, RC> adapter);
     }
 
-    interface AssemblerBuilder<RC> {
-        RC assemble();
+    interface AssemblerBuilder<T, RC> {
+
+        default <C extends Collection<T>> RC assembleFromSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider) {
+            return assemble(topLevelEntitiesProvider.get());
+        }
+
+        <C extends Collection<T>> RC assemble(C topLevelEntities);
     }
 
-    class FromSourceBuilderImpl<R> implements FromSourceBuilder<R> {
+    class WithIdExtractorBuilderImpl<R> implements WithIdExtractorBuilder<R> {
 
-        private FromSourceBuilderImpl() {
+        private WithIdExtractorBuilderImpl() {
         }
 
         @Override
-        public <T, ID, C extends Collection<T>> WithAssemblerRulesBuilder<T, ID, R> fromSource(C topLevelEntities,
-                                                                                               Function<T, ID> idExtractor) {
-            return new WithAssemblerRulesBuilderImpl<>(topLevelEntities, idExtractor);
+        public <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdExtractor(Function<T, ID> idExtractor) {
+            return new WithAssemblerRulesBuilderImpl<>(idExtractor);
         }
     }
 
-    class WithAssemblerRulesBuilderImpl<T, ID, C extends Collection<T>, R> implements WithAssemblerRulesBuilder<T, ID, R> {
+    class WithAssemblerRulesBuilderImpl<T, ID, R> implements WithAssemblerRulesBuilder<T, ID, R> {
 
-        private final C topLevelEntities;
         private final Function<T, ID> idExtractor;
 
-        private WithAssemblerRulesBuilderImpl(C topLevelEntities,
-                                              Function<T, ID> idExtractor) {
+        private WithAssemblerRulesBuilderImpl(Function<T, ID> idExtractor) {
 
-            this.topLevelEntities = topLevelEntities;
             this.idExtractor = idExtractor;
         }
 
         @Override
-        public AssembleUsingBuilder<ID, R> withAssemblerRules(List<Mapper<ID, ?, ? extends Throwable>> mappers,
+        public AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?, ? extends Throwable>> mappers,
                                                               BiFunction<T, ? super Object[], R> domainObjectBuilder) {
-            return new AssembleUsingBuilderImpl<>(topLevelEntities, idExtractor, mappers, domainObjectBuilder);
+            return new AssembleUsingBuilderImpl<>(idExtractor, mappers, domainObjectBuilder);
         }
     }
 
-    class AssembleUsingBuilderImpl<T, ID, C extends Collection<T>, R> implements AssembleUsingBuilder<ID, R> {
+    class AssembleUsingBuilderImpl<T, ID, R> implements AssembleUsingBuilder<T, ID, R> {
 
-        private final C topLevelEntities;
         private final Function<T, ID> idExtractor;
         private BiFunction<T, ? super Object[], R> domainObjectBuilder;
         private List<Mapper<ID, ?, ? extends Throwable>> mappers;
 
         private Function<Throwable, RuntimeException> errorConverter = UncheckedException::new;
 
-        private AssembleUsingBuilderImpl(C topLevelEntities,
-                                         Function<T, ID> idExtractor,
+        private AssembleUsingBuilderImpl(Function<T, ID> idExtractor,
                                          List<Mapper<ID, ?, ? extends Throwable>> mappers,
                                          BiFunction<T, ? super Object[], R> domainObjectBuilder) {
 
-            this.topLevelEntities = topLevelEntities;
             this.idExtractor = idExtractor;
 
             this.domainObjectBuilder = domainObjectBuilder;
@@ -288,22 +278,20 @@ public interface Assembler {
         }
 
         @Override
-        public AssembleUsingBuilder<ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter) {
+        public AssembleUsingBuilder<T, ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter) {
             this.errorConverter = errorConverter;
             return this;
         }
 
         @Override
-        public <RC> AssemblerBuilder<RC> using(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+        public <RC> AssemblerBuilder<T, RC> using(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-            return new AssemblerBuilderImpl<>(topLevelEntities, idExtractor,
-                    mappers, domainObjectBuilder, errorConverter, assemblerAdapter);
+            return new AssemblerBuilderImpl<>(idExtractor, mappers, domainObjectBuilder, errorConverter, assemblerAdapter);
         }
     }
 
-    class AssemblerBuilderImpl<T, ID, C extends Collection<T>, R, RC> implements AssemblerBuilder<RC> {
+    class AssemblerBuilderImpl<T, ID, R, RC> implements AssemblerBuilder<T, RC> {
 
-        private final C topLevelEntities;
         private final Function<T, ID> idExtractor;
         private final List<Mapper<ID, ?, ? extends Throwable>> mappers;
         private final BiFunction<T, ? super Object[], R> domainObjectBuilder;
@@ -311,13 +299,11 @@ public interface Assembler {
         private final Function<Throwable, RuntimeException> errorConverter;
         private final AssemblerAdapter<ID, R, RC> assemblerAdapter;
 
-        private AssemblerBuilderImpl(C topLevelEntities,
-                             Function<T, ID> idExtractor,
-                             List<Mapper<ID, ?, ? extends Throwable>> mappers,
-                             BiFunction<T, ? super Object[], R> domainObjectBuilder,
-                             Function<Throwable, RuntimeException> errorConverter,
-                             AssemblerAdapter<ID, R, RC> assemblerAdapter) {
-            this.topLevelEntities = topLevelEntities;
+        private AssemblerBuilderImpl(Function<T, ID> idExtractor,
+                                     List<Mapper<ID, ?, ? extends Throwable>> mappers,
+                                     BiFunction<T, ? super Object[], R> domainObjectBuilder,
+                                     Function<Throwable, RuntimeException> errorConverter,
+                                     AssemblerAdapter<ID, R, RC> assemblerAdapter) {
             this.idExtractor = idExtractor;
             this.domainObjectBuilder = domainObjectBuilder;
             this.mappers = mappers;
@@ -326,7 +312,7 @@ public interface Assembler {
         }
 
         @Override
-        public RC assemble() {
+        public <C extends Collection<T>> RC assemble(C topLevelEntities) {
             return Assembler.assemble(topLevelEntities, idExtractor, mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
         }
     }

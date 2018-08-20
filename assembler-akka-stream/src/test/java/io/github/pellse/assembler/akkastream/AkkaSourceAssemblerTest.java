@@ -25,6 +25,7 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
+import io.github.pellse.assembler.Assembler.AssemblerBuilder;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.github.pellse.util.function.checked.UncheckedException;
@@ -57,13 +58,13 @@ public class AkkaSourceAssemblerTest {
         TestKit probe = new TestKit(system);
 
         Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(akkaSourceAdapter())
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
@@ -77,13 +78,13 @@ public class AkkaSourceAssemblerTest {
     public void testAssemblerBuilderWithAkkaSourceWithError() throws Throwable {
 
         Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(akkaSourceAdapter())
-                .assemble(); // Sequential
+                .assembleFromSupplier(this::getCustomers); // Sequential
 
         final CompletionStage<Done> future = transactionSource.runWith(Sink.ignore(), mat);
 
@@ -100,13 +101,13 @@ public class AkkaSourceAssemblerTest {
         TestKit probe = new TestKit(system);
 
         Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(akkaSourceAdapter(true))
-                .assemble(); // Parallel
+                .assembleFromSupplier(this::getCustomers); // Parallel
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
@@ -125,13 +126,38 @@ public class AkkaSourceAssemblerTest {
                 .groupedWithin(3, ofSeconds(5))
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .fromSource(customerList, Customer::getCustomerId)
+                                .withIdExtractor(Customer::getCustomerId)
                                 .withAssemblerRules(
                                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                         Transaction::new)
                                 .using(akkaSourceAdapter(Source::async))
-                                .assemble()); // Custom source configuration
+                                .assemble(customerList)); // Custom source configuration
+
+        final CompletionStage<Done> future = transactionSource.runWith(
+                Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
+
+        probe.expectMsgAllOf(transaction1, transaction2, transaction3, transaction1, transaction2);
+
+        future.toCompletableFuture().get();
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithAkkaSourceAsyncWithBuffering() throws Exception {
+
+        TestKit probe = new TestKit(system);
+
+        AssemblerBuilder<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(akkaSourceAdapter(Source::async));
+
+        Source<Transaction, NotUsed> transactionSource = Source.from(getCustomers())
+                .groupedWithin(3, ofSeconds(5))
+                .flatMapConcat(assembler::assemble); // Custom source configuration
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);

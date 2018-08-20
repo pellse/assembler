@@ -49,13 +49,13 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilder() throws InterruptedException, ExecutionException {
 
         CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(completableFutureAdapter())
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
 
         assertThat(transactions.get(), equalTo(List.of(transaction1, transaction2, transaction3)));
     }
@@ -64,13 +64,13 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilderWithException() throws Throwable {
 
         CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(completableFutureAdapter())
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
 
         try {
             transactions.get();
@@ -83,13 +83,13 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilderWithCustomExecutor() throws InterruptedException, ExecutionException {
 
         CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(completableFutureAdapter(newFixedThreadPool(2)))
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
 
         assertThat(transactions.get(), equalTo(List.of(transaction1, transaction2, transaction3)));
     }
@@ -98,13 +98,13 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilderAsSet() throws InterruptedException, ExecutionException {
 
         CompletableFuture<? extends Set<Transaction>> transactions = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(completableFutureAdapter(HashSet::new, null))
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
 
         assertThat(transactions.get(), equalTo(Set.of(transaction1, transaction2, transaction3)));
     }

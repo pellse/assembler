@@ -16,13 +16,17 @@
 
 package io.github.pellse.assembler.stream;
 
+import io.github.pellse.assembler.Assembler.AssemblerBuilder;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.util.function.checked.UncheckedException;
+import io.github.pellse.util.query.Mapper;
 import org.junit.Test;
 
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.Assembler.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
@@ -46,13 +50,13 @@ public class StreamAssemblerTest {
     public void testAssembleBuilder() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(streamAdapter())
-                .assemble()
+                .assembleFromSupplier(this::getCustomers)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
@@ -62,40 +66,40 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithUncheckedException() {
 
         assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(streamAdapter())
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
     }
 
     @Test(expected = UserDefinedRuntimeException.class)
     public void testAssembleBuilderWithCustomException() {
 
         assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .withErrorConverter(UserDefinedRuntimeException::new)
                 .using(streamAdapter())
-                .assemble();
+                .assembleFromSupplier(this::getCustomers);
     }
 
     @Test
     public void testAssembleBuilderWithNonListIds() {
 
         List<TransactionSet> transactions = assemblerOf(TransactionSet.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomersWithSetIds, BillingInfo::getCustomerId, BillingInfo::new, HashSet::new),
                         oneToManyAsSet(AssemblerTestUtils::getAllOrdersForCustomersWithLinkedListIds, OrderItem::getCustomerId, LinkedList::new),
                         TransactionSet::new)
                 .using(streamAdapter())
-                .assemble()
+                .assembleFromSupplier(this::getCustomers)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transactionSet1, transactionSet2, transactionSet3)));
@@ -105,13 +109,13 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNullBillingInfo() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(streamAdapter())
-                .assemble()
+                .assembleFromSupplier(this::getCustomers)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2WithNullBillingInfo, transaction3)));
@@ -120,22 +124,22 @@ public class StreamAssemblerTest {
     @Test
     public void testAssembleBuilderWithCachedMappers() {
 
-        var billingInfoMapper = cached(oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId));
-        var allOrdersMapper = oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId);
+        Mapper<Long, BillingInfo, SQLException> billingInfoMapper = cached(oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId));
+        Mapper<Long, List<OrderItem>, SQLException> allOrdersMapper = oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId);
 
-        var transactionAssembler = assemblerOf(Transaction.class)
-                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+        AssemblerBuilder<Customer, Stream<Transaction>> transactionAssembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(billingInfoMapper, allOrdersMapper, Transaction::new)
                 .using(streamAdapter());
 
-        var transactionList = transactionAssembler
-                .assemble()
-                .collect(toList()); // Will invoke the remote MongoDB getBillingInfoForCustomers() call
+        List<Transaction> transactionList1 = transactionAssembler
+                .assembleFromSupplier(this::getCustomers)
+                .collect(toList());// Will invoke the remote MongoDB getBillingInfoForCustomers() call
 
-        var transactionsList2 = transactionAssembler
-                .assemble()
+        List<Transaction> transactionList2 = transactionAssembler
+                .assembleFromSupplier(this::getCustomers)
                 .collect(toList()); // Will reuse the results returned from the first invocation of getBillingInfoForCustomers() above
 
-        assertThat(transactionList, equalTo(List.of(transaction1, transaction2WithNullBillingInfo, transaction3)));
+        assertThat(transactionList2, equalTo(List.of(transaction1, transaction2WithNullBillingInfo, transaction3)));
     }
 }
