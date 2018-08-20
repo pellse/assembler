@@ -210,7 +210,7 @@ var transactionsList2 = transactionAssembler.assembleUsing(streamAdapter())
                             // if the list of Customers is the same (as defined by the list equals() method)
                             // for both invocations, no remote call here
 ```
-This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined scheduled e.g. data that is refreshed by a batch job once a day).
+This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
 
 Note that an overloaded version of the `cached()` method is also defined to allow plugging your own cache implementation.
 
