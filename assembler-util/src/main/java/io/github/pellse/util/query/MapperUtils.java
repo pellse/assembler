@@ -18,18 +18,24 @@ package io.github.pellse.util.query;
 
 import io.github.pellse.util.function.checked.CheckedFunction1;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static io.github.pellse.util.query.QueryUtils.*;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.StreamSupport.stream;
 
 public interface MapperUtils {
+
+    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> delegate) {
+        return cached(delegate, new HashMap<>());
+    }
+
+    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> delegate, Map<Iterable<ID>, Map<ID, R>> cache) {
+        return ids -> cache.computeIfAbsent(ids, unchecked(delegate::map));
+    }
 
     static <ID, R, D extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
             CheckedFunction1<List<ID>, D, EX> queryFunction,

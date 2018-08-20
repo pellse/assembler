@@ -16,10 +16,13 @@
 
 package io.github.pellse.assembler.stream;
 
+import io.github.pellse.assembler.Assembler.AssembleUsingBuilder;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.util.function.checked.UncheckedException;
+import io.github.pellse.util.query.Mapper;
 import org.junit.Test;
 
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -110,5 +113,21 @@ public class StreamAssemblerTest {
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2WithNullBillingInfo, transaction3)));
+    }
+
+    @Test
+    public void testAssembleBuilderWithCachedMappers() {
+
+        Mapper<Long, BillingInfo, SQLException> getBillingInfo = cached(oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId));
+        Mapper<Long, List<OrderItem>, SQLException> getAllOrders = oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId);
+
+        AssembleUsingBuilder<Long, Transaction> builder = assemblerOf(Transaction.class)
+                .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+                .withAssemblerRules(getBillingInfo, getAllOrders, Transaction::new);
+
+        List<Transaction> transactions1 = builder.assembleUsing(streamAdapter())
+                .collect(toList());
+
+        assertThat(transactions1, equalTo(List.of(transaction1, transaction2WithNullBillingInfo, transaction3)));
     }
 }
