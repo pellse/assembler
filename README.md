@@ -212,7 +212,7 @@ var transactionsList2 = assembler.assembleUsing(streamAdapter())
 ```
 This can be useful for querying static data or data we know doesn't change often (or on a predefined scheduled e.g. data that is refreshed by a batch job once a day).
 
-Note that an override of the `cached()` method is also defined to allow plugging your own cache implementation.
+Note that an overloaded version of the `cached()` method is also defined to allow plugging your own cache implementation.
 
 ## What's Next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
