@@ -49,7 +49,8 @@ public class FluxAssemblerTest {
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .assembleUsing(fluxAdapter()))
+                        .using(fluxAdapter())
+                        .assemble())
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()
@@ -66,7 +67,8 @@ public class FluxAssemblerTest {
                                 oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .assembleUsing(fluxAdapter()))
+                        .using(fluxAdapter())
+                        .assemble())
                 .expectSubscription()
                 .expectError(UncheckedException.class)
                 .verify();
@@ -83,7 +85,8 @@ public class FluxAssemblerTest {
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .assembleUsing(fluxAdapter(immediate()))))
+                        .using(fluxAdapter(immediate()))
+                        .assemble()))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()

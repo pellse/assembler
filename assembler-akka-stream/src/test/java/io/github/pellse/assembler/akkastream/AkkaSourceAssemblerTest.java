@@ -62,7 +62,8 @@ public class AkkaSourceAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(akkaSourceAdapter());
+                .using(akkaSourceAdapter())
+                .assemble();
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
@@ -81,7 +82,8 @@ public class AkkaSourceAssemblerTest {
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(akkaSourceAdapter()); // Sequential
+                .using(akkaSourceAdapter())
+                .assemble(); // Sequential
 
         final CompletionStage<Done> future = transactionSource.runWith(Sink.ignore(), mat);
 
@@ -103,7 +105,8 @@ public class AkkaSourceAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(akkaSourceAdapter(true)); // Parallel
+                .using(akkaSourceAdapter(true))
+                .assemble(); // Parallel
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);
@@ -127,7 +130,8 @@ public class AkkaSourceAssemblerTest {
                                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                         Transaction::new)
-                                .assembleUsing(akkaSourceAdapter(Source::async))); // Custom source configuration
+                                .using(akkaSourceAdapter(Source::async))
+                                .assemble()); // Custom source configuration
 
         final CompletionStage<Done> future = transactionSource.runWith(
                 Sink.foreach(elem -> probe.getRef().tell(elem, ActorRef.noSender())), mat);

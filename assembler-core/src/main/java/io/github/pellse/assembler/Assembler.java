@@ -228,7 +228,11 @@ public interface Assembler {
     interface AssembleUsingBuilder<ID, R> {
         AssembleUsingBuilder<ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter);
 
-        <RC> RC assembleUsing(AssemblerAdapter<ID, R, RC> adapter);
+        <RC> AssemblerBuilder<RC> using(AssemblerAdapter<ID, R, RC> adapter);
+    }
+
+    interface AssemblerBuilder<RC> {
+        RC assemble();
     }
 
     class FromSourceBuilderImpl<R> implements FromSourceBuilder<R> {
@@ -290,10 +294,40 @@ public interface Assembler {
         }
 
         @Override
-        public <RC> RC assembleUsing(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+        public <RC> AssemblerBuilder<RC> using(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-            return assemble(topLevelEntities, idExtractor,
-                    mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
+            return new AssemblerBuilderImpl<>(topLevelEntities, idExtractor,
+                    mappers, domainObjectBuilder, errorConverter, assemblerAdapter);
+        }
+    }
+
+    class AssemblerBuilderImpl<T, ID, C extends Collection<T>, R, RC> implements AssemblerBuilder<RC> {
+
+        private final C topLevelEntities;
+        private final Function<T, ID> idExtractor;
+        private final List<Mapper<ID, ?, ? extends Throwable>> mappers;
+        private final BiFunction<T, ? super Object[], R> domainObjectBuilder;
+
+        private final Function<Throwable, RuntimeException> errorConverter;
+        private final AssemblerAdapter<ID, R, RC> assemblerAdapter;
+
+        private AssemblerBuilderImpl(C topLevelEntities,
+                             Function<T, ID> idExtractor,
+                             List<Mapper<ID, ?, ? extends Throwable>> mappers,
+                             BiFunction<T, ? super Object[], R> domainObjectBuilder,
+                             Function<Throwable, RuntimeException> errorConverter,
+                             AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+            this.topLevelEntities = topLevelEntities;
+            this.idExtractor = idExtractor;
+            this.domainObjectBuilder = domainObjectBuilder;
+            this.mappers = mappers;
+            this.errorConverter = errorConverter;
+            this.assemblerAdapter = assemblerAdapter;
+        }
+
+        @Override
+        public RC assemble() {
+            return Assembler.assemble(topLevelEntities, idExtractor, mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
         }
     }
 

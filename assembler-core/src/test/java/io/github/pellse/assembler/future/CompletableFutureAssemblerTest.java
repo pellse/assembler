@@ -54,7 +54,8 @@ public class CompletableFutureAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(completableFutureAdapter());
+                .using(completableFutureAdapter())
+                .assemble();
 
         assertThat(transactions.get(), equalTo(List.of(transaction1, transaction2, transaction3)));
     }
@@ -68,7 +69,8 @@ public class CompletableFutureAssemblerTest {
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(completableFutureAdapter());
+                .using(completableFutureAdapter())
+                .assemble();
 
         try {
             transactions.get();
@@ -86,7 +88,8 @@ public class CompletableFutureAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(completableFutureAdapter(newFixedThreadPool(2)));
+                .using(completableFutureAdapter(newFixedThreadPool(2)))
+                .assemble();
 
         assertThat(transactions.get(), equalTo(List.of(transaction1, transaction2, transaction3)));
     }
@@ -94,13 +97,14 @@ public class CompletableFutureAssemblerTest {
     @Test
     public void testAssembleBuilderAsSet() throws InterruptedException, ExecutionException {
 
-        CompletableFuture<Set<Transaction>> transactions = assemblerOf(Transaction.class)
+        CompletableFuture<? extends Set<Transaction>> transactions = assemblerOf(Transaction.class)
                 .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(completableFutureAdapter(HashSet::new, null));
+                .using(completableFutureAdapter(HashSet::new, null))
+                .assemble();
 
         assertThat(transactions.get(), equalTo(Set.of(transaction1, transaction2, transaction3)));
     }

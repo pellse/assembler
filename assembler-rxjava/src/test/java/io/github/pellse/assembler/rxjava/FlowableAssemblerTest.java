@@ -48,7 +48,8 @@ public class FlowableAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(flowableAdapter(single()));
+                .using(flowableAdapter(single()))
+                .assemble();
 
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -64,7 +65,8 @@ public class FlowableAssemblerTest {
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .withErrorConverter(UserDefinedRuntimeException::new)
-                .assembleUsing(flowableAdapter(single()));
+                .using(flowableAdapter(single()))
+                .assemble();
 
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -81,7 +83,8 @@ public class FlowableAssemblerTest {
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .assembleUsing(flowableAdapter(single())));
+                        .using(flowableAdapter(single()))
+                        .assemble());
         
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));

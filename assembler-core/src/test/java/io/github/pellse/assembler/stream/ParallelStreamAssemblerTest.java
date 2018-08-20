@@ -51,7 +51,8 @@ public class ParallelStreamAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(streamAdapter(true))
+                .using(streamAdapter(true))
+                .assemble()
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
@@ -66,7 +67,8 @@ public class ParallelStreamAssemblerTest {
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(streamAdapter(true));
+                .using(streamAdapter(true))
+                .assemble();
     }
 
     @Test
@@ -78,7 +80,8 @@ public class ParallelStreamAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomersWithSetIds, BillingInfo::getCustomerId, BillingInfo::new, HashSet::new),
                         oneToManyAsSet(AssemblerTestUtils::getAllOrdersForCustomersWithLinkedListIds, OrderItem::getCustomerId, LinkedList::new),
                         TransactionSet::new)
-                .assembleUsing(streamAdapter(true))
+                .using(streamAdapter(true))
+                .assemble()
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transactionSet1, transactionSet2, transactionSet3)));

@@ -48,7 +48,8 @@ public class ObservableAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .assembleUsing(observableAdapter(single()));
+                .using(observableAdapter(single()))
+                .assemble();
 
         assertThat(transactionObservable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -64,7 +65,8 @@ public class ObservableAssemblerTest {
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                         Transaction::new)
                 .withErrorConverter(UserDefinedRuntimeException::new)
-                .assembleUsing(observableAdapter(single()));
+                .using(observableAdapter(single()))
+                .assemble();
 
         assertThat(transactionObservable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
@@ -81,7 +83,8 @@ public class ObservableAssemblerTest {
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .assembleUsing(observableAdapter(single())));
+                        .using(observableAdapter(single()))
+                        .assemble());
 
         assertThat(transactionObservable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
