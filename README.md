@@ -168,9 +168,9 @@ Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transa
         Transaction::new)
     .using(akkaSourceAdapter(true)); // Parallel
 
-    Source<Transaction, NotUsed> transactionSource = Source.from(getCustomers())
-        .groupedWithin(3, ofSeconds(5))
-        .flatMapConcat(assembler::assemble)
+Source<Transaction, NotUsed> transactionSource = Source.from(getCustomers())
+    .groupedWithin(3, ofSeconds(5))
+    .flatMapConcat(assembler::assemble)
 
 transactionSource.runWith(Sink.foreach(System.out::println), mat)
     .toCompletableFuture().get();
@@ -188,11 +188,11 @@ Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transa
         Transaction::new)
     .using(akkaSourceAdapter(Source::async)); // Custom underlying sources configuration
 
-    Source<Customer, NotUsed> customerSource = Source.from(getCustomers());
+Source<Customer, NotUsed> customerSource = Source.from(getCustomers());
 
-    Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
-        .grouped(3)
-        .flatMapConcat(assembler::assemble);
+Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
+    .grouped(3)
+    .flatMapConcat(assembler::assemble);
         
 customerSource.via(transactionFlow)
     .runWith(Sink.foreach(System.out::println), mat)
