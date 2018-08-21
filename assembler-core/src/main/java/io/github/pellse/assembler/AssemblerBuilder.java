@@ -17,20 +17,13 @@
 package io.github.pellse.assembler;
 
 import io.github.pellse.util.function.*;
-import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.function.checked.UncheckedException;
 import io.github.pellse.util.query.Mapper;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-
-import static io.github.pellse.util.function.checked.Unchecked.unchecked;
-import static java.util.stream.Collectors.toList;
 
 public interface AssemblerBuilder {
 
@@ -223,15 +216,6 @@ public interface AssemblerBuilder {
         <RC> Assembler<T, RC> using(AssemblerAdapter<ID, R, RC> adapter);
     }
 
-    interface Assembler<T, RC> {
-
-        default <C extends Collection<T>> RC assembleFromSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider) {
-            return assemble(topLevelEntitiesProvider.get());
-        }
-
-        <C extends Collection<T>> RC assemble(C topLevelEntities);
-    }
-
     class WithIdExtractorBuilderImpl<R> implements WithIdExtractorBuilder<R> {
 
         private WithIdExtractorBuilderImpl() {
@@ -313,34 +297,7 @@ public interface AssemblerBuilder {
 
         @Override
         public <C extends Collection<T>> RC assemble(C topLevelEntities) {
-            return AssemblerBuilder.assemble(topLevelEntities, idExtractor, mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
+            return Assembler.assemble(topLevelEntities, idExtractor, mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
         }
-    }
-
-    static <T, ID, C extends Collection<T>, R, RC>
-    RC assemble(C topLevelEntities,
-                Function<T, ID> idExtractor,
-                List<Mapper<ID, ?, ? extends Throwable>> mappers,
-                BiFunction<T, ? super Object[], R> domainObjectBuilder,
-                AssemblerAdapter<ID, R, RC> assemblerAdapter,
-                Function<Throwable, RuntimeException> errorConverter) {
-
-        List<ID> entityIDs = topLevelEntities.stream()
-                .map(idExtractor)
-                .collect(toList());
-
-        Stream<Supplier<Map<ID, ?>>> mapperSources = mappers.stream()
-                .map(mapper -> unchecked(() -> mapper.map(entityIDs), errorConverter));
-
-        BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
-                (topLevelEntity, mapperResults) -> domainObjectBuilder.apply(topLevelEntity,
-                        mapperResults.stream()
-                                .map(mapperResult -> mapperResult.get(idExtractor.apply(topLevelEntity)))
-                                .toArray());
-
-        Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder = mapperResults -> topLevelEntities.stream()
-                .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
-
-        return assemblerAdapter.convertMapperSources(mapperSources, domainObjectStreamBuilder);
     }
 }

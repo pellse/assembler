@@ -25,7 +25,7 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
-import io.github.pellse.assembler.AssemblerBuilder.Assembler;
+import io.github.pellse.assembler.Assembler;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.github.pellse.util.function.checked.UncheckedException;
