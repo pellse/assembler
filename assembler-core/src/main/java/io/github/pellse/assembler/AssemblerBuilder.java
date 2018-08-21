@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static java.util.stream.Collectors.toList;
 
-public interface Assembler {
+public interface AssemblerBuilder {
 
     static <R> WithIdExtractorBuilder<R> assemblerOf(Class<R> outputClass) {
         return new WithIdExtractorBuilderImpl<>();
@@ -220,10 +220,10 @@ public interface Assembler {
     interface AssembleUsingBuilder<T, ID, R> {
         AssembleUsingBuilder<T, ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter);
 
-        <RC> AssemblerBuilder<T, RC> using(AssemblerAdapter<ID, R, RC> adapter);
+        <RC> Assembler<T, RC> using(AssemblerAdapter<ID, R, RC> adapter);
     }
 
-    interface AssemblerBuilder<T, RC> {
+    interface Assembler<T, RC> {
 
         default <C extends Collection<T>> RC assembleFromSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider) {
             return assemble(topLevelEntitiesProvider.get());
@@ -284,13 +284,13 @@ public interface Assembler {
         }
 
         @Override
-        public <RC> AssemblerBuilder<T, RC> using(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+        public <RC> Assembler<T, RC> using(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-            return new AssemblerBuilderImpl<>(idExtractor, mappers, domainObjectBuilder, errorConverter, assemblerAdapter);
+            return new AssemblerImpl<>(idExtractor, mappers, domainObjectBuilder, errorConverter, assemblerAdapter);
         }
     }
 
-    class AssemblerBuilderImpl<T, ID, R, RC> implements AssemblerBuilder<T, RC> {
+    class AssemblerImpl<T, ID, R, RC> implements Assembler<T, RC> {
 
         private final Function<T, ID> idExtractor;
         private final List<Mapper<ID, ?, ? extends Throwable>> mappers;
@@ -299,11 +299,11 @@ public interface Assembler {
         private final Function<Throwable, RuntimeException> errorConverter;
         private final AssemblerAdapter<ID, R, RC> assemblerAdapter;
 
-        private AssemblerBuilderImpl(Function<T, ID> idExtractor,
-                                     List<Mapper<ID, ?, ? extends Throwable>> mappers,
-                                     BiFunction<T, ? super Object[], R> domainObjectBuilder,
-                                     Function<Throwable, RuntimeException> errorConverter,
-                                     AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+        private AssemblerImpl(Function<T, ID> idExtractor,
+                              List<Mapper<ID, ?, ? extends Throwable>> mappers,
+                              BiFunction<T, ? super Object[], R> domainObjectBuilder,
+                              Function<Throwable, RuntimeException> errorConverter,
+                              AssemblerAdapter<ID, R, RC> assemblerAdapter) {
             this.idExtractor = idExtractor;
             this.domainObjectBuilder = domainObjectBuilder;
             this.mappers = mappers;
@@ -313,7 +313,7 @@ public interface Assembler {
 
         @Override
         public <C extends Collection<T>> RC assemble(C topLevelEntities) {
-            return Assembler.assemble(topLevelEntities, idExtractor, mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
+            return AssemblerBuilder.assemble(topLevelEntities, idExtractor, mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
         }
     }
 

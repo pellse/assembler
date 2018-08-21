@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.stream;
 
-import io.github.pellse.assembler.Assembler.AssemblerBuilder;
+import io.github.pellse.assembler.AssemblerBuilder.Assembler;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.util.function.checked.UncheckedException;
 import io.github.pellse.util.query.Mapper;
@@ -28,7 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.github.pellse.assembler.Assembler.assemblerOf;
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 import static io.github.pellse.util.query.MapperUtils.*;
@@ -127,7 +127,7 @@ public class StreamAssemblerTest {
         Mapper<Long, BillingInfo, SQLException> billingInfoMapper = cached(oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId));
         Mapper<Long, List<OrderItem>, SQLException> allOrdersMapper = oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId);
 
-        AssemblerBuilder<Customer, Stream<Transaction>> transactionAssembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Stream<Transaction>> transactionAssembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(billingInfoMapper, allOrdersMapper, Transaction::new)
                 .using(streamAdapter());

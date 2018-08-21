@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.flux;
 
-import io.github.pellse.assembler.Assembler.AssemblerBuilder;
+import io.github.pellse.assembler.AssemblerBuilder.Assembler;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.github.pellse.util.function.checked.UncheckedException;
@@ -26,7 +26,7 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 
-import static io.github.pellse.assembler.Assembler.assemblerOf;
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
@@ -97,7 +97,7 @@ public class FluxAssemblerTest {
     @Test
     public void testReusableAssemblerBuilderWithFluxWithBuffering() {
 
-        AssemblerBuilder<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),

@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.rxjava;
 
-import io.github.pellse.assembler.Assembler.AssemblerBuilder;
+import io.github.pellse.assembler.AssemblerBuilder.Assembler;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.reactivex.Flowable;
@@ -24,7 +24,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static io.github.pellse.assembler.Assembler.assemblerOf;
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.rxjava.FlowableAdapter.flowableAdapter;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
@@ -94,7 +94,7 @@ public class FlowableAssemblerTest {
     @Test
     public void testReusableAssemblerBuilderWithFlowableWithBuffering() {
 
-        AssemblerBuilder<Customer, Flowable<Transaction>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Flowable<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),

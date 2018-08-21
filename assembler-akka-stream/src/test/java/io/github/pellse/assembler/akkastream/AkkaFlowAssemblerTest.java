@@ -26,7 +26,7 @@ import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
-import io.github.pellse.assembler.Assembler.AssemblerBuilder;
+import io.github.pellse.assembler.AssemblerBuilder.Assembler;
 import io.github.pellse.assembler.AssemblerTestUtils;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import org.junit.Test;
@@ -34,7 +34,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-import static io.github.pellse.assembler.Assembler.assemblerOf;
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.akkastream.AkkaSourceAdapter.akkaSourceAdapter;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
@@ -108,7 +108,7 @@ public class AkkaFlowAssemblerTest {
 
         TestKit probe = new TestKit(system);
 
-        AssemblerBuilder<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
