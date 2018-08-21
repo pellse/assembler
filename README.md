@@ -149,8 +149,8 @@ Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .using(akkaSourceAdapter()))
-    .assembleFromSupplier(this::getCustomers); // Sequential
+    .using(akkaSourceAdapter())) // Sequential
+    .assembleFromSupplier(this::getCustomers);
 
 transactionSource.runWith(Sink.foreach(System.out::println), mat)
     .toCompletableFuture().get();
