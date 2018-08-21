@@ -109,7 +109,7 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
     .using(fluxAdapter()); // Parallel scheduler used by default
 
 Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just getCustomerFlux()
-    .buffer(10) // or bufferTimeout(10, ofSeconds(5)) to e.g. batch every 5 seconds or max of 10 customers
+    .bufferTimeout(10, ofSeconds(5)) // batch every 5 seconds or max of 10 customers
     .flatMap(assembler::assemble)
 ```
 ### [RxJava](https://github.com/pellse/assembler/tree/master/assembler-rxjava)
