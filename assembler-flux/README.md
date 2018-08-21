@@ -6,22 +6,25 @@
 
 ```java
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(fluxAdapter(elastic()))
+    .using(fluxAdapter(elastic()))
+    .assembleFromSupplier(this::getCustomers))
 ```
-or
+or by reusing the same `Assembler` instance as a transformation step within a `Flux`: 
 ```java
+Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::getCustomerId)
+    .withAssemblerRules(
+         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+         Transaction::new)
+    .using(fluxAdapter()); // Parallel scheduler used by default
+
 Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just getCustomerFlux()
-    .buffer(10) // or bufferTimeout(10, ofSeconds(5)) to e.g. batch every 5 seconds or max of 10 customers
-    .flatMap(customers -> assemblerOf(Transaction.class)
-        .fromSource(customers, Customer::getCustomerId)
-        .withAssemblerRules(
-            oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-            oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-            Transaction::new)
-        .assembleUsing(fluxAdapter())) // parallel scheduler used by default
+    .bufferTimeout(10, ofSeconds(5)) // batch every 5 seconds or max of 10 customers
+    .flatMap(assembler::assemble)
 ```
