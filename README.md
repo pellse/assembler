@@ -98,9 +98,9 @@ Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
     .using(fluxAdapter(elastic()))
     .assembleFromSupplier(this::getCustomers))
 ```
-or
+or by reusing the same `Assembler` instance as a transformation step within a `Flux`: 
 ```java
-AssemblerBuilder<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
          oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
@@ -160,7 +160,7 @@ or
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
-AssemblerBuilder<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
@@ -180,7 +180,7 @@ It is also possible to create an Akka `Flow` from the Assembler DSL:
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
-AssemblerBuilder<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
