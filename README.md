@@ -215,7 +215,7 @@ var transactionList = transactionAssembler
         .assembleFromSupplier(this::getCustomers)
         .collect(toList()); // Will invoke the getBillingInfoForCustomers() MongoDB remote call
 
-var transactionsList2 = transactionAssembler.assembleUsing(streamAdapter())
+var transactionsList2 = transactionAssembler
         .assemble(getCustomers())
         .collect(toList()); // Will reuse the results returned from
                             // the first invocation of getBillingInfoForCustomers() above
