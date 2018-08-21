@@ -92,7 +92,7 @@ Reactive support is also provided through the [Spring Reactor Project](https://p
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
     .using(fluxAdapter(elastic()))
@@ -103,7 +103,7 @@ or by reusing the same `Assembler` instance as a transformation step within a `F
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
          oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
          Transaction::new)
     .using(fluxAdapter()); // Parallel scheduler used by default
@@ -120,7 +120,7 @@ With Observable support (from [ObservableAssemblerTest]( https://github.com/pell
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
          oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
          Transaction::new)
      .using(observableAdapter(single()))
@@ -131,7 +131,7 @@ With Flowable support (from [FlowableAssemblerTest]( https://github.com/pellse/a
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
     .using(flowableAdapter(single()))
@@ -163,7 +163,7 @@ Materializer mat = ActorMaterializer.create(system);
 Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
     .using(akkaSourceAdapter(true)); // Parallel
@@ -183,7 +183,7 @@ Materializer mat = ActorMaterializer.create(system);
 Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
     .using(akkaSourceAdapter(Source::async)); // Custom underlying sources configuration
