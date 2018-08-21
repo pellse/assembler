@@ -131,8 +131,8 @@ With Flowable support (from [FlowableAssemblerTest]( https://github.com/pellse/a
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-        oneToManyAsList(this::throwSQLException, OrderItem::getCustomerId),
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
     .using(flowableAdapter(single()))
     .assembleFromSupplier(this::getCustomers);
