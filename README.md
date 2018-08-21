@@ -65,48 +65,52 @@ So if `getCustomers()` returns 50 customers, instead of having to make one addit
 To build the `Transaction` entity we can simply combine the invocation of the methods declared above using (from [StreamAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/stream/StreamAssemblerTest.java)):
 ```java
 List<Transaction> transactions = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // supplier of default values
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // Default BillingInfo for null values
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .withErrorConverter(UserDefinedRuntimeException::new) // UncheckedException by default when not specified
-    .assembleUsing(streamAdapter()) // or streamAdapter(true) for parallel streams
+    .using(streamAdapter())
+    .assembleFromSupplier(this::getCustomers)
     .collect(toList());
 ```
 ### [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
 It is also possible to bind to a different execution engine (e.g. for parallel processing) just by switching to a different `AssemblerAdapter` implementation. For example, to support the aggregation process through `CompletableFuture`, just plug a `CompletableFutureAdapter` instead (from [CompletableFutureAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/future/CompletableFutureAssemblerTest.java)):
 ```java
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId)
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(completableFutureAdapter());
+    .using(completableFutureAdapter())
+    .assembleFromSupplier(this::getCustomers);
 ```
 ### [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated, for example (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
 ```java
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(fluxAdapter(elastic()))
+    .using(fluxAdapter(elastic()))
+    .assembleFromSupplier(this::getCustomers))
 ```
 or
 ```java
+AssemblerBuilder<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::getCustomerId)
+    .withAssemblerRules(
+         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+         Transaction::new)
+    .using(fluxAdapter()); // Parallel scheduler used by default
+
 Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just getCustomerFlux()
     .buffer(10) // or bufferTimeout(10, ofSeconds(5)) to e.g. batch every 5 seconds or max of 10 customers
-    .flatMap(customers -> assemblerOf(Transaction.class)
-        .fromSource(customers, Customer::getCustomerId)
-        .withAssemblerRules(
-            oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-            oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-            Transaction::new)
-        .assembleUsing(fluxAdapter())) // parallel scheduler used by default
+    .flatMap(assembler::assemble)
 ```
 ### [RxJava](https://github.com/pellse/assembler/tree/master/assembler-rxjava)
 In addition to the Flux implementation, [RxJava](https://github.com/ReactiveX/RxJava) is also supported through `Observable`s and `Flowable`s.
@@ -114,22 +118,24 @@ In addition to the Flux implementation, [RxJava](https://github.com/ReactiveX/Rx
 With Observable support (from [ObservableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/ObservableAssemblerTest.java)):
 ```java
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-        Transaction::new)
-    .assembleUsing(observableAdapter())
+         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+         Transaction::new)
+     .using(observableAdapter(single()))
+     .assembleFromSupplier(this::getCustomers);
 ```
 With Flowable support (from [FlowableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/FlowableAssemblerTest.java)):
 ```java
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        oneToOne(this::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToManyAsList(this::throwSQLException, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(flowableAdapter())
+    .using(flowableAdapter(single()))
+    .assembleFromSupplier(this::getCustomers);
 ```
 ### [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
 By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io/) framework by creating instances of Akka `Source` (from [AkkaSourceAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-akka-stream/src/test/java/io/github/pellse/assembler/akkastream/AkkaSourceAssemblerTest.java)):
@@ -138,12 +144,13 @@ ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
 Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(akkaSourceAdapter())); // Sequential
+    .using(akkaSourceAdapter()))
+    .assembleFromSupplier(this::getCustomers); // Sequential
 
 transactionSource.runWith(Sink.foreach(System.out::println), mat)
     .toCompletableFuture().get();
@@ -153,16 +160,17 @@ or
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
-Source<Transaction, NotUsed> transactionSource = Source.fromSource(getCustomers())
-    .groupedWithin(3, ofSeconds(5))
-    .flatMapConcat(customerList ->
-        assemblerOf(Transaction.class)
-            .fromSource(customerList, Customer::getCustomerId)
-            .withAssemblerRules(
-                oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-                oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                Transaction::new)
-            .assembleUsing(akkaSourceAdapter(true))); // Parallel
+AssemblerBuilder<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::getCustomerId)
+    .withAssemblerRules(
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(akkaSourceAdapter(true)); // Parallel
+
+    Source<Transaction, NotUsed> transactionSource = Source.from(getCustomers())
+        .groupedWithin(3, ofSeconds(5))
+        .flatMapConcat(assembler::assemble)
 
 transactionSource.runWith(Sink.foreach(System.out::println), mat)
     .toCompletableFuture().get();
@@ -172,18 +180,19 @@ It is also possible to create an Akka `Flow` from the Assembler DSL:
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
-Source<Customer, NotUsed> customerSource = Source.fromSource(getCustomers());
+AssemblerBuilder<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::getCustomerId)
+    .withAssemblerRules(
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(akkaSourceAdapter(Source::async)); // Custom underlying sources configuration
 
-Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
-    .grouped(3)
-    .flatMapConcat(customerList ->
-        assemblerOf(Transaction.class)
-            .fromSource(customerList, Customer::getCustomerId)
-            .withAssemblerRules(
-                oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-                oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                Transaction::new)
-            .assembleUsing(akkaSourceAdapter(Source::async))); // Custom underlying sources configuration
+    Source<Customer, NotUsed> customerSource = Source.from(getCustomers());
+
+    Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
+        .grouped(3)
+        .flatMapConcat(assembler::assemble);
         
 customerSource.via(transactionFlow)
     .runWith(Sink.foreach(System.out::println), mat)
@@ -198,13 +207,16 @@ var billingInfoMapper = cached(oneToOne(this::getBillingInfoForCustomers, Billin
 var allOrdersMapper = oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId);
 
 var transactionAssembler = assemblerOf(Transaction.class)
-        .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
-        .withAssemblerRules(billingInfoMapper, allOrdersMapper, Transaction::new);
+        .withIdExtractor(Customer::getCustomerId)
+        .withAssemblerRules(billingInfoMapper, allOrdersMapper, Transaction::new)
+        .using(streamAdapter());
 
-var transactionList = transactionAssembler.assembleUsing(streamAdapter())
+var transactionList = transactionAssembler
+        .assembleFromSupplier(this::getCustomers)
         .collect(toList()); // Will invoke the getBillingInfoForCustomers() MongoDB remote call
 
 var transactionsList2 = transactionAssembler.assembleUsing(streamAdapter())
+        .assemble(getCustomers())
         .collect(toList()); // Will reuse the results returned from
                             // the first invocation of getBillingInfoForCustomers() above
                             // if the list of Customers is the same (as defined by the list equals() method)
