@@ -87,7 +87,7 @@ CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.clas
     .assembleFromSupplier(this::getCustomers);
 ```
 ### [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
-Reactive support is also provided through the [Spring Reactor Project](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated, for example (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
+Reactive support is also provided through the [Spring Project Reactor](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated, for example (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
 ```java
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
@@ -109,8 +109,8 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
     .using(fluxAdapter()); // Parallel scheduler used by default
 
 Flux<Transaction> transactionFlux = Flux.fromIterable(getCustomers()) // or just getCustomerFlux()
-    .bufferTimeout(10, ofSeconds(5)) // batch every 5 seconds or max of 10 customers
-    .flatMap(assembler::assemble)
+    .bufferTimeout(10, ofSeconds(5)) // every 5 seconds or max of 10 customers, returns Flux<List<Customer>>
+    .flatMap(assembler::assemble) // flatMap(customerList -> assembler.assemble(customerList)))
 ```
 ### [RxJava](https://github.com/pellse/assembler/tree/master/assembler-rxjava)
 In addition to the Flux implementation, [RxJava](https://github.com/ReactiveX/RxJava) is also supported through `Observable`s and `Flowable`s.
