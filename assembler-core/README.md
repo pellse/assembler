@@ -7,32 +7,35 @@
 For synchronous Java 8 Stream implementation:
 ```java
 List<Transaction> transactions = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // supplier of default values
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // Default BillingInfo for null values
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(streamAdapter())
+    .using(streamAdapter())
+    .assembleFromSupplier(this::getCustomers)
     .collect(toList());
 ```
 To switch to a parallel Java 8 Stream implementation and asynchronous aggregation, just set the `parallel` flag to `true` on the supplied `StreamAdapter` :
 ```java
 List<Transaction> transactions = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // supplier of default values
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // Default BillingInfo for null values
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(streamAdapter(true))
+    .using(streamAdapter(true))
+    .assembleFromSupplier(this::getCustomers)
     .collect(toList());
 ```
 For `CompletableFuture` implementation:
 ```java
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId)
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(completableFutureAdapter());
+    .using(completableFutureAdapter())
+    .assembleFromSupplier(this::getCustomers);
 ```
