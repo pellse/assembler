@@ -10,12 +10,13 @@ ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
 Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(akkaSourceAdapter())); // Sequential
+    .using(akkaSourceAdapter()))
+    .assembleFromSupplier(this::getCustomers); // Sequential
 
 transactionSource.runWith(Sink.foreach(System.out::println), mat)
     .toCompletableFuture().get();
@@ -25,38 +26,39 @@ or
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
-Source<Transaction, NotUsed> transactionSource = Source.fromSource(getCustomers())
+Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::getCustomerId)
+    .withAssemblerRules(
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(akkaSourceAdapter(true)); // Parallel
+
+Source<Transaction, NotUsed> transactionSource = Source.from(getCustomers())
     .groupedWithin(3, ofSeconds(5))
-    .flatMapConcat(customerList ->
-        assemblerOf(Transaction.class)
-            .fromSource(customerList, Customer::getCustomerId)
-            .withAssemblerRules(
-                oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-                oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                Transaction::new)
-            .assembleUsing(akkaSourceAdapter(true))); // Parallel
+    .flatMapConcat(assembler::assemble)
 
 transactionSource.runWith(Sink.foreach(System.out::println), mat)
     .toCompletableFuture().get();
 ```
-
 It is also possible to create an Akka `Flow` from the Assembler DSL:
 ```java
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
-Source<Customer, NotUsed> customerSource = Source.fromSource(getCustomers());
+Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::getCustomerId)
+    .withAssemblerRules(
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(akkaSourceAdapter(Source::async)); // Custom underlying sources configuration
+
+Source<Customer, NotUsed> customerSource = Source.from(getCustomers());
 
 Flow<Customer, Transaction, NotUsed> transactionFlow = Flow.<Customer>create()
     .grouped(3)
-    .flatMapConcat(customerList ->
-        assemblerOf(Transaction.class)
-            .fromSource(customerList, Customer::getCustomerId)
-            .withAssemblerRules(
-                oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-                oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-                Transaction::new)
-            .assembleUsing(akkaSourceAdapter(Source::async))); // Custom underlying sources configuration
+    .flatMapConcat(assembler::assemble);
         
 customerSource.via(transactionFlow)
     .runWith(Sink.foreach(System.out::println), mat)

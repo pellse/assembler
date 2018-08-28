@@ -7,45 +7,51 @@
 When using RxJava `Observable`:
 ```java
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-        Transaction::new)
-    .assembleUsing(observableAdapter(newThread()))
+         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
+         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+         Transaction::new)
+     .using(observableAdapter(newThread()))
+     .assembleFromSupplier(this::getCustomers);
 ```
 or
 ```java
-Observable<Transaction> transactionObservable = Observable.fromIterable(getCustomers()) // or just getCustomerObservable()
-    .buffer(10) // or bufferTimeout(10, ofSeconds(5)) to e.g. batch every 5 seconds or max of 10 customers
-    .flatMap(customers -> assemblerOf(Transaction.class)
-        .fromSource(customers, Customer::getCustomerId)
-        .withAssemblerRules(
-            oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-            oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-            Transaction::new)
-        .assembleUsing(observableAdapter())) // computation scheduler used by default
+Assembler<Customer, Observable<Transaction>> assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::getCustomerId)
+    .withAssemblerRules(
+        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(observableAdapter()); // computation scheduler used by default
+
+Observable<Transaction> transactionObservable = Observable.fromIterable(getCustomers())
+    .buffer(10)
+    .flatMap(assembler::assemble);
 ```
 
 When using RxJava `Flowable`:
 ```java
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
-    .fromSourceSupplier(this::getCustomers, Customer::getCustomerId)
+    .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
         Transaction::new)
-    .assembleUsing(flowableAdapter(newThread()))
+    .using(flowableAdapter(newThread()))
+    .assembleFromSupplier(this::getCustomers);
 ```
 or
 ```java
-Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers()) // or just getCustomerObservable()
-    .buffer(10) // or bufferTimeout(10, ofSeconds(5)) to e.g. batch every 5 seconds or max of 10 customers
-    .flatMap(customers -> assemblerOf(Transaction.class)
-        .fromSource(customers, Customer::getCustomerId)
-        .withAssemblerRules(
-            oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-            oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
-            Transaction::new)
-        .assembleUsing(flowableAdapter())) // computation scheduler used by default
+Assembler<Customer, Flowable<Transaction>> assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::getCustomerId)
+    .withAssemblerRules(
+        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        Transaction::new)
+    .using(flowableAdapter()); // computation scheduler used by default
+
+Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers())
+    .buffer(3)
+    .flatMap(assembler::assemble);
 ```
