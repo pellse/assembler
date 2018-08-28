@@ -80,6 +80,7 @@ To build the `Transaction` entity we can simply combine the invocation of the me
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
 import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 
 List<Transaction> transactions = assemblerOf(Transaction.class)
@@ -98,6 +99,7 @@ It is also possible to bind to a different execution engine (e.g. for parallel p
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
 import static io.github.pellse.assembler.future.CompletableFutureAdapter.completableFutureAdapter;
 
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
@@ -115,6 +117,7 @@ Reactive support is also provided through the [Spring Project Reactor](https://p
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
 import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
 
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
@@ -148,6 +151,7 @@ With Observable support (from [ObservableAssemblerTest]( https://github.com/pell
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
 import static io.github.pellse.assembler.rxjava.ObservableAdapter.observableAdapter;
 
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
@@ -164,6 +168,7 @@ With Flowable support (from [FlowableAssemblerTest]( https://github.com/pellse/a
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
 import static io.github.pellse.assembler.rxjava.FlowableAdapter.flowableAdapter;
 
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
@@ -181,6 +186,7 @@ By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
 import static io.github.pellse.assembler.akkastream.AkkaSourceAdapter.akkaSourceAdapter;
 
 ActorSystem system = ActorSystem.create();
@@ -249,6 +255,7 @@ Below is a rewrite of the first example above but one of the `Mapper`'s is cache
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
 import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 
 import static io.github.pellse.util.query.MapperUtils.cached;
@@ -265,7 +272,7 @@ var transactionList = transactionAssembler
         .assembleFromSupplier(this::getCustomers)
         .collect(toList()); // Will invoke the getBillingInfoForCustomers() MongoDB remote call
 
-var transactionsList2 = transactionAssembler
+var transactionList2 = transactionAssembler
         .assemble(getCustomers())
         .collect(toList()); // Will reuse the results returned from
                             // the first invocation of getBillingInfoForCustomers() above
