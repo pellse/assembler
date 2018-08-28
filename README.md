@@ -82,6 +82,9 @@ List<Transaction> transactions = assemblerOf(Transaction.class)
 ### [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
 It is also possible to bind to a different execution engine (e.g. for parallel processing) just by switching to a different `AssemblerAdapter` implementation. For example, to support the aggregation process through `CompletableFuture`, just plug a `CompletableFutureAdapter` instead (from [CompletableFutureAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/future/CompletableFutureAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.future.CompletableFutureAdapter.completableFutureAdapter;
 
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
@@ -129,6 +132,9 @@ In addition to the Flux implementation, [RxJava](https://github.com/ReactiveX/Rx
 
 With Observable support (from [ObservableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/ObservableAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.rxjava.ObservableAdapter.observableAdapter;
 
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
@@ -142,6 +148,9 @@ Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
 ```
 With Flowable support (from [FlowableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/FlowableAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.rxjava.FlowableAdapter.flowableAdapter;
 
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
@@ -156,6 +165,9 @@ Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
 ### [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
 By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io/) framework by creating instances of Akka `Source` (from [AkkaSourceAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-akka-stream/src/test/java/io/github/pellse/assembler/akkastream/AkkaSourceAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.akkastream.AkkaSourceAdapter.akkaSourceAdapter;
 
 ActorSystem system = ActorSystem.create();
@@ -221,6 +233,13 @@ In addition to providing helper functions to define mapping semantics (e.g. `one
 
 Below is a rewrite of the first example above but one of the `Mapper`'s is cached (for the `getBillingInfoForCustomers` MongoDB call), so on multiple invocations of the defined assembler, the mapper result from the first invocation will be reused, avoiding to hit the datastore again:
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
+
+import static io.github.pellse.util.query.MapperUtils.cached;
+
 var billingInfoMapper = cached(oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId));
 var allOrdersMapper = oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId);
 
