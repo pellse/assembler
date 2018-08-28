@@ -11,7 +11,8 @@ Stay tuned for more complete documentation very soon in terms of more detailed e
 Currently the following implementations are supported (with links to their respective Maven repositories):
 1. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-core%22)
 [![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/assembler-core) [Java 8 Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
-2. [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
+2. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-core%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/assembler-core) [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
 3. [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 4. [RxJava](https://github.com/pellse/assembler/tree/master/assembler-rxjava)
 5. [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
