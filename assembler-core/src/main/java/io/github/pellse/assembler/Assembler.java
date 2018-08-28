@@ -54,8 +54,8 @@ public interface Assembler<T, RC> {
                 .map(mapper -> unchecked(() -> mapper.map(entityIDs), errorConverter));
 
         BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
-                (topLevelEntity, mapperResults) -> domainObjectBuilder.apply(topLevelEntity,
-                        mapperResults.stream()
+                (topLevelEntity, listOfMapperResults) -> domainObjectBuilder.apply(topLevelEntity,
+                        listOfMapperResults.stream()
                                 .map(mapperResult -> mapperResult.get(idExtractor.apply(topLevelEntity)))
                                 .toArray());
 
