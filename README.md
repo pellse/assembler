@@ -64,6 +64,11 @@ So if `getCustomers()` returns 50 customers, instead of having to make one addit
 ### [Java 8 Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
 To build the `Transaction` entity we can simply combine the invocation of the methods declared above using (from [StreamAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/stream/StreamAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
+
 List<Transaction> transactions = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -89,6 +94,11 @@ CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.clas
 ### [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 Reactive support is also provided through the [Spring Project Reactor](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated, for example (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
+
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
