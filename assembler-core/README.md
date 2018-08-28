@@ -35,6 +35,8 @@ List<Transaction> transactions = assemblerOf(Transaction.class)
 ```
 For `CompletableFuture` implementation:
 ```java
+import static io.github.pellse.assembler.future.CompletableFutureAdapter.completableFutureAdapter;
+
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
