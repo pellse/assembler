@@ -82,6 +82,8 @@ List<Transaction> transactions = assemblerOf(Transaction.class)
 ### [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
 It is also possible to bind to a different execution engine (e.g. for parallel processing) just by switching to a different `AssemblerAdapter` implementation. For example, to support the aggregation process through `CompletableFuture`, just plug a `CompletableFutureAdapter` instead (from [CompletableFutureAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/future/CompletableFutureAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.future.CompletableFutureAdapter.completableFutureAdapter;
+
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -127,6 +129,8 @@ In addition to the Flux implementation, [RxJava](https://github.com/ReactiveX/Rx
 
 With Observable support (from [ObservableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/ObservableAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.rxjava.ObservableAdapter.observableAdapter;
+
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -138,6 +142,8 @@ Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
 ```
 With Flowable support (from [FlowableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/FlowableAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.rxjava.FlowableAdapter.flowableAdapter;
+
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -150,6 +156,8 @@ Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
 ### [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
 By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io/) framework by creating instances of Akka `Source` (from [AkkaSourceAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-akka-stream/src/test/java/io/github/pellse/assembler/akkastream/AkkaSourceAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.akkastream.AkkaSourceAdapter.akkaSourceAdapter;
+
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
