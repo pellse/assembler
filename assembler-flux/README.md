@@ -5,6 +5,11 @@
 ## Usage Example
 
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
+
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
