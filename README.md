@@ -276,7 +276,7 @@ var transactionList2 = transactionAssembler
         .assemble(getCustomers())
         .collect(toList()); // Will reuse the results returned from
                             // the first invocation of getBillingInfoForCustomers() above
-                            // if the list of Customers is the same (as defined by the list equals() method)
+                            // if the list of Customer IDs is the same (as defined by the list equals() method)
                             // for both invocations, no remote call here
 ```
 This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
