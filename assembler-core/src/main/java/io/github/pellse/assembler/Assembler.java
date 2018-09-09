@@ -42,7 +42,7 @@ public interface Assembler<T, RC> {
     RC assemble(C topLevelEntities,
                 Function<T, ID> idExtractor,
                 List<Mapper<ID, ?, ? extends Throwable>> mappers,
-                BiFunction<T, ? super Object[], R> domainObjectBuilder,
+                BiFunction<T, ? super Object[], R> assemblerFunction,
                 AssemblerAdapter<ID, R, RC> assemblerAdapter,
                 Function<Throwable, RuntimeException> errorConverter) {
 
@@ -54,7 +54,7 @@ public interface Assembler<T, RC> {
                 .map(mapper -> unchecked(() -> mapper.map(entityIDs), errorConverter));
 
         BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
-                (topLevelEntity, listOfMapperResults) -> domainObjectBuilder.apply(topLevelEntity,
+                (topLevelEntity, listOfMapperResults) -> assemblerFunction.apply(topLevelEntity,
                         listOfMapperResults.stream()
                                 .map(mapperResult -> mapperResult.get(idExtractor.apply(topLevelEntity)))
                                 .toArray());

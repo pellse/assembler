@@ -42,9 +42,9 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1> AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper,
-                BiFunction<T, E1, R> domainObjectBuilder) {
+                BiFunction<T, E1, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper), (t, s) -> domainObjectBuilder.apply(t, (E1) s[0]));
+            return withAssemblerRules(List.of(mapper), (t, s) -> assemblerFunction.apply(t, (E1) s[0]));
         }
 
         @SuppressWarnings("unchecked")
@@ -52,9 +52,9 @@ public interface AssemblerBuilder {
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
-                Function3<T, E1, E2, R> domainObjectBuilder) {
+                Function3<T, E1, E2, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2), (t, s) -> domainObjectBuilder.apply(t, (E1) s[0], (E2) s[1]));
+            return withAssemblerRules(List.of(mapper1, mapper2), (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1]));
         }
 
         @SuppressWarnings("unchecked")
@@ -63,10 +63,10 @@ public interface AssemblerBuilder {
                 Mapper<ID, E1, ? extends Throwable> mapper1,
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
-                Function4<T, E1, E2, E3, R> domainObjectBuilder) {
+                Function4<T, E1, E2, E3, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(mapper1, mapper2, mapper3),
-                    (t, s) -> domainObjectBuilder.apply(t, (E1) s[0], (E2) s[1], (E3) s[2]));
+                    (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1], (E3) s[2]));
         }
 
         @SuppressWarnings("unchecked")
@@ -76,10 +76,10 @@ public interface AssemblerBuilder {
                 Mapper<ID, E2, ? extends Throwable> mapper2,
                 Mapper<ID, E3, ? extends Throwable> mapper3,
                 Mapper<ID, E4, ? extends Throwable> mapper4,
-                Function5<T, E1, E2, E3, E4, R> domainObjectBuilder) {
+                Function5<T, E1, E2, E3, E4, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4),
-                    (t, s) -> domainObjectBuilder.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3]));
+                    (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3]));
         }
 
         @SuppressWarnings("unchecked")
@@ -90,10 +90,10 @@ public interface AssemblerBuilder {
                 Mapper<ID, E3, ? extends Throwable> mapper3,
                 Mapper<ID, E4, ? extends Throwable> mapper4,
                 Mapper<ID, E5, ? extends Throwable> mapper5,
-                Function6<T, E1, E2, E3, E4, E5, R> domainObjectBuilder) {
+                Function6<T, E1, E2, E3, E4, E5, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5),
-                    (t, s) -> domainObjectBuilder.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4]));
+                    (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4]));
         }
 
         @SuppressWarnings("unchecked")
@@ -105,10 +105,10 @@ public interface AssemblerBuilder {
                 Mapper<ID, E4, ? extends Throwable> mapper4,
                 Mapper<ID, E5, ? extends Throwable> mapper5,
                 Mapper<ID, E6, ? extends Throwable> mapper6,
-                Function7<T, E1, E2, E3, E4, E5, E6, R> domainObjectBuilder) {
+                Function7<T, E1, E2, E3, E4, E5, E6, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6),
-                    (t, s) -> domainObjectBuilder.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5]));
+                    (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5]));
         }
 
         @SuppressWarnings("unchecked")
@@ -121,10 +121,10 @@ public interface AssemblerBuilder {
                 Mapper<ID, E5, ? extends Throwable> mapper5,
                 Mapper<ID, E6, ? extends Throwable> mapper6,
                 Mapper<ID, E7, ? extends Throwable> mapper7,
-                Function8<T, E1, E2, E3, E4, E5, E6, E7, R> domainObjectBuilder) {
+                Function8<T, E1, E2, E3, E4, E5, E6, E7, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7),
-                    (t, s) -> domainObjectBuilder.apply(
+                    (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6]));
         }
 
@@ -139,10 +139,10 @@ public interface AssemblerBuilder {
                 Mapper<ID, E6, ? extends Throwable> mapper6,
                 Mapper<ID, E7, ? extends Throwable> mapper7,
                 Mapper<ID, E8, ? extends Throwable> mapper8,
-                Function9<T, E1, E2, E3, E4, E5, E6, E7, E8, R> domainObjectBuilder) {
+                Function9<T, E1, E2, E3, E4, E5, E6, E7, E8, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8),
-                    (t, s) -> domainObjectBuilder.apply(
+                    (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7]));
         }
 
@@ -158,10 +158,10 @@ public interface AssemblerBuilder {
                 Mapper<ID, E7, ? extends Throwable> mapper7,
                 Mapper<ID, E8, ? extends Throwable> mapper8,
                 Mapper<ID, E9, ? extends Throwable> mapper9,
-                Function10<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, R> domainObjectBuilder) {
+                Function10<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, mapper9),
-                    (t, s) -> domainObjectBuilder.apply(
+                    (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8]));
         }
 
@@ -178,10 +178,10 @@ public interface AssemblerBuilder {
                 Mapper<ID, E8, ? extends Throwable> mapper8,
                 Mapper<ID, E9, ? extends Throwable> mapper9,
                 Mapper<ID, E10, ? extends Throwable> mapper10,
-                Function11<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> domainObjectBuilder) {
+                Function11<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, mapper9, mapper10),
-                    (t, s) -> domainObjectBuilder.apply(
+                    (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9]));
         }
 
@@ -199,15 +199,15 @@ public interface AssemblerBuilder {
                 Mapper<ID, E9, ? extends Throwable> mapper9,
                 Mapper<ID, E10, ? extends Throwable> mapper10,
                 Mapper<ID, E11, ? extends Throwable> mapper11,
-                Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> domainObjectBuilder) {
+                Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, mapper9, mapper10, mapper11),
-                    (t, s) -> domainObjectBuilder.apply(
+                    (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9], (E11) s[10]));
         }
 
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?, ? extends Throwable>> mappers,
-                                                       BiFunction<T, ? super Object[], R> domainObjectBuilder);
+                                                       BiFunction<T, ? super Object[], R> assemblerFunction);
     }
 
     interface AssembleUsingBuilder<T, ID, R> {
@@ -238,26 +238,26 @@ public interface AssemblerBuilder {
 
         @Override
         public AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?, ? extends Throwable>> mappers,
-                                                              BiFunction<T, ? super Object[], R> domainObjectBuilder) {
-            return new AssembleUsingBuilderImpl<>(idExtractor, mappers, domainObjectBuilder);
+                                                              BiFunction<T, ? super Object[], R> assemblerFunction) {
+            return new AssembleUsingBuilderImpl<>(idExtractor, mappers, assemblerFunction);
         }
     }
 
     class AssembleUsingBuilderImpl<T, ID, R> implements AssembleUsingBuilder<T, ID, R> {
 
         private final Function<T, ID> idExtractor;
-        private BiFunction<T, ? super Object[], R> domainObjectBuilder;
+        private BiFunction<T, ? super Object[], R> assemblerFunction;
         private List<Mapper<ID, ?, ? extends Throwable>> mappers;
 
         private Function<Throwable, RuntimeException> errorConverter = UncheckedException::new;
 
         private AssembleUsingBuilderImpl(Function<T, ID> idExtractor,
                                          List<Mapper<ID, ?, ? extends Throwable>> mappers,
-                                         BiFunction<T, ? super Object[], R> domainObjectBuilder) {
+                                         BiFunction<T, ? super Object[], R> assemblerFunction) {
 
             this.idExtractor = idExtractor;
 
-            this.domainObjectBuilder = domainObjectBuilder;
+            this.assemblerFunction = assemblerFunction;
             this.mappers = mappers;
         }
 
@@ -270,7 +270,7 @@ public interface AssemblerBuilder {
         @Override
         public <RC> Assembler<T, RC> using(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
 
-            return new AssemblerImpl<>(idExtractor, mappers, domainObjectBuilder, errorConverter, assemblerAdapter);
+            return new AssemblerImpl<>(idExtractor, mappers, assemblerFunction, errorConverter, assemblerAdapter);
         }
     }
 
@@ -278,18 +278,18 @@ public interface AssemblerBuilder {
 
         private final Function<T, ID> idExtractor;
         private final List<Mapper<ID, ?, ? extends Throwable>> mappers;
-        private final BiFunction<T, ? super Object[], R> domainObjectBuilder;
+        private final BiFunction<T, ? super Object[], R> assemblerFunction;
 
         private final Function<Throwable, RuntimeException> errorConverter;
         private final AssemblerAdapter<ID, R, RC> assemblerAdapter;
 
         private AssemblerImpl(Function<T, ID> idExtractor,
                               List<Mapper<ID, ?, ? extends Throwable>> mappers,
-                              BiFunction<T, ? super Object[], R> domainObjectBuilder,
+                              BiFunction<T, ? super Object[], R> assemblerFunction,
                               Function<Throwable, RuntimeException> errorConverter,
                               AssemblerAdapter<ID, R, RC> assemblerAdapter) {
             this.idExtractor = idExtractor;
-            this.domainObjectBuilder = domainObjectBuilder;
+            this.assemblerFunction = assemblerFunction;
             this.mappers = mappers;
             this.errorConverter = errorConverter;
             this.assemblerAdapter = assemblerAdapter;
@@ -297,7 +297,7 @@ public interface AssemblerBuilder {
 
         @Override
         public <C extends Collection<T>> RC assemble(C topLevelEntities) {
-            return Assembler.assemble(topLevelEntities, idExtractor, mappers, domainObjectBuilder, assemblerAdapter, errorConverter);
+            return Assembler.assemble(topLevelEntities, idExtractor, mappers, assemblerFunction, assemblerAdapter, errorConverter);
         }
     }
 }
