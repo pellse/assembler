@@ -1,11 +1,17 @@
 # assembler-akka-stream
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-akka-stream.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-akka-stream%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-akka-stream.svg)](http://javadoc.io/doc/io.github.pellse/assembler-akka-stream)
 
 ## Usage Example
 
 By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io/) framework by creating instances of Akka `Source`:
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.assembler.akkastream.AkkaSourceAdapter.akkaSourceAdapter;
+
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 

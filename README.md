@@ -9,11 +9,24 @@ Stay tuned for more complete documentation very soon in terms of more detailed e
 
 ## Supported Technologies
 Currently the following implementations are supported (with links to their respective Maven repositories):
-1. [Java 8 Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
-2. [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
-3. [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
-4. [RxJava](https://github.com/pellse/assembler/tree/master/assembler-rxjava)
-5. [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
+1. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-core%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/assembler-core) [Java 8 Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
+2. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-core%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/assembler-core) [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
+3. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-flux.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-flux%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-flux.svg)](http://javadoc.io/doc/io.github.pellse/assembler-flux) [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
+4. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-rxjava.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-rxjava%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-rxjava.svg)](http://javadoc.io/doc/io.github.pellse/assembler-rxjava) [RxJava](https://github.com/pellse/assembler/tree/master/assembler-rxjava)
+5. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-akka-stream.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-akka-stream%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-akka-stream.svg)](http://javadoc.io/doc/io.github.pellse/assembler-akka-stream) [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
+
+You only need to include in your project's build file (maven, gradle) the lib that corresponds to the type of reactive (or non reactive) support needed (Java 8 stream, CompletableFuture, Flux, RxJava, Akka Stream).
+
+All modules above have dependencies on the following modules:
+1. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-core%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/assembler-core) [assembler-core](https://github.com/pellse/assembler/tree/master/assembler-core)
+2. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-util.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-util%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-util.svg)](http://javadoc.io/doc/io.github.pellse/assembler-util) [assembler-util](https://github.com/pellse/assembler/tree/master/assembler-util)
 
 ## Use Cases
 
@@ -64,6 +77,12 @@ So if `getCustomers()` returns 50 customers, instead of having to make one addit
 ### [Java 8 Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
 To build the `Transaction` entity we can simply combine the invocation of the methods declared above using (from [StreamAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/stream/StreamAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
+import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
+
 List<Transaction> transactions = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -77,6 +96,12 @@ List<Transaction> transactions = assemblerOf(Transaction.class)
 ### [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
 It is also possible to bind to a different execution engine (e.g. for parallel processing) just by switching to a different `AssemblerAdapter` implementation. For example, to support the aggregation process through `CompletableFuture`, just plug a `CompletableFutureAdapter` instead (from [CompletableFutureAssemblerTest](https://github.com/pellse/assembler/blob/master/assembler-core/src/test/java/io/github/pellse/assembler/future/CompletableFutureAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
+import static io.github.pellse.assembler.future.CompletableFutureAdapter.completableFutureAdapter;
+
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -89,6 +114,12 @@ CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.clas
 ### [Flux](https://github.com/pellse/assembler/tree/master/assembler-flux)
 Reactive support is also provided through the [Spring Project Reactor](https://projectreactor.io/) to asynchronously retrieve all data to be aggregated, for example (from [FluxAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-flux/src/test/java/io/github/pellse/assembler/flux/FluxAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
+import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
+
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -117,6 +148,12 @@ In addition to the Flux implementation, [RxJava](https://github.com/ReactiveX/Rx
 
 With Observable support (from [ObservableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/ObservableAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
+import static io.github.pellse.assembler.rxjava.ObservableAdapter.observableAdapter;
+
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -128,6 +165,12 @@ Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
 ```
 With Flowable support (from [FlowableAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-rxjava/src/test/java/io/github/pellse/assembler/rxjava/FlowableAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
+import static io.github.pellse.assembler.rxjava.FlowableAdapter.flowableAdapter;
+
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -140,6 +183,12 @@ Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
 ### [Akka Stream](https://github.com/pellse/assembler/tree/master/assembler-akka-stream)
 By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io/) framework by creating instances of Akka `Source` (from [AkkaSourceAssemblerTest]( https://github.com/pellse/assembler/blob/master/assembler-akka-stream/src/test/java/io/github/pellse/assembler/akkastream/AkkaSourceAssemblerTest.java)):
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
+import static io.github.pellse.assembler.akkastream.AkkaSourceAdapter.akkaSourceAdapter;
+
 ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
@@ -203,6 +252,14 @@ In addition to providing helper functions to define mapping semantics (e.g. `one
 
 Below is a rewrite of the first example above but one of the `Mapper`'s is cached (for the `getBillingInfoForCustomers` MongoDB call), so on multiple invocations of the defined assembler, the mapper result from the first invocation will be reused, avoiding to hit the datastore again:
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+
+import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
+
+import static io.github.pellse.util.query.MapperUtils.cached;
+
 var billingInfoMapper = cached(oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId));
 var allOrdersMapper = oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId);
 
@@ -215,11 +272,11 @@ var transactionList = transactionAssembler
         .assembleFromSupplier(this::getCustomers)
         .collect(toList()); // Will invoke the getBillingInfoForCustomers() MongoDB remote call
 
-var transactionsList2 = transactionAssembler
+var transactionList2 = transactionAssembler
         .assemble(getCustomers())
         .collect(toList()); // Will reuse the results returned from
                             // the first invocation of getBillingInfoForCustomers() above
-                            // if the list of Customers is the same (as defined by the list equals() method)
+                            // if the list of Customer IDs is the same (as defined by the list equals() method)
                             // for both invocations, no remote call here
 ```
 This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).

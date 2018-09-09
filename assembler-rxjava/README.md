@@ -1,11 +1,17 @@
 # assembler-rxjava
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-rxjava.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-rxjava%22)
+[![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-rxjava.svg)](http://javadoc.io/doc/io.github.pellse/assembler-rxjava)
 
 ## Usage Example
 
 When using RxJava `Observable`:
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.assembler.rxjava.ObservableAdapter.observableAdapter;
+
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
@@ -32,6 +38,11 @@ Observable<Transaction> transactionObservable = Observable.fromIterable(getCusto
 
 When using RxJava `Flowable`:
 ```java
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.assembler.rxjava.FlowableAdapter.flowableAdapter;
+
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
