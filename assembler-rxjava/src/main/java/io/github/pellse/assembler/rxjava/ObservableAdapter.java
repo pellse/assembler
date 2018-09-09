@@ -48,7 +48,7 @@ public class ObservableAdapter<ID, R> implements AssemblerAdapter<ID, R, Observa
                                         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<Observable<? extends Map<ID, ?>>> observables = mapperSources
-                .map(mappingSupplier -> fromCallable(mappingSupplier::get).subscribeOn(scheduler))
+                .map(this::toObservable)
                 .collect(toList());
 
         return Observable.zip(observables,
@@ -56,6 +56,10 @@ public class ObservableAdapter<ID, R> implements AssemblerAdapter<ID, R, Observa
                         .map(mapResult -> (Map<ID, ?>) mapResult)
                         .collect(toList())))
                 .flatMap(stream -> fromIterable(stream::iterator));
+    }
+
+    private Observable<? extends Map<ID, ?>> toObservable(Supplier<Map<ID, ?>> mapperSource) {
+        return fromCallable(mapperSource::get).subscribeOn(scheduler);
     }
 
     public static <ID, R> ObservableAdapter<ID, R> observableAdapter() {

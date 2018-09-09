@@ -46,7 +46,7 @@ public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
                                         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<Publisher<Map<ID, ?>>> publishers = mapperSources
-                .map(mappingSupplier -> fromSupplier(mappingSupplier).subscribeOn(scheduler))
+                .map(this::toPublisher)
                 .collect(toList());
 
         return Flux.zip(publishers,
@@ -54,6 +54,10 @@ public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
                         .map(mapResult -> (Map<ID, ?>) mapResult)
                         .collect(toList())))
                 .flatMap(Flux::fromStream);
+    }
+
+    private Publisher<Map<ID, ?>> toPublisher(Supplier<Map<ID, ?>> mapperSource) {
+        return fromSupplier(mapperSource).subscribeOn(scheduler);
     }
 
     public static <ID, R> FluxAdapter<ID, R> fluxAdapter() {

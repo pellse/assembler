@@ -48,7 +48,7 @@ public class FlowableAdapter<ID, R> implements AssemblerAdapter<ID, R, Flowable<
                                             Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<Flowable<? extends Map<ID, ?>>> flowables = mapperSources
-                .map(mappingSupplier -> fromCallable(mappingSupplier::get).subscribeOn(scheduler))
+                .map(this::toFlowable)
                 .collect(toList());
 
         return Flowable.zip(flowables,
@@ -56,6 +56,10 @@ public class FlowableAdapter<ID, R> implements AssemblerAdapter<ID, R, Flowable<
                         .map(mapResult -> (Map<ID, ?>) mapResult)
                         .collect(toList())))
                 .flatMap(stream -> fromIterable(stream::iterator));
+    }
+
+    private Flowable<? extends Map<ID, ?>> toFlowable(Supplier<Map<ID, ?>> mapperSource) {
+        return fromCallable(mapperSource::get).subscribeOn(scheduler);
     }
 
     public static <ID, R> FlowableAdapter<ID, R> flowableAdapter() {

@@ -49,7 +49,7 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
                                                       Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
         List<CompletableFuture<Map<ID, ?>>> mappingFutures = mapperSources
-                .map(s -> executor != null ? supplyAsync(s, executor) : supplyAsync(s))
+                .map(this::toCompletableFuture)
                 .collect(toList());
 
         return allOf(mappingFutures.toArray(new CompletableFuture[0]))
@@ -58,6 +58,10 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
                                 .map(CompletableFuture::join)
                                 .collect(toList()))
                         .collect(toCollection(collectionFactory)));
+    }
+
+    private CompletableFuture<Map<ID, ?>> toCompletableFuture(Supplier<Map<ID, ?>> mapperSource) {
+        return executor != null ? supplyAsync(mapperSource, executor) : supplyAsync(mapperSource);
     }
 
     public static <ID, R> CompletableFutureAdapter<ID, R, List<R>> completableFutureAdapter() {
