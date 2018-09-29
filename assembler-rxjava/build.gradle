@@ -1,5 +1,5 @@
 ext {
-    rxjavaVersion = '2.2.0'
+    rxjavaVersion = '2.2.2'
 }
 
 dependencies {
