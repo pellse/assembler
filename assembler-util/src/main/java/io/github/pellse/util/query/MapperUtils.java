@@ -29,12 +29,12 @@ import static java.util.stream.StreamSupport.stream;
 
 public interface MapperUtils {
 
-    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> delegate) {
-        return cached(delegate, new HashMap<>());
+    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> mapper) {
+        return cached(mapper, new HashMap<>());
     }
 
-    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> delegate, Map<Iterable<ID>, Map<ID, R>> cache) {
-        return ids -> cache.computeIfAbsent(ids, unchecked(delegate::map));
+    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> mapper, Map<Iterable<ID>, Map<ID, R>> cache) {
+        return ids -> cache.computeIfAbsent(ids, unchecked(mapper::map));
     }
 
     static <ID, R, D extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
