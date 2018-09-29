@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.stream;
 
-import io.github.pellse.assembler.AssemblerTestUtils;
+import io.github.pellse.assembler.*;
 import io.github.pellse.util.function.checked.UncheckedException;
 import org.junit.Test;
 

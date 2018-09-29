@@ -16,8 +16,7 @@
 
 package io.github.pellse.assembler.rxjava;
 
-import io.github.pellse.assembler.Assembler;
-import io.github.pellse.assembler.AssemblerTestUtils;
+import io.github.pellse.assembler.*;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.reactivex.Observable;
 import org.junit.Test;

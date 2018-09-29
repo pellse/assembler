@@ -16,8 +16,7 @@
 
 package io.github.pellse.assembler.flux;
 
-import io.github.pellse.assembler.Assembler;
-import io.github.pellse.assembler.AssemblerTestUtils;
+import io.github.pellse.assembler.*;
 import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.github.pellse.util.function.checked.UncheckedException;
 import org.junit.Test;

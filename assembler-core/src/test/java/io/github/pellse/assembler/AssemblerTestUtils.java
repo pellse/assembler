@@ -16,9 +16,6 @@
 
 package io.github.pellse.assembler;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
@@ -91,56 +88,5 @@ public final class AssemblerTestUtils {
 
     public static <R> List<R> throwSQLException(List<Long> customerIds) throws SQLException {
         throw new SQLException("Unable to query database");
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class Transaction {
-        private final Customer customer;
-        private final BillingInfo billingInfo;
-        private final List<OrderItem> orderItems;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class TransactionSet {
-        private final Customer customer;
-        private final BillingInfo billingInfo;
-        private final Set<OrderItem> orderItems;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class Customer {
-        private final Long customerId;
-        private final String name;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class BillingInfo {
-        private static final String UNKNOWN = "unknown";
-
-        private final Long customerId;
-        private final String creditCardNumber;
-
-        public BillingInfo(Long customerId) {
-            this(customerId, UNKNOWN);
-        }
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class OrderItem {
-        private final Long customerId;
-        private final String orderDescription;
-        private final Double price;
-    }
-
-    public static class UserDefinedRuntimeException extends RuntimeException {
-
-        public UserDefinedRuntimeException(Throwable cause) {
-            super(cause);
-        }
     }
 }
