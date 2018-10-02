@@ -48,7 +48,7 @@ public class FlowableAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(flowableAdapter(single()))
+                .using(flowableAdapter())
                 .assembleFromSupplier(this::getCustomers);
 
         assertThat(transactionFlowable.toList().blockingGet(),
@@ -99,11 +99,11 @@ public class FlowableAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(flowableAdapter(single()));
+                .using(flowableAdapter());
 
         Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers())
                 .buffer(3)
-                .flatMap(assembler::assemble);
+                .concatMap(assembler::assemble);
 
         assertThat(transactionFlowable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));

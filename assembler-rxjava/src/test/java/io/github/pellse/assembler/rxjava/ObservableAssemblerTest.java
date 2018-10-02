@@ -48,7 +48,7 @@ public class ObservableAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(observableAdapter(single()))
+                .using(observableAdapter())
                 .assembleFromSupplier(this::getCustomers);
 
         assertThat(transactionObservable.toList().blockingGet(),
@@ -77,7 +77,7 @@ public class ObservableAssemblerTest {
 
         Observable<Transaction> transactionObservable = Observable.fromIterable(getCustomers())
                 .buffer(3)
-                .flatMap(customers -> assemblerOf(Transaction.class)
+                .concatMap(customers -> assemblerOf(Transaction.class)
                         .withIdExtractor(Customer::getCustomerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
@@ -99,11 +99,11 @@ public class ObservableAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(observableAdapter(single()));
+                .using(observableAdapter());
 
         Observable<Transaction> transactionObservable = Observable.fromIterable(getCustomers())
                 .buffer(3)
-                .flatMap(assembler::assemble);
+                .concatMap(assembler::assemble);
 
         assertThat(transactionObservable.toList().blockingGet(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));

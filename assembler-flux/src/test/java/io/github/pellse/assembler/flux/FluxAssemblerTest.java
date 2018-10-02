@@ -17,7 +17,6 @@
 package io.github.pellse.assembler.flux;
 
 import io.github.pellse.assembler.*;
-import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.github.pellse.util.function.checked.UncheckedException;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -31,7 +30,6 @@ import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static java.util.Arrays.asList;
-import static reactor.core.scheduler.Schedulers.immediate;
 
 public class FluxAssemblerTest {
 
@@ -79,13 +77,13 @@ public class FluxAssemblerTest {
 
         StepVerifier.create(Flux.fromIterable(getCustomers())
                 .buffer(3)
-                .flatMap(customers -> assemblerOf(Transaction.class)
+                .concatMap(customers -> assemblerOf(Transaction.class)
                         .withIdExtractor(Customer::getCustomerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .using(fluxAdapter(immediate()))
+                        .using(fluxAdapter())
                         .assemble(customers)))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
@@ -102,11 +100,11 @@ public class FluxAssemblerTest {
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(fluxAdapter(immediate()));
+                .using(fluxAdapter());
 
         StepVerifier.create(Flux.fromIterable(getCustomers())
                 .buffer(3)
-                .flatMap(assembler::assemble))
+                .concatMap(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()
