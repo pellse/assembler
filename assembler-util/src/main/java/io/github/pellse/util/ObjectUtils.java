@@ -21,16 +21,16 @@ import java.util.function.Function;
 
 public interface ObjectUtils {
 
-    static <T, U> boolean isSafeEqual(T t1, T t2, Function<? super T, ? extends U> keyExtractor) {
-        return isSafeEqual(t1, t2, keyExtractor, keyExtractor);
+    static <T, U> boolean isSafeEqual(T t1, T t2, Function<? super T, ? extends U> propertyExtractor) {
+        return isSafeEqual(t1, t2, propertyExtractor, propertyExtractor);
     }
 
     static <T1, T2, U> boolean isSafeEqual(T1 t1, T2 t2,
-                                           Function<? super T1, ? extends U> keyExtractor1,
-                                           Function<? super T2, ? extends U> keyExtractor2) {
+                                           Function<? super T1, ? extends U> propertyExtractor1,
+                                           Function<? super T2, ? extends U> propertyExtractor2) {
         return Optional.ofNullable(t1)
-                .map(keyExtractor1)
+                .map(propertyExtractor1)
                 .equals(Optional.ofNullable(t2)
-                        .map(keyExtractor2));
+                        .map(propertyExtractor2));
     }
 }
