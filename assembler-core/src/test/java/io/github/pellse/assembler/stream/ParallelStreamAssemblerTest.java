@@ -72,7 +72,7 @@ public class ParallelStreamAssemblerTest {
     }
 
     @Test
-    public void testAssembleBuilderWithNonListIds() {
+    public void testAssembleBuilderWithLinkedListIds() {
 
         List<TransactionSet> transactions = assemblerOf(TransactionSet.class)
                 .withIdExtractor(Customer::getCustomerId)
