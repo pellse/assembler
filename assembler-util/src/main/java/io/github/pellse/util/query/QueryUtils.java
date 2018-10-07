@@ -33,17 +33,17 @@ import static java.util.stream.Collectors.*;
 
 public interface QueryUtils {
 
-    static <ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
     Map<ID, R> queryOneToOne(IDC ids,
-                             CheckedFunction1<IDC, D, EX> queryFunction,
+                             CheckedFunction1<IDC, RC, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults) throws EX {
 
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null);
     }
 
-    static <ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
     Map<ID, R> queryOneToOne(IDC ids,
-                             CheckedFunction1<IDC, D, EX> queryFunction,
+                             CheckedFunction1<IDC, RC, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults,
                              Function<ID, R> defaultResultProvider) throws EX {
 
@@ -66,24 +66,47 @@ public interface QueryUtils {
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new);
     }
 
-    static <ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
-    Map<ID, D> queryOneToMany(IDC ids,
-                              CheckedFunction1<IDC, D, EX> queryFunction,
-                              Function<R, ID> idExtractorFromQueryResults,
-                              Supplier<D> collectionFactory) throws EX {
+    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, RC> queryOneToMany(IDC ids,
+                               CheckedFunction1<IDC, RC, EX> queryFunction,
+                               Function<R, ID> idExtractorFromQueryResults,
+                               Supplier<RC> collectionFactory) throws EX {
 
         return query(ids, queryFunction, id -> collectionFactory.get(),
                 groupingBy(idExtractorFromQueryResults, toCollection(collectionFactory)));
     }
 
-    static <T, ID, R, IDC extends Collection<ID>, D extends Collection<R>, EX extends Throwable>
-    Map<ID, T> query(IDC ids,
-                     CheckedFunction1<IDC, D, EX> queryFunction,
-                     Function<ID, T> defaultResultProvider,
-                     Collector<R, ?, Map<ID, T>> mapCollectorFactory) throws EX {
+    /**
+     * @param ids                   The collection of ids to pass to the {@code queryFunction}
+     * @param queryFunction         The query function to call (rest call, spring data repository method call, etc.)
+     * @param defaultResultProvider The default value to generate if no result for a specific id
+     *                              passed to the {@code queryFunction}
+     *                              e.g. an empty collection, a default value, an empty string, etc.
+     * @param mapCollector          The collector used to collect the stream of results returned by {@code queryFunction}.
+     *                              It will transform a stream of results to a {@code Map<ID, V>}
+     * @param <V>                   Type of each value representing the result from {@code queryFunction} associated with each ID, will map
+     *                              to either {@code <R>} when called from {@code queryOneToOne}
+     *                              or {@code <D>} when called from {@code queryOneToMany} i.e. a collection of {@code <R>}.
+     *                              This is conceptually a union type {@code <R> | <D>}
+     * @param <ID>                  Type of the ids passed to {@code queryFunction} e.g. {@code Long}, {@code String}
+     * @param <R>                   Type of individual results returned from the queryFunction
+     * @param <IDC>                 Type of the {@link Collection} containing the ids of type {@code <ID>}
+     *                              e.g. {@code List<Long>}, {@code Set<String>}, etc.
+     * @param <RC>                  Type of the {@link Collection} containing the results of type {@code <R>}
+     *                              e.g. {@code List<Customer>}, {@code Set<Order>}, etc.
+     * @param <EX>                  Type of the exception that can be thrown by the {@code queryFunction}
+     * @return A {@link Map} of the results from invoking the {@code queryFunction}
+     * with key = correlation ID, value = result associated with ID
+     * @throws EX If {@code queryFunction} throws an exception, that exception will be propagated to the caller of this method
+     */
+    static <V, ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, V> query(IDC ids,
+                     CheckedFunction1<IDC, RC, EX> queryFunction,
+                     Function<ID, V> defaultResultProvider,
+                     Collector<R, ?, Map<ID, V>> mapCollector) throws EX {
 
-        Map<ID, T> resultMap = safeApply(ids, queryFunction)
-                .collect(mapCollectorFactory);
+        Map<ID, V> resultMap = safeApply(ids, queryFunction)
+                .collect(mapCollector);
 
         if (isSafeEqual(resultMap, ids, Map::size, Collection::size))
             return resultMap;
@@ -99,12 +122,23 @@ public interface QueryUtils {
         return resultMap;
     }
 
-    static <T, R, C extends Collection<? extends T>, D extends Collection<? extends R>, EX extends Throwable>
-    Stream<? extends R> safeApply(C coll, CheckedFunction1<C, D, EX> queryFunction) {
-        return Optional.ofNullable(coll)
+    /**
+     * @param coll
+     * @param queryFunction
+     * @param <T>
+     * @param <R>
+     * @param <C>
+     * @param <RC>
+     * @param <EX>
+     * @return
+     */
+    static <T, R, C extends Collection<? extends T>, RC extends Collection<? extends R>, EX extends Throwable>
+    Stream<? extends R> safeApply(C coll, CheckedFunction1<C, RC, EX> queryFunction) {
+        Optional<RC> resultsFromQuery = Optional.ofNullable(coll)
                 .filter(not(Collection::isEmpty))
-                .map(unchecked(queryFunction))
-                .stream()
+                .map(unchecked(queryFunction));
+
+        return resultsFromQuery.stream()
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull);
     }
