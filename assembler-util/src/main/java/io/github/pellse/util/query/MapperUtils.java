@@ -19,6 +19,7 @@ package io.github.pellse.util.query;
 import io.github.pellse.util.function.checked.CheckedFunction1;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -30,7 +31,7 @@ import static java.util.stream.StreamSupport.stream;
 public interface MapperUtils {
 
     static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> mapper) {
-        return cached(mapper, new HashMap<>());
+        return cached(mapper, new ConcurrentHashMap<>());
     }
 
     static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> mapper, Map<Iterable<ID>, Map<ID, R>> cache) {
