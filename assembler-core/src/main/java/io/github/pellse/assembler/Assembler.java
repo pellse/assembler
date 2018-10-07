@@ -41,7 +41,7 @@ public interface Assembler<T, RC> {
     static <T, ID, C extends Collection<T>, R, RC>
     RC assemble(C topLevelEntities,
                 Function<T, ID> idExtractor,
-                List<Mapper<ID, ?, ? extends Throwable>> mappers,
+                List<Mapper<ID, ?, ?>> mappers,
                 BiFunction<T, ? super Object[], R> assemblerFunction,
                 AssemblerAdapter<ID, R, RC> assemblerAdapter,
                 Function<Throwable, RuntimeException> errorConverter) {
