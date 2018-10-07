@@ -37,23 +37,23 @@ public interface MapperUtils {
         return ids -> cache.computeIfAbsent(ids, unchecked(mapper::map));
     }
 
-    static <ID, R, D extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<List<ID>, D, EX> queryFunction,
+    static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
+            CheckedFunction1<List<ID>, RC, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
         return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null);
     }
 
-    static <ID, IDC extends Collection<ID>, R, D extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<IDC, D, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
+            CheckedFunction1<IDC, RC, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
 
         return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null, idCollectionFactory);
     }
 
-    static <ID, R, D extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<List<ID>, D, EX> queryFunction,
+    static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
+            CheckedFunction1<List<ID>, RC, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider) {
 
@@ -61,8 +61,8 @@ public interface MapperUtils {
     }
 
     @SuppressWarnings("unchecked")
-    static <ID, IDC extends Collection<ID>, R, D extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<IDC, D, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
+            CheckedFunction1<IDC, RC, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider,
             Supplier<IDC> idCollectionFactory) {
@@ -103,19 +103,19 @@ public interface MapperUtils {
         return oneToMany(queryFunction, idExtractorFromQueryResults, HashSet::new, idCollectionFactory);
     }
 
-    static <ID, R, D extends Collection<R>, EX extends Throwable> Mapper<ID, D, EX> oneToMany(
-            CheckedFunction1<List<ID>, D, EX> queryFunction,
+    static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, RC, EX> oneToMany(
+            CheckedFunction1<List<ID>, RC, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
-            Supplier<D> collectionFactory) {
+            Supplier<RC> collectionFactory) {
 
         return oneToMany(queryFunction, idExtractorFromQueryResults, collectionFactory, ArrayList::new);
     }
 
     @SuppressWarnings("unchecked")
-    static <ID, IDC extends Collection<ID>, R, D extends Collection<R>, EX extends Throwable> Mapper<ID, D, EX> oneToMany(
-            CheckedFunction1<IDC, D, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, RC, EX> oneToMany(
+            CheckedFunction1<IDC, RC, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
-            Supplier<D> collectionFactory,
+            Supplier<RC> collectionFactory,
             Supplier<IDC> idCollectionFactory) {
 
         return convertIdTypeMapperDelegate(entityIds ->
