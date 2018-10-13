@@ -39,10 +39,10 @@ public class AkkaSourceAdapter<ID, R> implements AssemblerAdapter<ID, R, Source<
     }
 
     @Override
-    public Source<R, NotUsed> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSources,
+    public Source<R, NotUsed> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
                                                    Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
-        List<Source<Map<ID, ?>, ?>> akkaSources = mapperSources
+        List<Source<Map<ID, ?>, ?>> akkaSources = mapperSourceSuppliers
                 .map(this::createAkkaSource)
                 .collect(toList());
 

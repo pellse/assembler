@@ -42,10 +42,10 @@ public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Flux<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSources,
+    public Flux<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
                                         Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
-        List<Publisher<Map<ID, ?>>> publishers = mapperSources
+        List<Publisher<Map<ID, ?>>> publishers = mapperSourceSuppliers
                 .map(this::toPublisher)
                 .collect(toList());
 

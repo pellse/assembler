@@ -45,10 +45,10 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
     }
 
     @Override
-    public CompletableFuture<CR> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSources,
+    public CompletableFuture<CR> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
                                                       Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
 
-        List<CompletableFuture<Map<ID, ?>>> mappingFutures = mapperSources
+        List<CompletableFuture<Map<ID, ?>>> mappingFutures = mapperSourceSuppliers
                 .map(this::toCompletableFuture)
                 .collect(toList());
 

@@ -123,8 +123,11 @@ public interface QueryUtils {
     }
 
     /**
-     * @param coll
-     * @param queryFunction
+     *
+     *
+     * @param coll          The list of arguments to pass to the queryFunction
+     *                      e.g. {@code List<Long>} for passing a list of IDs to query a database
+     * @param queryFunction The function to apply the list of arguments
      * @param <T>
      * @param <R>
      * @param <C>

@@ -30,7 +30,7 @@ import static java.util.stream.Collectors.toSet;
 public final class AssemblerTestUtils {
 
     public static final BillingInfo billingInfo1 = new BillingInfo(1L, "4540977822220971");
-    public static final BillingInfo address2 = new BillingInfo(2L, "4530987722349872");
+    public static final BillingInfo billingInfo2 = new BillingInfo(2L, "4530987722349872");
     public static final BillingInfo billingInfo2Unknown = new BillingInfo(2L, "unknown");
     public static final BillingInfo billingInfo3 = new BillingInfo(3L, "4540987722211234");
 
@@ -62,13 +62,13 @@ public final class AssemblerTestUtils {
 
     public static List<BillingInfo> getBillingInfoForCustomers(List<Long> customerIds) throws SQLException {
         return Stream.of(billingInfo1, null, billingInfo3)
-                .filter(adr -> adr == null || customerIds.contains(adr.getCustomerId()))
+                .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.getCustomerId()))
                 .collect(toList());
     }
 
     public static List<BillingInfo> getBillingInfoForCustomersWithSetIds(Set<Long> customerIds) throws SQLException {
         return Stream.of(billingInfo1, null, billingInfo3)
-                .filter(adr -> adr == null || customerIds.contains(adr.getCustomerId()))
+                .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.getCustomerId()))
                 .collect(toList());
     }
 

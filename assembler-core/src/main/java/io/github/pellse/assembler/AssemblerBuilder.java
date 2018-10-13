@@ -207,7 +207,7 @@ public interface AssemblerBuilder {
         }
 
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?, ?>> mappers,
-                                                       BiFunction<T, ? super Object[], R> assemblerFunction);
+                                                          BiFunction<T, ? super Object[], R> assemblerFunction);
     }
 
     interface AssembleUsingBuilder<T, ID, R> {
@@ -238,7 +238,7 @@ public interface AssemblerBuilder {
 
         @Override
         public AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?, ?>> mappers,
-                                                              BiFunction<T, ? super Object[], R> assemblerFunction) {
+                                                                 BiFunction<T, ? super Object[], R> assemblerFunction) {
             return new AssembleUsingBuilderImpl<>(idExtractor, mappers, assemblerFunction);
         }
     }

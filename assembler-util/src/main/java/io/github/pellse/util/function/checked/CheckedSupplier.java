@@ -16,7 +16,6 @@
 
 package io.github.pellse.util.function.checked;
 
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
