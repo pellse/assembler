@@ -111,13 +111,15 @@ public interface QueryUtils {
         if (isSafeEqual(resultMap, ids, Map::size, Collection::size))
             return resultMap;
 
+        Function<ID, V> resultProvider = defaultResultProvider != null ? defaultResultProvider : id -> null;
+
         Set<ID> idsFromQueryResult = resultMap.keySet();
 
         // defaultResultProvider can provide a null value, so we cannot use a Collector here
         // as it would throw a NullPointerException
         ids.stream()
                 .filter(not(idsFromQueryResult::contains))
-                .forEach(id -> resultMap.put(id, defaultResultProvider.apply(id)));
+                .forEach(id -> resultMap.put(id, resultProvider.apply(id)));
 
         return resultMap;
     }
