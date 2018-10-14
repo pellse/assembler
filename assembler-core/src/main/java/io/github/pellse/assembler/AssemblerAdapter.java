@@ -26,5 +26,5 @@ import java.util.stream.Stream;
 public interface AssemblerAdapter<ID, R, RC> {
 
     RC convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                            Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder);
+                            Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder);
 }

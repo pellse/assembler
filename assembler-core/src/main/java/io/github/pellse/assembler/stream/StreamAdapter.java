@@ -36,13 +36,13 @@ public class StreamAdapter<ID, R> implements AssemblerAdapter<ID, R, Stream<R>> 
 
     @Override
     public Stream<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                                          Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
+                                          Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 
         List<Map<ID, ?>> mappers = convertSources(mapperSourceSuppliers)
                 .map(Supplier::get)
                 .collect(toList());
 
-        return domainObjectStreamBuilder.apply(mappers);
+        return aggregateStreamBuilder.apply(mappers);
     }
 
     private Stream<Supplier<Map<ID, ?>>> convertSources(Stream<Supplier<Map<ID, ?>>> sources) {

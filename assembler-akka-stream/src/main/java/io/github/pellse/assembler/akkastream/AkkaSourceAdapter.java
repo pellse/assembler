@@ -40,14 +40,14 @@ public class AkkaSourceAdapter<ID, R> implements AssemblerAdapter<ID, R, Source<
 
     @Override
     public Source<R, NotUsed> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                                                   Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder) {
+                                                   Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 
         List<Source<Map<ID, ?>, ?>> akkaSources = mapperSourceSuppliers
                 .map(this::createAkkaSource)
                 .collect(toList());
 
         return zipN(akkaSources)
-                .flatMapConcat(mapperResults -> from(domainObjectStreamBuilder.apply(mapperResults)::iterator));
+                .flatMapConcat(mapperResults -> from(aggregateStreamBuilder.apply(mapperResults)::iterator));
     }
 
     private Source<Map<ID, ?>, ?> createAkkaSource(Supplier<Map<ID, ?>> mappingSupplier) {

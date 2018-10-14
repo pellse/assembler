@@ -43,17 +43,17 @@ public interface Assembler<T, RC> {
     <C extends Collection<T>> RC assemble(C topLevelEntities);
 
     /**
-     * @param topLevelEntities  e.g. {@code List<Customer>}
-     * @param idExtractor       e.g. {@code Customer::getCustomerId}
-     * @param subQueryMappers   e.g. {@code [ Mapper<Long, BillingInfo>, Mapper<Long, List<OrderItem>> ]}
-     * @param assemblerFunction e.g. {@code buildTransaction(customer, [ billingInfo, orderItemList ])}
-     * @param assemblerAdapter  Pluggable execution engine for invoking top and sub queries (e.g. Project Reactor, RxJava)
-     * @param errorConverter    Converts any exception thrown into a user defined {@link RuntimeException}
-     * @param <T>               e.g. {@code <Customer>}
-     * @param <ID>              e.g. {@code <Long>}
-     * @param <C>               e.g. {@code List<Customer>}
-     * @param <R>               e.g. {@code <Transaction>}
-     * @param <RC>              e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
+     * @param topLevelEntities    e.g. {@code List<Customer>}
+     * @param idExtractor         e.g. {@code Customer::getCustomerId}
+     * @param subQueryMappers     e.g. {@code [ Mapper<Long, BillingInfo>, Mapper<Long, List<OrderItem>> ]}
+     * @param aggregationFunction e.g. {@code buildTransaction(customer, [ billingInfo, orderItemList ])}
+     * @param assemblerAdapter    Pluggable execution engine for invoking top and sub queries (e.g. Project Reactor, RxJava)
+     * @param errorConverter      Converts any exception thrown into a user defined {@link RuntimeException}
+     * @param <T>                 e.g. {@code <Customer>}
+     * @param <ID>                e.g. {@code <Long>}
+     * @param <C>                 e.g. {@code List<Customer>}
+     * @param <R>                 e.g. {@code <Transaction>}
+     * @param <RC>                e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
      * @return A list of aggregated objects e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
      * as specified by the assemblerAdapter return type
      */
@@ -61,7 +61,7 @@ public interface Assembler<T, RC> {
     RC assemble(C topLevelEntities, // List<Customer>
                 Function<T, ID> idExtractor, // Customer::getCustomerId
                 List<Mapper<ID, ?, ?>> subQueryMappers, // [ Mapper<Long, BillingInfo>, Mapper<Long, List<OrderItem>> ]
-                BiFunction<T, ? super Object[], R> assemblerFunction,
+                BiFunction<T, ? super Object[], R> aggregationFunction,
                 AssemblerAdapter<ID, R, RC> assemblerAdapter,
                 Function<Throwable, RuntimeException> errorConverter) {
 
@@ -74,8 +74,10 @@ public interface Assembler<T, RC> {
         // the list of IDs (e.g. list of Customer ids) now captured in closure
         // so no need for the assemblerAdapter to know anything about IDs
         // when it will internally call "Map<ID, ?> mapperResult = mapperSource.get()"
-        // Supplier of Maps (lazy) to List of Maps (materialized) by executing
-        // the sub queries represented by subQueryMappers (oneToOne, oneToMany, etc.)
+        // and transform Supplier of Maps (lazy) to List of Maps (materialized) by executing
+        // the sub queries represented by subQueryMappers (oneToOne, oneToMany, etc.).
+        //
+        // To summarize, we transform 1 argument functions into 0 argument functions
         Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers = subQueryMappers.stream()
                 .map(mapper -> unchecked(() -> mapper.map(entityIDs), errorConverter));
 
@@ -87,23 +89,24 @@ public interface Assembler<T, RC> {
         //
         // and return e.g. an instance of Transaction
         BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
-                (topLevelEntity, listOfMapperResults) -> assemblerFunction.apply(topLevelEntity,
+                (topLevelEntity, listOfMapperResults) -> aggregationFunction.apply(topLevelEntity,
                         listOfMapperResults.stream()
                                 .map(mapperResult -> mapperResult.get(idExtractor.apply(topLevelEntity)))
                                 .toArray());
 
         // We create another function that takes a list of Map returned from our sub queries
-        // e.g. [ Map<ID, BillingInfo>, Map<ID, List<OrderItem>> ]
+        // e.g. [ Map<Long, BillingInfo>, Map<Long, List<OrderItem>> ]
         // and return a stream of aggregated objects e.g. Stream<Transaction>,
         // the function iterate over the list of topLevelEntities e.g. List<Customer>
         // for each topLevelEntity apply the joinMapperResultsFunction defined above
-        Function<List<Map<ID, ?>>, Stream<R>> domainObjectStreamBuilder = mapperResults -> topLevelEntities.stream()
-                .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
+        Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder =
+                mapperResults -> topLevelEntities.stream()
+                        .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
 
 
         // Notice the signature of mapperSourceSuppliers above, it is a supplier of Map<ID, ?>
-        // domainObjectStreamBuilder takes a list of Map<ID, ?>, so we are injecting the join algorithm
+        // aggregateStreamBuilder takes a list of Map<ID, ?>, so we are injecting the join algorithm
         // into our adapter and the data to pass to the join algorithm
-        return assemblerAdapter.convertMapperSources(mapperSourceSuppliers, domainObjectStreamBuilder);
+        return assemblerAdapter.convertMapperSources(mapperSourceSuppliers, aggregateStreamBuilder);
     }
 }
