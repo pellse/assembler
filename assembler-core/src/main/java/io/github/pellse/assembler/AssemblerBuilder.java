@@ -207,7 +207,7 @@ public interface AssemblerBuilder {
         }
 
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?, ?>> mappers,
-                                                          BiFunction<T, ? super Object[], R> aggregationFunction);
+                                                          BiFunction<T, Object[], R> aggregationFunction);
     }
 
     interface AssembleUsingBuilder<T, ID, R> {
@@ -238,7 +238,7 @@ public interface AssemblerBuilder {
 
         @Override
         public AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?, ?>> mappers,
-                                                                 BiFunction<T, ? super Object[], R> aggregationFunction) {
+                                                                 BiFunction<T, Object[], R> aggregationFunction) {
             return new AssembleUsingBuilderImpl<>(idExtractor, mappers, aggregationFunction);
         }
     }
@@ -246,14 +246,14 @@ public interface AssemblerBuilder {
     class AssembleUsingBuilderImpl<T, ID, R> implements AssembleUsingBuilder<T, ID, R> {
 
         private final Function<T, ID> idExtractor;
-        private BiFunction<T, ? super Object[], R> aggregationFunction;
+        private BiFunction<T, Object[], R> aggregationFunction;
         private List<Mapper<ID, ?, ?>> mappers;
 
         private Function<Throwable, RuntimeException> errorConverter = UncheckedException::new;
 
         private AssembleUsingBuilderImpl(Function<T, ID> idExtractor,
                                          List<Mapper<ID, ?, ?>> mappers,
-                                         BiFunction<T, ? super Object[], R> aggregationFunction) {
+                                         BiFunction<T, Object[], R> aggregationFunction) {
 
             this.idExtractor = idExtractor;
 
@@ -278,14 +278,14 @@ public interface AssemblerBuilder {
 
         private final Function<T, ID> idExtractor;
         private final List<Mapper<ID, ?, ?>> mappers;
-        private final BiFunction<T, ? super Object[], R> aggregationFunction;
+        private final BiFunction<T, Object[], R> aggregationFunction;
 
         private final Function<Throwable, RuntimeException> errorConverter;
         private final AssemblerAdapter<ID, R, RC> assemblerAdapter;
 
         private AssemblerImpl(Function<T, ID> idExtractor,
                               List<Mapper<ID, ?, ?>> mappers,
-                              BiFunction<T, ? super Object[], R> aggregationFunction,
+                              BiFunction<T, Object[], R> aggregationFunction,
                               Function<Throwable, RuntimeException> errorConverter,
                               AssemblerAdapter<ID, R, RC> assemblerAdapter) {
             this.idExtractor = idExtractor;

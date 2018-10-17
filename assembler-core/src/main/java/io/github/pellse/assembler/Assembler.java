@@ -61,7 +61,7 @@ public interface Assembler<T, RC> {
     RC assemble(C topLevelEntities, // List<Customer>
                 Function<T, ID> idExtractor, // Customer::getCustomerId
                 List<Mapper<ID, ?, ?>> subQueryMappers, // [ Mapper<Long, BillingInfo>, Mapper<Long, List<OrderItem>> ]
-                BiFunction<T, ? super Object[], R> aggregationFunction,
+                BiFunction<T, Object[], R> aggregationFunction,
                 AssemblerAdapter<ID, R, RC> assemblerAdapter,
                 Function<Throwable, RuntimeException> errorConverter) {
 
