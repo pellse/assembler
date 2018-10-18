@@ -21,5 +21,5 @@ import java.util.Map;
 @FunctionalInterface
 public interface Mapper<ID, R, EX extends Throwable> {
 
-    Map<ID, R> map(Iterable<ID> entityIds) throws EX;
+    Map<ID, R> apply(Iterable<ID> entityIds) throws EX;
 }

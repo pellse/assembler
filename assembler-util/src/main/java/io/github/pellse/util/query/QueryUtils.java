@@ -86,8 +86,8 @@ public interface QueryUtils {
      *                              It will transform a stream of results to a {@code Map<ID, V>}
      * @param <V>                   Type of each value representing the result from {@code queryFunction} associated with each ID, will map
      *                              to either {@code <R>} when called from {@code queryOneToOne}
-     *                              or {@code <D>} when called from {@code queryOneToMany} i.e. a collection of {@code <R>}.
-     *                              This is conceptually a union type {@code <R> | <D>}
+     *                              or {@code <RC>} when called from {@code queryOneToMany} i.e. a collection of {@code <R>}.
+     *                              This is conceptually a union type {@code <R> | <RC>}
      * @param <ID>                  Type of the ids passed to {@code queryFunction} e.g. {@code Long}, {@code String}
      * @param <R>                   Type of individual results returned from the queryFunction
      * @param <IDC>                 Type of the {@link Collection} containing the ids of type {@code <ID>}

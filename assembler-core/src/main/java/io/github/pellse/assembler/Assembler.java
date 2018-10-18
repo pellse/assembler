@@ -79,7 +79,7 @@ public interface Assembler<T, RC> {
         //
         // To summarize, we transform 1 argument functions into 0 argument functions
         Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers = subQueryMappers.stream()
-                .map(mapper -> unchecked(() -> mapper.map(entityIDs), errorConverter));
+                .map(mapper -> unchecked(() -> mapper.apply(entityIDs), errorConverter));
 
         // We create a function that takes 2 arguments:
         // 1- a topLevelEntity from our main query

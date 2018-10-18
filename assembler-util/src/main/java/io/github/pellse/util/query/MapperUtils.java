@@ -35,7 +35,7 @@ public interface MapperUtils {
     }
 
     static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> mapper, Map<Iterable<ID>, Map<ID, R>> cache) {
-        return ids -> cache.computeIfAbsent(ids, unchecked(mapper::map));
+        return ids -> cache.computeIfAbsent(ids, unchecked(mapper::apply));
     }
 
     static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
@@ -126,7 +126,7 @@ public interface MapperUtils {
     private static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> convertIdTypeMapperDelegate(
             Mapper<ID, R, EX> mapper, Supplier<IDC> idCollectionFactory) {
 
-        return entityIds -> mapper.map(refineEntityIDType(entityIds, idCollectionFactory));
+        return entityIds -> mapper.apply(refineEntityIDType(entityIds, idCollectionFactory));
     }
 
     private static <ID, IDC extends Collection<ID>> IDC refineEntityIDType(Iterable<ID> entityIds, Supplier<IDC> idCollectionFactory) {
