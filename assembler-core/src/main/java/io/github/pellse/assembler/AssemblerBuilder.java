@@ -20,7 +20,6 @@ import io.github.pellse.util.function.*;
 import io.github.pellse.util.function.checked.UncheckedException;
 import io.github.pellse.util.query.Mapper;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -298,7 +297,7 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public <C extends Collection<T>> RC assemble(C topLevelEntities) {
+        public <C extends Iterable<T>> RC assemble(C topLevelEntities) {
             return Assembler.assemble(topLevelEntities, idExtractor, mappers, aggregationFunction, assemblerAdapter, errorConverter);
         }
     }

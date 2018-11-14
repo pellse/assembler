@@ -19,7 +19,6 @@ package io.github.pellse.assembler;
 import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.query.Mapper;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -29,6 +28,7 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.StreamSupport.stream;
 
 /**
  * @param <T>  Type for Top Level Entity e.g. {@code Customer}
@@ -36,11 +36,11 @@ import static java.util.stream.Collectors.toList;
  */
 public interface Assembler<T, RC> {
 
-    default <C extends Collection<T>> RC assembleFromSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider) {
+    default <C extends Iterable<T>> RC assembleFromSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider) {
         return assemble(topLevelEntitiesProvider.get());
     }
 
-    <C extends Collection<T>> RC assemble(C topLevelEntities);
+    <C extends Iterable<T>> RC assemble(C topLevelEntities);
 
     /**
      * @param topLevelEntities    e.g. {@code List<Customer>}
@@ -57,7 +57,7 @@ public interface Assembler<T, RC> {
      * @return A list of aggregated objects e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
      * as specified by the assemblerAdapter return type
      */
-    static <T, ID, C extends Collection<T>, R, RC>
+    static <T, ID, C extends Iterable<T>, R, RC>
     RC assemble(C topLevelEntities,
                 Function<T, ID> idExtractor,
                 List<Mapper<ID, ?, ?>> subQueryMappers,
@@ -66,7 +66,7 @@ public interface Assembler<T, RC> {
                 Function<Throwable, RuntimeException> errorConverter) {
 
         // We extract the IDs from the collection of top level entities e.g. from List<Customer> to List<Long>
-        List<ID> entityIDs = topLevelEntities.stream()
+        List<ID> entityIDs = stream(topLevelEntities.spliterator(), false)
                 .map(idExtractor)
                 .collect(toList());
 
@@ -100,7 +100,7 @@ public interface Assembler<T, RC> {
         // the function iterate over the list of topLevelEntities e.g. List<Customer>
         // for each topLevelEntity apply the joinMapperResultsFunction defined above
         Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder =
-                mapperResults -> topLevelEntities.stream()
+                mapperResults -> stream(topLevelEntities.spliterator(), false)
                         .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
 
 
