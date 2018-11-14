@@ -33,6 +33,7 @@ public interface AssemblerBuilder {
 
     @FunctionalInterface
     interface WithIdExtractorBuilder<R> {
+
         <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdExtractor(Function<T, ID> idExtractor);
     }
 
@@ -211,6 +212,7 @@ public interface AssemblerBuilder {
     }
 
     interface AssembleUsingBuilder<T, ID, R> {
+
         AssembleUsingBuilder<T, ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter);
 
         <RC> Assembler<T, RC> using(AssemblerAdapter<ID, R, RC> adapter);

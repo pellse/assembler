@@ -58,9 +58,9 @@ public interface Assembler<T, RC> {
      * as specified by the assemblerAdapter return type
      */
     static <T, ID, C extends Collection<T>, R, RC>
-    RC assemble(C topLevelEntities, // List<Customer>
-                Function<T, ID> idExtractor, // Customer::getCustomerId
-                List<Mapper<ID, ?, ?>> subQueryMappers, // [ Mapper<Long, BillingInfo>, Mapper<Long, List<OrderItem>> ]
+    RC assemble(C topLevelEntities,
+                Function<T, ID> idExtractor,
+                List<Mapper<ID, ?, ?>> subQueryMappers,
                 BiFunction<T, Object[], R> aggregationFunction,
                 AssemblerAdapter<ID, R, RC> assemblerAdapter,
                 Function<Throwable, RuntimeException> errorConverter) {
