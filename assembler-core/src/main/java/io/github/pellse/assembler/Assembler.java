@@ -19,6 +19,7 @@ package io.github.pellse.assembler;
 import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.query.Mapper;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -79,7 +80,7 @@ public interface Assembler<T, RC> {
         //
         // To summarize, we transform 1 argument functions into 0 argument functions
         Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers = subQueryMappers.stream()
-                .map(mapper -> unchecked(() -> mapper.apply(entityIDs), errorConverter));
+                .map(mapper -> unchecked(() -> mapper.apply(entityIDs, ids -> new HashMap<>(ids.size())), errorConverter));
 
         // We create a function that takes 2 arguments:
         // 1- a topLevelEntity from our main query

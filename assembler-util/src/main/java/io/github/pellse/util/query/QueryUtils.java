@@ -33,12 +33,23 @@ import static java.util.stream.Collectors.*;
 
 public interface QueryUtils {
 
+    double MULTIPLIER = 1.34; // To be consistent with the 0.75 default load factor of HashMap
+
     static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
     Map<ID, R> queryOneToOne(IDC ids,
                              CheckedFunction1<IDC, RC, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults) throws EX {
 
-        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null);
+        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, createMapFactory(ids));
+    }
+
+    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, R> queryOneToOne(IDC ids,
+                             CheckedFunction1<IDC, RC, EX> queryFunction,
+                             Function<R, ID> idExtractorFromQueryResults,
+                             Supplier<Map<ID, R>> mapFactory) throws EX {
+
+        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null, mapFactory);
     }
 
     static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
@@ -47,7 +58,17 @@ public interface QueryUtils {
                              Function<R, ID> idExtractorFromQueryResults,
                              Function<ID, R> defaultResultProvider) throws EX {
 
-        return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity()));
+        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultResultProvider, createMapFactory(ids));
+    }
+
+    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, R> queryOneToOne(IDC ids,
+                             CheckedFunction1<IDC, RC, EX> queryFunction,
+                             Function<R, ID> idExtractorFromQueryResults,
+                             Function<ID, R> defaultResultProvider,
+                             Supplier<Map<ID, R>> mapFactory) throws EX {
+
+        return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u1, mapFactory));
     }
 
     static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
@@ -55,7 +76,16 @@ public interface QueryUtils {
                                           CheckedFunction1<IDC, List<R>, EX> queryFunction,
                                           Function<R, ID> idExtractorFromQueryResults) throws EX {
 
-        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, ArrayList::new);
+        return queryOneToManyAsList(ids, queryFunction, idExtractorFromQueryResults, createMapFactory(ids));
+    }
+
+    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    Map<ID, List<R>> queryOneToManyAsList(IDC ids,
+                                          CheckedFunction1<IDC, List<R>, EX> queryFunction,
+                                          Function<R, ID> idExtractorFromQueryResults,
+                                          Supplier<Map<ID, List<R>>> mapFactory) throws EX {
+
+        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
     }
 
     static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
@@ -63,7 +93,16 @@ public interface QueryUtils {
                                         CheckedFunction1<IDC, Set<R>, EX> queryFunction,
                                         Function<R, ID> idExtractorFromQueryResults) throws EX {
 
-        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new);
+        return queryOneToManyAsSet(ids, queryFunction, idExtractorFromQueryResults, createMapFactory(ids));
+    }
+
+    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    Map<ID, Set<R>> queryOneToManyAsSet(IDC ids,
+                                        CheckedFunction1<IDC, Set<R>, EX> queryFunction,
+                                        Function<R, ID> idExtractorFromQueryResults,
+                                        Supplier<Map<ID, Set<R>>> mapFactory) throws EX {
+
+        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
     }
 
     static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
@@ -72,8 +111,18 @@ public interface QueryUtils {
                                Function<R, ID> idExtractorFromQueryResults,
                                Supplier<RC> collectionFactory) throws EX {
 
+        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, collectionFactory, createMapFactory(ids));
+    }
+
+    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, RC> queryOneToMany(IDC ids,
+                               CheckedFunction1<IDC, RC, EX> queryFunction,
+                               Function<R, ID> idExtractorFromQueryResults,
+                               Supplier<RC> collectionFactory,
+                               Supplier<Map<ID, RC>> mapFactory) throws EX {
+
         return query(ids, queryFunction, id -> collectionFactory.get(),
-                groupingBy(idExtractorFromQueryResults, toCollection(collectionFactory)));
+                groupingBy(idExtractorFromQueryResults, mapFactory, toCollection(collectionFactory)));
     }
 
     /**
@@ -125,8 +174,6 @@ public interface QueryUtils {
     }
 
     /**
-     *
-     *
      * @param coll          The list of arguments to pass to the queryFunction
      *                      e.g. {@code List<Long>} for passing a list of IDs to query a database
      * @param queryFunction The function to apply the list of arguments
@@ -146,6 +193,14 @@ public interface QueryUtils {
         return resultsFromQuery.stream()
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull);
+    }
+
+    private static <K, V> Supplier<Map<K, V>> createMapFactory(Collection<?> ids) {
+        int size = Optional.ofNullable(ids)
+                .map(coll -> (int) (coll.size() * MULTIPLIER))
+                .orElse(0);
+
+        return () -> new HashMap<>(size);
     }
 
     @SafeVarargs

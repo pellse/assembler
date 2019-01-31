@@ -16,10 +16,12 @@
 
 package io.github.pellse.util.query;
 
+import java.util.Collection;
 import java.util.Map;
+import java.util.function.Function;
 
 @FunctionalInterface
 public interface Mapper<ID, R, EX extends Throwable> {
 
-    Map<ID, R> apply(Iterable<ID> entityIds) throws EX;
+    Map<ID, R> apply(Iterable<ID> entityIds, Function<Collection<ID>, Map<ID, R>> mapFactory) throws EX;
 }
