@@ -61,6 +61,25 @@ public class StreamAssemblerTest {
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
     }
 
+    @Test
+    public void testAssembleBuilderWithNullEntityIds() {
+
+        List<Transaction> transactions = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(ids -> null, BillingInfo::getCustomerId),
+                        oneToManyAsList(ids -> null, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(streamAdapter())
+                .assembleFromSupplier(this::getCustomers)
+                .collect(toList());
+
+        assertThat(transactions, equalTo(List.of(
+                new Transaction(customer1, null, List.of()),
+                new Transaction(customer2, null, List.of()),
+                new Transaction(customer3, null, List.of()))));
+    }
+
     @Test(expected = UncheckedException.class)
     public void testAssembleBuilderWithUncheckedException() {
 

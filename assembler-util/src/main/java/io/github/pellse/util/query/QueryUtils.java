@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import static io.github.pellse.util.ObjectUtils.isSafeEqual;
 import static io.github.pellse.util.function.checked.CheckedPredicate1.not;
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
+import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
@@ -186,6 +187,8 @@ public interface QueryUtils {
      */
     static <T, R, C extends Collection<? extends T>, RC extends Collection<? extends R>, EX extends Throwable>
     Stream<? extends R> safeApply(C coll, CheckedFunction1<C, RC, EX> queryFunction) {
+        requireNonNull(queryFunction, "queryFunction cannot be null");
+
         Optional<RC> resultsFromQuery = Optional.ofNullable(coll)
                 .filter(not(Collection::isEmpty))
                 .map(unchecked(queryFunction));
