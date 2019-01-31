@@ -10,7 +10,7 @@ subprojects {
     }
 
     dependencies {
-        testCompile 'org.projectlombok:lombok:1.18.2'
+        testCompileOnly 'org.projectlombok:lombok:1.18.4'
 
         testCompile 'junit:junit:4.+'
         testCompile 'org.hamcrest:hamcrest-library:1.3'
