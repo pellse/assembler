@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import static io.github.pellse.util.ObjectUtils.isSafeEqual;
 import static io.github.pellse.util.function.checked.CheckedPredicate1.not;
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
+import static java.util.Collections.unmodifiableCollection;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
@@ -48,7 +49,7 @@ public interface QueryUtils {
     Map<ID, R> queryOneToOne(IDC ids,
                              CheckedFunction1<IDC, RC, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults,
-                             CheckedFunction1<IDC, Map<ID, R>, Throwable> mapFactory) throws EX {
+                             CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapFactory) throws EX {
 
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null, mapFactory);
     }
@@ -67,11 +68,9 @@ public interface QueryUtils {
                              CheckedFunction1<IDC, RC, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults,
                              Function<ID, R> defaultResultProvider,
-                             CheckedFunction1<IDC, Map<ID, R>, Throwable> mapFactory) throws EX {
+                             CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapFactory) throws EX {
 
-        CheckedFunction1<IDC, Map<ID, R>, Throwable> mapSupplier = mapFactory != null ? mapFactory : createMapFactory();
-
-        return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u1, () -> mapSupplier.apply(ids)));
+        return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u1, toSupplier(ids, mapFactory)));
     }
 
     static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
@@ -86,7 +85,7 @@ public interface QueryUtils {
     Map<ID, List<R>> queryOneToManyAsList(IDC ids,
                                           CheckedFunction1<IDC, List<R>, EX> queryFunction,
                                           Function<R, ID> idExtractorFromQueryResults,
-                                          CheckedFunction1<IDC, Map<ID, List<R>>, Throwable> mapFactory) throws EX {
+                                          CheckedFunction1<Collection<ID>, Map<ID, List<R>>, Throwable> mapFactory) throws EX {
 
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
     }
@@ -103,7 +102,7 @@ public interface QueryUtils {
     Map<ID, Set<R>> queryOneToManyAsSet(IDC ids,
                                         CheckedFunction1<IDC, Set<R>, EX> queryFunction,
                                         Function<R, ID> idExtractorFromQueryResults,
-                                        CheckedFunction1<IDC, Map<ID, Set<R>>, Throwable> mapFactory) throws EX {
+                                        CheckedFunction1<Collection<ID>, Map<ID, Set<R>>, Throwable> mapFactory) throws EX {
 
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
     }
@@ -122,12 +121,10 @@ public interface QueryUtils {
                                CheckedFunction1<IDC, RC, EX> queryFunction,
                                Function<R, ID> idExtractorFromQueryResults,
                                Supplier<RC> collectionFactory,
-                               CheckedFunction1<IDC, Map<ID, RC>, Throwable> mapFactory) throws EX {
-
-        CheckedFunction1<IDC, Map<ID, RC>, Throwable> mapSupplier = mapFactory != null ? mapFactory : createMapFactory();
+                               CheckedFunction1<Collection<ID>, Map<ID, RC>, Throwable> mapFactory) throws EX {
 
         return query(ids, queryFunction, id -> collectionFactory.get(),
-                groupingBy(idExtractorFromQueryResults, () -> mapSupplier.apply(ids), toCollection(collectionFactory)));
+                groupingBy(idExtractorFromQueryResults, toSupplier(ids, mapFactory), toCollection(collectionFactory)));
     }
 
     /**
@@ -200,6 +197,14 @@ public interface QueryUtils {
         return resultsFromQuery.stream()
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull);
+    }
+
+    private static <ID, R, IDC extends Collection<ID>>
+    Supplier<Map<ID, R>> toSupplier(IDC ids, CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapFactory) {
+
+        CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapSupplier = mapFactory != null ? mapFactory : createMapFactory();
+
+        return () -> mapSupplier.apply(unmodifiableCollection(ids));
     }
 
     private static <ID, IDC extends Collection<ID>, K, V> CheckedFunction1<IDC, Map<K, V>, Throwable> createMapFactory() {
