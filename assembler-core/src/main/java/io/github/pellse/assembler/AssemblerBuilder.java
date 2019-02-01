@@ -247,8 +247,8 @@ public interface AssemblerBuilder {
     class AssembleUsingBuilderImpl<T, ID, R> implements AssembleUsingBuilder<T, ID, R> {
 
         private final Function<T, ID> idExtractor;
-        private BiFunction<T, Object[], R> aggregationFunction;
-        private List<Mapper<ID, ?, ?>> mappers;
+        private final BiFunction<T, Object[], R> aggregationFunction;
+        private final List<Mapper<ID, ?, ?>> mappers;
 
         private Function<Throwable, RuntimeException> errorConverter = UncheckedException::new;
 

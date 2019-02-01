@@ -22,9 +22,7 @@ import io.github.pellse.util.query.Mapper;
 import org.junit.Test;
 
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
@@ -53,6 +51,22 @@ public class StreamAssemblerTest {
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(streamAdapter())
+                .assembleFromSupplier(this::getCustomers)
+                .collect(toList());
+
+        assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
+    }
+
+    @Test
+    public void testAssembleBuilderWithCustomMapFactory() {
+
+        List<Transaction> transactions = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new, ids -> new TreeMap<>()),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, ids -> new LinkedHashMap<>(ids.size() * 2)),
                         Transaction::new)
                 .using(streamAdapter())
                 .assembleFromSupplier(this::getCustomers)
