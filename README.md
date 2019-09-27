@@ -300,8 +300,8 @@ But there might be cases where we would want to provide our own custom `Map` imp
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new, ids -> new HashMap<>(ids.size(), 0.5f)),
-         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId, ids -> new TreeMap<>()),
+         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new, size -> new HashMap<>(size * 2, 0.5f)),
+         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId, size -> new TreeMap<>()),
          Transaction::new)
     .using(fluxAdapter());
 ```
