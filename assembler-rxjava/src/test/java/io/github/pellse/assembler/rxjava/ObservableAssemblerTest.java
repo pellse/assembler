@@ -45,8 +45,8 @@ public class ObservableAssemblerTest {
         Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(observableAdapter())
                 .assembleFromSupplier(this::getCustomers);
@@ -81,8 +81,8 @@ public class ObservableAssemblerTest {
                 .concatMap(customers -> assemblerOf(Transaction.class)
                         .withIdExtractor(Customer::getCustomerId)
                         .withAssemblerRules(
-                                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                                oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                                 Transaction::new)
                         .using(observableAdapter(single()))
                         .assemble(customers));
@@ -97,8 +97,8 @@ public class ObservableAssemblerTest {
         Assembler<Customer, Observable<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(observableAdapter());
 

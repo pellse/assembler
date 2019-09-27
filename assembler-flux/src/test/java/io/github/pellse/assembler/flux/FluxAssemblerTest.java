@@ -44,8 +44,8 @@ public class FluxAssemblerTest {
                 assemblerOf(Transaction.class)
                         .withIdExtractor(Customer::getCustomerId)
                         .withAssemblerRules(
-                                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                                oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                                 Transaction::new)
                         .using(fluxAdapter())
                         .assembleFromSupplier(this::getCustomers))
@@ -80,8 +80,8 @@ public class FluxAssemblerTest {
                 .concatMap(customers -> assemblerOf(Transaction.class)
                         .withIdExtractor(Customer::getCustomerId)
                         .withAssemblerRules(
-                                oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                                oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                                oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                                 Transaction::new)
                         .using(fluxAdapter())
                         .assemble(customers)))
@@ -97,8 +97,8 @@ public class FluxAssemblerTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(fluxAdapter());
 

@@ -60,26 +60,26 @@ public final class AssemblerTestUtils {
             Set.of(orderItem21, orderItem22));
     public static final TransactionSet transactionSet3 = new TransactionSet(customer3, billingInfo3, emptySet());
 
-    public static List<BillingInfo> getBillingInfoForCustomers(List<Long> customerIds) throws SQLException {
+    public static List<BillingInfo> getBillingInfos(List<Long> customerIds) throws SQLException {
         return Stream.of(billingInfo1, null, billingInfo3)
                 .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.getCustomerId()))
                 .collect(toList());
     }
 
-    public static List<BillingInfo> getBillingInfoForCustomersWithSetIds(Set<Long> customerIds) throws SQLException {
+    public static List<BillingInfo> getBillingInfosWithSetIds(Set<Long> customerIds) throws SQLException {
         return Stream.of(billingInfo1, null, billingInfo3)
                 .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.getCustomerId()))
                 .collect(toList());
     }
 
-    public static List<OrderItem> getAllOrdersForCustomers(List<Long> customerIds) throws SQLException {
+    public static List<OrderItem> getAllOrders(List<Long> customerIds) throws SQLException {
         //throw new SQLException("Exception in queryDatabaseForAllOrders");
         return Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()))
                 .collect(toList());
     }
 
-    public static Set<OrderItem> getAllOrdersForCustomersWithLinkedListIds(LinkedList<Long> customerIds) throws SQLException {
+    public static Set<OrderItem> getAllOrdersWithLinkedListIds(LinkedList<Long> customerIds) throws SQLException {
         //throw new SQLException("Exception in queryDatabaseForAllOrders");
         return Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()))

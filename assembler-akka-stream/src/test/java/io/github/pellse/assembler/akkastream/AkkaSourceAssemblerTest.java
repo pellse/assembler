@@ -59,8 +59,8 @@ public class AkkaSourceAssemblerTest {
         Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(akkaSourceAdapter())
                 .assembleFromSupplier(this::getCustomers);
@@ -104,8 +104,8 @@ public class AkkaSourceAssemblerTest {
         Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(akkaSourceAdapter(true))
                 .assembleFromSupplier(this::getCustomers); // Parallel
@@ -129,8 +129,8 @@ public class AkkaSourceAssemblerTest {
                         assemblerOf(Transaction.class)
                                 .withIdExtractor(Customer::getCustomerId)
                                 .withAssemblerRules(
-                                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                                         Transaction::new)
                                 .using(akkaSourceAdapter(Source::async))
                                 .assemble(customerList)); // Custom source configuration
@@ -151,8 +151,8 @@ public class AkkaSourceAssemblerTest {
         Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(akkaSourceAdapter(Source::async));
 

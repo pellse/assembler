@@ -68,8 +68,8 @@ public class Transaction {
 }
 
 List<Customer> getCustomers(); // This could be a REST call to an already existing microservice
-List<BillingInfo> getBillingInfoForCustomers(List<Long> customerIds); // This could be a call to MongoDB
-List<OrderItem> getAllOrdersForCustomers(List<Long> customerIds); // This could be a call to an Oracle database
+List<BillingInfo> getBillingInfos(List<Long> customerIds); // This could be a call to MongoDB
+List<OrderItem> getAllOrders(List<Long> customerIds); // This could be a call to an Oracle database
 ```
 
 So if `getCustomers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo`s for all `Customer`s returned by `getCustomers()`, same for `OrderItem`s. This implies though that combining `Customer`s, `BillingInfo`s and `OrderItem`s into `Transaction`s using *customerId* as a correlation id between all those entities has to be done outside of those datasources, which is what this library was implemented for:
@@ -86,8 +86,8 @@ import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 List<Transaction> transactions = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // Default BillingInfo for null values
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new), // Default BillingInfo for null values
+        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
         Transaction::new)
     .using(streamAdapter())
     .assembleFromSupplier(this::getCustomers)
@@ -105,8 +105,8 @@ import static io.github.pellse.assembler.future.CompletableFutureAdapter.complet
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
         Transaction::new)
     .using(completableFutureAdapter())
     .assembleFromSupplier(this::getCustomers);
@@ -123,8 +123,8 @@ import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        oneToOne(this::getBillingInfos, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
         Transaction::new)
     .using(fluxAdapter(elastic()))
     .assembleFromSupplier(this::getCustomers))
@@ -134,8 +134,8 @@ or by reusing the same `Assembler` instance as a transformation step within a `F
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+         oneToOne(this::getBillingInfos, BillingInfo::getCustomerId),
+         oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
          Transaction::new)
     .using(fluxAdapter()); // Parallel scheduler used by default
 
@@ -157,8 +157,8 @@ import static io.github.pellse.assembler.rxjava.ObservableAdapter.observableAdap
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+         oneToOne(this::getBillingInfos, BillingInfo::getCustomerId),
+         oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
          Transaction::new)
      .using(observableAdapter(single()))
      .assembleFromSupplier(this::getCustomers);
@@ -174,8 +174,8 @@ import static io.github.pellse.assembler.rxjava.FlowableAdapter.flowableAdapter;
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        oneToOne(this::getBillingInfos, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
         Transaction::new)
     .using(flowableAdapter(single()))
     .assembleFromSupplier(this::getCustomers);
@@ -195,8 +195,8 @@ Materializer mat = ActorMaterializer.create(system);
 Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        oneToOne(this::getBillingInfos, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
         Transaction::new)
     .using(akkaSourceAdapter())) // Sequential
     .assembleFromSupplier(this::getCustomers);
@@ -212,8 +212,8 @@ Materializer mat = ActorMaterializer.create(system);
 Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        oneToOne(this::getBillingInfos, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
         Transaction::new)
     .using(akkaSourceAdapter(true)); // Parallel
 
@@ -232,8 +232,8 @@ Materializer mat = ActorMaterializer.create(system);
 Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
-        oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
+        oneToOne(this::getBillingInfos, BillingInfo::getCustomerId),
+        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
         Transaction::new)
     .using(akkaSourceAdapter(Source::async)); // Custom underlying sources configuration
 
@@ -250,7 +250,7 @@ customerSource.via(transactionFlow)
 ## Caching
 In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `manyToOne()`), `MapperUtils` also provides a simple caching/memoization mechanism through the `cached()` wrapper method.
 
-Below is a rewrite of the first example above but one of the `Mapper`'s is cached (for the `getBillingInfoForCustomers` MongoDB call), so on multiple invocations of the defined assembler, the mapper result from the first invocation will be reused, avoiding to hit the datastore again:
+Below is a rewrite of the first example above but one of the `Mapper`'s is cached (for the `getBillingInfos` MongoDB call), so on multiple invocations of the defined assembler, the mapper result from the first invocation will be reused, avoiding to hit the datastore again:
 ```java
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
@@ -260,8 +260,8 @@ import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 
 import static io.github.pellse.util.query.MapperUtils.cached;
 
-var billingInfoMapper = cached(oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId));
-var allOrdersMapper = oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId);
+var billingInfoMapper = cached(oneToOne(this::getBillingInfos, BillingInfo::getCustomerId));
+var allOrdersMapper = oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId);
 
 var transactionAssembler = assemblerOf(Transaction.class)
         .withIdExtractor(Customer::getCustomerId)
@@ -270,12 +270,12 @@ var transactionAssembler = assemblerOf(Transaction.class)
 
 var transactionList = transactionAssembler
         .assembleFromSupplier(this::getCustomers)
-        .collect(toList()); // Will invoke the getBillingInfoForCustomers() MongoDB remote call
+        .collect(toList()); // Will invoke the getBillingInfos() MongoDB remote call
 
 var transactionList2 = transactionAssembler
         .assemble(getCustomers())
         .collect(toList()); // Will reuse the results returned from
-                            // the first invocation of getBillingInfoForCustomers() above
+                            // the first invocation of getBillingInfos() above
                             // if the list of Customer IDs is the same (as defined by the list equals() method)
                             // for both invocations, no remote call here
 ```
@@ -300,8 +300,8 @@ But there might be cases where we would want to provide our own custom `Map` imp
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new, size -> new TreeMap<>()),
-         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId, size -> new HashMap<>(size * 2, 0.5f)),
+         oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new, size -> new TreeMap<>()),
+         oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId, size -> new HashMap<>(size * 2, 0.5f)),
          Transaction::new)
     .using(fluxAdapter());
 ```
