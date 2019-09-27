@@ -21,15 +21,15 @@ import io.github.pellse.util.query.Mapper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static io.github.pellse.util.collection.CollectionUtil.toStream;
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
-import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.StreamSupport.stream;
 
 /**
  * @param <T>  Type for Top Level Entity e.g. {@code Customer}
@@ -67,7 +67,8 @@ public interface Assembler<T, RC> {
                 Function<Throwable, RuntimeException> errorConverter) {
 
         // We extract the IDs from the collection of top level entities e.g. from List<Customer> to List<Long>
-        List<ID> entityIDs = stream(requireNonNull(topLevelEntities, "topLevelEntities cannot be null").spliterator(), false)
+        List<ID> entityIDs = toStream(topLevelEntities)
+                .filter(Objects::nonNull)
                 .map(idExtractor)
                 .collect(toList());
 
@@ -101,7 +102,8 @@ public interface Assembler<T, RC> {
         // the function iterate over the list of topLevelEntities e.g. List<Customer>
         // for each topLevelEntity apply the joinMapperResultsFunction defined above
         Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder =
-                mapperResults -> stream(topLevelEntities.spliterator(), false)
+                mapperResults -> toStream(topLevelEntities)
+                        .filter(Objects::nonNull)
                         .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
 
 

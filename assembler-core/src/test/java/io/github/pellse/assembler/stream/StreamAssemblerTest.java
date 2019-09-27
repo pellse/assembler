@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
+import static io.github.pellse.util.query.MapFactory.defaultMapFactory;
 import static io.github.pellse.util.query.MapperUtils.*;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
@@ -66,14 +67,46 @@ public class StreamAssemblerTest {
         List<Transaction> transactions = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new, ids -> new TreeMap<>()),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, ids -> new LinkedHashMap<>(ids.size() * 2, 0.5f)),
+                        oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new, defaultMapFactory()),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, size -> new LinkedHashMap<>(size * 2, 0.5f)),
                         Transaction::new)
                 .using(streamAdapter())
                 .assembleFromSupplier(this::getCustomers)
                 .collect(toList());
 
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
+    }
+
+    @Test
+    public void testAssembleBuilderWithNullTopLevelEntityList() {
+
+        List<Transaction> transactions = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(ids -> null, BillingInfo::getCustomerId),
+                        oneToManyAsList(ids -> null, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(streamAdapter())
+                .assemble(null)
+                .collect(toList());
+
+        assertThat(transactions, equalTo(List.of()));
+    }
+
+    @Test
+    public void testAssembleBuilderWithNullTopLevelEntities() {
+
+        List<Transaction> transactions = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(ids -> null, BillingInfo::getCustomerId),
+                        oneToManyAsList(ids -> null, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(streamAdapter())
+                .assemble(Arrays.asList(null, null, null))
+                .collect(toList());
+
+        assertThat(transactions, equalTo(List.of()));
     }
 
     @Test
