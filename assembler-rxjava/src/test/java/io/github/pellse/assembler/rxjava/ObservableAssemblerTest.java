@@ -17,9 +17,8 @@
 package io.github.pellse.assembler.rxjava;
 
 import io.github.pellse.assembler.*;
-import io.github.pellse.assembler.AssemblerTestUtils.*;
-import io.reactivex.Observable;
-import org.junit.Test;
+import io.reactivex.rxjava3.core.Observable;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
@@ -28,10 +27,11 @@ import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.rxjava.ObservableAdapter.observableAdapter;
 import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
-import static io.reactivex.schedulers.Schedulers.single;
+import static io.reactivex.rxjava3.schedulers.Schedulers.single;
 import static java.util.Arrays.asList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ObservableAssemblerTest {
 
@@ -55,21 +55,22 @@ public class ObservableAssemblerTest {
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
     }
 
-    @Test(expected = UserDefinedRuntimeException.class)
+    @Test
     public void testAssemblerBuilderWithErrorWithObservable() {
 
-        Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
-                .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
-                        Transaction::new)
-                .withErrorConverter(UserDefinedRuntimeException::new)
-                .using(observableAdapter(single()))
-                .assembleFromSupplier(this::getCustomers);
+        assertThrows(UserDefinedRuntimeException.class, () -> {
+            Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
+                    .withIdExtractor(Customer::getCustomerId)
+                    .withAssemblerRules(
+                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                            Transaction::new)
+                    .withErrorConverter(UserDefinedRuntimeException::new)
+                    .using(observableAdapter(single()))
+                    .assembleFromSupplier(this::getCustomers);
 
-        assertThat(transactionObservable.toList().blockingGet(),
-                equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
+            transactionObservable.toList().blockingGet();
+        });
     }
 
     @Test

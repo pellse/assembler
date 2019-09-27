@@ -17,8 +17,8 @@
 package io.github.pellse.assembler.rxjava;
 
 import io.github.pellse.assembler.AssemblerAdapter;
-import io.reactivex.Flowable;
-import io.reactivex.Scheduler;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Scheduler;
 
 import java.util.List;
 import java.util.Map;
@@ -27,10 +27,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static io.reactivex.Flowable.fromCallable;
-import static io.reactivex.Flowable.fromIterable;
-import static io.reactivex.schedulers.Schedulers.computation;
-import static io.reactivex.schedulers.Schedulers.from;
+import static io.reactivex.rxjava3.core.Flowable.fromCallable;
+import static io.reactivex.rxjava3.core.Flowable.fromIterable;
+import static io.reactivex.rxjava3.schedulers.Schedulers.computation;
+import static io.reactivex.rxjava3.schedulers.Schedulers.from;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
