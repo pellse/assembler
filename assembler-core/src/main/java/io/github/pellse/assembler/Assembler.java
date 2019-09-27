@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
 
@@ -66,7 +67,7 @@ public interface Assembler<T, RC> {
                 Function<Throwable, RuntimeException> errorConverter) {
 
         // We extract the IDs from the collection of top level entities e.g. from List<Customer> to List<Long>
-        List<ID> entityIDs = stream(topLevelEntities.spliterator(), false)
+        List<ID> entityIDs = stream(requireNonNull(topLevelEntities, "topLevelEntities cannot be null").spliterator(), false)
                 .map(idExtractor)
                 .collect(toList());
 
