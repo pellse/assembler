@@ -293,7 +293,7 @@ public interface Mapper<ID, R, EX extends Throwable> {
 ```
 i.e. the `oneToXXX()` methods all return a function that takes a list of primary keys (e.g. customer ids) and return a `Map` of foreign keys -> sub-entities (e.g. `BillingInfo` or `OrderItem`).
 
-By default (since version 0.1.6), the implementation of `Map` returned is a `HashMap` with a predefined capacity of 1.34 times the size of the primary key list, so that we stay under the default `HashMap` load factor of 0.75, avoiding unnecessary reallocation/rehash in the case where we have a large list of ids.
+By default (since version 0.1.7), the implementation of `Map` returned is a `HashMap` with a predefined capacity of 1.34 times the size of the primary key list, so that we stay under the default `HashMap` load factor of 0.75, avoiding unnecessary reallocation/rehash in the case where we have a large list of ids.
 
 But there might be cases where we would want to provide our own custom `Map` implementation (e.g. to further squeeze performance) by providing a specific `Map` factory, here is how we would do it:
 ```java
