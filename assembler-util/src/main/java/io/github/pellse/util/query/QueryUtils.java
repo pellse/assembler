@@ -49,7 +49,7 @@ public interface QueryUtils {
     Map<ID, R> queryOneToOne(IDC ids,
                              CheckedFunction1<IDC, RC, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults,
-                             CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapFactory) throws EX {
+                             MapFactory<ID, R> mapFactory) throws EX {
 
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null, mapFactory);
     }
@@ -68,7 +68,7 @@ public interface QueryUtils {
                              CheckedFunction1<IDC, RC, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults,
                              Function<ID, R> defaultResultProvider,
-                             CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapFactory) throws EX {
+                             MapFactory<ID, R> mapFactory) throws EX {
 
         return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u1, toSupplier(ids, mapFactory)));
     }
@@ -85,7 +85,7 @@ public interface QueryUtils {
     Map<ID, List<R>> queryOneToManyAsList(IDC ids,
                                           CheckedFunction1<IDC, List<R>, EX> queryFunction,
                                           Function<R, ID> idExtractorFromQueryResults,
-                                          CheckedFunction1<Collection<ID>, Map<ID, List<R>>, Throwable> mapFactory) throws EX {
+                                          MapFactory<ID, List<R>> mapFactory) throws EX {
 
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
     }
@@ -102,7 +102,7 @@ public interface QueryUtils {
     Map<ID, Set<R>> queryOneToManyAsSet(IDC ids,
                                         CheckedFunction1<IDC, Set<R>, EX> queryFunction,
                                         Function<R, ID> idExtractorFromQueryResults,
-                                        CheckedFunction1<Collection<ID>, Map<ID, Set<R>>, Throwable> mapFactory) throws EX {
+                                        MapFactory<ID, Set<R>> mapFactory) throws EX {
 
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
     }
@@ -121,7 +121,7 @@ public interface QueryUtils {
                                CheckedFunction1<IDC, RC, EX> queryFunction,
                                Function<R, ID> idExtractorFromQueryResults,
                                Supplier<RC> collectionFactory,
-                               CheckedFunction1<Collection<ID>, Map<ID, RC>, Throwable> mapFactory) throws EX {
+                               MapFactory<ID, RC> mapFactory) throws EX {
 
         return query(ids, queryFunction, id -> collectionFactory.get(),
                 groupingBy(idExtractorFromQueryResults, toSupplier(ids, mapFactory), toCollection(collectionFactory)));
@@ -200,14 +200,14 @@ public interface QueryUtils {
     }
 
     private static <ID, R, IDC extends Collection<ID>>
-    Supplier<Map<ID, R>> toSupplier(IDC ids, CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapFactory) {
+    Supplier<Map<ID, R>> toSupplier(IDC ids, MapFactory<ID, R> mapFactory) {
 
-        CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapSupplier = mapFactory != null ? mapFactory : createMapFactory();
+        MapFactory<ID, R> mapSupplier = mapFactory != null ? mapFactory : createMapFactory();
 
         return () -> mapSupplier.apply(unmodifiableCollection(ids));
     }
 
-    private static <ID, IDC extends Collection<ID>, K, V> CheckedFunction1<IDC, Map<K, V>, Throwable> createMapFactory() {
+    private static <ID, R> MapFactory<ID, R> createMapFactory() {
         return ids -> new HashMap<>(
                 Optional.ofNullable(ids)
                         .map(coll -> (int) (coll.size() * MULTIPLIER))

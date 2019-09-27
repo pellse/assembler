@@ -283,5 +283,28 @@ This can be useful for aggregating dynamic data with static data or data we know
 
 Note that an overloaded version of the `cached()` method is also defined to allow plugging your own cache implementation.
 
+## Pluggable `Map` Implementations
+The Assembly library internally works with `Maps` to join data from different data sources provided via the `oneToXXX()` helper methods. Specifically, those helper methods return the following interface:
+```java
+@FunctionalInterface
+public interface Mapper<ID, R, EX extends Throwable> {
+    Map<ID, R> apply(Iterable<ID> entityIds) throws EX;
+}
+```
+i.e. the `oneToXXX()` methods all return a function that takes a list of primary keys (e.g. customer ids) and return a `Map` of foreign keys -> sub-entities (e.g. `BillingInfo` or `OrderItem`).
+
+By default (since version 0.1.6), the implementation of `Map` returned is a `HashMap` with a predefined capacity of 1.34 times the size of the primary key list, so that we stay under the default `HashMap` load factor of 0.75, avoiding unnecessary reallocation/rehash in the case where we have a large list of ids.
+
+But there might be cases where we would want to provide our own custom `Map` implementation (e.g. to further squeeze performance) by providing a specific `Map` factory, here is how we would do it:
+```java
+Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::getCustomerId)
+    .withAssemblerRules(
+         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new, ids -> new HashMap<>(ids.size(), 0.5f)),
+         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId, ids -> new TreeMap<>()),
+         Transaction::new)
+    .using(fluxAdapter());
+```
+
 ## What's Next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.

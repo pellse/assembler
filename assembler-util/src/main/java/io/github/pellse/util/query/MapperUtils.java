@@ -42,8 +42,16 @@ public interface MapperUtils {
             CheckedFunction1<List<ID>, RC, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
-        return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null);
+        return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null, ArrayList::new, null);
     }
+
+//    static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
+//            CheckedFunction1<List<ID>, RC, EX> queryFunction,
+//            Function<R, ID> idExtractorFromQueryResults,
+//            MapFactory<ID, R> mapFactory) {
+//
+//        return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null, ArrayList::new, mapFactory);
+//    }
 
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
             CheckedFunction1<IDC, RC, EX> queryFunction,
@@ -65,7 +73,7 @@ public interface MapperUtils {
             CheckedFunction1<List<ID>, RC, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider,
-            CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapFactory) {
+            MapFactory<ID, R> mapFactory) {
 
         return oneToOne(queryFunction, idExtractorFromQueryResults, defaultResultProvider, ArrayList::new, mapFactory);
     }
@@ -85,7 +93,7 @@ public interface MapperUtils {
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider,
             Supplier<IDC> idCollectionFactory,
-            CheckedFunction1<Collection<ID>, Map<ID, R>, Throwable> mapFactory) {
+            MapFactory<ID, R> mapFactory) {
 
         return convertIdTypeMapperDelegate(entityIds ->
                 queryOneToOne((IDC) entityIds, queryFunction, idExtractorFromQueryResults, defaultResultProvider, mapFactory), idCollectionFactory);
@@ -101,7 +109,7 @@ public interface MapperUtils {
     static <ID, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
             CheckedFunction1<List<ID>, List<R>, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
-            CheckedFunction1<Collection<ID>, Map<ID, List<R>>, Throwable> mapFactory) {
+            MapFactory<ID, List<R>> mapFactory) {
 
         return oneToManyAsList(queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
     }
@@ -118,7 +126,7 @@ public interface MapperUtils {
             CheckedFunction1<IDC, List<R>, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory,
-            CheckedFunction1<Collection<ID>, Map<ID, List<R>>, Throwable> mapFactory) {
+            MapFactory<ID, List<R>> mapFactory) {
 
         return oneToMany(queryFunction, idExtractorFromQueryResults, ArrayList::new, idCollectionFactory, mapFactory);
     }
@@ -133,7 +141,7 @@ public interface MapperUtils {
     static <ID, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
             CheckedFunction1<Set<ID>, Set<R>, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
-            CheckedFunction1<Collection<ID>, Map<ID, Set<R>>, Throwable> mapFactory) {
+            MapFactory<ID, Set<R>> mapFactory) {
 
         return oneToManyAsSet(queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
     }
@@ -150,7 +158,7 @@ public interface MapperUtils {
             CheckedFunction1<IDC, Set<R>, EX> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory,
-            CheckedFunction1<Collection<ID>, Map<ID, Set<R>>, Throwable> mapFactory) {
+            MapFactory<ID, Set<R>> mapFactory) {
 
         return oneToMany(queryFunction, idExtractorFromQueryResults, HashSet::new, idCollectionFactory, mapFactory);
     }
@@ -178,7 +186,7 @@ public interface MapperUtils {
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<RC> collectionFactory,
             Supplier<IDC> idCollectionFactory,
-            CheckedFunction1<Collection<ID>, Map<ID, RC>, Throwable> mapFactory) {
+            MapFactory<ID, RC> mapFactory) {
 
         return convertIdTypeMapperDelegate(entityIds ->
                 queryOneToMany((IDC) entityIds, queryFunction, idExtractorFromQueryResults, collectionFactory, mapFactory), idCollectionFactory);
