@@ -28,21 +28,19 @@ import java.util.stream.Stream;
 import static io.github.pellse.util.ObjectUtils.isSafeEqual;
 import static io.github.pellse.util.function.checked.CheckedPredicate1.not;
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
-import static java.util.Collections.unmodifiableCollection;
+import static io.github.pellse.util.query.MapFactory.defaultMapFactory;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
 public interface QueryUtils {
 
-    double MULTIPLIER = 1.34; // To be consistent with the 0.75 default load factor of HashMap
-
     static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
     Map<ID, R> queryOneToOne(IDC ids,
                              CheckedFunction1<IDC, RC, EX> queryFunction,
                              Function<R, ID> idExtractorFromQueryResults) throws EX {
 
-        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, createMapFactory());
+        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
     }
 
     static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
@@ -60,7 +58,7 @@ public interface QueryUtils {
                              Function<R, ID> idExtractorFromQueryResults,
                              Function<ID, R> defaultResultProvider) throws EX {
 
-        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultResultProvider, createMapFactory());
+        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultResultProvider, defaultMapFactory());
     }
 
     static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
@@ -78,7 +76,7 @@ public interface QueryUtils {
                                           CheckedFunction1<IDC, List<R>, EX> queryFunction,
                                           Function<R, ID> idExtractorFromQueryResults) throws EX {
 
-        return queryOneToManyAsList(ids, queryFunction, idExtractorFromQueryResults, createMapFactory());
+        return queryOneToManyAsList(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
     }
 
     static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
@@ -95,7 +93,7 @@ public interface QueryUtils {
                                         CheckedFunction1<IDC, Set<R>, EX> queryFunction,
                                         Function<R, ID> idExtractorFromQueryResults) throws EX {
 
-        return queryOneToManyAsSet(ids, queryFunction, idExtractorFromQueryResults, createMapFactory());
+        return queryOneToManyAsSet(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
     }
 
     static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
@@ -113,7 +111,7 @@ public interface QueryUtils {
                                Function<R, ID> idExtractorFromQueryResults,
                                Supplier<RC> collectionFactory) throws EX {
 
-        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, collectionFactory, createMapFactory());
+        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, collectionFactory, defaultMapFactory());
     }
 
     static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
@@ -201,17 +199,8 @@ public interface QueryUtils {
 
     private static <ID, R, IDC extends Collection<ID>>
     Supplier<Map<ID, R>> toSupplier(IDC ids, MapFactory<ID, R> mapFactory) {
-
-        MapFactory<ID, R> mapSupplier = mapFactory != null ? mapFactory : createMapFactory();
-
-        return () -> mapSupplier.apply(unmodifiableCollection(ids));
-    }
-
-    private static <ID, R> MapFactory<ID, R> createMapFactory() {
-        return ids -> new HashMap<>(
-                Optional.ofNullable(ids)
-                        .map(coll -> (int) (coll.size() * MULTIPLIER))
-                        .orElse(0));
+        MapFactory<ID, R> mapSupplier = mapFactory != null ? mapFactory : defaultMapFactory();
+        return () -> mapSupplier.apply(ids != null ? ids.size() : 0);
     }
 
     @SafeVarargs
