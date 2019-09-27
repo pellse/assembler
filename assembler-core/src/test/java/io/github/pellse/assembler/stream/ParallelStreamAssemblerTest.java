@@ -18,7 +18,7 @@ package io.github.pellse.assembler.stream;
 
 import io.github.pellse.assembler.*;
 import io.github.pellse.util.function.checked.UncheckedException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -30,8 +30,9 @@ import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 import static io.github.pellse.util.query.MapperUtils.*;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Sebastien Pelletier
@@ -58,17 +59,19 @@ public class ParallelStreamAssemblerTest {
         assertThat(transactions, equalTo(List.of(transaction1, transaction2, transaction3)));
     }
 
-    @Test(expected = UncheckedException.class)
+    @Test
     public void testAssembleBuilderWithException() {
 
-        assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
-                .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
-                        Transaction::new)
-                .using(streamAdapter(true))
-                .assembleFromSupplier(this::getCustomers);
+        assertThrows(UncheckedException.class, () -> {
+            assemblerOf(Transaction.class)
+                    .withIdExtractor(Customer::getCustomerId)
+                    .withAssemblerRules(
+                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                            Transaction::new)
+                    .using(streamAdapter(true))
+                    .assembleFromSupplier(this::getCustomers);
+        });
     }
 
     @Test

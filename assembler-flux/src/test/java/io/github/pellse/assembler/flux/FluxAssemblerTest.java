@@ -18,7 +18,7 @@ package io.github.pellse.assembler.flux;
 
 import io.github.pellse.assembler.*;
 import io.github.pellse.util.function.checked.UncheckedException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

@@ -26,9 +26,8 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 import io.github.pellse.assembler.*;
-import io.github.pellse.assembler.AssemblerTestUtils.*;
 import io.github.pellse.util.function.checked.UncheckedException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -41,6 +40,7 @@ import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static java.time.Duration.ofSeconds;
 import static java.util.Arrays.asList;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class AkkaSourceAssemblerTest {
 
@@ -73,25 +73,27 @@ public class AkkaSourceAssemblerTest {
         future.toCompletableFuture().get();
     }
 
-    @Test(expected = UncheckedException.class)
+    @Test
     public void testAssemblerBuilderWithAkkaSourceWithError() throws Throwable {
 
-        Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
-                .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
-                        Transaction::new)
-                .using(akkaSourceAdapter())
-                .assembleFromSupplier(this::getCustomers); // Sequential
+        assertThrows(UncheckedException.class, () -> {
+            Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
+                    .withIdExtractor(Customer::getCustomerId)
+                    .withAssemblerRules(
+                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                            Transaction::new)
+                    .using(akkaSourceAdapter())
+                    .assembleFromSupplier(this::getCustomers); // Sequential
 
-        final CompletionStage<Done> future = transactionSource.runWith(Sink.ignore(), mat);
+            final CompletionStage<Done> future = transactionSource.runWith(Sink.ignore(), mat);
 
-        try {
-            future.toCompletableFuture().get();
-        } catch (ExecutionException e) {
-            throw e.getCause();
-        }
+            try {
+                future.toCompletableFuture().get();
+            } catch (ExecutionException e) {
+                throw e.getCause();
+            }
+        });
     }
 
     @Test

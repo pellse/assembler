@@ -18,7 +18,7 @@ package io.github.pellse.assembler.future;
 
 import io.github.pellse.assembler.*;
 import io.github.pellse.util.function.checked.UncheckedException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.List;
@@ -33,8 +33,9 @@ import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static java.util.Arrays.asList;
 import static java.util.concurrent.Executors.newFixedThreadPool;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Sebastien Pelletier
@@ -60,23 +61,24 @@ public class CompletableFutureAssemblerTest {
         assertThat(transactions.get(), equalTo(List.of(transaction1, transaction2, transaction3)));
     }
 
-    @Test(expected = UncheckedException.class)
+    @Test
     public void testAssembleBuilderWithException() throws Throwable {
+        assertThrows(UncheckedException.class, () -> {
+            CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
+                    .withIdExtractor(Customer::getCustomerId)
+                    .withAssemblerRules(
+                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                            Transaction::new)
+                    .using(completableFutureAdapter())
+                    .assembleFromSupplier(this::getCustomers);
 
-        CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
-                .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
-                        Transaction::new)
-                .using(completableFutureAdapter())
-                .assembleFromSupplier(this::getCustomers);
-
-        try {
-            transactions.get();
-        } catch( ExecutionException e) {
-            throw e.getCause();
-        }
+            try {
+                transactions.get();
+            } catch (ExecutionException e) {
+                throw e.getCause();
+            }
+        });
     }
 
     @Test

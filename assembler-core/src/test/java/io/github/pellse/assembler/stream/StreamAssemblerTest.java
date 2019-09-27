@@ -19,7 +19,7 @@ package io.github.pellse.assembler.stream;
 import io.github.pellse.assembler.*;
 import io.github.pellse.util.function.checked.UncheckedException;
 import io.github.pellse.util.query.Mapper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -31,8 +31,9 @@ import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 import static io.github.pellse.util.query.MapperUtils.*;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Sebastien Pelletier
@@ -66,7 +67,7 @@ public class StreamAssemblerTest {
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new, ids -> new TreeMap<>()),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, ids -> new LinkedHashMap<>(ids.size() * 2)),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId, ids -> new LinkedHashMap<>(ids.size() * 2, 0.5f)),
                         Transaction::new)
                 .using(streamAdapter())
                 .assembleFromSupplier(this::getCustomers)
@@ -94,31 +95,35 @@ public class StreamAssemblerTest {
                 new Transaction(customer3, null, List.of()))));
     }
 
-    @Test(expected = UncheckedException.class)
+    @Test
     public void testAssembleBuilderWithUncheckedException() {
 
-        assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
-                .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
-                        Transaction::new)
-                .using(streamAdapter())
-                .assembleFromSupplier(this::getCustomers);
+        assertThrows(UncheckedException.class, () -> {
+            assemblerOf(Transaction.class)
+                    .withIdExtractor(Customer::getCustomerId)
+                    .withAssemblerRules(
+                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                            Transaction::new)
+                    .using(streamAdapter())
+                    .assembleFromSupplier(this::getCustomers);
+        });
     }
 
-    @Test(expected = UserDefinedRuntimeException.class)
+    @Test
     public void testAssembleBuilderWithCustomException() {
 
-        assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
-                .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
-                        Transaction::new)
-                .withErrorConverter(UserDefinedRuntimeException::new)
-                .using(streamAdapter())
-                .assembleFromSupplier(this::getCustomers);
+        assertThrows(UserDefinedRuntimeException.class, () -> {
+            assemblerOf(Transaction.class)
+                    .withIdExtractor(Customer::getCustomerId)
+                    .withAssemblerRules(
+                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                            Transaction::new)
+                    .withErrorConverter(UserDefinedRuntimeException::new)
+                    .using(streamAdapter())
+                    .assembleFromSupplier(this::getCustomers);
+        });
     }
 
     @Test
