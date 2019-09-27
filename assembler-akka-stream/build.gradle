@@ -15,7 +15,7 @@
  */
 
 ext {
-    akkaStreamVersion = '2.5.17'
+    akkaStreamVersion = '2.5.25'
 }
 
 dependencies {
