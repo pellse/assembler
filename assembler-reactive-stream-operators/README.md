@@ -15,8 +15,8 @@ import static io.github.pellse.assembler.microprofile.PublisherBuilderAdapter.pu
 Assembler<Customer, PublisherBuilder<Transaction>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+        oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
         Transaction::new)
     .using(publisherBuilderAdapter());
 
