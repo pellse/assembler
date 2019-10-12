@@ -17,12 +17,14 @@
 package io.github.pellse.assembler.rxjava;
 
 import io.github.pellse.assembler.AssemblerAdapter;
+import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Scheduler;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -34,7 +36,7 @@ import static io.reactivex.rxjava3.schedulers.Schedulers.from;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-public class ObservableAdapter<ID, R> implements AssemblerAdapter<ID, R, Observable<R>> {
+public final class ObservableAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, Observable<R>> {
 
     private final Scheduler scheduler;
 
@@ -44,33 +46,31 @@ public class ObservableAdapter<ID, R> implements AssemblerAdapter<ID, R, Observa
 
     @SuppressWarnings("unchecked")
     @Override
-    public Observable<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                                        Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+    public Observable<R> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+                                              Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
+                                              BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 
-        List<Observable<? extends Map<ID, ?>>> observables = mapperSourceSuppliers
-                .map(this::toObservable)
-                .collect(toList());
-
-        return Observable.zip(observables,
-                mapperResults -> aggregateStreamBuilder.apply(Stream.of(mapperResults)
-                        .map(mapResult -> (Map<ID, ?>) mapResult)
-                        .collect(toList())))
-                .flatMap(stream -> fromIterable(stream::iterator));
+        return toObservable(topLevelEntitiesProvider)
+                .flatMap(entities -> Observable.zip(mapperSourcesBuilder.apply(entities).map(this::toObservable).collect(toList()),
+                        mapperResults -> aggregateStreamBuilder.apply(entities, Stream.of(mapperResults)
+                                .map(mapResult -> (Map<ID, ?>) mapResult)
+                                .collect(toList())))
+                        .flatMap(stream -> fromIterable(stream::iterator)));
     }
 
-    private Observable<? extends Map<ID, ?>> toObservable(Supplier<Map<ID, ?>> mapperSource) {
+    private <U> Observable<U> toObservable(Supplier<U> mapperSource) {
         return fromCallable(mapperSource::get).subscribeOn(scheduler);
     }
 
-    public static <ID, R> ObservableAdapter<ID, R> observableAdapter() {
+    public static <T, ID, R> ObservableAdapter<T, ID, R> observableAdapter() {
         return observableAdapter(computation());
     }
 
-    public static <ID, R> ObservableAdapter<ID, R> observableAdapter(Executor executor) {
+    public static <T, ID, R> ObservableAdapter<T, ID, R> observableAdapter(Executor executor) {
         return observableAdapter(from(executor));
     }
 
-    public static <ID, R> ObservableAdapter<ID, R> observableAdapter(Scheduler scheduler) {
+    public static <T, ID, R> ObservableAdapter<T, ID, R> observableAdapter(Scheduler scheduler) {
         return new ObservableAdapter<>(scheduler);
     }
 }

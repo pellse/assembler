@@ -16,15 +16,19 @@
 
 package io.github.pellse.assembler;
 
+import io.github.pellse.util.function.checked.CheckedSupplier;
+
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 @FunctionalInterface
-public interface AssemblerAdapter<ID, R, RC> {
+public interface AssemblerAdapter<T, ID, R, RC> {
 
-    RC convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                            Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder);
+    RC convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+                            Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
+                            BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder);
 }

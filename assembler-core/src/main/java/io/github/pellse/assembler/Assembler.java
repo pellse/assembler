@@ -37,51 +37,54 @@ import static java.util.stream.Collectors.toList;
  */
 public interface Assembler<T, RC> {
 
-    default <C extends Iterable<T>> RC assembleFromSupplier(CheckedSupplier<C, Throwable> topLevelEntitiesProvider) {
-        return assemble(topLevelEntitiesProvider.get());
+    default RC assemble(Iterable<T> topLevelEntities) {
+        return assembleFromSupplier(() -> topLevelEntities);
     }
 
-    <C extends Iterable<T>> RC assemble(C topLevelEntities);
+    RC assembleFromSupplier(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider);
 
     /**
-     * @param topLevelEntities    e.g. {@code List<Customer>}
-     * @param idExtractor         e.g. {@code Customer::getCustomerId}
-     * @param subQueryMappers     e.g. {@code [ Mapper<Long, BillingInfo>, Mapper<Long, List<OrderItem>> ]}
-     * @param aggregationFunction e.g. {@code buildTransaction(customer, [ billingInfo, orderItemList ])}
-     * @param assemblerAdapter    Pluggable execution engine for invoking top and sub queries (e.g. Project Reactor, RxJava)
-     * @param errorConverter      Converts any exception thrown into a user defined {@link RuntimeException}
-     * @param <T>                 e.g. {@code <Customer>}
-     * @param <ID>                e.g. {@code <Long>}
-     * @param <C>                 e.g. {@code List<Customer>}
-     * @param <R>                 e.g. {@code <Transaction>}
-     * @param <RC>                e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
+     * @param topLevelEntitiesProvider e.g. {@code () -> List<Customer>}
+     * @param idExtractor              e.g. {@code Customer::getCustomerId}
+     * @param subQueryMappers          e.g. {@code [ Mapper<Long, BillingInfo>, Mapper<Long, List<OrderItem>> ]}
+     * @param aggregationFunction      e.g. {@code buildTransaction(customer, [ billingInfo, orderItemList ])}
+     * @param assemblerAdapter         Pluggable execution engine for invoking top and sub queries (e.g. Project Reactor, RxJava)
+     * @param errorConverter           Converts any exception thrown into a user defined {@link RuntimeException}
+     * @param <T>                      e.g. {@code <Customer>}
+     * @param <ID>                     e.g. {@code <Long>}
+     * @param <R>                      e.g. {@code <Transaction>}
+     * @param <RC>                     e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
      * @return A list of aggregated objects e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
      * as specified by the assemblerAdapter return type
      */
-    static <T, ID, C extends Iterable<T>, R, RC>
-    RC assemble(C topLevelEntities,
-                Function<T, ID> idExtractor,
-                List<Mapper<ID, ?, ?>> subQueryMappers,
-                BiFunction<T, Object[], R> aggregationFunction,
-                AssemblerAdapter<ID, R, RC> assemblerAdapter,
-                Function<Throwable, RuntimeException> errorConverter) {
+    static <T, ID, R, RC>
+    RC assembleFromSupplier(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+                            Function<T, ID> idExtractor,
+                            List<Mapper<ID, ?, ?>> subQueryMappers,
+                            BiFunction<T, Object[], R> aggregationFunction,
+                            AssemblerAdapter<T, ID, R, RC> assemblerAdapter,
+                            Function<Throwable, RuntimeException> errorConverter) {
 
-        // We extract the IDs from the collection of top level entities e.g. from List<Customer> to List<Long>
-        List<ID> entityIDs = toStream(topLevelEntities)
-                .filter(Objects::nonNull)
-                .map(idExtractor)
-                .collect(toList());
+        Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder = topLevelEntities -> {
 
-        // Conversion from Mapper to java.util.function.Supplier<java.util.Map>,
-        // the list of IDs (e.g. list of Customer ids) now captured in closure
-        // so no need for the assemblerAdapter to know anything about IDs
-        // when it will internally call "Map<ID, ?> mapperResult = mapperSource.get()"
-        // and transform Supplier of Maps (lazy) to List of Maps (materialized) by executing
-        // the sub queries represented by subQueryMappers (oneToOne, oneToMany, etc.).
-        //
-        // To summarize, we transform 1 argument functions into 0 argument functions
-        Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers = subQueryMappers.stream()
-                .map(mapper -> unchecked(() -> mapper.apply(entityIDs), errorConverter));
+            // Conversion from Mapper to java.util.function.Supplier<java.util.Map>,
+            // the list of IDs (e.g. list of Customer ids) now captured in closure
+            // so no need for the assemblerAdapter to know anything about IDs
+            // when it will internally call "Map<ID, ?> mapperResult = mapperSource.get()"
+            // and transform Supplier of Maps (lazy) to List of Maps (materialized) by executing
+            // the sub queries represented by subQueryMappers (oneToOne, oneToMany, etc.).
+            //
+            // To summarize, we transform 1 argument functions into 0 argument functions
+
+            // We extract the IDs from the collection of top level entities e.g. from List<Customer> to List<Long>
+            List<ID> entityIDs = toStream(topLevelEntities)
+                    .filter(Objects::nonNull)
+                    .map(idExtractor)
+                    .collect(toList());
+
+            return subQueryMappers.stream()
+                    .map(mapper -> unchecked(() -> mapper.apply(entityIDs), errorConverter));
+        };
 
         // We create a function that takes 2 arguments:
         // 1- a topLevelEntity from our main query
@@ -101,8 +104,8 @@ public interface Assembler<T, RC> {
         // and return a stream of aggregated objects e.g. Stream<Transaction>,
         // the function iterate over the list of topLevelEntities e.g. List<Customer>
         // for each topLevelEntity apply the joinMapperResultsFunction defined above
-        Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder =
-                mapperResults -> toStream(topLevelEntities)
+        BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder =
+                (topLevelEntities, mapperResults) -> toStream(topLevelEntities)
                         .filter(Objects::nonNull)
                         .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
 
@@ -110,6 +113,6 @@ public interface Assembler<T, RC> {
         // Notice the signature of mapperSourceSuppliers above, it is a supplier of Map<ID, ?>
         // aggregateStreamBuilder takes a list of Map<ID, ?>, so we are injecting the join algorithm
         // into our adapter and the data to pass to the join algorithm
-        return assemblerAdapter.convertMapperSources(mapperSourceSuppliers, aggregateStreamBuilder);
+        return assemblerAdapter.convertMapperSources(topLevelEntitiesProvider, mapperSourcesBuilder, aggregateStreamBuilder);
     }
 }

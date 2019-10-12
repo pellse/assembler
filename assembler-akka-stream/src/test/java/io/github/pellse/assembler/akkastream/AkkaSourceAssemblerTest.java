@@ -56,7 +56,7 @@ public class AkkaSourceAssemblerTest {
 
         TestKit probe = new TestKit(system);
 
-        Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
+        Source<Transaction, ?> transactionSource = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
@@ -77,7 +77,7 @@ public class AkkaSourceAssemblerTest {
     public void testAssemblerBuilderWithAkkaSourceWithError() throws Throwable {
 
         assertThrows(UncheckedException.class, () -> {
-            Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
+            Source<Transaction, ?> transactionSource = assemblerOf(Transaction.class)
                     .withIdExtractor(Customer::getCustomerId)
                     .withAssemblerRules(
                             oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
@@ -101,7 +101,7 @@ public class AkkaSourceAssemblerTest {
 
         TestKit probe = new TestKit(system);
 
-        Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
+        Source<Transaction, ?> transactionSource = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
@@ -148,7 +148,7 @@ public class AkkaSourceAssemblerTest {
 
         TestKit probe = new TestKit(system);
 
-        Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Source<Transaction, ?>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),

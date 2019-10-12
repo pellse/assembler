@@ -106,7 +106,7 @@ public class AkkaFlowAssemblerTest {
 
         TestKit probe = new TestKit(system);
 
-        Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Source<Transaction, ?>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),

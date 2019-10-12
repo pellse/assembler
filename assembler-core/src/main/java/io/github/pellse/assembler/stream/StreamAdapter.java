@@ -17,16 +17,18 @@
 package io.github.pellse.assembler.stream;
 
 import io.github.pellse.assembler.AssemblerAdapter;
+import io.github.pellse.util.function.checked.CheckedSupplier;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
-public class StreamAdapter<ID, R> implements AssemblerAdapter<ID, R, Stream<R>> {
+public final class StreamAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, Stream<R>> {
 
     private final boolean parallel;
 
@@ -35,25 +37,27 @@ public class StreamAdapter<ID, R> implements AssemblerAdapter<ID, R, Stream<R>> 
     }
 
     @Override
-    public Stream<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                                          Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+    public Stream<R> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+                                          Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
+                                          BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 
-        List<Map<ID, ?>> mappers = convertSources(mapperSourceSuppliers)
+        Iterable<T> entities = topLevelEntitiesProvider.get();
+        List<Map<ID, ?>> mappers = convertSources(mapperSourcesBuilder.apply(entities))
                 .map(Supplier::get)
                 .collect(toList());
 
-        return aggregateStreamBuilder.apply(mappers);
+        return aggregateStreamBuilder.apply(entities, mappers);
     }
 
-    private Stream<Supplier<Map<ID, ?>>> convertSources(Stream<Supplier<Map<ID, ?>>> sources) {
+    private <U> Stream<Supplier<U>> convertSources(Stream<Supplier<U>> sources) {
         return parallel ? sources.collect(toList()).parallelStream() : sources;
     }
 
-    public static <ID, R> StreamAdapter<ID, R> streamAdapter() {
+    public static <T, ID, R> StreamAdapter<T, ID, R> streamAdapter() {
         return streamAdapter(false);
     }
 
-    public static <ID, R> StreamAdapter<ID, R> streamAdapter(boolean parallel) {
+    public static <T, ID, R> StreamAdapter<T, ID, R> streamAdapter(boolean parallel) {
         return new StreamAdapter<>(parallel);
     }
 }

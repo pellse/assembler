@@ -17,6 +17,7 @@
 package io.github.pellse.assembler.microprofile;
 
 import io.github.pellse.assembler.*;
+import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.reactivex.rxjava3.core.Flowable;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
@@ -37,6 +39,7 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -51,6 +54,13 @@ class PublisherBuilderAssemblerTest {
     @Test
     void testAssemblerBuilderWithPublisherBuilder() throws Exception {
 
+        AtomicInteger getCustomersInvocationCount = new AtomicInteger();
+
+        CheckedSupplier<Iterable<Customer>, Throwable> getCustomers = () -> {
+            assertEquals(1, getCustomersInvocationCount.incrementAndGet());
+            return asList(customer1, customer2, customer3, customer1, customer2);
+        };
+
         PublisherBuilder<Transaction> transactionPublisherBuilder = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
@@ -58,10 +68,53 @@ class PublisherBuilderAssemblerTest {
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(publisherBuilderAdapter())
-                .assembleFromSupplier(this::getCustomers);
+                .assembleFromSupplier(getCustomers);
 
-        assertThat(transactionPublisherBuilder.collect(toList()).run().toCompletableFuture().get(),
+        assertThat(transactionPublisherBuilder.toList().run().toCompletableFuture().get(),
                 equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
+        assertEquals(1, getCustomersInvocationCount.get());
+
+        assertThat(transactionPublisherBuilder.toList().run().toCompletableFuture().get(),
+                equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
+        assertEquals(1, getCustomersInvocationCount.get());
+
+        assertThat(transactionPublisherBuilder.toList().run().toCompletableFuture().get(),
+                equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
+        assertEquals(1, getCustomersInvocationCount.get());
+    }
+
+    @Test
+    void testAssemblerBuilderWithLazyPublisherBuilder() throws Exception {
+
+        AtomicInteger getCustomersInvocationCount = new AtomicInteger();
+
+        CheckedSupplier<Iterable<Customer>, Throwable> getCustomers = () -> {
+            getCustomersInvocationCount.incrementAndGet();
+            return asList(customer1, customer2, customer3, customer1, customer2);
+        };
+
+        PublisherBuilder<Transaction> transactionPublisherBuilder = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(publisherBuilderAdapter(true))
+                .assembleFromSupplier(getCustomers);
+
+        assertEquals(0, getCustomersInvocationCount.get());
+
+        assertThat(transactionPublisherBuilder.toList().run().toCompletableFuture().get(),
+                equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
+        assertEquals(1, getCustomersInvocationCount.get());
+
+        assertThat(transactionPublisherBuilder.toList().run().toCompletableFuture().get(),
+                equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
+        assertEquals(2, getCustomersInvocationCount.get());
+
+        assertThat(transactionPublisherBuilder.toList().run().toCompletableFuture().get(),
+                equalTo(List.of(transaction1, transaction2, transaction3, transaction1, transaction2)));
+        assertEquals(3, getCustomersInvocationCount.get());
     }
 
     @Test
@@ -106,7 +159,7 @@ class PublisherBuilderAssemblerTest {
     }
 
     @Test
-    void testReusableAssemblerBuilderWithPublisherBuilderWithBufferingFlux() {
+    void testReusableAssemblerBuilderWithPublisherBuilderWithBufferingFlux() throws Exception {
 
         Assembler<Customer, PublisherBuilder<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::getCustomerId)
@@ -118,7 +171,9 @@ class PublisherBuilderAssemblerTest {
 
         StepVerifier.create(Flux.fromIterable(getCustomers())
                 .buffer(3)
-                .concatMap(customer -> assembler.assemble(customer).buildRs()))
+                .concatMap(customers -> assembler.assemble(customers)
+                        //.filter(transaction -> transaction.getOrderItems().size() > 1)
+                        .buildRs()))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2)
                 .expectComplete()

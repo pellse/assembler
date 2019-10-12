@@ -17,6 +17,7 @@
 package io.github.pellse.assembler;
 
 import io.github.pellse.util.function.*;
+import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.github.pellse.util.function.checked.UncheckedException;
 import io.github.pellse.util.query.Mapper;
 
@@ -214,7 +215,7 @@ public interface AssemblerBuilder {
 
         AssembleUsingBuilder<T, ID, R> withErrorConverter(Function<Throwable, RuntimeException> errorConverter);
 
-        <RC> Assembler<T, RC> using(AssemblerAdapter<ID, R, RC> adapter);
+        <RC> Assembler<T, RC> using(AssemblerAdapter<T, ID, R, RC> adapter);
     }
 
     class WithIdExtractorBuilderImpl<R> implements WithIdExtractorBuilder<R> {
@@ -269,7 +270,7 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public <RC> Assembler<T, RC> using(AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+        public <RC> Assembler<T, RC> using(AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
 
             return new AssemblerImpl<>(idExtractor, mappers, aggregationFunction, errorConverter, assemblerAdapter);
         }
@@ -282,13 +283,13 @@ public interface AssemblerBuilder {
         private final BiFunction<T, Object[], R> aggregationFunction;
 
         private final Function<Throwable, RuntimeException> errorConverter;
-        private final AssemblerAdapter<ID, R, RC> assemblerAdapter;
+        private final AssemblerAdapter<T, ID, R, RC> assemblerAdapter;
 
         private AssemblerImpl(Function<T, ID> idExtractor,
                               List<Mapper<ID, ?, ?>> mappers,
                               BiFunction<T, Object[], R> aggregationFunction,
                               Function<Throwable, RuntimeException> errorConverter,
-                              AssemblerAdapter<ID, R, RC> assemblerAdapter) {
+                              AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
             this.idExtractor = idExtractor;
             this.aggregationFunction = aggregationFunction;
             this.mappers = mappers;
@@ -297,8 +298,8 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public <C extends Iterable<T>> RC assemble(C topLevelEntities) {
-            return Assembler.assemble(topLevelEntities, idExtractor, mappers, aggregationFunction, assemblerAdapter, errorConverter);
+        public RC assembleFromSupplier(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider) {
+            return Assembler.assembleFromSupplier(topLevelEntitiesProvider, idExtractor, mappers, aggregationFunction, assemblerAdapter, errorConverter);
         }
     }
 }

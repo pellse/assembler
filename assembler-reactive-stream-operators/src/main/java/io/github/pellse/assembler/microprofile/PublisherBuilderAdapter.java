@@ -17,63 +17,92 @@
 package io.github.pellse.assembler.microprofile;
 
 import io.github.pellse.assembler.AssemblerAdapter;
+import io.github.pellse.util.function.checked.CheckedSupplier;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.reactivestreams.Publisher;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static io.github.pellse.assembler.microprofile.LazyPublisherBuilder.lazyPublisherBuilder;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
-import static java.util.stream.Collectors.toList;
+import static org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams.fromCompletionStage;
+import static org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams.fromIterable;
 
-public class PublisherBuilderAdapter<ID, R> implements AssemblerAdapter<ID, R, PublisherBuilder<R>> {
+public final class PublisherBuilderAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, PublisherBuilder<R>> {
 
+    private final boolean lazy;
     private final Executor executor;
 
-    private PublisherBuilderAdapter(Executor executor) {
+    private PublisherBuilderAdapter(boolean lazy, Executor executor) {
+        this.lazy = lazy;
         this.executor = executor;
     }
 
     @Override
-    public PublisherBuilder<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                                                    Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
-
-        CompletionStage<List<Map<ID, ?>>> mapperResults = ReactiveStreams.fromIterable(mapperSourceSuppliers::iterator)
-                .flatMapCompletionStage(this::toCompletableFuture)
-                .collect(toList())
-                .run();
-
-        return ReactiveStreams.fromCompletionStage(mapperResults)
-                .map(aggregateStreamBuilder)
-                .flatMapIterable(stream -> stream::iterator);
+    public PublisherBuilder<R> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+                                                    Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
+                                                    BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+        return lazy
+                ? lazyPublisherBuilder(() -> buildPublisher(topLevelEntitiesProvider, mapperSourcesBuilder, aggregateStreamBuilder))
+                : buildPublisher(topLevelEntitiesProvider, mapperSourcesBuilder, aggregateStreamBuilder);
     }
 
-    private CompletableFuture<Map<ID, ?>> toCompletableFuture(Supplier<Map<ID, ?>> mapperSource) {
+    private PublisherBuilder<R> buildPublisher(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+                                               Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
+                                               BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+
+        return fromCompletionStage(toCompletableFuture(topLevelEntitiesProvider))
+                .flatMap(entities -> fromCompletionStage(
+                        fromIterable(mapperSourcesBuilder.apply(entities)::iterator)
+                                .flatMapCompletionStage(this::toCompletableFuture)
+                                .toList()
+                                .run())
+                        .map(m -> aggregateStreamBuilder.apply(entities, m))
+                        .flatMapIterable(stream -> stream::iterator));
+    }
+
+    private <U> CompletableFuture<U> toCompletableFuture(Supplier<U> mapperSource) {
         return executor != null ? supplyAsync(mapperSource, executor) : supplyAsync(mapperSource);
     }
 
-    public static <ID, R> AssemblerAdapter<ID, R, Publisher<R>> publisherAdapter() {
+    public static <T, ID, R> AssemblerAdapter<T, ID, R, Publisher<R>> publisherAdapter() {
         return publisherAdapter(null);
     }
 
-    public static <ID, R> AssemblerAdapter<ID, R, Publisher<R>> publisherAdapter(Executor executor) {
-        PublisherBuilderAdapter<ID, R> adapter = publisherBuilderAdapter(executor);
-        return (mapperSourceSuppliers, aggregateStreamBuilder) -> adapter.convertMapperSources(mapperSourceSuppliers, aggregateStreamBuilder).buildRs();
+    public static <T, ID, R> AssemblerAdapter<T, ID, R, Publisher<R>> publisherAdapter(boolean lazy) {
+        return publisherAdapter(lazy, null);
     }
 
-    public static <ID, R> PublisherBuilderAdapter<ID, R> publisherBuilderAdapter() {
+    public static <T, ID, R> AssemblerAdapter<T, ID, R, Publisher<R>> publisherAdapter(Executor executor) {
+        return publisherAdapter(false, null);
+    }
+
+    public static <T, ID, R> AssemblerAdapter<T, ID, R, Publisher<R>> publisherAdapter(boolean lazy, Executor executor) {
+        PublisherBuilderAdapter<T, ID, R> adapter = publisherBuilderAdapter(lazy, executor);
+        return (topLevelEntitiesProvider, mapperSourceSuppliers, aggregateStreamBuilder) ->
+                adapter.convertMapperSources(topLevelEntitiesProvider, mapperSourceSuppliers, aggregateStreamBuilder).buildRs();
+    }
+
+    public static <T, ID, R> PublisherBuilderAdapter<T, ID, R> publisherBuilderAdapter() {
         return publisherBuilderAdapter(null);
     }
 
-    public static <ID, R> PublisherBuilderAdapter<ID, R> publisherBuilderAdapter(Executor executor) {
-        return new PublisherBuilderAdapter<>(executor);
+    public static <T, ID, R> PublisherBuilderAdapter<T, ID, R> publisherBuilderAdapter(Executor executor) {
+        return publisherBuilderAdapter(false, executor);
+    }
+
+    public static <T, ID, R> PublisherBuilderAdapter<T, ID, R> publisherBuilderAdapter(boolean lazy) {
+        return publisherBuilderAdapter(lazy, null);
+    }
+
+    public static <T, ID, R> PublisherBuilderAdapter<T, ID, R> publisherBuilderAdapter(boolean lazy, Executor executor) {
+        return new PublisherBuilderAdapter<>(lazy, executor);
     }
 }

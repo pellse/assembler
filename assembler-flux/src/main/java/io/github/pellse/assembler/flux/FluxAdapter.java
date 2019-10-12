@@ -17,22 +17,25 @@
 package io.github.pellse.assembler.flux;
 
 import io.github.pellse.assembler.AssemblerAdapter;
-import org.reactivestreams.Publisher;
+import io.github.pellse.util.function.checked.CheckedSupplier;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
+import static reactor.core.publisher.Flux.zip;
 import static reactor.core.publisher.Mono.fromSupplier;
 import static reactor.core.scheduler.Schedulers.parallel;
 
-public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
+public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, Flux<R>> {
 
     private final Scheduler scheduler;
 
@@ -42,29 +45,28 @@ public class FluxAdapter<ID, R> implements AssemblerAdapter<ID, R, Flux<R>> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Flux<R> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                                        Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+    public Flux<R> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+                                        Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
+                                        BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 
-        List<Publisher<Map<ID, ?>>> publishers = mapperSourceSuppliers
-                .map(this::toPublisher)
-                .collect(toList());
-
-        return Flux.zip(publishers,
-                mapperResults -> aggregateStreamBuilder.apply(Stream.of(mapperResults)
-                        .map(mapResult -> (Map<ID, ?>) mapResult)
-                        .collect(toList())))
+        return toMono(topLevelEntitiesProvider)
+                .flatMapMany(entities ->
+                        zip(mapperSourcesBuilder.apply(entities).map(this::toMono).collect(toList()),
+                                mapperResults -> aggregateStreamBuilder.apply(entities, Stream.of(mapperResults)
+                                        .map(mapResult -> (Map<ID, ?>) mapResult)
+                                        .collect(toList()))))
                 .flatMap(Flux::fromStream);
     }
 
-    private Publisher<Map<ID, ?>> toPublisher(Supplier<Map<ID, ?>> mapperSource) {
+    private <U> Mono<U> toMono(Supplier<U> mapperSource) {
         return fromSupplier(mapperSource).subscribeOn(scheduler);
     }
 
-    public static <ID, R> FluxAdapter<ID, R> fluxAdapter() {
+    public static <T, ID, R> FluxAdapter<T, ID, R> fluxAdapter() {
         return fluxAdapter(parallel());
     }
 
-    public static <ID, R> FluxAdapter<ID, R> fluxAdapter(Scheduler scheduler) {
+    public static <T, ID, R> FluxAdapter<T, ID, R> fluxAdapter(Scheduler scheduler) {
         return new FluxAdapter<>(scheduler);
     }
 }

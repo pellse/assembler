@@ -17,6 +17,7 @@
 package io.github.pellse.assembler.future;
 
 import io.github.pellse.assembler.AssemblerAdapter;
+import io.github.pellse.util.function.checked.CheckedSupplier;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -34,7 +36,7 @@ import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
-public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implements AssemblerAdapter<ID, R, CompletableFuture<CR>> {
+public final class CompletableFutureAdapter<T, ID, R, CR extends Collection<R>> implements AssemblerAdapter<T, ID, R, CompletableFuture<CR>> {
 
     private final Executor executor;
     private final Supplier<CR> collectionFactory;
@@ -45,34 +47,37 @@ public class CompletableFutureAdapter<ID, R, CR extends Collection<R>> implement
     }
 
     @Override
-    public CompletableFuture<CR> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                                                      Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+    public CompletableFuture<CR> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+                                                      Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
+                                                      BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+        return supplyAsync(topLevelEntitiesProvider)
+                .thenCompose(entities -> {
+                    List<CompletableFuture<Map<ID, ?>>> mappingFutures = mapperSourcesBuilder.apply(entities)
+                            .map(this::toCompletableFuture)
+                            .collect(toList());
 
-        List<CompletableFuture<Map<ID, ?>>> mappingFutures = mapperSourceSuppliers
-                .map(this::toCompletableFuture)
-                .collect(toList());
-
-        return allOf(mappingFutures.toArray(new CompletableFuture[0]))
-                .thenApply(v -> aggregateStreamBuilder.apply(
-                        mappingFutures.stream()
-                                .map(CompletableFuture::join)
-                                .collect(toList()))
-                        .collect(toCollection(collectionFactory)));
+                    return allOf(mappingFutures.toArray(new CompletableFuture[0]))
+                            .thenApply(v -> aggregateStreamBuilder.apply(entities,
+                                    mappingFutures.stream()
+                                            .map(CompletableFuture::join)
+                                            .collect(toList()))
+                                    .collect(toCollection(collectionFactory)));
+                });
     }
 
-    private CompletableFuture<Map<ID, ?>> toCompletableFuture(Supplier<Map<ID, ?>> mapperSource) {
+    private <U> CompletableFuture<U> toCompletableFuture(Supplier<U> mapperSource) {
         return executor != null ? supplyAsync(mapperSource, executor) : supplyAsync(mapperSource);
     }
 
-    public static <ID, R> CompletableFutureAdapter<ID, R, List<R>> completableFutureAdapter() {
+    public static <T, ID, R> CompletableFutureAdapter<T, ID, R, List<R>> completableFutureAdapter() {
         return completableFutureAdapter(ArrayList::new, null);
     }
 
-    public static <ID, R> CompletableFutureAdapter<ID, R, List<R>> completableFutureAdapter(Executor executor) {
+    public static <T, ID, R> CompletableFutureAdapter<T, ID, R, List<R>> completableFutureAdapter(Executor executor) {
         return completableFutureAdapter(ArrayList::new, executor);
     }
 
-    public static <ID, R, CR extends Collection<R>> CompletableFutureAdapter<ID, R, CR> completableFutureAdapter(Supplier<CR> collectionFactory, Executor executor) {
+    public static <T, ID, R, CR extends Collection<R>> CompletableFutureAdapter<T, ID, R, CR> completableFutureAdapter(Supplier<CR> collectionFactory, Executor executor) {
         return new CompletableFutureAdapter<>(executor, collectionFactory);
     }
 }

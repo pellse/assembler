@@ -16,12 +16,13 @@
 
 package io.github.pellse.assembler.akkastream;
 
-import akka.NotUsed;
 import akka.stream.javadsl.Source;
 import io.github.pellse.assembler.AssemblerAdapter;
+import io.github.pellse.util.function.checked.CheckedSupplier;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -30,7 +31,7 @@ import java.util.stream.Stream;
 import static akka.stream.javadsl.Source.*;
 import static java.util.stream.Collectors.toList;
 
-public class AkkaSourceAdapter<ID, R> implements AssemblerAdapter<ID, R, Source<R, NotUsed>> {
+public final class AkkaSourceAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, Source<R, ?>> {
 
     private final UnaryOperator<Source<Map<ID, ?>, ?>> sourceTransformer;
 
@@ -39,30 +40,30 @@ public class AkkaSourceAdapter<ID, R> implements AssemblerAdapter<ID, R, Source<
     }
 
     @Override
-    public Source<R, NotUsed> convertMapperSources(Stream<Supplier<Map<ID, ?>>> mapperSourceSuppliers,
-                                                   Function<List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
-
-        List<Source<Map<ID, ?>, ?>> akkaSources = mapperSourceSuppliers
-                .map(this::createAkkaSource)
-                .collect(toList());
-
-        return zipN(akkaSources)
-                .flatMapConcat(mapperResults -> from(aggregateStreamBuilder.apply(mapperResults)::iterator));
+    public Source<R, ?> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+                                             Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
+                                             BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+        return lazily(() -> single(topLevelEntitiesProvider.get()))
+                .flatMapConcat(entities -> zipN(mapperSourcesBuilder.apply(entities)
+                        .map(this::createAkkaSource)
+                        .collect(toList()))
+                        .map(mapperResults -> aggregateStreamBuilder.apply(entities, mapperResults)))
+                .flatMapConcat(s -> from(s::iterator));
     }
 
     private Source<Map<ID, ?>, ?> createAkkaSource(Supplier<Map<ID, ?>> mappingSupplier) {
         return sourceTransformer.apply(lazily(() -> single(mappingSupplier.get())));
     }
 
-    public static <ID, R> AkkaSourceAdapter<ID, R> akkaSourceAdapter() {
+    public static <T, ID, R> AkkaSourceAdapter<T, ID, R> akkaSourceAdapter() {
         return akkaSourceAdapter(false);
     }
 
-    public static <ID, R> AkkaSourceAdapter<ID, R> akkaSourceAdapter(boolean async) {
+    public static <T, ID, R> AkkaSourceAdapter<T, ID, R> akkaSourceAdapter(boolean async) {
         return akkaSourceAdapter(source -> async ? source.async() : source);
     }
 
-    public static <ID, R> AkkaSourceAdapter<ID, R> akkaSourceAdapter(UnaryOperator<Source<Map<ID, ?>, ?>> sourceTransformer) {
+    public static <T, ID, R> AkkaSourceAdapter<T, ID, R> akkaSourceAdapter(UnaryOperator<Source<Map<ID, ?>, ?>> sourceTransformer) {
         return new AkkaSourceAdapter<>(sourceTransformer);
     }
 }
