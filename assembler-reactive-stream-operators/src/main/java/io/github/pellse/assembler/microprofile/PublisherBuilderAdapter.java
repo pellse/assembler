@@ -46,7 +46,7 @@ public final class PublisherBuilderAdapter<T, ID, R> implements AssemblerAdapter
     }
 
     @Override
-    public PublisherBuilder<R> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+    public PublisherBuilder<R> convertMapperSources(Supplier<Iterable<T>> topLevelEntitiesProvider,
                                                     Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
                                                     BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
         return lazy
@@ -54,7 +54,7 @@ public final class PublisherBuilderAdapter<T, ID, R> implements AssemblerAdapter
                 : buildPublisher(topLevelEntitiesProvider, mapperSourcesBuilder, aggregateStreamBuilder);
     }
 
-    private PublisherBuilder<R> buildPublisher(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+    private PublisherBuilder<R> buildPublisher(Supplier<Iterable<T>> topLevelEntitiesProvider,
                                                Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
                                                BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 

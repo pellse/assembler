@@ -17,7 +17,6 @@
 package io.github.pellse.assembler.stream;
 
 import io.github.pellse.assembler.AssemblerAdapter;
-import io.github.pellse.util.function.checked.CheckedSupplier;
 
 import java.util.List;
 import java.util.Map;
@@ -37,7 +36,7 @@ public final class StreamAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R,
     }
 
     @Override
-    public Stream<R> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+    public Stream<R> convertMapperSources(Supplier<Iterable<T>> topLevelEntitiesProvider,
                                           Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
                                           BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 

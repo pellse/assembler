@@ -16,8 +16,6 @@
 
 package io.github.pellse.assembler;
 
-import io.github.pellse.util.function.checked.CheckedSupplier;
-
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -28,7 +26,7 @@ import java.util.stream.Stream;
 @FunctionalInterface
 public interface AssemblerAdapter<T, ID, R, RC> {
 
-    RC convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+    RC convertMapperSources(Supplier<Iterable<T>> topLevelEntitiesProvider,
                             Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
                             BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder);
 }

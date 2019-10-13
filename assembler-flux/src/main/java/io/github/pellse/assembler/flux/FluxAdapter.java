@@ -17,7 +17,6 @@
 package io.github.pellse.assembler.flux;
 
 import io.github.pellse.assembler.AssemblerAdapter;
-import io.github.pellse.util.function.checked.CheckedSupplier;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -45,7 +44,7 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
 
     @SuppressWarnings("unchecked")
     @Override
-    public Flux<R> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+    public Flux<R> convertMapperSources(Supplier<Iterable<T>> topLevelEntitiesProvider,
                                         Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
                                         BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 

@@ -17,7 +17,6 @@
 package io.github.pellse.assembler.future;
 
 import io.github.pellse.assembler.AssemblerAdapter;
-import io.github.pellse.util.function.checked.CheckedSupplier;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,7 +46,7 @@ public final class CompletableFutureAdapter<T, ID, R, CR extends Collection<R>> 
     }
 
     @Override
-    public CompletableFuture<CR> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+    public CompletableFuture<CR> convertMapperSources(Supplier<Iterable<T>> topLevelEntitiesProvider,
                                                       Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
                                                       BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
         return supplyAsync(topLevelEntitiesProvider)

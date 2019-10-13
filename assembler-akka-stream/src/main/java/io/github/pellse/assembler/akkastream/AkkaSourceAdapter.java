@@ -18,7 +18,6 @@ package io.github.pellse.assembler.akkastream;
 
 import akka.stream.javadsl.Source;
 import io.github.pellse.assembler.AssemblerAdapter;
-import io.github.pellse.util.function.checked.CheckedSupplier;
 
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,7 @@ public final class AkkaSourceAdapter<T, ID, R> implements AssemblerAdapter<T, ID
     }
 
     @Override
-    public Source<R, ?> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+    public Source<R, ?> convertMapperSources(Supplier<Iterable<T>> topLevelEntitiesProvider,
                                              Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
                                              BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
         return lazily(() -> single(topLevelEntitiesProvider.get()))

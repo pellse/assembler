@@ -17,7 +17,6 @@
 package io.github.pellse.assembler.rxjava;
 
 import io.github.pellse.assembler.AssemblerAdapter;
-import io.github.pellse.util.function.checked.CheckedSupplier;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Scheduler;
 
@@ -46,7 +45,7 @@ public final class FlowableAdapter<T, ID, R> implements AssemblerAdapter<T, ID, 
 
     @SuppressWarnings("unchecked")
     @Override
-    public Flowable<R> convertMapperSources(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
+    public Flowable<R> convertMapperSources(Supplier<Iterable<T>> topLevelEntitiesProvider,
                                             Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
                                             BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 
