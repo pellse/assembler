@@ -24,7 +24,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
-import static io.github.pellse.util.query.QueryUtils.*;
+import static io.github.pellse.util.query.QueryUtils.queryOneToMany;
+import static io.github.pellse.util.query.QueryUtils.queryOneToOne;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.StreamSupport.stream;
 

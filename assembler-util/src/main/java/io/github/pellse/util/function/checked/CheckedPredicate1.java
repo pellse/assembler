@@ -21,11 +21,10 @@ package io.github.pellse.util.function.checked;
  *
  */
 
+import java.util.function.Predicate;
+
 import static io.github.pellse.util.ExceptionUtils.sneakyThrow;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.StreamSupport.stream;
-
-        import java.util.function.Predicate;
 
 @FunctionalInterface
 public interface CheckedPredicate1<T, E extends Throwable> extends Predicate<T> {
