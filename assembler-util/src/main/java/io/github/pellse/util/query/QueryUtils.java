@@ -157,7 +157,7 @@ public interface QueryUtils {
         Map<ID, V> resultMap = safeApply(ids, queryFunction)
                 .collect(mapCollector);
 
-        if (isSafeEqual(resultMap, ids, Map::size, Collection::size))
+        if (isSafeEqual(resultMap, Map::size, ids, Collection::size))
             return resultMap;
 
         Function<ID, V> resultProvider = defaultResultProvider != null ? defaultResultProvider : id -> null;

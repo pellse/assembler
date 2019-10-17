@@ -22,11 +22,12 @@ import java.util.function.Function;
 public interface ObjectUtils {
 
     static <T, U> boolean isSafeEqual(T t1, T t2, Function<? super T, ? extends U> propertyExtractor) {
-        return isSafeEqual(t1, t2, propertyExtractor, propertyExtractor);
+        return isSafeEqual(t1, propertyExtractor, t2, propertyExtractor);
     }
 
-    static <T1, T2, U> boolean isSafeEqual(T1 t1, T2 t2,
+    static <T1, T2, U> boolean isSafeEqual(T1 t1,
                                            Function<? super T1, ? extends U> propertyExtractor1,
+                                           T2 t2,
                                            Function<? super T2, ? extends U> propertyExtractor2) {
         return Optional.ofNullable(t1)
                 .map(propertyExtractor1)
