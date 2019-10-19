@@ -29,7 +29,7 @@ import static io.github.pellse.util.ObjectUtils.isSafeEqual;
 import static io.github.pellse.util.function.checked.CheckedPredicate1.not;
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static io.github.pellse.util.query.MapFactory.defaultMapFactory;
-import static java.util.Objects.requireNonNull;
+import static java.util.Objects.*;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
@@ -160,7 +160,7 @@ public interface QueryUtils {
         if (isSafeEqual(resultMap, Map::size, ids, Collection::size))
             return resultMap;
 
-        Function<ID, V> resultProvider = defaultResultProvider != null ? defaultResultProvider : id -> null;
+        Function<ID, V> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
 
         Set<ID> idsFromQueryResult = resultMap.keySet();
 
@@ -199,7 +199,7 @@ public interface QueryUtils {
 
     private static <ID, R, IDC extends Collection<ID>>
     Supplier<Map<ID, R>> toSupplier(IDC ids, MapFactory<ID, R> mapFactory) {
-        MapFactory<ID, R> mapSupplier = mapFactory != null ? mapFactory : defaultMapFactory();
+        MapFactory<ID, R> mapSupplier = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
         return () -> mapSupplier.apply(ids != null ? ids.size() : 0);
     }
 
