@@ -65,26 +65,8 @@ public interface Assembler<T, RC> {
                             AssemblerAdapter<T, ID, R, RC> assemblerAdapter,
                             Function<Throwable, RuntimeException> errorConverter) {
 
-        Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder = topLevelEntities -> {
-
-            // Conversion from Mapper to java.util.function.Supplier<java.util.Map>,
-            // the list of IDs (e.g. list of Customer ids) now captured in closure
-            // so no need for the assemblerAdapter to know anything about IDs
-            // when it will internally call "Map<ID, ?> mapperResult = mapperSource.get()"
-            // and transform Supplier of Maps (lazy) to List of Maps (materialized) by executing
-            // the sub queries represented by subQueryMappers (oneToOne, oneToMany, etc.).
-            //
-            // To summarize, we transform 1 argument functions into 0 argument functions
-
-            // We extract the IDs from the collection of top level entities e.g. from List<Customer> to List<Long>
-            List<ID> entityIDs = toStream(topLevelEntities)
-                    .filter(Objects::nonNull)
-                    .map(idExtractor)
-                    .collect(toList());
-
-            return subQueryMappers.stream()
-                    .map(mapper -> unchecked(() -> mapper.apply(entityIDs), errorConverter));
-        };
+        Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder = topLevelEntities ->
+                buildSubQueryMapperSources(topLevelEntities, idExtractor, subQueryMappers, errorConverter);
 
         // We create a function that takes 2 arguments:
         // 1- a topLevelEntity from our main query
@@ -114,5 +96,28 @@ public interface Assembler<T, RC> {
         // aggregateStreamBuilder takes a list of Map<ID, ?>, so we are injecting the join algorithm
         // into our adapter and the data to pass to the join algorithm
         return assemblerAdapter.convertMapperSources(topLevelEntitiesProvider, mapperSourcesBuilder, aggregateStreamBuilder);
+    }
+
+    static <T, ID> Stream<Supplier<Map<ID, ?>>> buildSubQueryMapperSources(Iterable<T> topLevelEntities,
+                                                                                  Function<T, ID> idExtractor,
+                                                                                  List<Mapper<ID, ?, ?>> subQueryMappers,
+                                                                                  Function<Throwable, RuntimeException> errorConverter) {
+        // Conversion from Mapper to java.util.function.Supplier<java.util.Map>,
+        // the list of IDs (e.g. list of Customer ids) now captured in closure
+        // so no need for the assemblerAdapter to know anything about IDs
+        // when it will internally call "Map<ID, ?> mapperResult = mapperSource.get()"
+        // and transform Supplier of Maps (lazy) to List of Maps (materialized) by executing
+        // the sub queries represented by subQueryMappers (oneToOne, oneToMany, etc.).
+        //
+        // To summarize, we transform 1 argument functions into 0 argument functions
+
+        // We extract the IDs from the collection of top level entities e.g. from List<Customer> to List<Long>
+        List<ID> entityIDs = toStream(topLevelEntities)
+                .filter(Objects::nonNull)
+                .map(idExtractor)
+                .collect(toList());
+
+        return subQueryMappers.stream()
+                .map(mapper -> unchecked(() -> mapper.apply(entityIDs), errorConverter));
     }
 }
