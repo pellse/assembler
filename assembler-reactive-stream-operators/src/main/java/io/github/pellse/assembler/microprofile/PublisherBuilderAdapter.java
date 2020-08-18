@@ -63,7 +63,7 @@ public final class PublisherBuilderAdapter<T, ID, R> implements AssemblerAdapter
                                 .flatMapCompletionStage(this::toCompletableFuture)
                                 .toList()
                                 .run())
-                        .map(m -> aggregateStreamBuilder.apply(entities, m))
+                        .map(mapperResults -> aggregateStreamBuilder.apply(entities, mapperResults))
                         .flatMapIterable(stream -> stream::iterator));
     }
 
