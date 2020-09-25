@@ -1,5 +1,5 @@
 plugins {
-    id "io.freefair.lombok" version "4.1.1" apply false
+    id "io.freefair.lombok" version "5.2.1" apply false
 }
 
 subprojects {
@@ -9,14 +9,14 @@ subprojects {
 
     apply plugin: 'io.freefair.lombok'
 
-    sourceCompatibility = 9
+    sourceCompatibility = 11
 
     repositories {
         mavenCentral()
     }
 
     dependencies {
-        testImplementation 'org.junit.jupiter:junit-jupiter:5.5.2'
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.6.2'
         testImplementation 'org.hamcrest:hamcrest-library:1.3'
     }
 
