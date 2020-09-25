@@ -1,0 +1,12 @@
+ext {
+    reactorVersion = '3.3.8.RELEASE'
+}
+
+dependencies {
+    compile project(':assembler-util')
+
+    testCompile project(':assembler-core').sourceSets.test.output
+
+    testCompile "io.projectreactor:reactor-test:${reactorVersion}"
+    compile "io.projectreactor:reactor-core:${reactorVersion}"
+}

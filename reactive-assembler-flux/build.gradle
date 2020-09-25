@@ -1,0 +1,13 @@
+ext {
+    reactorVersion = '3.3.10.RELEASE'
+}
+
+dependencies {
+    compile project(':reactive-assembler-core')
+
+    testCompile project(':assembler-core').sourceSets.test.output
+    testCompile project(':reactive-assembler-core').sourceSets.test.output
+
+    testCompile "io.projectreactor:reactor-test:${reactorVersion}"
+    compile "io.projectreactor:reactor-core:${reactorVersion}"
+}

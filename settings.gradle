@@ -1,3 +1,10 @@
 rootProject.name = 'assembler'
 
-include 'assembler-core', 'assembler-flux', 'assembler-rxjava', 'assembler-akka-stream', 'assembler-reactive-stream-operators', 'assembler-util'
+include 'assembler-core',
+        'assembler-flux',
+        'assembler-rxjava',
+        'assembler-akka-stream',
+        'assembler-reactive-stream-operators',
+        'assembler-util',
+        'reactive-assembler-core',
+        'reactive-assembler-flux'
