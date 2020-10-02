@@ -16,7 +16,10 @@
 
 package io.github.pellse.reactive.assembler.flux;
 
-import io.github.pellse.assembler.*;
+import io.github.pellse.assembler.BillingInfo;
+import io.github.pellse.assembler.Customer;
+import io.github.pellse.assembler.OrderItem;
+import io.github.pellse.assembler.Transaction;
 import io.github.pellse.reactive.assembler.Assembler;
 import io.github.pellse.reactive.assembler.ReactiveAssemblerTestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.MapperUtils.*;
+import static io.github.pellse.reactive.assembler.Mapper.*;
 import static io.github.pellse.reactive.assembler.flux.FluxAdapter.fluxAdapter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
