@@ -34,8 +34,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.KeyValueStorePublisher.asKeyValueStore;
 import static io.github.pellse.reactive.assembler.Mapper.*;
 import static io.github.pellse.reactive.assembler.flux.FluxAdapter.fluxAdapter;
+import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
 
@@ -131,6 +133,31 @@ public class FluxAssemblerTest {
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(fluxAdapter());
+
+        StepVerifier.create(getCustomers()
+                .window(3)
+                .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(2, billingInvocationCount.get());
+        assertEquals(2, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithFluxWithBuffering2() {
+
+        var billingInfoPublisher = asKeyValueStore(getBillingInfos(of(1L, 2L, 3L)), BillingInfo::getCustomerId);
+
+        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        oneToOne(billingInfoPublisher, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .using(fluxAdapter());

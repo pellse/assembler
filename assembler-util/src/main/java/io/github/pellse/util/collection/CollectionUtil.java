@@ -11,11 +11,15 @@ public interface CollectionUtil {
         return iterable != null ? stream(iterable.spliterator(), false) : Stream.empty();
     }
 
-    static boolean isEmpty(Collection<?> collection) {
-        return collection == null || collection.isEmpty();
+    static boolean isEmpty(Iterable<?> iterable) {
+        return iterable == null || (iterable instanceof Collection && ((Collection<?>) iterable).isEmpty()) || iterable.iterator().hasNext();
     }
 
-    static boolean isNotEmpty(Collection<?> collection) {
-        return !isEmpty(collection);
+    static boolean isNotEmpty(Iterable<?> iterable) {
+        return !isEmpty(iterable);
+    }
+
+    static long size(Iterable<?> iterable) {
+        return iterable instanceof Collection ? ((Collection<?>) iterable).size() : stream(iterable.spliterator(), false).count();
     }
 }

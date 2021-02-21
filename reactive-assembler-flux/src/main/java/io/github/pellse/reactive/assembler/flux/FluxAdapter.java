@@ -19,7 +19,6 @@ package io.github.pellse.reactive.assembler.flux;
 import io.github.pellse.reactive.assembler.AssemblerAdapter;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.util.List;
@@ -31,6 +30,7 @@ import java.util.stream.Stream;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.publisher.Flux.zip;
+import static reactor.core.publisher.Mono.from;
 import static reactor.core.scheduler.Schedulers.parallel;
 
 public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, Flux<R>> {
@@ -50,7 +50,7 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
         return Flux.from(topLevelEntitiesProvider)
                 .collectList()
                 .flatMapMany(entities ->
-                        zip(mapperSourcesBuilder.apply(entities).map(publisher -> Mono.from(publisher).subscribeOn(scheduler)).collect(toList()),
+                        zip(mapperSourcesBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).collect(toList()),
                                 mapperResults -> aggregateStreamBuilder.apply(entities, Stream.of(mapperResults)
                                         .map(mapResult -> (Map<ID, ?>) mapResult)
                                         .collect(toList()))))

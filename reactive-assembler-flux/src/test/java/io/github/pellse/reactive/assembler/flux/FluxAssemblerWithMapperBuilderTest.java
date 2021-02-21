@@ -15,12 +15,13 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
-import static io.github.pellse.assembler.AssemblerTestUtils.transaction3;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.AssemblerRuleBuilder.rule;
+import static io.github.pellse.reactive.assembler.KeyValueStorePublisher.asKeyValueStore;
 import static io.github.pellse.reactive.assembler.MapperBuilder.oneToManyAsList;
 import static io.github.pellse.reactive.assembler.MapperBuilder.oneToOne;
 import static io.github.pellse.reactive.assembler.flux.FluxAdapter.fluxAdapter;
+import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FluxAssemblerWithMapperBuilderTest {
@@ -71,5 +72,27 @@ public class FluxAssemblerWithMapperBuilderTest {
 
         assertEquals(2, billingInvocationCount.get());
         assertEquals(2, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithFluxWithRuleBuilders2() {
+
+        var a = asKeyValueStore(getBillingInfos(of(1L, 2L, 3L)), BillingInfo::getCustomerId);
+
+        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::getCustomerId)
+                .withAssemblerRules(
+                        rule(oneToOne(a, BillingInfo::new)).withIdExtractor(BillingInfo::getCustomerId),
+                        rule(oneToManyAsList(this::getAllOrders)).withIdExtractor(OrderItem::getCustomerId),
+                        Transaction::new)
+                .using(fluxAdapter());
+
+        StepVerifier.create(getCustomers()
+                .window(3)
+                .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
     }
 }

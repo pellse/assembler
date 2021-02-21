@@ -159,7 +159,7 @@ public interface QueryUtils {
                 .flatMap(map -> toResultMap(ids, map, defaultResultProvider));
     }
 
-    static <T, R, C extends Collection<? extends T>, EX extends Throwable>
+    static <T, R, C extends Iterable<? extends T>, EX extends Throwable>
     Flux<R> safeApply(C coll, CheckedFunction1<C, Publisher<R>, EX> queryFunction) {
         requireNonNull(queryFunction, "queryFunction cannot be null");
 
