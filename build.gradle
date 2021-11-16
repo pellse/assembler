@@ -58,7 +58,7 @@ subprojects {
                 customizePom(pom)
                 groupId 'io.github.pellse'
                 artifactId project.name
-                version '0.3.0'
+                version '0.3.1'
 
                 from components.java
 
