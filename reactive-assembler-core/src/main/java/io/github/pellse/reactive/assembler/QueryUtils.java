@@ -17,7 +17,6 @@
 package io.github.pellse.reactive.assembler;
 
 import io.github.pellse.util.collection.CollectionUtil;
-import io.github.pellse.util.function.checked.CheckedFunction1;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,7 +28,6 @@ import java.util.stream.Collector;
 
 import static io.github.pellse.reactive.assembler.MapFactory.defaultMapFactory;
 import static io.github.pellse.util.ObjectUtils.isSafeEqual;
-import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static java.util.Objects.*;
 import static java.util.function.Function.identity;
 import static java.util.function.Predicate.not;
@@ -37,35 +35,35 @@ import static java.util.stream.Collectors.*;
 
 public interface QueryUtils {
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
-                                   CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                   Function<IDC, Publisher<R>> queryFunction,
                                    Function<R, ID> idExtractorFromQueryResults) {
 
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
-                                   CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                   Function<IDC, Publisher<R>> queryFunction,
                                    Function<R, ID> idExtractorFromQueryResults,
                                    MapFactory<ID, R> mapFactory) {
 
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null, mapFactory);
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
-                                   CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                   Function<IDC, Publisher<R>> queryFunction,
                                    Function<R, ID> idExtractorFromQueryResults,
                                    Function<ID, R> defaultResultProvider) {
 
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultResultProvider, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
-                                   CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                   Function<IDC, Publisher<R>> queryFunction,
                                    Function<R, ID> idExtractorFromQueryResults,
                                    Function<ID, R> defaultResultProvider,
                                    MapFactory<ID, R> mapFactory) {
@@ -73,52 +71,52 @@ public interface QueryUtils {
         return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u1, toSupplier(ids, mapFactory)));
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, List<R>>> queryOneToManyAsList(IDC ids,
-                                                CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                                Function<IDC, Publisher<R>> queryFunction,
                                                 Function<R, ID> idExtractorFromQueryResults) {
 
         return queryOneToManyAsList(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, List<R>>> queryOneToManyAsList(IDC ids,
-                                                CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                                Function<IDC, Publisher<R>> queryFunction,
                                                 Function<R, ID> idExtractorFromQueryResults,
                                                 MapFactory<ID, List<R>> mapFactory) {
 
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, Set<R>>> queryOneToManyAsSet(IDC ids,
-                                              CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                              Function<IDC, Publisher<R>> queryFunction,
                                               Function<R, ID> idExtractorFromQueryResults) {
 
         return queryOneToManyAsSet(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, Set<R>>> queryOneToManyAsSet(IDC ids,
-                                              CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                              Function<IDC, Publisher<R>> queryFunction,
                                               Function<R, ID> idExtractorFromQueryResults,
                                               MapFactory<ID, Set<R>> mapFactory) {
 
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
     }
 
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>>
     Mono<Map<ID, RC>> queryOneToMany(IDC ids,
-                                     CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                     Function<IDC, Publisher<R>> queryFunction,
                                      Function<R, ID> idExtractorFromQueryResults,
                                      Supplier<RC> collectionFactory) {
 
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, collectionFactory, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
+    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>>
     Mono<Map<ID, RC>> queryOneToMany(IDC ids,
-                                     CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                                     Function<IDC, Publisher<R>> queryFunction,
                                      Function<R, ID> idExtractorFromQueryResults,
                                      Supplier<RC> collectionFactory,
                                      MapFactory<ID, RC> mapFactory) {
@@ -144,13 +142,12 @@ public interface QueryUtils {
      * @param <IDC>                 Type of the {@link Collection} containing the ids of type {@code <ID>}
      *                              e.g. {@code List<Long>}, {@code Set<String>}, etc.
      *                              e.g. {@code List<Customer>}, {@code Set<Order>}, etc.
-     * @param <EX>                  Type of the exception that can be thrown by the {@code queryFunction}
      * @return A {@link Map} of the results from invoking the {@code queryFunction}
      * with key = correlation ID, value = result associated with ID
      */
-    static <V, ID, R, IDC extends Collection<ID>, EX extends Throwable>
+    static <V, ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, V>> query(IDC ids,
-                           CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+                           Function<IDC, Publisher<R>> queryFunction,
                            Function<ID, V> defaultResultProvider,
                            Collector<R, ?, Map<ID, V>> mapCollector) {
 
@@ -159,13 +156,13 @@ public interface QueryUtils {
                 .flatMap(map -> toResultMap(ids, map, defaultResultProvider));
     }
 
-    static <T, R, C extends Iterable<? extends T>, EX extends Throwable>
-    Flux<R> safeApply(C coll, CheckedFunction1<C, Publisher<R>, EX> queryFunction) {
+    static <T, R, C extends Iterable<? extends T>>
+    Flux<R> safeApply(C coll, Function<C, Publisher<R>> queryFunction) {
         requireNonNull(queryFunction, "queryFunction cannot be null");
 
         return Mono.just(coll)
                 .filter(CollectionUtil::isNotEmpty)
-                .flatMapMany(unchecked(queryFunction));
+                .flatMapMany(queryFunction);
     }
 
     private static <V, ID, IDC extends Collection<ID>>

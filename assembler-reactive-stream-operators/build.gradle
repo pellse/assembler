@@ -1,9 +1,10 @@
 dependencies {
     implementation project(':assembler-core')
+    implementation project(':assembler-util')
     implementation("com.lightbend.microprofile.reactive.streams:lightbend-microprofile-reactive-streams-zerodep:1.0.0")
 
     testImplementation project(':assembler-core').sourceSets.test.output
-    testImplementation project(':assembler-flux')
-    testImplementation project(':assembler-rxjava')
-    testImplementation "io.projectreactor:reactor-test:3.3.0.RELEASE"
+    testImplementation "io.projectreactor:reactor-core:3.3.10.RELEASE"
+    testImplementation "io.reactivex.rxjava3:rxjava:3.0.0-RC3"
+    testImplementation "io.projectreactor:reactor-test:3.3.10.RELEASE"
 }

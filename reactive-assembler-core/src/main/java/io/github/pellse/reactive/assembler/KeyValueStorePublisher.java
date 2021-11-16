@@ -1,6 +1,5 @@
 package io.github.pellse.reactive.assembler;
 
-import io.github.pellse.util.function.checked.CheckedFunction1;
 import org.reactivestreams.Publisher;
 
 import java.util.*;
@@ -13,13 +12,13 @@ import static reactor.core.publisher.Flux.fromStream;
 
 public interface KeyValueStorePublisher {
 
-    static <R, ID, EX extends Throwable> CheckedFunction1<List<ID>, Publisher<R>, EX> asKeyValueStore(
+    static <R, ID> Function<List<ID>, Publisher<R>> asKeyValueStore(
             Publisher<R> publisher,
             Function<R, ID> idExtractor) {
         return asKeyValueStore(publisher, idExtractor, ConcurrentHashMap::new);
     }
 
-    static <R, ID, EX extends Throwable> CheckedFunction1<List<ID>, Publisher<R>, EX> asKeyValueStore(
+    static <R, ID> Function<List<ID>, Publisher<R>> asKeyValueStore(
             Publisher<R> publisher,
             Function<R, ID> idExtractor,
             Supplier<Map<ID, R>> storeSupplier) {

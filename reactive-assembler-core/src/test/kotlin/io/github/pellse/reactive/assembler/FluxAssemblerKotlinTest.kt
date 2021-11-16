@@ -49,8 +49,8 @@ class FluxAssemblerKotlinTest {
         val assembler = assemblerOf(Transaction::class.java)
             .withIdExtractor(Customer::getCustomerId)
             .withAssemblerRules(
-                oneToOne<Long, BillingInfo, Exception>(this::getBillingInfos, BillingInfo::getCustomerId, ::BillingInfo),
-                oneToManyAsList<Long, OrderItem, Exception>(this::getAllOrders, OrderItem::getCustomerId),
+                oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, ::BillingInfo),
+                oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
                 ::Transaction
             )
             .build()

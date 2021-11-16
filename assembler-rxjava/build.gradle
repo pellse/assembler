@@ -4,6 +4,7 @@ ext {
 
 dependencies {
     implementation project(':assembler-core')
+    implementation project(':assembler-util')
     implementation "io.reactivex.rxjava3:rxjava:${rxjavaVersion}"
 
     testImplementation project(':assembler-core').sourceSets.test.output

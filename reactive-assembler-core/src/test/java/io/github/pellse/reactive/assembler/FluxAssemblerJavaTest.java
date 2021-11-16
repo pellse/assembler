@@ -39,7 +39,7 @@ import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
 
-public class FluxAssemblerTest {
+public class FluxAssemblerJavaTest {
 
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
@@ -70,15 +70,15 @@ public class FluxAssemblerTest {
     public void testAssemblerBuilderWithFlux() {
 
         StepVerifier.create(
-                assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::getCustomerId)
-                        .withAssemblerRules(
-                                oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                oneToManyAsList(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
-                                Transaction::new)
-                        .build(fluxAdapter())
-                        .assemble(getCustomers())
-        )
+                        assemblerOf(Transaction.class)
+                                .withIdExtractor(Customer::getCustomerId)
+                                .withAssemblerRules(
+                                        oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                                        oneToManyAsList(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                        Transaction::new)
+                                .build(fluxAdapter())
+                                .assemble(getCustomers())
+                )
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
                 .expectComplete()
@@ -89,15 +89,15 @@ public class FluxAssemblerTest {
     public void testAssemblerBuilderWithFluxWithError() {
 
         StepVerifier.create(
-                assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::getCustomerId)
-                        .withAssemblerRules(
-                                oneToOne(ReactiveAssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                                oneToManyAsList(ReactiveAssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
-                                Transaction::new)
-                        .build(fluxAdapter(immediate()))
-                        .assemble(getCustomers())
-        )
+                        assemblerOf(Transaction.class)
+                                .withIdExtractor(Customer::getCustomerId)
+                                .withAssemblerRules(
+                                        oneToOne(ReactiveAssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
+                                        oneToManyAsList(ReactiveAssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                                        Transaction::new)
+                                .build(fluxAdapter(immediate()))
+                                .assemble(getCustomers())
+                )
                 .expectSubscription()
                 .expectError(SQLException.class)
                 .verify();
@@ -107,17 +107,17 @@ public class FluxAssemblerTest {
     public void testAssemblerBuilderWithFluxWithBuffering() {
 
         StepVerifier.create(
-                getCustomers()
-                        .window(3)
-                        .flatMapSequential(customers -> assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::getCustomerId)
-                                .withAssemblerRules(
-                                        oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                        oneToManyAsList(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
-                                        Transaction::new)
-                                .build(fluxAdapter())
-                                .assemble(customers))
-        )
+                        getCustomers()
+                                .window(3)
+                                .flatMapSequential(customers -> assemblerOf(Transaction.class)
+                                        .withIdExtractor(Customer::getCustomerId)
+                                        .withAssemblerRules(
+                                                oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
+                                                oneToManyAsList(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                                Transaction::new)
+                                        .build(fluxAdapter())
+                                        .assemble(customers))
+                )
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
                 .expectComplete()
@@ -136,8 +136,8 @@ public class FluxAssemblerTest {
                 .build(fluxAdapter());
 
         StepVerifier.create(getCustomers()
-                .window(3)
-                .flatMapSequential(assembler::assemble))
+                        .window(3)
+                        .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
                 .expectComplete()
@@ -161,14 +161,14 @@ public class FluxAssemblerTest {
                 .build(fluxAdapter());
 
         StepVerifier.create(getCustomers()
-                .window(3)
-                .flatMapSequential(assembler::assemble))
+                        .window(3)
+                        .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
                 .expectComplete()
                 .verify();
 
-        assertEquals(2, billingInvocationCount.get());
+        assertEquals(1, billingInvocationCount.get());
         assertEquals(2, ordersInvocationCount.get());
     }
 
@@ -184,8 +184,8 @@ public class FluxAssemblerTest {
                 .build(fluxAdapter());
 
         StepVerifier.create(getCustomers()
-                .window(3)
-                .flatMapSequential(assembler::assemble))
+                        .window(3)
+                        .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
                 .expectComplete()

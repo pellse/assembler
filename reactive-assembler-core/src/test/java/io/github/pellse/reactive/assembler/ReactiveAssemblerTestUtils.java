@@ -79,7 +79,7 @@ public final class ReactiveAssemblerTestUtils {
                 .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()));
     }
 
-    public static <R> Publisher<R> throwSQLException(List<Long> customerIds) throws IOException {
+    public static <R> Publisher<R> throwSQLException(List<Long> customerIds) {
         // throw new IOException("Unable to query database");
         return Flux.error(new SQLException("Unable to query database"));
     }

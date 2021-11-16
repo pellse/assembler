@@ -20,6 +20,7 @@ ext {
 
 dependencies {
     implementation project(':assembler-core')
+    implementation project(':assembler-util')
     implementation "com.typesafe.akka:akka-stream_2.11:${akkaStreamVersion}"
 
     testImplementation project(':assembler-core').sourceSets.test.output

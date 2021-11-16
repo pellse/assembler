@@ -16,7 +16,6 @@
 
 package io.github.pellse.reactive.assembler;
 
-import io.github.pellse.util.function.checked.CheckedFunction1;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -33,23 +32,23 @@ import static java.util.stream.StreamSupport.stream;
 import static reactor.core.publisher.Mono.from;
 
 @FunctionalInterface
-public interface Mapper<ID, R, EX extends Throwable> extends CheckedFunction1<Iterable<ID>, Publisher<Map<ID, R>>, EX> {
+public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, R>>> {
 
-    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> mapper) {
+    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper) {
         return cached(mapper, ConcurrentHashMap::new);
     }
 
-    static <ID, R, EX extends Throwable>
-    Mapper<ID, R, EX> cached(Mapper<ID, R, EX> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier) {
+    static <ID, R>
+    Mapper<ID, R> cached(Mapper<ID, R> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier) {
         return cached(mapper, cacheSupplier, null);
     }
 
-    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> cached(Mapper<ID, R, EX> mapper, Duration ttl) {
+    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Duration ttl) {
         return cached(mapper, ConcurrentHashMap::new, ttl);
     }
 
-    static <ID, R, EX extends Throwable>
-    Mapper<ID, R, EX> cached(Mapper<ID, R, EX> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier, Duration ttl) {
+    static <ID, R>
+    Mapper<ID, R> cached(Mapper<ID, R> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier, Duration ttl) {
         var cache = cacheSupplier.get();
         return entityIds -> cache.computeIfAbsent(entityIds, ids -> toCachedMono(from(mapper.apply(ids)), ttl));
     }
@@ -58,31 +57,31 @@ public interface Mapper<ID, R, EX extends Throwable> extends CheckedFunction1<It
         return ttl != null ? mono.cache(ttl) : mono.cache();
     }
 
-    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<List<ID>, Publisher<R>, EX> queryFunction,
+    static <ID, R> Mapper<ID, R> oneToOne(
+            Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
         return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null, ArrayList::new, null);
     }
 
-    static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R> Mapper<ID, R> oneToOne(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
 
         return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null, idCollectionFactory);
     }
 
-    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<List<ID>, Publisher<R>, EX> queryFunction,
+    static <ID, R> Mapper<ID, R> oneToOne(
+            Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider) {
 
         return oneToOne(queryFunction, idExtractorFromQueryResults, defaultResultProvider, ArrayList::new, null);
     }
 
-    static <ID, R, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<List<ID>, Publisher<R>, EX> queryFunction,
+    static <ID, R> Mapper<ID, R> oneToOne(
+            Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider,
             MapFactory<ID, R> mapFactory) {
@@ -90,8 +89,8 @@ public interface Mapper<ID, R, EX extends Throwable> extends CheckedFunction1<It
         return oneToOne(queryFunction, idExtractorFromQueryResults, defaultResultProvider, ArrayList::new, mapFactory);
     }
 
-    static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R> Mapper<ID, R> oneToOne(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider,
             Supplier<IDC> idCollectionFactory) {
@@ -100,8 +99,8 @@ public interface Mapper<ID, R, EX extends Throwable> extends CheckedFunction1<It
     }
 
     @SuppressWarnings("unchecked")
-    static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
-            CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R> Mapper<ID, R> oneToOne(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider,
             Supplier<IDC> idCollectionFactory,
@@ -111,31 +110,31 @@ public interface Mapper<ID, R, EX extends Throwable> extends CheckedFunction1<It
                 queryOneToOne((IDC) entityIds, queryFunction, idExtractorFromQueryResults, defaultResultProvider, mapFactory), idCollectionFactory);
     }
 
-    static <ID, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
-            CheckedFunction1<List<ID>, Publisher<R>, EX> queryFunction,
+    static <ID, R> Mapper<ID, List<R>> oneToManyAsList(
+            Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
         return oneToManyAsList(queryFunction, idExtractorFromQueryResults, ArrayList::new, null);
     }
 
-    static <ID, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
-            CheckedFunction1<List<ID>, Publisher<R>, EX> queryFunction,
+    static <ID, R> Mapper<ID, List<R>> oneToManyAsList(
+            Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             MapFactory<ID, List<R>> mapFactory) {
 
         return oneToManyAsList(queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
     }
 
-    static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
-            CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R> Mapper<ID, List<R>> oneToManyAsList(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
 
         return oneToMany(queryFunction, idExtractorFromQueryResults, ArrayList::new, idCollectionFactory);
     }
 
-    static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
-            CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R> Mapper<ID, List<R>> oneToManyAsList(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, List<R>> mapFactory) {
@@ -143,31 +142,31 @@ public interface Mapper<ID, R, EX extends Throwable> extends CheckedFunction1<It
         return oneToMany(queryFunction, idExtractorFromQueryResults, ArrayList::new, idCollectionFactory, mapFactory);
     }
 
-    static <ID, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
-            CheckedFunction1<Set<ID>, Publisher<R>, EX> queryFunction,
+    static <ID, R> Mapper<ID, Set<R>> oneToManyAsSet(
+            Function<Set<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
         return oneToManyAsSet(queryFunction, idExtractorFromQueryResults, HashSet::new, null);
     }
 
-    static <ID, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
-            CheckedFunction1<Set<ID>, Publisher<R>, EX> queryFunction,
+    static <ID, R> Mapper<ID, Set<R>> oneToManyAsSet(
+            Function<Set<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             MapFactory<ID, Set<R>> mapFactory) {
 
         return oneToManyAsSet(queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
     }
 
-    static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
-            CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R> Mapper<ID, Set<R>> oneToManyAsSet(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
 
         return oneToMany(queryFunction, idExtractorFromQueryResults, HashSet::new, idCollectionFactory);
     }
 
-    static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
-            CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R> Mapper<ID, Set<R>> oneToManyAsSet(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, Set<R>> mapFactory) {
@@ -175,8 +174,8 @@ public interface Mapper<ID, R, EX extends Throwable> extends CheckedFunction1<It
         return oneToMany(queryFunction, idExtractorFromQueryResults, HashSet::new, idCollectionFactory, mapFactory);
     }
 
-    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, RC, EX> oneToMany(
-            CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> Mapper<ID, RC> oneToMany(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<RC> collectionFactory,
             Supplier<IDC> idCollectionFactory) {
@@ -185,8 +184,8 @@ public interface Mapper<ID, R, EX extends Throwable> extends CheckedFunction1<It
     }
 
     @SuppressWarnings("unchecked")
-    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, RC, EX> oneToMany(
-            CheckedFunction1<IDC, Publisher<R>, EX> queryFunction,
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> Mapper<ID, RC> oneToMany(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<RC> collectionFactory,
             Supplier<IDC> idCollectionFactory,
@@ -196,8 +195,8 @@ public interface Mapper<ID, R, EX extends Throwable> extends CheckedFunction1<It
                 queryOneToMany((IDC) entityIds, queryFunction, idExtractorFromQueryResults, collectionFactory, mapFactory), idCollectionFactory);
     }
 
-    private static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> convertIdTypeMapperDelegate(
-            Mapper<ID, R, EX> mapper, Supplier<IDC> idCollectionFactory) {
+    private static <ID, IDC extends Collection<ID>, R> Mapper<ID, R> convertIdTypeMapperDelegate(
+            Mapper<ID, R> mapper, Supplier<IDC> idCollectionFactory) {
 
         return entityIds -> mapper.apply(refineEntityIDType(entityIds, idCollectionFactory));
     }
