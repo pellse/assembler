@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package io.github.pellse.reactive.assembler.flux;
+package io.github.pellse.reactive.assembler;
 
-import io.github.pellse.reactive.assembler.AssemblerAdapter;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;

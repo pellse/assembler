@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package io.github.pellse.reactive.assembler.flux;
+package io.github.pellse.reactive.assembler;
 
 import io.github.pellse.assembler.BillingInfo;
 import io.github.pellse.assembler.Customer;
 import io.github.pellse.assembler.OrderItem;
 import io.github.pellse.assembler.Transaction;
-import io.github.pellse.reactive.assembler.Assembler;
-import io.github.pellse.reactive.assembler.ReactiveAssemblerTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -34,9 +32,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.reactive.assembler.KeyValueStorePublisher.asKeyValueStore;
 import static io.github.pellse.reactive.assembler.Mapper.*;
-import static io.github.pellse.reactive.assembler.flux.FluxAdapter.fluxAdapter;
 import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
@@ -78,7 +76,7 @@ public class FluxAssemblerTest {
                                 oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .using(fluxAdapter())
+                        .build(fluxAdapter())
                         .assemble(getCustomers())
         )
                 .expectSubscription()
@@ -97,7 +95,7 @@ public class FluxAssemblerTest {
                                 oneToOne(ReactiveAssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
                                 oneToManyAsList(ReactiveAssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                                 Transaction::new)
-                        .using(fluxAdapter(immediate()))
+                        .build(fluxAdapter(immediate()))
                         .assemble(getCustomers())
         )
                 .expectSubscription()
@@ -117,7 +115,7 @@ public class FluxAssemblerTest {
                                         oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
                                         oneToManyAsList(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                                         Transaction::new)
-                                .using(fluxAdapter())
+                                .build(fluxAdapter())
                                 .assemble(customers))
         )
                 .expectSubscription()
@@ -135,7 +133,7 @@ public class FluxAssemblerTest {
                         oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(fluxAdapter());
+                .build(fluxAdapter());
 
         StepVerifier.create(getCustomers()
                 .window(3)
@@ -160,7 +158,7 @@ public class FluxAssemblerTest {
                         oneToOne(billingInfoPublisher, BillingInfo::getCustomerId, BillingInfo::new),
                         oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
-                .using(fluxAdapter());
+                .build(fluxAdapter());
 
         StepVerifier.create(getCustomers()
                 .window(3)
@@ -183,7 +181,7 @@ public class FluxAssemblerTest {
                         cached(oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new)),
                         cached(oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId)),
                         Transaction::new)
-                .using(fluxAdapter());
+                .build(fluxAdapter());
 
         StepVerifier.create(getCustomers()
                 .window(3)

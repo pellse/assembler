@@ -18,6 +18,7 @@ package io.github.pellse.reactive.assembler;
 
 import io.github.pellse.util.function.*;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.util.collection.CollectionUtil.toStream;
 import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static java.util.stream.Collectors.toList;
@@ -216,7 +218,8 @@ public interface AssemblerBuilder {
     }
 
     interface AssembleUsingBuilder<T, ID, R> {
-        <RC> Assembler<T, RC> using(AssemblerAdapter<T, ID, R, RC> adapter);
+        Assembler<T, Flux<R>> build();
+        <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> adapter);
     }
 
     class WithIdExtractorBuilderImpl<R> implements WithIdExtractorBuilder<R> {
@@ -262,7 +265,12 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public <RC> Assembler<T, RC> using(AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
+        public Assembler<T, Flux<R>> build() {
+            return build(fluxAdapter());
+        }
+
+        @Override
+        public <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
             return new AssemblerImpl<>(idExtractor, mappers, aggregationFunction, assemblerAdapter);
         }
     }

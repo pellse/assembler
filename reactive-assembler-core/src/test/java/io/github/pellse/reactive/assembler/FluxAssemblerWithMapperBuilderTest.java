@@ -1,10 +1,9 @@
-package io.github.pellse.reactive.assembler.flux;
+package io.github.pellse.reactive.assembler;
 
 import io.github.pellse.assembler.BillingInfo;
 import io.github.pellse.assembler.Customer;
 import io.github.pellse.assembler.OrderItem;
 import io.github.pellse.assembler.Transaction;
-import io.github.pellse.reactive.assembler.Assembler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -17,10 +16,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.AssemblerRuleBuilder.rule;
+import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.reactive.assembler.KeyValueStorePublisher.asKeyValueStore;
 import static io.github.pellse.reactive.assembler.MapperBuilder.oneToManyAsList;
 import static io.github.pellse.reactive.assembler.MapperBuilder.oneToOne;
-import static io.github.pellse.reactive.assembler.flux.FluxAdapter.fluxAdapter;
 import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -60,7 +59,7 @@ public class FluxAssemblerWithMapperBuilderTest {
                         rule(oneToOne(this::getBillingInfos, BillingInfo::new)).withIdExtractor(BillingInfo::getCustomerId),
                         rule(oneToManyAsList(this::getAllOrders)).withIdExtractor(OrderItem::getCustomerId),
                         Transaction::new)
-                .using(fluxAdapter());
+                .build(fluxAdapter());
 
         StepVerifier.create(getCustomers()
                 .window(3)
@@ -85,7 +84,7 @@ public class FluxAssemblerWithMapperBuilderTest {
                         rule(oneToOne(a, BillingInfo::new)).withIdExtractor(BillingInfo::getCustomerId),
                         rule(oneToManyAsList(this::getAllOrders)).withIdExtractor(OrderItem::getCustomerId),
                         Transaction::new)
-                .using(fluxAdapter());
+                .build(fluxAdapter());
 
         StepVerifier.create(getCustomers()
                 .window(3)
