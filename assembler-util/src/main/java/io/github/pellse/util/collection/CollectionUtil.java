@@ -12,7 +12,9 @@ public interface CollectionUtil {
     }
 
     static boolean isEmpty(Iterable<?> iterable) {
-        return iterable == null || (iterable instanceof Collection && ((Collection<?>) iterable).isEmpty()) || iterable.iterator().hasNext();
+        return iterable == null ||
+                (iterable instanceof Collection && ((Collection<?>) iterable).isEmpty()) ||
+                !iterable.iterator().hasNext();
     }
 
     static boolean isNotEmpty(Iterable<?> iterable) {
@@ -20,6 +22,11 @@ public interface CollectionUtil {
     }
 
     static long size(Iterable<?> iterable) {
-        return iterable instanceof Collection ? ((Collection<?>) iterable).size() : stream(iterable.spliterator(), false).count();
+        if (iterable == null)
+            return 0;
+
+        return iterable instanceof Collection
+                ? ((Collection<?>) iterable).size()
+                : stream(iterable.spliterator(), false).count();
     }
 }
