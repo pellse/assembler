@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.util.collection.CollectionUtil.toStream;
-import static io.github.pellse.util.function.checked.Unchecked.unchecked;
 import static java.util.stream.Collectors.toList;
 
 public interface AssemblerBuilder {
@@ -219,6 +218,7 @@ public interface AssemblerBuilder {
 
     interface AssembleUsingBuilder<T, ID, R> {
         Assembler<T, Flux<R>> build();
+
         <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> adapter);
     }
 
@@ -316,7 +316,7 @@ public interface AssemblerBuilder {
                     .collect(toList());
 
             return subQueryMappers.stream()
-                    .map(unchecked(mapper -> mapper.apply(entityIDs)));
+                    .map(mapper -> mapper.apply(entityIDs));
         }
     }
 }

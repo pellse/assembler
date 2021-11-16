@@ -42,7 +42,7 @@ public final class AkkaSourceAdapter<T, ID, R> implements AssemblerAdapter<T, ID
     public Source<R, ?> convertMapperSources(Supplier<Iterable<T>> topLevelEntitiesProvider,
                                              Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder,
                                              BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
-        return lazily(() -> single(topLevelEntitiesProvider.get()))
+        return lazySource(() -> single(topLevelEntitiesProvider.get()))
                 .flatMapConcat(entities -> zipN(mapperSourcesBuilder.apply(entities)
                         .map(this::createAkkaSource)
                         .collect(toList()))
@@ -51,7 +51,7 @@ public final class AkkaSourceAdapter<T, ID, R> implements AssemblerAdapter<T, ID
     }
 
     private Source<Map<ID, ?>, ?> createAkkaSource(Supplier<Map<ID, ?>> mappingSupplier) {
-        return sourceTransformer.apply(lazily(() -> single(mappingSupplier.get())));
+        return sourceTransformer.apply(lazySource(() -> single(mappingSupplier.get())));
     }
 
     public static <T, ID, R> AkkaSourceAdapter<T, ID, R> akkaSourceAdapter() {

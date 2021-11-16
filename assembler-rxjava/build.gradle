@@ -1,11 +1,7 @@
-ext {
-    rxjavaVersion = '3.0.0-RC3'
-}
-
 dependencies {
     implementation project(':assembler-core')
     implementation project(':assembler-util')
-    implementation "io.reactivex.rxjava3:rxjava:${rxjavaVersion}"
+    implementation "io.reactivex.rxjava3:rxjava:3.1.2"
 
     testImplementation project(':assembler-core').sourceSets.test.output
 }
