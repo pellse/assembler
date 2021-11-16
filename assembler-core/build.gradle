@@ -1,3 +1,3 @@
 dependencies {
-    compile project(':assembler-util')
+    implementation project(':assembler-util')
 }

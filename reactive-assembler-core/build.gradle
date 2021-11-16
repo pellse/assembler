@@ -1,12 +1,21 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
+}
+
 ext {
     reactorVersion = '3.3.8.RELEASE'
 }
 
 dependencies {
-    compile project(':assembler-util')
+    implementation platform('org.jetbrains.kotlin:kotlin-bom')
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    // testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 
-    testCompile project(':assembler-core').sourceSets.test.output
+    implementation project(':assembler-util')
 
-    testCompile "io.projectreactor:reactor-test:${reactorVersion}"
-    compile "io.projectreactor:reactor-core:${reactorVersion}"
+    testImplementation project(':assembler-core').sourceSets.test.output
+
+    testImplementation "io.projectreactor:reactor-test:${reactorVersion}"
+    implementation "io.projectreactor:reactor-core:${reactorVersion}"
 }

@@ -3,8 +3,8 @@ ext {
 }
 
 dependencies {
-    compile project(':assembler-core')
-    compile "io.reactivex.rxjava3:rxjava:${rxjavaVersion}"
+    implementation project(':assembler-core')
+    implementation "io.reactivex.rxjava3:rxjava:${rxjavaVersion}"
 
-    testCompile project(':assembler-core').sourceSets.test.output
+    testImplementation project(':assembler-core').sourceSets.test.output
 }

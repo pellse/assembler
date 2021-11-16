@@ -3,10 +3,10 @@ ext {
 }
 
 dependencies {
-    compile project(':assembler-core')
+    implementation project(':assembler-core')
 
-    testCompile project(':assembler-core').sourceSets.test.output
-    testCompile "io.projectreactor:reactor-test:${reactorVersion}"
+    testImplementation project(':assembler-core').sourceSets.test.output
+    testImplementation "io.projectreactor:reactor-test:${reactorVersion}"
 
-    compile "io.projectreactor:reactor-core:${reactorVersion}"
+    implementation "io.projectreactor:reactor-core:${reactorVersion}"
 }

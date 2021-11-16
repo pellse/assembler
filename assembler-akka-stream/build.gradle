@@ -19,9 +19,9 @@ ext {
 }
 
 dependencies {
-    compile project(':assembler-core')
-    compile "com.typesafe.akka:akka-stream_2.11:${akkaStreamVersion}"
+    implementation project(':assembler-core')
+    implementation "com.typesafe.akka:akka-stream_2.11:${akkaStreamVersion}"
 
-    testCompile project(':assembler-core').sourceSets.test.output
-    testCompile "com.typesafe.akka:akka-stream-testkit_2.11:${akkaStreamVersion}"
+    testImplementation project(':assembler-core').sourceSets.test.output
+    testImplementation "com.typesafe.akka:akka-stream-testkit_2.11:${akkaStreamVersion}"
 }
