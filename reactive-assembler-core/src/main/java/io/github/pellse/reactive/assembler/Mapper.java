@@ -34,27 +34,25 @@ import static java.util.stream.StreamSupport.stream;
 import static reactor.core.publisher.Mono.from;
 
 @FunctionalInterface
-public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, R>>> {
+public interface Mapper<ID, R> extends Function<Iterable<@NotNull ID>, Publisher<Map<@NotNull ID, @NotNull R>>> {
 
     @NotNull
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper) {
+    static <ID, R> Mapper<@NotNull ID, @NotNull R> cached(Mapper<ID, R> mapper) {
         return cached(mapper, ConcurrentHashMap::new);
     }
 
     @NotNull
-    static <ID, R>
-    Mapper<ID, R> cached(Mapper<ID, R> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier) {
+    static <ID, R> Mapper<@NotNull ID, @NotNull R> cached(Mapper<ID, R> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier) {
         return cached(mapper, cacheSupplier, null);
     }
 
     @NotNull
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Duration ttl) {
+    static <ID, R> Mapper<@NotNull ID, @NotNull R> cached(Mapper<ID, R> mapper, Duration ttl) {
         return cached(mapper, ConcurrentHashMap::new, ttl);
     }
 
     @NotNull
-    static <ID, R>
-    Mapper<ID, R> cached(Mapper<ID, R> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier, Duration ttl) {
+    static <ID, R> Mapper<@NotNull ID, @NotNull R> cached(Mapper<ID, R> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier, Duration ttl) {
         var cache = cacheSupplier.get();
         return entityIds -> cache.computeIfAbsent(entityIds, ids -> toCachedMono(from(mapper.apply(ids)), ttl));
     }
@@ -66,7 +64,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, R> Mapper<ID, R> oneToOne(
+    static <ID, R> Mapper<@NotNull ID, @NotNull R> oneToOne(
             Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
@@ -75,7 +73,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R> Mapper<ID, R> oneToOne(
+    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull R> oneToOne(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
@@ -85,7 +83,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, R> Mapper<ID, R> oneToOne(
+    static <ID, R> Mapper<@NotNull ID, @NotNull R> oneToOne(
             Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider) {
@@ -95,7 +93,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, R> Mapper<ID, R> oneToOne(
+    static <ID, R> Mapper<@NotNull ID, @NotNull R> oneToOne(
             Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider,
@@ -106,7 +104,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R> Mapper<ID, R> oneToOne(
+    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull R> oneToOne(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider,
@@ -118,7 +116,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
     @NotNull
     @Contract(pure = true)
     @SuppressWarnings("unchecked")
-    static <ID, IDC extends Collection<ID>, R> Mapper<ID, R> oneToOne(
+    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull R> oneToOne(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Function<ID, R> defaultResultProvider,
@@ -131,7 +129,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, R> Mapper<ID, List<R>> oneToManyAsList(
+    static <ID, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToManyAsList(
             Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
@@ -140,7 +138,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, R> Mapper<ID, List<R>> oneToManyAsList(
+    static <ID, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToManyAsList(
             Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             MapFactory<ID, List<R>> mapFactory) {
@@ -150,7 +148,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R> Mapper<ID, List<R>> oneToManyAsList(
+    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToManyAsList(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
@@ -160,7 +158,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R> Mapper<ID, List<R>> oneToManyAsList(
+    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToManyAsList(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory,
@@ -171,7 +169,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, R> Mapper<ID, Set<R>> oneToManyAsSet(
+    static <ID, R> Mapper<@NotNull ID, @NotNull Set<@NotNull R>> oneToManyAsSet(
             Function<Set<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
@@ -180,7 +178,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, R> Mapper<ID, Set<R>> oneToManyAsSet(
+    static <ID, R> Mapper<@NotNull ID, @NotNull Set<@NotNull R>> oneToManyAsSet(
             Function<Set<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             MapFactory<ID, Set<R>> mapFactory) {
@@ -190,7 +188,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R> Mapper<ID, Set<R>> oneToManyAsSet(
+    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull Set<@NotNull R>> oneToManyAsSet(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
@@ -200,7 +198,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R> Mapper<ID, Set<R>> oneToManyAsSet(
+    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull Set<@NotNull R>> oneToManyAsSet(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory,
@@ -211,7 +209,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> Mapper<ID, RC> oneToMany(
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<@NotNull R>> Mapper<@NotNull ID, @NotNull RC> oneToMany(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<RC> collectionFactory,
@@ -223,7 +221,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
     @NotNull
     @Contract(pure = true)
     @SuppressWarnings("unchecked")
-    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> Mapper<ID, RC> oneToMany(
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<@NotNull R>> Mapper<@NotNull ID, @NotNull RC> oneToMany(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<RC> collectionFactory,
@@ -236,13 +234,13 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
     @NotNull
     @Contract(pure = true)
-    private static <ID, IDC extends Collection<ID>, R> Mapper<ID, R> convertIdTypeMapperDelegate(
+    private static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull R> convertIdTypeMapperDelegate(
             Mapper<ID, R> mapper, Supplier<IDC> idCollectionFactory) {
 
         return entityIds -> mapper.apply(refineEntityIDType(entityIds, idCollectionFactory));
     }
 
-    private static <ID, IDC extends Collection<ID>> IDC refineEntityIDType(@NotNull Iterable<ID> entityIds, Supplier<IDC> idCollectionFactory) {
+    private static <ID, IDC extends Collection<ID>> IDC refineEntityIDType(Iterable<ID> entityIds, Supplier<IDC> idCollectionFactory) {
 
         return stream(entityIds.spliterator(), false)
                 .collect(toCollection(idCollectionFactory));

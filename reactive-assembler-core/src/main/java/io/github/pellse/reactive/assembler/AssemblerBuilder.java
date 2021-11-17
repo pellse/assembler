@@ -37,20 +37,21 @@ public interface AssemblerBuilder {
 
     @NotNull
     @Contract(value = "_ -> new", pure = true)
-    static <R> WithIdExtractorBuilder<R> assemblerOf(Class<R> outputClass) {
+    static <R> WithIdExtractorBuilder<@NotNull R> assemblerOf(@NotNull Class<R> outputClass) {
         return new WithIdExtractorBuilderImpl<>();
     }
 
     @FunctionalInterface
     interface WithIdExtractorBuilder<R> {
-        <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdExtractor(Function<T, ID> idExtractor);
+        @NotNull <T, ID> WithAssemblerRulesBuilder<@NotNull T, @NotNull ID, @NotNull R> withIdExtractor(@NotNull Function<T, ID> idExtractor);
     }
 
     @FunctionalInterface
     interface WithAssemblerRulesBuilder<T, ID, R> {
 
         @SuppressWarnings("unchecked")
-        default <E1> AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        @NotNull
+        default <E1> AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper,
                 BiFunction<T, E1, R> assemblerFunction) {
 
@@ -58,8 +59,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Function3<T, E1, E2, R> assemblerFunction) {
@@ -68,8 +70,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2, E3>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Mapper<ID, E3> mapper3,
@@ -80,8 +83,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2, E3, E4>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Mapper<ID, E3> mapper3,
@@ -93,8 +97,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2, E3, E4, E5>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Mapper<ID, E3> mapper3,
@@ -107,8 +112,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2, E3, E4, E5, E6>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Mapper<ID, E3> mapper3,
@@ -122,8 +128,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2, E3, E4, E5, E6, E7>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Mapper<ID, E3> mapper3,
@@ -139,8 +146,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2, E3, E4, E5, E6, E7, E8>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Mapper<ID, E3> mapper3,
@@ -157,8 +165,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Mapper<ID, E3> mapper3,
@@ -176,8 +185,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Mapper<ID, E3> mapper3,
@@ -196,8 +206,9 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
+        @NotNull
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11>
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(
                 Mapper<ID, E1> mapper1,
                 Mapper<ID, E2> mapper2,
                 Mapper<ID, E3> mapper3,
@@ -216,16 +227,15 @@ public interface AssemblerBuilder {
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9], (E11) s[10]));
         }
 
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?>> mappers,
-                                                          BiFunction<T, Object[], R> aggregationFunction);
+        AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(List<Mapper<ID, ?>> mappers,
+                                                                                     BiFunction<T, Object[], R> aggregationFunction);
     }
 
     interface AssembleUsingBuilder<T, ID, R> {
         @NotNull
-        Assembler<T, Flux<R>> build();
+        Assembler<@NotNull T, @NotNull Flux<@NotNull R>> build();
 
-        @NotNull
-        <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> adapter);
+        @NotNull <RC> Assembler<@NotNull T, @NotNull RC> build(AssemblerAdapter<T, ID, R, RC> adapter);
     }
 
     class WithIdExtractorBuilderImpl<R> implements WithIdExtractorBuilder<R> {
@@ -234,12 +244,13 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdExtractor(Function<T, ID> idExtractor) {
+        @NotNull
+        public <T, ID> WithAssemblerRulesBuilder<@NotNull T, @NotNull ID, @NotNull R> withIdExtractor(@NotNull Function<T, ID> idExtractor) {
             return new WithAssemblerRulesBuilderImpl<>(idExtractor);
         }
     }
 
-    class WithAssemblerRulesBuilderImpl<T, ID, R> implements WithAssemblerRulesBuilder<T, ID, R> {
+    class WithAssemblerRulesBuilderImpl<T, ID, R> implements WithAssemblerRulesBuilder<@NotNull T, @NotNull ID, @NotNull R> {
 
         private final Function<T, ID> idExtractor;
 
@@ -248,13 +259,14 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?>> mappers,
-                                                                 BiFunction<T, Object[], R> aggregationFunction) {
+        @NotNull
+        public AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> withAssemblerRules(List<Mapper<ID, ?>> mappers,
+                                                                                            BiFunction<T, Object[], R> aggregationFunction) {
             return new AssembleUsingBuilderImpl<>(idExtractor, mappers, aggregationFunction);
         }
     }
 
-    class AssembleUsingBuilderImpl<T, ID, R> implements AssembleUsingBuilder<T, ID, R> {
+    class AssembleUsingBuilderImpl<T, ID, R> implements AssembleUsingBuilder<@NotNull T, @NotNull ID, @NotNull R> {
 
         private final Function<T, ID> idExtractor;
         private final BiFunction<T, Object[], R> aggregationFunction;
@@ -283,7 +295,7 @@ public interface AssemblerBuilder {
         }
     }
 
-    class AssemblerImpl<T, ID, R, RC> implements Assembler<T, RC> {
+    class AssemblerImpl<T, ID, R, RC> implements Assembler<@NotNull T, @NotNull RC> {
 
         private final AssemblerAdapter<T, ID, R, RC> assemblerAdapter;
         private final Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> mapperSourcesBuilder;
@@ -312,7 +324,7 @@ public interface AssemblerBuilder {
 
         @NotNull
         @Override
-        public RC assemble(Publisher<T> topLevelEntitiesProvider) {
+        public RC assemble(Publisher<@NotNull T> topLevelEntitiesProvider) {
             return assemblerAdapter.convertMapperSources(topLevelEntitiesProvider, mapperSourcesBuilder, aggregateStreamBuilder);
         }
 

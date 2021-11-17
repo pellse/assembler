@@ -25,5 +25,5 @@ import org.reactivestreams.Publisher;
  */
 public interface Assembler<T, RC> {
     @NotNull
-    RC assemble(Publisher<T> topLevelEntities);
+    RC assemble(Publisher<@NotNull T> topLevelEntities);
 }
