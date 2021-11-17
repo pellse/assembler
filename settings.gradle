@@ -6,4 +6,5 @@ include 'assembler-core',
         'assembler-akka-stream',
         'assembler-reactive-stream-operators',
         'assembler-util',
-        'reactive-assembler-core'
+        'reactive-assembler-core',
+        'reactive-assembler-kotlin-extension'

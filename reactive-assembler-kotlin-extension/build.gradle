@@ -1,16 +1,19 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.6.0'
+}
+
 ext {
     reactorVersion = '3.4.12'
 }
 
 dependencies {
 
+    implementation project(':reactive-assembler-core')
     implementation project(':assembler-util')
-    implementation "io.projectreactor:reactor-core:${reactorVersion}"
 
-    implementation 'org.jetbrains:annotations:22.0.0'
+    implementation platform('org.jetbrains.kotlin:kotlin-bom')
 
     testImplementation project(':assembler-core').sourceSets.test.output
 
     testImplementation "io.projectreactor:reactor-test:${reactorVersion}"
-
 }
