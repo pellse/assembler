@@ -17,6 +17,8 @@
 package io.github.pellse.reactive.assembler;
 
 import io.github.pellse.util.collection.CollectionUtil;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -35,6 +37,7 @@ import static java.util.stream.Collectors.*;
 
 public interface QueryUtils {
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
                                    Function<IDC, Publisher<R>> queryFunction,
@@ -43,6 +46,7 @@ public interface QueryUtils {
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
     }
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
                                    Function<IDC, Publisher<R>> queryFunction,
@@ -52,6 +56,7 @@ public interface QueryUtils {
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null, mapFactory);
     }
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
                                    Function<IDC, Publisher<R>> queryFunction,
@@ -61,6 +66,7 @@ public interface QueryUtils {
         return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultResultProvider, defaultMapFactory());
     }
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
                                    Function<IDC, Publisher<R>> queryFunction,
@@ -71,6 +77,7 @@ public interface QueryUtils {
         return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u1, toSupplier(ids, mapFactory)));
     }
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, List<R>>> queryOneToManyAsList(IDC ids,
                                                 Function<IDC, Publisher<R>> queryFunction,
@@ -79,6 +86,7 @@ public interface QueryUtils {
         return queryOneToManyAsList(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
     }
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, List<R>>> queryOneToManyAsList(IDC ids,
                                                 Function<IDC, Publisher<R>> queryFunction,
@@ -88,6 +96,7 @@ public interface QueryUtils {
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
     }
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, Set<R>>> queryOneToManyAsSet(IDC ids,
                                               Function<IDC, Publisher<R>> queryFunction,
@@ -96,6 +105,7 @@ public interface QueryUtils {
         return queryOneToManyAsSet(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
     }
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, Set<R>>> queryOneToManyAsSet(IDC ids,
                                               Function<IDC, Publisher<R>> queryFunction,
@@ -105,6 +115,7 @@ public interface QueryUtils {
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
     }
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>>
     Mono<Map<ID, RC>> queryOneToMany(IDC ids,
                                      Function<IDC, Publisher<R>> queryFunction,
@@ -114,6 +125,7 @@ public interface QueryUtils {
         return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, collectionFactory, defaultMapFactory());
     }
 
+    @NotNull
     static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>>
     Mono<Map<ID, RC>> queryOneToMany(IDC ids,
                                      Function<IDC, Publisher<R>> queryFunction,
@@ -145,6 +157,7 @@ public interface QueryUtils {
      * @return A {@link Map} of the results from invoking the {@code queryFunction}
      * with key = correlation ID, value = result associated with ID
      */
+    @NotNull
     static <V, ID, R, IDC extends Collection<ID>>
     Mono<Map<ID, V>> query(IDC ids,
                            Function<IDC, Publisher<R>> queryFunction,
@@ -156,6 +169,7 @@ public interface QueryUtils {
                 .flatMap(map -> toResultMap(ids, map, defaultResultProvider));
     }
 
+    @NotNull
     static <T, R, C extends Iterable<? extends T>>
     Flux<R> safeApply(C coll, Function<C, Publisher<R>> queryFunction) {
         requireNonNull(queryFunction, "queryFunction cannot be null");
@@ -165,11 +179,13 @@ public interface QueryUtils {
                 .flatMapMany(queryFunction);
     }
 
+    @NotNull
     private static <V, ID, IDC extends Collection<ID>>
     Mono<Map<ID, V>> toResultMap(IDC ids, Map<ID, V> map, Function<ID, V> defaultResultProvider) {
         return Mono.just(isSafeEqual(map, Map::size, ids, Collection::size) ? map : initializeResultMap(ids, map, defaultResultProvider));
     }
 
+    @NotNull
     private static <V, ID, IDC extends Collection<ID>>
     Map<ID, V> initializeResultMap(IDC ids, Map<ID, V> resultMap, Function<ID, V> defaultResultProvider) {
         Function<ID, V> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
@@ -185,6 +201,8 @@ public interface QueryUtils {
         return resultMapCopy;
     }
 
+    @NotNull
+    @Contract(pure = true)
     private static <ID, R, IDC extends Collection<ID>>
     Supplier<Map<ID, R>> toSupplier(IDC ids, MapFactory<ID, R> mapFactory) {
         MapFactory<ID, R> actualMapFactory = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);

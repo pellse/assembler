@@ -17,6 +17,8 @@
 package io.github.pellse.reactive.assembler;
 
 import io.github.pellse.util.function.*;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
@@ -33,6 +35,8 @@ import static java.util.stream.Collectors.toList;
 
 public interface AssemblerBuilder {
 
+    @NotNull
+    @Contract(value = "_ -> new", pure = true)
     static <R> WithIdExtractorBuilder<R> assemblerOf(Class<R> outputClass) {
         return new WithIdExtractorBuilderImpl<>();
     }
@@ -217,8 +221,10 @@ public interface AssemblerBuilder {
     }
 
     interface AssembleUsingBuilder<T, ID, R> {
+        @NotNull
         Assembler<T, Flux<R>> build();
 
+        @NotNull
         <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> adapter);
     }
 
@@ -264,11 +270,13 @@ public interface AssemblerBuilder {
             this.mappers = mappers;
         }
 
+        @NotNull
         @Override
         public Assembler<T, Flux<R>> build() {
             return build(fluxAdapter());
         }
 
+        @NotNull
         @Override
         public <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
             return new AssemblerImpl<>(idExtractor, mappers, aggregationFunction, assemblerAdapter);
@@ -302,6 +310,7 @@ public interface AssemblerBuilder {
                             .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
         }
 
+        @NotNull
         @Override
         public RC assemble(Publisher<T> topLevelEntitiesProvider) {
             return assemblerAdapter.convertMapperSources(topLevelEntitiesProvider, mapperSourcesBuilder, aggregateStreamBuilder);
