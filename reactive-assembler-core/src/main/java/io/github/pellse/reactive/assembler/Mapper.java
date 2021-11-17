@@ -129,26 +129,26 @@ public interface Mapper<ID, R> extends Function<Iterable<@NotNull ID>, Publisher
 
     @NotNull
     @Contract(pure = true)
-    static <ID, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToManyAsList(
+    static <ID, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToMany(
             Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults) {
 
-        return oneToManyAsList(queryFunction, idExtractorFromQueryResults, ArrayList::new, null);
+        return oneToMany(queryFunction, idExtractorFromQueryResults, ArrayList::new, (MapFactory<ID, List<R>>) null);
     }
 
     @NotNull
     @Contract(pure = true)
-    static <ID, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToManyAsList(
+    static <ID, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToMany(
             Function<List<ID>, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             MapFactory<ID, List<R>> mapFactory) {
 
-        return oneToManyAsList(queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
+        return oneToMany(queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
     }
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToManyAsList(
+    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToMany(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory) {
@@ -158,7 +158,7 @@ public interface Mapper<ID, R> extends Function<Iterable<@NotNull ID>, Publisher
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToManyAsList(
+    static <ID, IDC extends Collection<ID>, R> Mapper<@NotNull ID, @NotNull List<@NotNull R>> oneToMany(
             Function<IDC, Publisher<R>> queryFunction,
             Function<R, ID> idExtractorFromQueryResults,
             Supplier<IDC> idCollectionFactory,

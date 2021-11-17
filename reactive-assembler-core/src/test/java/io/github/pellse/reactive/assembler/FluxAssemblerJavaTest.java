@@ -74,7 +74,7 @@ public class FluxAssemblerJavaTest {
                                 .withIdExtractor(Customer::getCustomerId)
                                 .withAssemblerRules(
                                         oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                        oneToManyAsList(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                        oneToMany(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                                         Transaction::new)
                                 .build(fluxAdapter())
                                 .assemble(getCustomers())
@@ -93,7 +93,7 @@ public class FluxAssemblerJavaTest {
                                 .withIdExtractor(Customer::getCustomerId)
                                 .withAssemblerRules(
                                         oneToOne(ReactiveAssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                                        oneToManyAsList(ReactiveAssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                                        oneToMany(ReactiveAssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
                                         Transaction::new)
                                 .build(fluxAdapter(immediate()))
                                 .assemble(getCustomers())
@@ -113,7 +113,7 @@ public class FluxAssemblerJavaTest {
                                         .withIdExtractor(Customer::getCustomerId)
                                         .withAssemblerRules(
                                                 oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                                oneToManyAsList(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                                oneToMany(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
                                                 Transaction::new)
                                         .build(fluxAdapter())
                                         .assemble(customers))
@@ -131,7 +131,7 @@ public class FluxAssemblerJavaTest {
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
+                        oneToMany(this::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .build(fluxAdapter());
 
@@ -156,7 +156,7 @@ public class FluxAssemblerJavaTest {
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         oneToOne(billingInfoPublisher, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
+                        oneToMany(this::getAllOrders, OrderItem::getCustomerId),
                         Transaction::new)
                 .build(fluxAdapter());
 
@@ -179,7 +179,7 @@ public class FluxAssemblerJavaTest {
                 .withIdExtractor(Customer::getCustomerId)
                 .withAssemblerRules(
                         cached(oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new)),
-                        cached(oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId)),
+                        cached(oneToMany(this::getAllOrders, OrderItem::getCustomerId)),
                         Transaction::new)
                 .build(fluxAdapter());
 
