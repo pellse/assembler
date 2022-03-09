@@ -21,6 +21,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 
 import java.util.List;
 import java.util.Map;
@@ -235,6 +236,9 @@ public interface AssemblerBuilder {
         @NotNull
         Assembler<@NotNull T, @NotNull Flux<@NotNull R>> build();
 
+        @NotNull
+        Assembler<@NotNull T, @NotNull Flux<@NotNull R>> build(Scheduler scheduler);
+
         @NotNull <RC> Assembler<@NotNull T, @NotNull RC> build(AssemblerAdapter<T, ID, R, RC> adapter);
     }
 
@@ -286,6 +290,12 @@ public interface AssemblerBuilder {
         @Override
         public Assembler<T, Flux<R>> build() {
             return build(fluxAdapter());
+        }
+
+        @NotNull
+        @Override
+        public Assembler<T, Flux<R>> build(Scheduler scheduler) {
+            return build(fluxAdapter(scheduler));
         }
 
         @NotNull

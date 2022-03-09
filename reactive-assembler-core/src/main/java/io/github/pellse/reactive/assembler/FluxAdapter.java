@@ -43,7 +43,6 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
     }
 
     @NotNull
-    @SuppressWarnings("unchecked")
     @Override
     public Flux<R> convertMapperSources(Publisher<T> topLevelEntitiesProvider,
                                         Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> mapperSourcesBuilder,
@@ -53,9 +52,9 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
                 .collectList()
                 .flatMapMany(entities ->
                         zip(mapperSourcesBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).collect(toList()),
-                                mapperResults -> aggregateStreamBuilder.apply(entities, Stream.of(mapperResults)
-                                        .map(mapResult -> (Map<ID, ?>) mapResult)
-                                        .collect(toList()))))
+                                mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))
+                        )
+                )
                 .flatMap(Flux::fromStream);
     }
 
@@ -69,5 +68,12 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
     @Contract(value = "_ -> new", pure = true)
     public static <T, ID, R> FluxAdapter<T, ID, R> fluxAdapter(Scheduler scheduler) {
         return new FluxAdapter<>(scheduler);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <ID> List<Map<ID, ?>> toMapperResultList(Object[] mapperResults) {
+        return Stream.of(mapperResults)
+                .map(mapResult -> (Map<ID, ?>) mapResult)
+                .collect(toList());
     }
 }
