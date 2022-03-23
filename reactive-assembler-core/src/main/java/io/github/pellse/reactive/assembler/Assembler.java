@@ -16,7 +16,6 @@
 
 package io.github.pellse.reactive.assembler;
 
-import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Publisher;
 
 /**
@@ -24,6 +23,5 @@ import org.reactivestreams.Publisher;
  * @param <RC> Output Type e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
  */
 public interface Assembler<T, RC> {
-    @NotNull
-    RC assemble(Publisher<@NotNull T> topLevelEntities);
+    RC assemble(Publisher<T> topLevelEntities);
 }

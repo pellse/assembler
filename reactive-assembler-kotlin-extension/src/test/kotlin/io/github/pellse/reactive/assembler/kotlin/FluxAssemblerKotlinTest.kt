@@ -5,7 +5,8 @@ import io.github.pellse.assembler.BillingInfo
 import io.github.pellse.assembler.Customer
 import io.github.pellse.assembler.OrderItem
 import io.github.pellse.assembler.Transaction
-import io.github.pellse.reactive.assembler.Mapper.*
+import io.github.pellse.reactive.assembler.Mapper.oneToMany
+import io.github.pellse.reactive.assembler.Mapper.oneToOne
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -47,8 +48,8 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::getCustomerId)
             .withAssemblerRules(
-                oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, ::BillingInfo),
-                oneToMany(this::getAllOrders, OrderItem::getCustomerId),
+                oneToOne(::getBillingInfos, BillingInfo::getCustomerId, ::BillingInfo),
+                oneToMany(::getAllOrders, OrderItem::getCustomerId),
                 ::Transaction
             ).build()
 
