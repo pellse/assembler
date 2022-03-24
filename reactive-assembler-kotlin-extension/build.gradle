@@ -1,9 +1,5 @@
-//plugins {
-//    id 'org.jetbrains.kotlin.jvm' version '1.6.0'
-//}
-
 ext {
-    reactorVersion = '3.4.15'
+    reactorVersion = '3.4.16'
 }
 
 dependencies {
