@@ -72,7 +72,7 @@ Flux<Transaction> transactionFlux = assembler.assemble(customers());
 ```
 In the scenario where we might deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will trigger resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries (Project Reactor, RxJava, Akka Streams, etc.) already support that concept, below is an example using Project Reactor:
 ```java
-Flux<Transaction> transactionFlux = customers() // or Flux.from(customers()) if customers() returns a Publisher
+Flux<Transaction> transactionFlux = customers()
     .windowTimeout(100, ofSeconds(5))
     .flatMapSequential(assembler::assemble);
 ```
