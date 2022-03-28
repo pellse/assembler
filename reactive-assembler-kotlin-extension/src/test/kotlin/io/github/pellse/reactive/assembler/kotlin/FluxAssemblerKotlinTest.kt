@@ -46,10 +46,10 @@ class FluxAssemblerKotlinTest {
     fun testReusableAssemblerBuilderWithFluxWithBuffering() {
 
         val assembler = assembler<Transaction>()
-            .withIdExtractor(Customer::getCustomerId)
+            .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                oneToOne(::getBillingInfos, BillingInfo::getCustomerId, ::BillingInfo),
-                oneToMany(::getAllOrders, OrderItem::getCustomerId),
+                oneToOne(::getBillingInfos, BillingInfo::customerId, ::BillingInfo),
+                oneToMany(::getAllOrders, OrderItem::customerId),
                 ::Transaction
             ).build()
 

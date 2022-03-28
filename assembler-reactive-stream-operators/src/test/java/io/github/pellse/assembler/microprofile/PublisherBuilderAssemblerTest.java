@@ -62,10 +62,10 @@ class PublisherBuilderAssemblerTest {
         };
 
         PublisherBuilder<Transaction> transactionPublisherBuilder = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(publisherBuilderAdapter())
                 .assembleFromSupplier(getCustomers);
@@ -94,10 +94,10 @@ class PublisherBuilderAssemblerTest {
         };
 
         PublisherBuilder<Transaction> transactionPublisherBuilder = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(publisherBuilderAdapter(true))
                 .assembleFromSupplier(getCustomers);
@@ -122,10 +122,10 @@ class PublisherBuilderAssemblerTest {
 
         assertThrows(UserDefinedRuntimeException.class, () -> {
             PublisherBuilder<Transaction> transactionPublisherBuilder = assemblerOf(Transaction.class)
-                    .withIdExtractor(Customer::getCustomerId)
+                    .withIdExtractor(Customer::customerId)
                     .withAssemblerRules(
-                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
+                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
                             Transaction::new)
                     .withErrorConverter(UserDefinedRuntimeException::new)
                     .using(publisherBuilderAdapter())
@@ -145,10 +145,10 @@ class PublisherBuilderAssemblerTest {
         StepVerifier.create(Flux.fromIterable(getCustomers())
                 .buffer(3)
                 .concatMap(customers -> assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::getCustomerId)
+                        .withIdExtractor(Customer::customerId)
                         .withAssemblerRules(
-                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                 Transaction::new)
                         .using(publisherAdapter())
                         .assemble(customers)))
@@ -159,13 +159,13 @@ class PublisherBuilderAssemblerTest {
     }
 
     @Test
-    void testReusableAssemblerBuilderWithPublisherBuilderWithBufferingFlux() throws Exception {
+    void testReusableAssemblerBuilderWithPublisherBuilderWithBufferingFlux() {
 
         Assembler<Customer, PublisherBuilder<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(publisherBuilderAdapter());
 
@@ -186,10 +186,10 @@ class PublisherBuilderAssemblerTest {
         final Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers())
                 .buffer(3)
                 .concatMap(customers -> assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::getCustomerId)
+                        .withIdExtractor(Customer::customerId)
                         .withAssemblerRules(
-                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                 Transaction::new)
                         .using(publisherBuilderAdapter())
                         .assemble(customers)
@@ -203,10 +203,10 @@ class PublisherBuilderAssemblerTest {
     void testReusableAssemblerWithPublisherBuilderWithBufferingRxJava() {
 
         Assembler<Customer, Publisher<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(publisherAdapter());
 

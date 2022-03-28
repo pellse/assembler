@@ -30,13 +30,13 @@ public class FluxAssemblerWithMapperBuilderTest {
 
     private Publisher<BillingInfo> getBillingInfos(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
-                .filter(billingInfo -> customerIds.contains(billingInfo.getCustomerId()))
+                .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
     }
 
     private Publisher<OrderItem> getAllOrders(List<Long> customerIds) {
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()))
+                .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
     }
 
@@ -54,10 +54,10 @@ public class FluxAssemblerWithMapperBuilderTest {
     public void testReusableAssemblerBuilderWithFluxWithRuleBuilders() {
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(oneToOne(this::getBillingInfos, BillingInfo::new)).withIdExtractor(BillingInfo::getCustomerId),
-                        rule(oneToManyAsList(this::getAllOrders)).withIdExtractor(OrderItem::getCustomerId),
+                        rule(oneToOne(this::getBillingInfos, BillingInfo::new)).withIdExtractor(BillingInfo::customerId),
+                        rule(oneToManyAsList(this::getAllOrders)).withIdExtractor(OrderItem::customerId),
                         Transaction::new)
                 .build(fluxAdapter());
 
@@ -76,13 +76,13 @@ public class FluxAssemblerWithMapperBuilderTest {
     @Test
     public void testReusableAssemblerBuilderWithFluxWithRuleBuilders2() {
 
-        var a = asKeyValueStore(getBillingInfos(of(1L, 2L, 3L)), BillingInfo::getCustomerId);
+        var a = asKeyValueStore(getBillingInfos(of(1L, 2L, 3L)), BillingInfo::customerId);
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(oneToOne(a, BillingInfo::new)).withIdExtractor(BillingInfo::getCustomerId),
-                        rule(oneToManyAsList(this::getAllOrders)).withIdExtractor(OrderItem::getCustomerId),
+                        rule(oneToOne(a, BillingInfo::new)).withIdExtractor(BillingInfo::customerId),
+                        rule(oneToManyAsList(this::getAllOrders)).withIdExtractor(OrderItem::customerId),
                         Transaction::new)
                 .build(fluxAdapter());
 

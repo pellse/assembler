@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.util.collection.CollectionUtil.toStream;
-import static java.util.stream.Collectors.toList;
 
 public interface AssemblerBuilder {
 
@@ -324,7 +323,7 @@ public interface AssemblerBuilder {
             List<ID> entityIDs = toStream(topLevelEntities)
                     .filter(Objects::nonNull)
                     .map(idExtractor)
-                    .collect(toList());
+                    .toList();
 
             return subQueryMappers.stream()
                     .map(mapper -> mapper.apply(entityIDs));

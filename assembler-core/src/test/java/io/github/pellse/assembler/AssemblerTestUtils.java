@@ -62,27 +62,27 @@ public final class AssemblerTestUtils {
 
     public static List<BillingInfo> getBillingInfos(List<Long> customerIds) {
         return Stream.of(billingInfo1, null, billingInfo3)
-                .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.getCustomerId()))
+                .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.customerId()))
                 .collect(toList());
     }
 
     public static List<BillingInfo> getBillingInfosWithSetIds(Set<Long> customerIds) {
         return Stream.of(billingInfo1, null, billingInfo3)
-                .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.getCustomerId()))
+                .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.customerId()))
                 .collect(toList());
     }
 
     public static List<OrderItem> getAllOrders(List<Long> customerIds) {
         //throw new SQLException("Exception in queryDatabaseForAllOrders");
         return Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()))
+                .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .collect(toList());
     }
 
     public static Set<OrderItem> getAllOrdersWithLinkedListIds(LinkedList<Long> customerIds) {
         //throw new SQLException("Exception in queryDatabaseForAllOrders");
         return Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()))
+                .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .collect(toSet());
     }
 

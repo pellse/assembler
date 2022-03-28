@@ -49,10 +49,10 @@ public class StreamAssemblerTest {
     public void testAssembleBuilder() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(streamAdapter())
                 .assembleFromSupplier(this::getCustomers)
@@ -65,10 +65,10 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithCustomMapFactory() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new, defaultMapFactory()),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId, size -> new LinkedHashMap<>(size * 2, 0.5f)),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new, defaultMapFactory()),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId, size -> new LinkedHashMap<>(size * 2, 0.5f)),
                         Transaction::new)
                 .using(streamAdapter())
                 .assembleFromSupplier(this::getCustomers)
@@ -81,10 +81,10 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNullTopLevelEntityList() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(ids -> null, BillingInfo::getCustomerId),
-                        oneToManyAsList(ids -> null, OrderItem::getCustomerId),
+                        oneToOne(ids -> null, BillingInfo::customerId),
+                        oneToManyAsList(ids -> null, OrderItem::customerId),
                         Transaction::new)
                 .using(streamAdapter())
                 .assemble(null)
@@ -97,10 +97,10 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNullTopLevelEntities() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(ids -> null, BillingInfo::getCustomerId),
-                        oneToManyAsList(ids -> null, OrderItem::getCustomerId),
+                        oneToOne(ids -> null, BillingInfo::customerId),
+                        oneToManyAsList(ids -> null, OrderItem::customerId),
                         Transaction::new)
                 .using(streamAdapter())
                 .assemble(Arrays.asList(null, null, null))
@@ -113,10 +113,10 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNullEntityIds() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(ids -> null, BillingInfo::getCustomerId),
-                        oneToManyAsList(ids -> null, OrderItem::getCustomerId),
+                        oneToOne(ids -> null, BillingInfo::customerId),
+                        oneToManyAsList(ids -> null, OrderItem::customerId),
                         Transaction::new)
                 .using(streamAdapter())
                 .assembleFromSupplier(this::getCustomers)
@@ -131,42 +131,38 @@ public class StreamAssemblerTest {
     @Test
     public void testAssembleBuilderWithUncheckedException() {
 
-        assertThrows(UncheckedException.class, () -> {
-            assemblerOf(Transaction.class)
-                    .withIdExtractor(Customer::getCustomerId)
-                    .withAssemblerRules(
-                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
-                            Transaction::new)
-                    .using(streamAdapter())
-                    .assembleFromSupplier(this::getCustomers);
-        });
+        assertThrows(UncheckedException.class, () -> assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
+                        Transaction::new)
+                .using(streamAdapter())
+                .assembleFromSupplier(this::getCustomers));
     }
 
     @Test
     public void testAssembleBuilderWithCustomException() {
 
-        assertThrows(UserDefinedRuntimeException.class, () -> {
-            assemblerOf(Transaction.class)
-                    .withIdExtractor(Customer::getCustomerId)
-                    .withAssemblerRules(
-                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
-                            Transaction::new)
-                    .withErrorConverter(UserDefinedRuntimeException::new)
-                    .using(streamAdapter())
-                    .assembleFromSupplier(this::getCustomers);
-        });
+        assertThrows(UserDefinedRuntimeException.class, () -> assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
+                        Transaction::new)
+                .withErrorConverter(UserDefinedRuntimeException::new)
+                .using(streamAdapter())
+                .assembleFromSupplier(this::getCustomers));
     }
 
     @Test
     public void testAssembleBuilderWithNonListIds() {
 
         List<TransactionSet> transactions = assemblerOf(TransactionSet.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfosWithSetIds, BillingInfo::getCustomerId, BillingInfo::new, HashSet::new),
-                        oneToManyAsSet(AssemblerTestUtils::getAllOrdersWithLinkedListIds, OrderItem::getCustomerId, LinkedList::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfosWithSetIds, BillingInfo::customerId, BillingInfo::new, HashSet::new),
+                        oneToManyAsSet(AssemblerTestUtils::getAllOrdersWithLinkedListIds, OrderItem::customerId, LinkedList::new),
                         TransactionSet::new)
                 .using(streamAdapter())
                 .assembleFromSupplier(this::getCustomers)
@@ -179,10 +175,10 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNullBillingInfo() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(streamAdapter())
                 .assembleFromSupplier(this::getCustomers)
@@ -194,17 +190,16 @@ public class StreamAssemblerTest {
     @Test
     public void testAssembleBuilderWithCachedMappers() {
 
-        Mapper<Long, BillingInfo, SQLException> billingInfoMapper = cached(oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId));
-        Mapper<Long, List<OrderItem>, SQLException> allOrdersMapper = oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId);
+        Mapper<Long, BillingInfo, SQLException> billingInfoMapper = cached(oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId));
+        Mapper<Long, List<OrderItem>, SQLException> allOrdersMapper = oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId);
 
         Assembler<Customer, Stream<Transaction>> transactionAssembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(billingInfoMapper, allOrdersMapper, Transaction::new)
                 .using(streamAdapter());
 
         List<Transaction> transactionList1 = transactionAssembler
-                .assembleFromSupplier(this::getCustomers)
-                .collect(toList());// Will invoke the remote MongoDB getBillingInfoForCustomers() call
+                .assembleFromSupplier(this::getCustomers).toList();// Will invoke the remote MongoDB getBillingInfoForCustomers() call
 
         List<Transaction> transactionList2 = transactionAssembler
                 .assembleFromSupplier(this::getCustomers)

@@ -60,23 +60,23 @@ public final class ReactiveAssemblerTestUtils {
 
     public static Publisher<BillingInfo> getBillingInfos(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
-                .filter(billingInfo -> customerIds.contains(billingInfo.getCustomerId()));
+                .filter(billingInfo -> customerIds.contains(billingInfo.customerId()));
     }
 
     public static Publisher<BillingInfo> getBillingInfosWithSetIds(Set<Long> customerIds) {
         return Flux.just(billingInfo1, null, billingInfo3)
-                .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.getCustomerId()));
+                .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.customerId()));
     }
 
     public static Publisher<OrderItem> getAllOrders(List<Long> customerIds) {
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()));
+                .filter(orderItem -> customerIds.contains(orderItem.customerId()));
     }
 
     public static Publisher<OrderItem> getAllOrdersWithLinkedListIds(LinkedList<Long> customerIds) {
         //throw new SQLException("Exception in queryDatabaseForAllOrders");
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()));
+                .filter(orderItem -> customerIds.contains(orderItem.customerId()));
     }
 
     public static <R> Publisher<R> throwSQLException(List<Long> customerIds) {

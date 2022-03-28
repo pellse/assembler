@@ -58,10 +58,10 @@ public class AkkaFlowAssemblerTest {
         Flow<List<Customer>, Transaction, NotUsed> transactionFlow = Flow.<List<Customer>>create()
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::getCustomerId)
+                                .withIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
-                                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                         Transaction::new)
                                 .using(akkaSourceAdapter(true))
                                 .assemble(customerList)); // Parallel
@@ -85,10 +85,10 @@ public class AkkaFlowAssemblerTest {
                 .grouped(3)
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::getCustomerId)
+                                .withIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
-                                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                         Transaction::new)
                                 .using(akkaSourceAdapter(Source::async))
                                 .assemble(customerList)); // Custom underlying sources configuration
@@ -107,10 +107,10 @@ public class AkkaFlowAssemblerTest {
         TestKit probe = new TestKit(system);
 
         Assembler<Customer, Source<Transaction, ?>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(akkaSourceAdapter(Source::async));
 

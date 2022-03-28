@@ -46,13 +46,13 @@ public class FluxAssemblerJavaTest {
 
     private Publisher<BillingInfo> getBillingInfos(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
-                .filter(billingInfo -> customerIds.contains(billingInfo.getCustomerId()))
+                .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
     }
 
     private Publisher<OrderItem> getAllOrders(List<Long> customerIds) {
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                .filter(orderItem -> customerIds.contains(orderItem.getCustomerId()))
+                .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
     }
 
@@ -71,10 +71,10 @@ public class FluxAssemblerJavaTest {
 
         StepVerifier.create(
                         assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::getCustomerId)
+                                .withIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
-                                        oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                        oneToMany(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                        oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                        oneToMany(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                         Transaction::new)
                                 .build(fluxAdapter())
                                 .assemble(getCustomers())
@@ -90,10 +90,10 @@ public class FluxAssemblerJavaTest {
 
         StepVerifier.create(
                         assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::getCustomerId)
+                                .withIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
-                                        oneToOne(ReactiveAssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                                        oneToMany(ReactiveAssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                                        oneToOne(ReactiveAssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
+                                        oneToMany(ReactiveAssemblerTestUtils::throwSQLException, OrderItem::customerId),
                                         Transaction::new)
                                 .build(fluxAdapter(immediate()))
                                 .assemble(getCustomers())
@@ -110,10 +110,10 @@ public class FluxAssemblerJavaTest {
                         getCustomers()
                                 .window(3)
                                 .flatMapSequential(customers -> assemblerOf(Transaction.class)
-                                        .withIdExtractor(Customer::getCustomerId)
+                                        .withIdExtractor(Customer::customerId)
                                         .withAssemblerRules(
-                                                oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                                oneToMany(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                                oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                                oneToMany(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                                 Transaction::new)
                                         .build(fluxAdapter())
                                         .assemble(customers))
@@ -128,12 +128,12 @@ public class FluxAssemblerJavaTest {
     public void testReusableAssemblerBuilderWithFluxWithBuffering() {
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToMany(this::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(this::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToMany(this::getAllOrders, OrderItem::customerId),
                         Transaction::new)
-                .build(fluxAdapter());
+                .build();
 
         StepVerifier.create(getCustomers()
                         .window(3)
@@ -150,13 +150,13 @@ public class FluxAssemblerJavaTest {
     @Test
     public void testReusableAssemblerBuilderWithFluxWithBuffering2() {
 
-        var billingInfoPublisher = asKeyValueStore(getBillingInfos(of(1L, 2L, 3L)), BillingInfo::getCustomerId);
+        var billingInfoPublisher = asKeyValueStore(getBillingInfos(of(1L, 2L, 3L)), BillingInfo::customerId);
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(billingInfoPublisher, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToMany(this::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(billingInfoPublisher, BillingInfo::customerId, BillingInfo::new),
+                        oneToMany(this::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .build(fluxAdapter());
 
@@ -175,13 +175,13 @@ public class FluxAssemblerJavaTest {
     @Test
     public void testReusableAssemblerBuilderWithCaching() {
 
-        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+        var assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        cached(oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new)),
-                        cached(oneToMany(this::getAllOrders, OrderItem::getCustomerId)),
+                        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId, BillingInfo::new)),
+                        cached(oneToMany(this::getAllOrders, OrderItem::customerId)),
                         Transaction::new)
-                .build(fluxAdapter());
+                .build();
 
         StepVerifier.create(getCustomers()
                         .window(3)

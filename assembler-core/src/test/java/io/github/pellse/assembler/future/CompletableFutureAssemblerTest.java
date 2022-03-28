@@ -50,10 +50,10 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilder() throws InterruptedException, ExecutionException {
 
         CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(completableFutureAdapter())
                 .assembleFromSupplier(this::getCustomers);
@@ -62,13 +62,13 @@ public class CompletableFutureAssemblerTest {
     }
 
     @Test
-    public void testAssembleBuilderWithException() throws Throwable {
+    public void testAssembleBuilderWithException() {
         assertThrows(UncheckedException.class, () -> {
             CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                    .withIdExtractor(Customer::getCustomerId)
+                    .withIdExtractor(Customer::customerId)
                     .withAssemblerRules(
-                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
+                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
                             Transaction::new)
                     .using(completableFutureAdapter())
                     .assembleFromSupplier(this::getCustomers);
@@ -85,10 +85,10 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilderWithCustomExecutor() throws InterruptedException, ExecutionException {
 
         CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(completableFutureAdapter(newFixedThreadPool(2)))
                 .assembleFromSupplier(this::getCustomers);
@@ -100,10 +100,10 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilderAsSet() throws InterruptedException, ExecutionException {
 
         CompletableFuture<? extends Set<Transaction>> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(completableFutureAdapter(HashSet::new, null))
                 .assembleFromSupplier(this::getCustomers);

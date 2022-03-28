@@ -43,10 +43,10 @@ public class FlowableAssemblerTest {
     public void testAssemblerBuilderWithFlowable() {
 
         Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(flowableAdapter())
                 .assembleFromSupplier(this::getCustomers);
@@ -60,10 +60,10 @@ public class FlowableAssemblerTest {
 
         assertThrows(UserDefinedRuntimeException.class, () -> {
             Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
-                    .withIdExtractor(Customer::getCustomerId)
+                    .withIdExtractor(Customer::customerId)
                     .withAssemblerRules(
-                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::getCustomerId, BillingInfo::new),
-                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::getCustomerId),
+                            oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
+                            oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
                             Transaction::new)
                     .withErrorConverter(UserDefinedRuntimeException::new)
                     .using(flowableAdapter(single()))
@@ -79,10 +79,10 @@ public class FlowableAssemblerTest {
         Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers())
                 .buffer(3)
                 .flatMap(customers -> assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::getCustomerId)
+                        .withIdExtractor(Customer::customerId)
                         .withAssemblerRules(
-                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                                oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                 Transaction::new)
                         .using(flowableAdapter(single()))
                         .assemble(customers));
@@ -95,10 +95,10 @@ public class FlowableAssemblerTest {
     public void testReusableAssemblerBuilderWithFlowableWithBuffering() {
 
         Assembler<Customer, Flowable<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::getCustomerId)
+                .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new),
-                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::getCustomerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(flowableAdapter());
 
