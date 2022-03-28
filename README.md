@@ -1,26 +1,20 @@
 # Assembler
-Efficiently assemble entities from querying/merging external datasources or aggregating microservices calls.
-
-More specifically it was designed as a very lightweight solution to resolve the N + 1 query problem when aggregating data, not only from database calls (e.g. Spring Data JPA, Hibernate) but also from arbitrary datasources (relational databases, NoSQL, REST, local method calls, etc.).
-
-One key feature is that the caller doesn't need to worry about the order of the data returned by the different datasources, so no need for example (in a relation database context) to modify any SQL query to add an ORDER BY clause, or (in a REST context) to modify the service implementation or manually sort results from each call before triggering the aggregation process.
+Efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying/merging data from multiple datasources/services, with a specific focus on solving the N + 1 query problem.
 
 ## Native Reactive Support
 
-As of version 0.3.0, a new implementation was added to natively support [Reactive Streams](http://www.reactive-streams.org) specification:
+As of version 0.3.0, a new implementation [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) was added to natively support [Reactive Streams](http://www.reactive-streams.org) specification:
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-core%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core) [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-core%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 
-The internals of this new implementation is based on [Project Reactor](https://projectreactor.io), which means we can use the library to participate in a end to end reactive streams chain (e.g. from a REST endpoint to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+The internals of this new implementation is based on [Project Reactor](https://projectreactor.io), which means [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) can participate in a end to end reactive streams chain (e.g. from a REST endpoint to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
 
 ## Use Cases
 
-One interesting use case would be for example to build a materialized view in a microservice architecture supporting Event Sourcing and Command Query Responsibility Segregation (CQRS). In this context, if you have an incoming stream of events where each event needs to be enriched with some sort of external data before being stored (e.g. stream of GPS coordinates enriched with location service and/or weather service), it would be convenient to be able to easily batch those events instead of hitting those external services for every single event.
-
-Another use case could be when working with JPA projections (to fetch minimal amount of data) instead of full blown JPA entities (directly with Hibernate of through Spring Data repositories). In some cases the EntityManager might not be of any help to efficiently join multiple entities together or at least it might not be trivial to cache/optimize queries to avoid the N + 1 query problem.
+One interesting use case would be for example to build a materialized view in a microservice architecture supporting Event Sourcing and Command Query Responsibility Segregation (CQRS). In this context, if we have an incoming stream of events where each event needs to be enriched with some sort of external data before being stored, it would be convenient to be able to easily batch those events instead of hitting those external services for every single event.
 
 ## Usage Example for Native Reactive Support
-Assuming the following data model and api to return those entities:
+Assuming the following data model of a very simplified online store, and api to access different services:
 ```java
 @Data
 @AllArgsConstructor
@@ -52,12 +46,12 @@ public class Transaction {
     private final List<OrderItem> orderItems;
 }
 
-Flux<Customer> customers(); // This could be a REST call to an already existing microservice
-Publisher<BillingInfo> billingInfo(List<Long> customerIds); // This could be a call to MongoDB
-Publisher<OrderItem> allOrders(List<Long> customerIds); // This could be a call to a relational database e.g. Oracle or Postgres
+Flux<Customer> customers(); // REST call to a separate microservice (no query filters for brevity)
+Publisher<BillingInfo> billingInfo(List<Long> customerIds); // Connects to MongoDB
+Publisher<OrderItem> allOrders(List<Long> customerIds); // Connects to a relational database
 ```
 
-If `customers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `customers()`, same for `OrderItem`. Since we are working with 3 different and independent datasources, combining `Customer`, `BillingInfo` and `OrderItem` into `Transaction` using *customerId* as a correlation id between all those entities has to be done at the application level, which is what this library was implemented for.
+If `customers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `customers()`, same for `OrderItem`. Since we are working with 3 different and independent datasources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` using *customerId* as a correlation id between all those entities has to be done at the application level, which is what this library was implemented for.
 
 The code to aggregate different reactive datasources will typically look like this:
 
@@ -69,7 +63,7 @@ import reactor.core.publisher.Flux;
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::getCustomerId)
     .withAssemblerRules(
-        oneToOne(this::billingInfo, BillingInfo::getCustomerId, BillingInfo::new),
+        oneToOne(this::billingInfo, BillingInfo::getCustomerId),
         oneToMany(this::allOrders, OrderItem::getCustomerId),
         Transaction::new)
     .build();
@@ -78,7 +72,7 @@ Flux<Transaction> transactionFlux = assembler.assemble(customers());
 ```
 In the scenario where we might deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will trigger resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries (Project Reactor, RxJava, Akka Streams, etc.) already support that concept, below is an example using Project Reactor:
 ```java
-Flux<Transaction> transactionFlux = customers() // or Flux.from(customers()) if customers() returns a Publisher vs. Flux
+Flux<Transaction> transactionFlux = customers() // or Flux.from(customers()) if customers() returns a Publisher
     .windowTimeout(100, ofSeconds(5))
     .flatMapSequential(assembler::assemble);
 ```
