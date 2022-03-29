@@ -84,7 +84,7 @@ The `cached()` method internally uses the list of correlation ids from the upstr
 | [4, 5, 6] | (B4, B5, B6) |
 | [2, 8, 9] | (B2, B8, B9) |
 
-Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate entities, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching.
+Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual entities, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching.
 
 Note that an overloaded version of the `cached()` method is also defined to allow plugging your own cache implementation.
 
