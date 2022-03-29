@@ -35,20 +35,19 @@ import static reactor.core.publisher.Mono.from;
 public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, R>>> {
 
     static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper) {
-        return cached(mapper, ConcurrentHashMap::new);
+        return cached(mapper, defaultCache());
     }
 
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier) {
-        return cached(mapper, cacheSupplier, null);
+    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Cache<ID, R> cache) {
+        return cached(mapper, cache, null);
     }
 
     static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Duration ttl) {
-        return cached(mapper, ConcurrentHashMap::new, ttl);
+        return cached(mapper, defaultCache(), ttl);
     }
 
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> cacheSupplier, Duration ttl) {
-        var cache = cacheSupplier.get();
-        return entityIds -> cache.computeIfAbsent(entityIds, ids -> toCachedMono(from(mapper.apply(ids)), ttl));
+    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Cache<ID, R> cache, Duration ttl) {
+        return entityIds -> cache.get(entityIds, ids -> toCachedMono(from(mapper.apply(ids)), ttl));
     }
 
     private static <T> Mono<T> toCachedMono(Mono<T> mono, Duration ttl) {
@@ -203,5 +202,9 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
         return stream(entityIds.spliterator(), false)
                 .collect(toCollection(idCollectionFactory));
+    }
+
+    private static <ID, R> Cache<ID, R> defaultCache() {
+        return new ConcurrentHashMap<Iterable<ID>, Publisher<Map<ID, R>>>()::computeIfAbsent;
     }
 }
