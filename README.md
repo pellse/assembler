@@ -7,7 +7,9 @@ As of version 0.3.0, a new implementation [reactive-assembler-core](https://gith
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-core%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 
-The internals of this new implementation is based on [Project Reactor](https://projectreactor.io), which means [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) can participate in a end to end reactive streams chain (e.g. from a REST endpoint to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+The internals of this new implementation is based on [Project Reactor](https://projectreactor.io), which means the Assembler library through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module can participate in a end to end reactive streams chain (e.g. from a REST endpoint to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+
+This is the only module still actively maintained, all the other ones (see below) are still available but deprecated in favor of this one.
 
 ## Use Cases
 
@@ -16,44 +18,19 @@ One interesting use case would be for example to build a materialized view in a 
 ## Usage Example for Native Reactive Support
 Assuming the following data model of a very simplified online store, and api to access different services:
 ```java
-@Data
-@AllArgsConstructor
-public class Customer {
-    private final Long customerId;
-    private final String name;
-}
-
-@Data
-@AllArgsConstructor
-public class BillingInfo {
-    private final Long customerId;
-    private final String creditCardNumber;
-}
-
-@Data
-@AllArgsConstructor
-public class OrderItem {
-    private final Long customerId;
-    private final String orderDescription;
-    private final Double price;
-}
-
-@Data
-@AllArgsConstructor
-public class Transaction {
-    private final Customer customer;
-    private final BillingInfo billingInfo;
-    private final List<OrderItem> orderItems;
-}
+public record Customer(Long customerId, String name) {}
+public record BillingInfo(Long customerId, String creditCardNumber) {}
+public record OrderItem(Long customerId, String orderDescription, Double price) {}
+public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 
 Flux<Customer> customers(); // REST call to a separate microservice (no query filters for brevity)
 Publisher<BillingInfo> billingInfo(List<Long> customerIds); // Connects to MongoDB
 Publisher<OrderItem> allOrders(List<Long> customerIds); // Connects to a relational database
 ```
 
-If `customers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `customers()`, same for `OrderItem`. Since we are working with 3 different and independent datasources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` using *customerId* as a correlation id between all those entities has to be done at the application level, which is what this library was implemented for.
+If `customers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `customers()`, same for `OrderItem`. Since we are working with 3 different and independent datasources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` (using *customerId* as a correlation id between all those entities) has to be done at the application level, which is what this library was implemented for.
 
-The code to aggregate different reactive datasources will typically look like this:
+When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core), the code to aggregate different reactive datasources will typically look like this:
 
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
@@ -61,24 +38,58 @@ import static io.github.pellse.reactive.assembler.Mapper.*;
 import reactor.core.publisher.Flux;
 
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        oneToOne(this::billingInfo, BillingInfo::getCustomerId),
-        oneToMany(this::allOrders, OrderItem::getCustomerId),
+        oneToOne(this::billingInfo, BillingInfo::customerId),
+        oneToMany(this::allOrders, OrderItem::customerId),
         Transaction::new)
     .build();
 
 Flux<Transaction> transactionFlux = assembler.assemble(customers());
 ```
-In the scenario where we might deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will trigger resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries (Project Reactor, RxJava, Akka Streams, etc.) already support that concept, below is an example using Project Reactor:
+In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will trigger resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries (Project Reactor, RxJava, Akka Streams, etc.) already support that concept, below is an example using Project Reactor:
 ```java
 Flux<Transaction> transactionFlux = customers()
     .windowTimeout(100, ofSeconds(5))
     .flatMapSequential(assembler::assemble);
 ```
+## Caching
+In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `OneToMany()`), `Mapper` also provides a simple caching/memoization mechanism through the `cached()` wrapper method.
+
+```java
+import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.Mapper.*;
+import reactor.core.publisher.Flux;
+
+var assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::customerId)
+    .withAssemblerRules(
+        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId)),
+        cached(oneToMany(this::getAllOrders, OrderItem::customerId)),
+        Transaction::new)
+    .build();
+    
+var transactionFlux = customers()
+    .window(3)
+    .flatMapSequential(assembler::assemble);
+```
+This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
+
+The `cached()` method internally uses the list of correlation ids from the upstream (list of customer ids in the above example) as the cache key. The result of the consumed downstream is cached, not each separate item from the downstream. Concretely, if we take the line `cached(oneToOne(this::getBillingInfos, BillingInfo::customerId))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g. ( (C1, C2, C3), (C1, C4, C7), (C4, C5, C6), (C2, C8, C9) ), at that moment in time the cache would like this:
+
+| Key [correlation id list] | Cached BillingInfo Downstream |
+| --- | --- |
+| [1, 2, 3] | (B1, B2, B3) |
+| [1, 4, 7] | (B1, B4, B7) |
+| [4, 5, 6] | (B4, B5, B6) |
+| [2, 8, 9] | (B2, B8, B9) |
+
+Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate entities, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching.
+
+Note that an overloaded version of the `cached()` method is also defined to allow plugging your own cache implementation.
 
 ## Other Supported Technologies
-Currently the following legacy implementations are still available, but it is strongly recommended to switch to [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) as any future development will be focused on the Native Reactive implementation:
+Currently the following legacy implementations are still available, but it is strongly recommended to switch to [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) as any future development will be focused on the Native Reactive implementation described above:
 
 1. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-core%22)
 [![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/assembler-core) [Java 8 Stream (synchronous and parallel)](https://github.com/pellse/assembler/tree/master/assembler-core)
@@ -318,64 +329,6 @@ Assembler<Customer, Publisher<Transaction>> assembler = assemblerOf(Transaction.
 Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers())
     .buffer(3)
     .concatMap(assembler::assemble);
-```
-## Caching
-In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `manyToOne()`), `MapperUtils` also provides a simple caching/memoization mechanism through the `cached()` wrapper method.
-
-Below is a rewrite of the first example above but one of the `Mapper`'s is cached (for the `getBillingInfos` MongoDB call), so on multiple invocations of the defined assembler, the mapper result from the first invocation will be reused, avoiding to hit the datastore again:
-```java
-import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.util.query.MapperUtils.oneToOne;
-import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
-
-import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
-
-import static io.github.pellse.util.query.MapperUtils.cached;
-
-var billingInfoMapper = cached(oneToOne(this::getBillingInfos, BillingInfo::getCustomerId));
-var allOrdersMapper = oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId);
-
-var transactionAssembler = assemblerOf(Transaction.class)
-        .withIdExtractor(Customer::getCustomerId)
-        .withAssemblerRules(billingInfoMapper, allOrdersMapper, Transaction::new)
-        .using(streamAdapter());
-
-var transactionList = transactionAssembler
-        .assembleFromSupplier(this::getCustomers)
-        .collect(toList()); // Will invoke the getBillingInfos() MongoDB remote call
-
-var transactionList2 = transactionAssembler
-        .assemble(getCustomers())
-        .collect(toList()); // Will reuse the results returned from
-                            // the first invocation of getBillingInfos() above
-                            // if the list of Customer IDs is the same (as defined by the list equals() method)
-                            // for both invocations, no remote call here
-```
-This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
-
-Note that an overloaded version of the `cached()` method is also defined to allow plugging your own cache implementation.
-
-## Pluggable `Map` Implementations
-The Assembly library internally works with `Maps` to join data from different data sources provided via the `oneToXXX()` helper methods. Specifically, those helper methods return the following interface:
-```java
-@FunctionalInterface
-public interface Mapper<ID, R, EX extends Throwable> {
-    Map<ID, R> apply(Iterable<ID> entityIds) throws EX;
-}
-```
-i.e. the `oneToXXX()` methods all return a function that takes a list of primary keys (e.g. customer ids) and return a `Map` of foreign keys -> sub-entities (e.g. `BillingInfo` or `OrderItem`).
-
-By default (since version 0.1.7), the implementation of `Map` returned is a `HashMap` with a predefined capacity of 1.34 times the size of the primary key list, so that we stay under the default `HashMap` load factor of 0.75, avoiding unnecessary reallocation/rehash in the case where we have a large list of ids.
-
-But there might be cases where we would want to provide our own custom `Map` implementation (e.g. to further squeeze performance) by providing a specific `Map` factory, here is how we would do it:
-```java
-Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
-    .withAssemblerRules(
-         oneToOne(this::getBillingInfos, BillingInfo::getCustomerId, BillingInfo::new, size -> new TreeMap<>()),
-         oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId, size -> new HashMap<>(size * 2, 0.5f)),
-         Transaction::new)
-    .using(fluxAdapter());
 ```
 
 ## What's Next?
