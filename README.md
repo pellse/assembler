@@ -86,7 +86,21 @@ The `cached()` method internally uses the list of correlation ids from the upstr
 
 Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual entities, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching.
 
-Note that an overloaded version of the `cached()` method is also defined to allow plugging your own cache implementation.
+### Pluggable Caching Strategy (in the upcoming version 0.3.3)
+
+By default `ConcurrentHashMap` is used behind the scene, but overloaded versions of the `cached()` method are also defined to allow plugging your own cache implementation. Here is an example using [Caffeine](https://github.com/ben-manes/caffeine):
+```java
+final Cache<Iterable<Long>, Publisher<Map<Long, BillingInfo>>> billingInfoCache = Caffeine.newBuilder().build();
+final Cache<Iterable<Long>, Publisher<Map<Long, List<OrderItem>>>> orderItemCache = Caffeine.newBuilder().build();
+
+var assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::customerId)
+    .withAssemblerRules(
+        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::get),
+        cached(oneToMany(this::getAllOrders, OrderItem::customerId), orderItemCache::get),
+        Transaction::new)
+    .build();
+```
 
 ## Other Supported Technologies
 Currently the following legacy implementations are still available, but it is strongly recommended to switch to [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) as any future development will be focused on the Native Reactive implementation described above:
