@@ -7,4 +7,5 @@ include 'assembler-core',
         'assembler-reactive-stream-operators',
         'assembler-util',
         'reactive-assembler-core',
-        'reactive-assembler-kotlin-extension'
+        'reactive-assembler-kotlin-extension',
+        'reactive-assembler-cache-caffeine'

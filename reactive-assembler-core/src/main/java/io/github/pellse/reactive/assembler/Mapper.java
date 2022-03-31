@@ -17,11 +17,8 @@
 package io.github.pellse.reactive.assembler;
 
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -29,30 +26,9 @@ import static io.github.pellse.reactive.assembler.QueryUtils.queryOneToMany;
 import static io.github.pellse.reactive.assembler.QueryUtils.queryOneToOne;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.StreamSupport.stream;
-import static reactor.core.publisher.Mono.from;
 
 @FunctionalInterface
 public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, R>>> {
-
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper) {
-        return cached(mapper, defaultCache());
-    }
-
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Cache<ID, R> cache) {
-        return cached(mapper, cache, null);
-    }
-
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Duration ttl) {
-        return cached(mapper, defaultCache(), ttl);
-    }
-
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Cache<ID, R> cache, Duration ttl) {
-        return entityIds -> cache.get(entityIds, ids -> toCachedMono(from(mapper.apply(ids)), ttl));
-    }
-
-    private static <T> Mono<T> toCachedMono(Mono<T> mono, Duration ttl) {
-        return ttl != null ? mono.cache(ttl) : mono.cache();
-    }
 
     static <ID, R> Mapper<ID, R> oneToOne(
             Function<List<ID>, Publisher<R>> queryFunction,
@@ -202,9 +178,5 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, 
 
         return stream(entityIds.spliterator(), false)
                 .collect(toCollection(idCollectionFactory));
-    }
-
-    private static <ID, R> Cache<ID, R> defaultCache() {
-        return new ConcurrentHashMap<Iterable<ID>, Publisher<Map<ID, R>>>()::computeIfAbsent;
     }
 }

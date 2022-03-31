@@ -1,5 +1,6 @@
 package io.github.pellse.reactive.assembler.kotlin
 
+import com.github.benmanes.caffeine.cache.Caffeine
 import io.github.pellse.assembler.AssemblerTestUtils.*
 import io.github.pellse.assembler.BillingInfo
 import io.github.pellse.assembler.Customer
@@ -7,6 +8,8 @@ import io.github.pellse.assembler.OrderItem
 import io.github.pellse.assembler.Transaction
 import io.github.pellse.reactive.assembler.Mapper.oneToMany
 import io.github.pellse.reactive.assembler.Mapper.oneToOne
+import io.github.pellse.reactive.assembler.MapperCache.cached
+import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.newCache
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -65,5 +68,31 @@ class FluxAssemblerKotlinTest {
 
         assertEquals(2, billingInvocationCount.get())
         assertEquals(2, ordersInvocationCount.get())
+    }
+
+    @Test
+    fun testReusableAssemblerBuilderWithCaffeineCache() {
+        val orderItemCache = Caffeine.newBuilder().build<Iterable<Long>, Publisher<Map<Long, List<OrderItem>>>>()
+
+        val assembler = assembler<Transaction>()
+            .withIdExtractor(Customer::customerId)
+            .withAssemblerRules(
+                cached(oneToOne(::getBillingInfos, BillingInfo::customerId, ::BillingInfo), newCache()),
+                cached(oneToMany(::getAllOrders, OrderItem::customerId), orderItemCache::get),
+                ::Transaction
+            ).build()
+
+        StepVerifier.create(
+            getCustomers()
+                .window(3)
+                .flatMapSequential(assembler::assemble)
+        )
+            .expectSubscription()
+            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectComplete()
+            .verify()
+
+        assertEquals(1, billingInvocationCount.get())
+        assertEquals(1, ordersInvocationCount.get())
     }
 }

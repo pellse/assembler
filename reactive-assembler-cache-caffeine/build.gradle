@@ -7,11 +7,8 @@ dependencies {
     implementation project(':reactive-assembler-core')
     implementation project(':assembler-util')
 
-    implementation platform('org.jetbrains.kotlin:kotlin-bom')
+    api ("com.github.ben-manes.caffeine:caffeine:3.0.6")
 
     testImplementation project(':assembler-core').sourceSets.test.output
-
     testImplementation "io.projectreactor:reactor-test:${reactorVersion}"
-    testImplementation project(':reactive-assembler-cache-caffeine')
-    // testImplementation("com.github.ben-manes.caffeine:caffeine:3.0.6")
 }
