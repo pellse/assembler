@@ -105,12 +105,12 @@ import reactor.core.publisher.Flux;
 import io.github.pellse.reactive.assembler.MapperCache;
 import static io.github.pellse.reactive.assembler.MapperCache.cached;
 
-MapperCache<Long, BillingInfo> billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>()::computeIfAbsent;
+var billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>();
 
 var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache),
+        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::computeIfAbsent),
         cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(HashMap::new)),
         Transaction::new)
     .build();
