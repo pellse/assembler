@@ -21,7 +21,7 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.oneToMany;
 import static io.github.pellse.reactive.assembler.Mapper.oneToOne;
 import static io.github.pellse.reactive.assembler.MapperCache.cached;
-import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.newCache;
+import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.cache;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestAssemblerCaffeineCache {
@@ -60,7 +60,7 @@ public class TestAssemblerCaffeineCache {
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         cached(oneToOne(this::getBillingInfos, BillingInfo::customerId, BillingInfo::new), billingInfoCache::get),
-                        cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(newBuilder().maximumSize(10))),
+                        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(newBuilder().maximumSize(10))),
                         Transaction::new)
                 .build();
 

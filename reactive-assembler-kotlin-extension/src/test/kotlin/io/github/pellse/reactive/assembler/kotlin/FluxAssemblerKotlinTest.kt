@@ -1,6 +1,5 @@
 package io.github.pellse.reactive.assembler.kotlin
 
-import com.github.benmanes.caffeine.cache.Caffeine
 import io.github.pellse.assembler.AssemblerTestUtils.*
 import io.github.pellse.assembler.BillingInfo
 import io.github.pellse.assembler.Customer
@@ -8,8 +7,7 @@ import io.github.pellse.assembler.OrderItem
 import io.github.pellse.assembler.Transaction
 import io.github.pellse.reactive.assembler.Mapper.oneToMany
 import io.github.pellse.reactive.assembler.Mapper.oneToOne
-import io.github.pellse.reactive.assembler.MapperCache.cached
-import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.newCache
+import io.github.pellse.reactive.assembler.MapperCache.cache
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -72,13 +70,13 @@ class FluxAssemblerKotlinTest {
 
     @Test
     fun testReusableAssemblerBuilderWithCaffeineCache() {
-        val orderItemCache = Caffeine.newBuilder().build<Iterable<Long>, Publisher<Map<Long, List<OrderItem>>>>()
+        val orderItemCache = hashMapOf<Iterable<Long>, Publisher<Map<Long, List<OrderItem>>>>()
 
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                cached(oneToOne(::getBillingInfos, BillingInfo::customerId, ::BillingInfo), newCache()),
-                cached(oneToMany(::getAllOrders, OrderItem::customerId), orderItemCache::get),
+                oneToOne(::getBillingInfos, BillingInfo::customerId, ::BillingInfo).cached(cache(::hashMapOf)),
+                oneToMany(::getAllOrders, OrderItem::customerId).cached(orderItemCache::computeIfAbsent),
                 ::Transaction
             ).build()
 

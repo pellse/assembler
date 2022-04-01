@@ -38,8 +38,8 @@ import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.reactive.assembler.KeyValueStorePublisher.asKeyValueStore;
 import static io.github.pellse.reactive.assembler.Mapper.oneToMany;
 import static io.github.pellse.reactive.assembler.Mapper.oneToOne;
+import static io.github.pellse.reactive.assembler.MapperCache.cache;
 import static io.github.pellse.reactive.assembler.MapperCache.cached;
-import static io.github.pellse.reactive.assembler.MapperCache.newCache;
 import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
@@ -180,13 +180,13 @@ public class FluxAssemblerJavaTest {
     @Test
     public void testReusableAssemblerBuilderWithCaching() {
 
-        MapperCache<Long, BillingInfo> billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>()::computeIfAbsent;
+        var billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>();
 
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId, BillingInfo::new), billingInfoCache),
-                        cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(HashMap::new)),
+                        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId, BillingInfo::new), billingInfoCache::computeIfAbsent),
+                        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(HashMap::new)),
                         Transaction::new)
                 .build();
 

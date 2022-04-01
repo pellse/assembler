@@ -30,11 +30,11 @@ public interface MapperCache<ID, R> extends BiFunction<Iterable<ID>, Mapper<ID, 
         return entityIds -> cache.apply(entityIds, ids -> toCachedMono(from(mapper.apply(ids)), ttl));
     }
 
-    static <ID, R> MapperCache<ID, R> newCache(Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> mapSupplier) {
-        return newCache(mapSupplier.get());
+    static <ID, R> MapperCache<ID, R> cache(Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> mapSupplier) {
+        return cache(mapSupplier.get());
     }
 
-    static <ID, R> MapperCache<ID, R> newCache(Map<Iterable<ID>, Publisher<Map<ID, R>>> map) {
+    static <ID, R> MapperCache<ID, R> cache(Map<Iterable<ID>, Publisher<Map<ID, R>>> map) {
         return map::computeIfAbsent;
     }
 
@@ -43,6 +43,6 @@ public interface MapperCache<ID, R> extends BiFunction<Iterable<ID>, Mapper<ID, 
     }
 
     private static <ID, R> MapperCache<ID, R> defaultCache() {
-        return newCache(ConcurrentHashMap::new);
+        return cache(ConcurrentHashMap::new);
     }
 }
