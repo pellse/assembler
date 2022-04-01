@@ -113,7 +113,7 @@ var assembler = assemblerOf(Transaction.class)
         Transaction::new)
     .build();
 ```
-As we can see above, the declaration of a cache implementing `MapperCache` can be very verbose. Utility methods are provided to take care of the generic types verbosity and make it easier to define new implementations `MapperCache` via `newCache()`.
+As we can see above, the declaration of a cache implementing `MapperCache` can be very verbose. Utility methods are provided to take care of the generic types verbosity and make it easier to define new implementations of `MapperCache` via `newCache()`.
 
 ### Third party cache integration
 
