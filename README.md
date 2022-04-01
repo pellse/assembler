@@ -100,9 +100,6 @@ If no `MapperCache` is passed to `cached()`, the default implementation of `Mapp
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.*;
-import reactor.core.publisher.Flux;
-
-import io.github.pellse.reactive.assembler.MapperCache;
 import static io.github.pellse.reactive.assembler.MapperCache.cached;
 
 var billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>();
@@ -115,7 +112,7 @@ var assembler = assemblerOf(Transaction.class)
         Transaction::new)
     .build();
 ```
-As we can see above, the declaration of a cache implementing `MapperCache` can be very verbose. Utility methods are provided to take care of the generic types verbosity and make it easier to define new implementations of `MapperCache` via `newCache()`.
+As we can see above, the declaration of a cache implementing `MapperCache` can be verbose. Utility methods are provided to take care of the generic types verbosity and make it more convenient to define new implementations of `MapperCache` via `newCache()`.
 
 ### Third party cache integration
 
