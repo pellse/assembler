@@ -76,16 +76,18 @@ var transactionFlux = customers()
 ```
 This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
 
-The `cached()` method internally uses the list of correlation ids from the upstream (list of customer ids in the above example) as the cache key. The result of the consumed downstream is cached, not each separate item from the downstream. Concretely, if we take the line `cached(oneToOne(this::getBillingInfos, BillingInfo::customerId))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g. ( (C1, C2, C3), (C1, C4, C7), (C4, C5, C6), (C2, C8, C9) ), at that moment in time the cache would like this:
+The `cached()` method internally uses the list of correlation ids from the upstream (list of customer ids in the above example) as the cache key. The result of the consumed downstream is cached, not each separate item from the downstream. Concretely, if we take the line `cached(oneToOne(this::getBillingInfos, BillingInfo::customerId))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g. ( *(C1, C2, C3)*, *(C1, C4, C7)*, *(C4, C5, C6)*, *(C2, C8, C9)* ), at that moment in time the cache would like this:
 
 | Key [correlation id list] | Cached BillingInfo Downstream |
 | --- | --- |
-| [1, 2, 3] | (B1, B2, B3) |
-| [1, 4, 7] | (B1, B4, B7) |
-| [4, 5, 6] | (B4, B5, B6) |
-| [2, 8, 9] | (B2, B8, B9) |
+| *[1, 2, 3]* | *(B1, B2, B3)* |
+| *[1, 4, 7]* | *(B1, B4, B7)* |
+| *[4, 5, 6]* | *(B4, B5, B6)* |
+| *[2, 8, 9]* | *(B2, B8, B9)* |
 
-Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual values, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching. In future versions, reactive caching of individual values should be supported.
+Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual values, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching.
+
+**_In future versions, reactive caching of individual values should be supported_**.
 
 ### Pluggable Caching Strategy
 
