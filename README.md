@@ -108,13 +108,13 @@ var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
         cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::computeIfAbsent),
-        cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(HashMap::new)),
+        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(HashMap::new)),
         Transaction::new)
     .build();
 ```
-As we can see above, the declaration of a cache implementing `MapperCache` can be verbose. Utility methods are provided to take care of the generic types verbosity and make it more convenient to define new implementations of `MapperCache` via `newCache()`.
+As we can see above, the declaration of a cache implementing `MapperCache` can be verbose. Utility methods are provided to take care of the generic types verbosity and make it more convenient to define new implementations of `MapperCache` via `cache()`.
 
-### Third party cache integration
+### Third Party Cache Integration
 
 Here is a list of add-on modules that can be used to integrate third party caching libraries (more will be added in the future):
 
@@ -123,9 +123,9 @@ Here is a list of add-on modules that can be used to integrate third party cachi
 | [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-cache-caffeine`%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core) [reactive-assembler-cache-caffeine](https://github.com/pellse/assembler/tree/master/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
 
-Below is an example of defining a `MapperCache` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library. For `BillingInfo` stream the integration is done manually, for `OrderItem` stream the `newCache()` helper method is used: 
+Below is an example of defining a `MapperCache` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library. For `BillingInfo` stream the integration is done manually, for `OrderItem` stream the `cache()` helper method is used: 
 ```java
-import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.newCache;
+import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.cache;
 import static io.github.pellse.reactive.assembler.Mapper.oneToMany;
 import static io.github.pellse.reactive.assembler.Mapper.oneToOne;
 import static io.github.pellse.reactive.assembler.MapperCache.cached;
@@ -138,9 +138,28 @@ var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
         cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::get),
-        cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(newBuilder().maximumSize(10))),
+        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(newBuilder().maximumSize(10))),
         Transaction::new)
     .build();
+```
+
+## Kotlin Support
+```kotlin
+import io.github.pellse.reactive.assembler.Mapper.oneToMany
+import io.github.pellse.reactive.assembler.Mapper.oneToOne
+import io.github.pellse.reactive.assembler.MapperCache.cache
+import io.github.pellse.reactive.assembler.kotlin.assembler
+import io.github.pellse.reactive.assembler.kotlin.cached
+
+val orderItemCache = hashMapOf<Iterable<Long>, Publisher<Map<Long, List<OrderItem>>>>()
+
+val assembler = assembler<Transaction>()
+    .withIdExtractor(Customer::customerId)
+    .withAssemblerRules(
+        oneToOne(::getBillingInfos, BillingInfo::customerId).cached(cache(::hashMapOf)),
+        oneToMany(::getAllOrders, OrderItem::customerId).cached(orderItemCache::computeIfAbsent),
+        ::Transaction
+    ).build()
 ```
 
 ## Other Supported Technologies
