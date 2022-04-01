@@ -47,7 +47,7 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
 
 Flux<Transaction> transactionFlux = assembler.assemble(customers());
 ```
-In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will trigger resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries (Project Reactor, RxJava, Akka Streams, etc.) already support that concept, below is an example using Project Reactor:
+In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will trigger resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries already support that concept, below is an example using Project Reactor:
 ```java
 Flux<Transaction> transactionFlux = customers()
     .windowTimeout(100, ofSeconds(5))
@@ -59,6 +59,7 @@ In addition to providing helper functions to define mapping semantics (e.g. `one
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.*;
+import static io.github.pellse.reactive.assembler.MapperCache.cached;
 import reactor.core.publisher.Flux;
 
 var assembler = assemblerOf(Transaction.class)
@@ -84,20 +85,61 @@ The `cached()` method internally uses the list of correlation ids from the upstr
 | [4, 5, 6] | (B4, B5, B6) |
 | [2, 8, 9] | (B2, B8, B9) |
 
-Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual values, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching. In future versions, reactive caching of individual values might be supported.
+Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual values, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching. In future versions, reactive caching of individual values should be supported.
 
-### Pluggable Caching Strategy (in the upcoming version 0.3.3)
+### Pluggable Caching Strategy
 
-By default `ConcurrentHashMap` is used behind the scene, but overloaded versions of the `cached()` method are also defined to allow plugging your own cache implementation. Here is an example using [Caffeine](https://github.com/ben-manes/caffeine):
+Overloaded versions of the `cached()` method are also defined to allow plugging your own cache implementation. We can pass an additional parameter of type `MapperCache` to customize the caching mechanism. Here is how the `MapperCache` interface is defined:
 ```java
-final Cache<Iterable<Long>, Publisher<Map<Long, BillingInfo>>> billingInfoCache = Caffeine.newBuilder().build();
-final Cache<Iterable<Long>, Publisher<Map<Long, List<OrderItem>>>> orderItemCache = Caffeine.newBuilder().build();
+public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, R>>>
+public interface MapperCache<ID, R> extends BiFunction<Iterable<ID>, Mapper<ID, R>, Publisher<Map<ID, R>>> {}
+```
+If no `MapperCache` is passed to `cached()`, the default implementation of `MapperCache` used internally is based on `ConcurrentHashMap`, below is an example of how we can explicitely customize the caching mecanism:
+```java
+import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.Mapper.*;
+import reactor.core.publisher.Flux;
+
+import io.github.pellse.reactive.assembler.MapperCache;
+import static io.github.pellse.reactive.assembler.MapperCache.cached;
+
+MapperCache<Long, BillingInfo> billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>()::computeIfAbsent;
+
+var assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::customerId)
+    .withAssemblerRules(
+        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache),
+        cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(HashMap::new)),
+        Transaction::new)
+    .build();
+```
+As we can see above, the declaration of a cache implementing `MapperCache` can be very verbose. Utility methods are provided to take care of the generic types verbosity and make it easier to define new implementations `MapperCache` via `newCache()`.
+
+### Third party cache integration
+
+Here is a list of add-on modules that can be used (more will be added in the future) to integrate third party caching libraries:
+
+| Assembler add-on module | Third party cache library |
+| --- | --- |
+| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-cache-caffeine`%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core) [reactive-assembler-cache-caffeine](https://github.com/pellse/assembler/tree/master/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
+
+
+Below is an example of defining a `MapperCache` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library. For `BillingInfo` stream the integration is done manually, for `OrderItem` stream the `newCache()` helper method is used: 
+```java
+import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.newCache;
+import static io.github.pellse.reactive.assembler.Mapper.oneToMany;
+import static io.github.pellse.reactive.assembler.Mapper.oneToOne;
+import static io.github.pellse.reactive.assembler.MapperCache.cached;
+
+import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
+
+final Cache<Iterable<Long>, Publisher<Map<Long, BillingInfo>>> billingInfoCache = newBuilder().maximumSize(10).build();
 
 var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
         cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::get),
-        cached(oneToMany(this::getAllOrders, OrderItem::customerId), orderItemCache::get),
+        cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(newBuilder().maximumSize(10))),
         Transaction::new)
     .build();
 ```
