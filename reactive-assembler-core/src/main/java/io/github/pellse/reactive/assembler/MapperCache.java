@@ -6,14 +6,13 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static reactor.core.publisher.Mono.from;
 
 @FunctionalInterface
-public interface MapperCache<ID, R> {
-
-    Publisher<Map<ID, R>> get(Iterable<ID> ids, Mapper<ID, R> mappingFunction);
+public interface MapperCache<ID, R> extends BiFunction<Iterable<ID>, Mapper<ID, R>, Publisher<Map<ID, R>>> {
 
     static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper) {
         return cached(mapper, defaultCache());
@@ -28,7 +27,7 @@ public interface MapperCache<ID, R> {
     }
 
     static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, MapperCache<ID, R> cache, Duration ttl) {
-        return entityIds -> cache.get(entityIds, ids -> toCachedMono(from(mapper.apply(ids)), ttl));
+        return entityIds -> cache.apply(entityIds, ids -> toCachedMono(from(mapper.apply(ids)), ttl));
     }
 
     static <ID, R> MapperCache<ID, R> newCache(Supplier<Map<Iterable<ID>, Publisher<Map<ID, R>>>> mapSupplier) {

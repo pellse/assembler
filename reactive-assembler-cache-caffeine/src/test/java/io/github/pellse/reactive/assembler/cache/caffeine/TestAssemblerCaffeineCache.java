@@ -5,7 +5,6 @@ import io.github.pellse.assembler.BillingInfo;
 import io.github.pellse.assembler.Customer;
 import io.github.pellse.assembler.OrderItem;
 import io.github.pellse.assembler.Transaction;
-import io.github.pellse.reactive.assembler.MapperCache;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -55,7 +54,7 @@ public class TestAssemblerCaffeineCache {
     @Test
     public void testReusableAssemblerBuilderWithCaffeineCache() {
 
-        final Cache<Iterable<Long>, Publisher<Map<Long, BillingInfo>>> billingInfoCache = newBuilder().build();
+        final Cache<Iterable<Long>, Publisher<Map<Long, BillingInfo>>> billingInfoCache = newBuilder().maximumSize(10).build();
 
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
