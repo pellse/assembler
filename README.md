@@ -119,7 +119,7 @@ As we can see above, the declaration of a cache implementing `MapperCache` can b
 
 ### Third party cache integration
 
-Here is a list of add-on modules that can be used (more will be added in the future) to integrate third party caching libraries:
+Here is a list of add-on modules that can be used to integrate third party caching libraries (more will be added in the future):
 
 | Assembler add-on module | Third party cache library |
 | --- | --- |
