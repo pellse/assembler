@@ -7,7 +7,7 @@ As of version 0.3.1, a new implementation [reactive-assembler-core](https://gith
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-core%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 
-The internals of this new implementation is based on [Project Reactor](https://projectreactor.io), which means the Assembler library through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module can participate in a end to end reactive streams chain (e.g. from a REST endpoint to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+This new implementation is based on [Project Reactor](https://projectreactor.io), which means the Assembler library through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module can participate in a end to end reactive streams chain (e.g. from a REST endpoint to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
 
 This is the only module still actively maintained, all the other ones (see below) are still available but deprecated in favor of this one.
 
@@ -47,7 +47,7 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
 
 Flux<Transaction> transactionFlux = assembler.assemble(customers());
 ```
-In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will trigger resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries already support that concept, below is an example using Project Reactor:
+In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will result in resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries already support that concept, below is an example using Project Reactor:
 ```java
 Flux<Transaction> transactionFlux = customers()
     .windowTimeout(100, ofSeconds(5))
@@ -76,16 +76,18 @@ var transactionFlux = customers()
 ```
 This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
 
-The `cached()` method internally uses the list of correlation ids from the upstream (list of customer ids in the above example) as the cache key. The result of the consumed downstream is cached, not each separate item from the downstream. Concretely, if we take the line `cached(oneToOne(this::getBillingInfos, BillingInfo::customerId))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g. ( (C1, C2, C3), (C1, C4, C7), (C4, C5, C6), (C2, C8, C9) ), at that moment in time the cache would like this:
+The `cached()` method internally uses the list of correlation ids from the upstream (list of customer ids in the above example) as the cache key. The result of the consumed downstream is cached, not each separate item from the downstream. Concretely, if we take the line `cached(oneToOne(this::getBillingInfos, BillingInfo::customerId))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g. ( *(C1, C2, C3)*, *(C1, C4, C7)*, *(C4, C5, C6)*, *(C2, C8, C9)* ), at that moment in time the cache would like this:
 
 | Key [correlation id list] | Cached BillingInfo Downstream |
 | --- | --- |
-| [1, 2, 3] | (B1, B2, B3) |
-| [1, 4, 7] | (B1, B4, B7) |
-| [4, 5, 6] | (B4, B5, B6) |
-| [2, 8, 9] | (B2, B8, B9) |
+| *[1, 2, 3]* | *(B1, B2, B3)* |
+| *[1, 4, 7]* | *(B1, B4, B7)* |
+| *[4, 5, 6]* | *(B4, B5, B6)* |
+| *[2, 8, 9]* | *(B2, B8, B9)* |
 
-Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual values, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching. In future versions, reactive caching of individual values should be supported.
+Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual values, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching.
+
+**_In future versions, reactive caching of individual values should be supported_**.
 
 ### Pluggable Caching Strategy
 
@@ -98,26 +100,23 @@ If no `MapperCache` is passed to `cached()`, the default implementation of `Mapp
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.*;
-import reactor.core.publisher.Flux;
-
-import io.github.pellse.reactive.assembler.MapperCache;
 import static io.github.pellse.reactive.assembler.MapperCache.cached;
 
-MapperCache<Long, BillingInfo> billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>()::computeIfAbsent;
+var billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>();
 
 var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache),
+        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::computeIfAbsent),
         cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(HashMap::new)),
         Transaction::new)
     .build();
 ```
-As we can see above, the declaration of a cache implementing `MapperCache` can be very verbose. Utility methods are provided to take care of the generic types verbosity and make it easier to define new implementations `MapperCache` via `newCache()`.
+As we can see above, the declaration of a cache implementing `MapperCache` can be verbose. Utility methods are provided to take care of the generic types verbosity and make it more convenient to define new implementations of `MapperCache` via `newCache()`.
 
 ### Third party cache integration
 
-Here is a list of add-on modules that can be used (more will be added in the future) to integrate third party caching libraries:
+Here is a list of add-on modules that can be used to integrate third party caching libraries (more will be added in the future):
 
 | Assembler add-on module | Third party cache library |
 | --- | --- |
