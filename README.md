@@ -87,7 +87,7 @@ The `cached()` method internally uses the list of correlation ids from the upstr
 
 Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual values, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching.
 
-**_In future versions, reactive caching of individual values should be supported_**.
+**_In future versions, reactive caching of individual elements in a reactive stream will be supported_**.
 
 ### Pluggable Caching Strategy
 
