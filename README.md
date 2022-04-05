@@ -30,7 +30,7 @@ Publisher<OrderItem> allOrders(List<Long> customerIds); // Connects to a relatio
 
 If `customers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `customers()`, same for `OrderItem`. Since we are working with 3 different and independent datasources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` (using *customerId* as a correlation id between all those entities) has to be done at the application level, which is what this library was implemented for.
 
-When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core), the code to aggregate different reactive datasources will typically look like this:
+When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core), here is how we would aggregate multiple reactive datasources and implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html):
 
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
