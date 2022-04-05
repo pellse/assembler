@@ -23,9 +23,9 @@ public record BillingInfo(Long id, Long customerId, String creditCardNumber) {}
 public record OrderItem(Long id, Long customerId, String orderDescription, Double price) {}
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 
-Flux<Customer> customers(); // REST call to a separate microservice (no query filters for brevity)
-Publisher<BillingInfo> billingInfo(List<Long> customerIds); // Connects to MongoDB
-Publisher<OrderItem> allOrders(List<Long> customerIds); // Connects to a relational database
+Flux<Customer> customers(); // call to a RSocket microservice (no query filters for brevity)
+Publisher<BillingInfo> billingInfo(List<Long> customerIds); // Connects to MongoDB through MongoDB Reactive Streams Driver
+Publisher<OrderItem> allOrders(List<Long> customerIds); // Connects to a relational database with R2DBC
 ```
 
 If `customers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `customers()`, same for `OrderItem`. Since we are working with 3 different and independent datasources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` (using *customerId* as a correlation id between all those entities) has to be done at the application level, which is what this library was implemented for.
