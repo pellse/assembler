@@ -47,7 +47,7 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
 
 Flux<Transaction> transactionFlux = assembler.assemble(customers());
 ```
-In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will result in resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries already support that concept, below is an example using Project Reactor:
+In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will result in resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries already support that concept, below is an example using [Project Reactor](https://projectreactor.io):
 ```java
 Flux<Transaction> transactionFlux = customers()
     .windowTimeout(100, ofSeconds(5))
