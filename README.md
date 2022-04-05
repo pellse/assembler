@@ -101,6 +101,7 @@ If no `MapperCache` is passed to `cached()`, the default implementation of `Mapp
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.*;
 import static io.github.pellse.reactive.assembler.MapperCache.cached;
+import static io.github.pellse.reactive.assembler.MapperCache.cache;
 
 var billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>();
 
