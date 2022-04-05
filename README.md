@@ -24,7 +24,7 @@ public record OrderItem(Long id, Long customerId, String orderDescription, Doubl
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 
 Flux<Customer> customers(); // call to a RSocket microservice (no query filters for brevity)
-Publisher<BillingInfo> billingInfo(List<Long> customerIds); // Connects to MongoDB through MongoDB Reactive Streams Driver
+Publisher<BillingInfo> billingInfo(List<Long> customerIds); // Connects to MongoDB with Reactive Streams Driver
 Publisher<OrderItem> allOrders(List<Long> customerIds); // Connects to a relational database with R2DBC
 ```
 
