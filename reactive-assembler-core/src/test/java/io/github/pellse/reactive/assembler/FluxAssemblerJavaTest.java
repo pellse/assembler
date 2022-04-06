@@ -16,14 +16,13 @@
 
 package io.github.pellse.reactive.assembler;
 
-import io.github.pellse.assembler.BillingInfo;
-import io.github.pellse.assembler.Customer;
-import io.github.pellse.assembler.OrderItem;
-import io.github.pellse.assembler.Transaction;
+import io.github.pellse.assembler.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.sql.SQLException;
@@ -36,10 +35,10 @@ import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.reactive.assembler.KeyValueStorePublisher.asKeyValueStore;
-import static io.github.pellse.reactive.assembler.Mapper.oneToMany;
-import static io.github.pellse.reactive.assembler.Mapper.oneToOne;
-import static io.github.pellse.reactive.assembler.MapperCache.cache;
-import static io.github.pellse.reactive.assembler.MapperCache.cached;
+import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.QueryCache.cache;
+import static io.github.pellse.reactive.assembler.QueryCache.cached;
+import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
@@ -78,8 +77,8 @@ public class FluxAssemblerJavaTest {
                         assemblerOf(Transaction.class)
                                 .withIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
-                                        oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
-                                        oneToMany(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::customerId),
+                                        rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)),
+                                        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                                         Transaction::new)
                                 .build(fluxAdapter())
                                 .assemble(getCustomers())
@@ -97,8 +96,8 @@ public class FluxAssemblerJavaTest {
                         assemblerOf(Transaction.class)
                                 .withIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
-                                        oneToOne(ReactiveAssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
-                                        oneToMany(ReactiveAssemblerTestUtils::throwSQLException, OrderItem::customerId),
+                                        rule(BillingInfo::customerId, oneToOne(ReactiveAssemblerTestUtils::throwSQLException, BillingInfo::new)),
+                                        rule(OrderItem::customerId, oneToMany(ReactiveAssemblerTestUtils::throwSQLException)),
                                         Transaction::new)
                                 .build(fluxAdapter(immediate()))
                                 .assemble(getCustomers())
@@ -117,8 +116,8 @@ public class FluxAssemblerJavaTest {
                                 .flatMapSequential(customers -> assemblerOf(Transaction.class)
                                         .withIdExtractor(Customer::customerId)
                                         .withAssemblerRules(
-                                                oneToOne(ReactiveAssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
-                                                oneToMany(ReactiveAssemblerTestUtils::getAllOrders, OrderItem::customerId),
+                                                rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)),
+                                                rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                                                 Transaction::new)
                                         .build(fluxAdapter())
                                         .assemble(customers))
@@ -135,8 +134,8 @@ public class FluxAssemblerJavaTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(this::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
-                        oneToMany(this::getAllOrders, OrderItem::customerId),
+                        rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                         Transaction::new)
                 .build();
 
@@ -160,8 +159,8 @@ public class FluxAssemblerJavaTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(billingInfoPublisher, BillingInfo::customerId, BillingInfo::new),
-                        oneToMany(this::getAllOrders, OrderItem::customerId),
+                        rule(BillingInfo::customerId, oneToOne(billingInfoPublisher, BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                         Transaction::new)
                 .build(fluxAdapter());
 
@@ -180,21 +179,46 @@ public class FluxAssemblerJavaTest {
     @Test
     public void testReusableAssemblerBuilderWithCaching() {
 
-        var billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>();
+        var billingInfoCache = new HashMap<Iterable<Long>, Mono<Map<Long, BillingInfo>>>();
 
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId, BillingInfo::new), billingInfoCache::computeIfAbsent),
-                        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(HashMap::new)),
+                        cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)), billingInfoCache::computeIfAbsent),
+                        cached(rule(OrderItem::customerId, oneToMany(this::getAllOrders)), cache(HashMap::new)),
                         Transaction::new)
-                .build();
+                .build(Schedulers.immediate());
 
         StepVerifier.create(getCustomers()
                         .window(3)
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(1, billingInvocationCount.get());
+        assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithCachingSet() {
+
+        var billingInfoCache = new HashMap<Iterable<Long>, Mono<Map<Long, BillingInfo>>>();
+
+        var assembler = assemblerOf(TransactionSet.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)), billingInfoCache::computeIfAbsent),
+                        cached(rule(OrderItem::customerId, oneToManyAsSet(this::getAllOrders)), cache(HashMap::new)),
+                        TransactionSet::new)
+                .build(Schedulers.immediate());
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3)
                 .expectComplete()
                 .verify();
 

@@ -5,14 +5,16 @@ import io.github.pellse.assembler.BillingInfo
 import io.github.pellse.assembler.Customer
 import io.github.pellse.assembler.OrderItem
 import io.github.pellse.assembler.Transaction
-import io.github.pellse.reactive.assembler.Mapper.oneToMany
-import io.github.pellse.reactive.assembler.Mapper.oneToOne
-import io.github.pellse.reactive.assembler.MapperCache.cache
+import io.github.pellse.reactive.assembler.Mapper.*
+import io.github.pellse.reactive.assembler.QueryCache.cache
+import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
+import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -49,8 +51,8 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                oneToOne(::getBillingInfos, BillingInfo::customerId, ::BillingInfo),
-                oneToMany(::getAllOrders, OrderItem::customerId),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfos, ::BillingInfo)),
+                rule(OrderItem::customerId, oneToMany(::getAllOrders)),
                 ::Transaction
             ).build()
 
@@ -70,13 +72,13 @@ class FluxAssemblerKotlinTest {
 
     @Test
     fun testReusableAssemblerBuilderWithCaffeineCache() {
-        val orderItemCache = hashMapOf<Iterable<Long>, Publisher<Map<Long, List<OrderItem>>>>()
+        val orderItemCache = hashMapOf<Iterable<Long>, Mono<Map<Long, List<OrderItem>>>>()
 
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                oneToOne(::getBillingInfos, BillingInfo::customerId, ::BillingInfo).cached(cache(::hashMapOf)),
-                oneToMany(::getAllOrders, OrderItem::customerId).cached(orderItemCache::computeIfAbsent),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfos, ::BillingInfo)).cached(cache(::hashMapOf)),
+                rule(OrderItem::customerId, oneToMany(::getAllOrders)).cached(orderItemCache::computeIfAbsent),
                 ::Transaction
             ).build()
 

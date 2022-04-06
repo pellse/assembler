@@ -1,8 +1,11 @@
 package io.github.pellse.util.collection;
 
-import java.util.Collection;
+import java.util.*;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toMap;
 import static java.util.stream.StreamSupport.stream;
 
 public interface CollectionUtil {
@@ -21,12 +24,44 @@ public interface CollectionUtil {
         return !isEmpty(iterable);
     }
 
+    static <E> Collection<E> asCollection(Iterable<E> iter) {
+        return iter instanceof Collection ? (Collection<E>) iter : stream(iter.spliterator(), false).toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    static <E> List<E> asList(E item) {
+        return item instanceof Iterable ? asList((Iterable<E>) item) : List.of(item);
+    }
+
+    static <E> List<E> asList(Iterable<E> iter) {
+        return iter instanceof List ? (List<E>) iter : stream(iter.spliterator(), false).toList();
+    }
+
+    static <E, C extends Collection<E>> C translate(Iterable<E> from, Supplier<C> collectionFactory) {
+        return asCollection(from).stream().collect(Collectors.toCollection(collectionFactory));
+    }
+
+    static <E, C extends Collection<E>> C translate(Collection<E> from, Supplier<C> collectionFactory) {
+        return from.stream().collect(Collectors.toCollection(collectionFactory));
+    }
+
     static long size(Iterable<?> iterable) {
         if (iterable == null)
             return 0;
 
-        return iterable instanceof Collection
-                ? ((Collection<?>) iterable).size()
-                : stream(iterable.spliterator(), false).count();
+        return asCollection(iterable).size();
+    }
+
+    static <E, C extends Collection<E>> Set<E> intersect(C collection1, C collection2) {
+        var set1 = new HashSet<>(collection1);
+        set1.removeAll(collection2);
+        return set1;
+    }
+
+    @SafeVarargs
+    static <K, V> Map<K, V> mergeMaps(Map<K, V>... maps) {
+        return Stream.of(maps)
+                .flatMap(map -> map.entrySet().stream())
+                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1));
     }
 }

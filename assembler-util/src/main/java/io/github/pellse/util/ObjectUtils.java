@@ -16,8 +16,12 @@
 
 package io.github.pellse.util;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public interface ObjectUtils {
 
@@ -33,5 +37,22 @@ public interface ObjectUtils {
                 .map(propertyExtractor1)
                 .equals(Optional.ofNullable(t2)
                         .map(propertyExtractor2));
+    }
+
+    static <T> T also(T value, Consumer<T> codeBlock) {
+        codeBlock.accept(value);
+        return value;
+    }
+
+    static <T, R> R then(T value, Function<T, R> mappingFunction) {
+        return mappingFunction.apply(value);
+    }
+
+    static <T> T takeIf(T value, Supplier<T> defaultValueSupplier) {
+        return takeIf(value, Objects::nonNull, defaultValueSupplier);
+    }
+
+    static <T> T takeIf(T value, Predicate<T> predicate, Supplier<T> defaultValueSupplier) {
+       return predicate.test(value) ? value : defaultValueSupplier.get();
     }
 }

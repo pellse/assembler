@@ -29,17 +29,17 @@ import static java.util.stream.Collectors.toSet;
 
 public final class AssemblerTestUtils {
 
-    public static final BillingInfo billingInfo1 = new BillingInfo(1L, "4540977822220971");
-    public static final BillingInfo billingInfo2 = new BillingInfo(2L, "4530987722349872");
-    public static final BillingInfo billingInfo2Unknown = new BillingInfo(2L, "unknown");
-    public static final BillingInfo billingInfo3 = new BillingInfo(3L, "4540987722211234");
+    public static final BillingInfo billingInfo1 = new BillingInfo(1L, 1L, "4540977822220971");
+    public static final BillingInfo billingInfo2 = new BillingInfo(2L, 2L, "4530987722349872");
+    public static final BillingInfo billingInfo2Unknown = new BillingInfo(null, 2L);
+    public static final BillingInfo billingInfo3 = new BillingInfo(4L, 3L, "4540987722211234");
 
-    public static final OrderItem orderItem11 = new OrderItem(1L, "Sweater", 19.99);
-    public static final OrderItem orderItem12 = new OrderItem(1L, "Pants", 39.99);
-    public static final OrderItem orderItem13 = new OrderItem(1L, "Socks", 9.99);
+    public static final OrderItem orderItem11 = new OrderItem("1", 1L, "Sweater", 19.99);
+    public static final OrderItem orderItem12 = new OrderItem("2", 1L, "Pants", 39.99);
+    public static final OrderItem orderItem13 = new OrderItem("3", 1L, "Socks", 9.99);
 
-    public static final OrderItem orderItem21 = new OrderItem(2L, "Shoes", 79.99);
-    public static final OrderItem orderItem22 = new OrderItem(2L, "Boots", 99.99);
+    public static final OrderItem orderItem21 = new OrderItem("4", 2L, "Shoes", 79.99);
+    public static final OrderItem orderItem22 = new OrderItem("5", 2L, "Boots", 99.99);
 
     public static final Customer customer1 = new Customer(1L, "Clair Gabriel");
     public static final Customer customer2 = new Customer(2L, "Erick Daria");

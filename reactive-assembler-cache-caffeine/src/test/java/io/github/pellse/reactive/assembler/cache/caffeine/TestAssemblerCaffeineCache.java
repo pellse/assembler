@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
@@ -18,9 +19,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.Mapper.oneToMany;
-import static io.github.pellse.reactive.assembler.Mapper.oneToOne;
-import static io.github.pellse.reactive.assembler.MapperCache.cached;
+import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.QueryCache.cached;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.cache;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -54,13 +56,13 @@ public class TestAssemblerCaffeineCache {
     @Test
     public void testReusableAssemblerBuilderWithCaffeineCache() {
 
-        final Cache<Iterable<Long>, Publisher<Map<Long, BillingInfo>>> billingInfoCache = newBuilder().maximumSize(10).build();
+        final Cache<Iterable<Long>, Mono<Map<Long, BillingInfo>>> billingInfoCache = newBuilder().maximumSize(10).build();
 
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId, BillingInfo::new), billingInfoCache::get),
-                        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(newBuilder().maximumSize(10))),
+                        cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)), billingInfoCache::get),
+                        cached(rule(OrderItem::customerId, oneToMany(this::getAllOrders)), cache(newBuilder().maximumSize(10))),
                         Transaction::new)
                 .build();
 
