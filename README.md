@@ -1,13 +1,13 @@
 # Assembler
-Efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying/merging data from multiple datasources/services, with a specific focus on solving the N + 1 query problem.
+Functional, type-safe and stateless Java API for efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying/merging data from multiple datasources/services, with a specific focus on solving the N + 1 query problem.
 
-## Native Reactive Support
+## Native Reactive Streams Support
 
 As of version 0.3.1, a new implementation [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) was added to natively support [Reactive Streams](http://www.reactive-streams.org) specification:
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-core%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 
-This new implementation is based on [Project Reactor](https://projectreactor.io), which means the Assembler library through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module can participate in a end to end reactive streams chain (e.g. from a REST endpoint to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+This new implementation internally leverages [Project Reactor](https://projectreactor.io), which now allows the Assembler library (through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module) to participate in end to end reactive streams chains (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
 
 This is the only module still actively maintained, all the other ones (see below) are still available but deprecated in favor of this one.
 
@@ -19,18 +19,18 @@ One interesting use case would be for example to build a materialized view in a 
 Assuming the following data model of a very simplified online store, and api to access different services:
 ```java
 public record Customer(Long customerId, String name) {}
-public record BillingInfo(Long customerId, String creditCardNumber) {}
-public record OrderItem(Long customerId, String orderDescription, Double price) {}
+public record BillingInfo(Long id, Long customerId, String creditCardNumber) {}
+public record OrderItem(Long id, Long customerId, String orderDescription, Double price) {}
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 
-Flux<Customer> customers(); // REST call to a separate microservice (no query filters for brevity)
-Publisher<BillingInfo> billingInfo(List<Long> customerIds); // Connects to MongoDB
-Publisher<OrderItem> allOrders(List<Long> customerIds); // Connects to a relational database
+Flux<Customer> customers(); // call to a RSocket microservice (no query filters for brevity)
+Publisher<BillingInfo> billingInfo(List<Long> customerIds); // Connects to relational database (R2DBC)
+Publisher<OrderItem> allOrders(List<Long> customerIds); // Connects to MongoDB (Reactive Streams Driver)
 ```
 
 If `customers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `customers()`, same for `OrderItem`. Since we are working with 3 different and independent datasources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` (using *customerId* as a correlation id between all those entities) has to be done at the application level, which is what this library was implemented for.
 
-When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core), the code to aggregate different reactive datasources will typically look like this:
+When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core), here is how we would aggregate multiple reactive datasources and implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html):
 
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
@@ -47,7 +47,7 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
 
 Flux<Transaction> transactionFlux = assembler.assemble(customers());
 ```
-In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will result in resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries already support that concept, below is an example using Project Reactor:
+In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will result in resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries already support that concept, below is an example using [Project Reactor](https://projectreactor.io):
 ```java
 Flux<Transaction> transactionFlux = customers()
     .windowTimeout(100, ofSeconds(5))
@@ -87,7 +87,7 @@ The `cached()` method internally uses the list of correlation ids from the upstr
 
 Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual values, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching.
 
-**_In future versions, reactive caching of individual values should be supported_**.
+**_In future versions, reactive caching of individual elements in a reactive stream will be supported_**.
 
 ### Pluggable Caching Strategy
 
@@ -101,6 +101,7 @@ If no `MapperCache` is passed to `cached()`, the default implementation of `Mapp
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.*;
 import static io.github.pellse.reactive.assembler.MapperCache.cached;
+import static io.github.pellse.reactive.assembler.MapperCache.cache;
 
 var billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>();
 
@@ -108,13 +109,13 @@ var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
         cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::computeIfAbsent),
-        cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(HashMap::new)),
+        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(HashMap::new)),
         Transaction::new)
     .build();
 ```
-As we can see above, the declaration of a cache implementing `MapperCache` can be verbose. Utility methods are provided to take care of the generic types verbosity and make it more convenient to define new implementations of `MapperCache` via `newCache()`.
+As we can see above, the declaration of a cache implementing `MapperCache` can be verbose. Utility methods are provided to take care of the generic types verbosity and make it more convenient to define new implementations of `MapperCache` via `cache()`.
 
-### Third party cache integration
+### Third Party Cache Integration
 
 Here is a list of add-on modules that can be used to integrate third party caching libraries (more will be added in the future):
 
@@ -123,9 +124,9 @@ Here is a list of add-on modules that can be used to integrate third party cachi
 | [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-cache-caffeine`%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core) [reactive-assembler-cache-caffeine](https://github.com/pellse/assembler/tree/master/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
 
-Below is an example of defining a `MapperCache` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library. For `BillingInfo` stream the integration is done manually, for `OrderItem` stream the `newCache()` helper method is used: 
+Below is an example of defining a `MapperCache` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library. For `BillingInfo` stream the integration is done manually, for `OrderItem` stream the `cache()` helper method is used: 
 ```java
-import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.newCache;
+import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.cache;
 import static io.github.pellse.reactive.assembler.Mapper.oneToMany;
 import static io.github.pellse.reactive.assembler.Mapper.oneToOne;
 import static io.github.pellse.reactive.assembler.MapperCache.cached;
@@ -138,9 +139,29 @@ var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
         cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::get),
-        cached(oneToMany(this::getAllOrders, OrderItem::customerId), newCache(newBuilder().maximumSize(10))),
+        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(newBuilder().maximumSize(10))),
         Transaction::new)
     .build();
+```
+
+## Kotlin Support
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-kotlin-extension%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-kotlin-extension.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-kotlin-extension)  [reactive-assembler-kotlin-extension](https://github.com/pellse/assembler/tree/master/reactive-assembler-kotlin-extension)
+```kotlin
+import io.github.pellse.reactive.assembler.Mapper.oneToMany
+import io.github.pellse.reactive.assembler.Mapper.oneToOne
+import io.github.pellse.reactive.assembler.MapperCache.cache
+import io.github.pellse.reactive.assembler.kotlin.assembler
+import io.github.pellse.reactive.assembler.kotlin.cached
+
+val orderItemCache = hashMapOf<Iterable<Long>, Publisher<Map<Long, List<OrderItem>>>>()
+
+val assembler = assembler<Transaction>()
+    .withIdExtractor(Customer::customerId)
+    .withAssemblerRules(
+        oneToOne(::getBillingInfos, BillingInfo::customerId).cached(cache(::hashMapOf)),
+        oneToMany(::getAllOrders, OrderItem::customerId).cached(orderItemCache::computeIfAbsent),
+        ::Transaction
+    ).build()
 ```
 
 ## Other Supported Technologies
