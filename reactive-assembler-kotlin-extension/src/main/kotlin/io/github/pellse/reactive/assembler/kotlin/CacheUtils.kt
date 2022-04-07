@@ -13,11 +13,13 @@ fun <ID, R> ((List<ID>) -> Publisher<R>).cached(map: MutableMap<ID, List<R>>): R
 
 fun <ID, R> ((List<ID>) -> Publisher<R>).cached(cache: Cache<ID, R>): RuleMapperSource<ID, List<ID>, R> = cached(this, cache)
 
-fun <ID, R> ((List<ID>) -> Publisher<R>).cached(cacheGet: (ID) -> List<R>, cachePut: (ID, List<R>) -> Unit): RuleMapperSource<ID, List<ID>, R> =
-    cached(this, cacheGet, cachePut)
+fun <ID, R> ((List<ID>) -> Publisher<R>).cached(
+    getAllPresent: (Iterable<ID>) -> Map<ID, List<R>>,
+    putAll: (Map<ID, List<R>>) -> Unit
+): RuleMapperSource<ID, List<ID>, R> = cached(this, getAllPresent, putAll)
 
 fun <ID, IDC : Collection<ID>, R> ((IDC) -> Publisher<R>).cached(
     idCollectionFactory: () -> IDC,
-    cacheGet: (ID) -> List<R>,
-    cachePut: (ID, List<R>) -> Unit
-): RuleMapperSource<ID, IDC, R> = cached(this, idCollectionFactory, cacheGet, cachePut)
+    getAllPresent: (Iterable<ID>) -> Map<ID, List<R>>,
+    putAll: (Map<ID, List<R>>) -> Unit
+): RuleMapperSource<ID, IDC, R> = cached(this, idCollectionFactory, getAllPresent, putAll)

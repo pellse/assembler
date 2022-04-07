@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.Cache.cache;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.Cache.cached;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
@@ -77,12 +78,12 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithCustomCaching() {
 
-        var cache = new HashMap<Long, List<BillingInfo>>();
+        Cache<Long, BillingInfo> cache = cache(HashMap::new);
 
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, cache::get, cache::put), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, cache::getAllPresent, cache::putAll), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, HashMap::new))),
                         Transaction::new)
                 .build();
