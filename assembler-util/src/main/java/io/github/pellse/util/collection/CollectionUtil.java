@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.github.pellse.util.ObjectUtils.also;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.StreamSupport.stream;
 
@@ -52,10 +53,13 @@ public interface CollectionUtil {
         return asCollection(iterable).size();
     }
 
-    static <E, C extends Collection<E>> Set<E> intersect(C collection1, C collection2) {
-        var set1 = new HashSet<>(collection1);
-        set1.removeAll(collection2);
-        return set1;
+    @SuppressWarnings("unchecked")
+    static <E, C extends Collection<E>> Set<E> intersect(C coll1, C coll2) {
+        return also(coll1 instanceof Set ? (Set<E>) coll1 : new HashSet<>(coll1), set -> intersect(set, coll2));
+    }
+
+    static <E, C extends Collection<E>> Set<E> intersect(Set<E> initialSet, C coll2) {
+        return also(initialSet, set -> set.removeAll(coll2));
     }
 
     @SafeVarargs

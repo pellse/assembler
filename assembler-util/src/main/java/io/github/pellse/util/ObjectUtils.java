@@ -44,6 +44,11 @@ public interface ObjectUtils {
         return value;
     }
 
+    static <T> void ifNotNull(T value, Consumer<T> codeBlock) {
+        if (value != null)
+            codeBlock.accept(value);
+    }
+
     static <T, R> R then(T value, Function<T, R> mappingFunction) {
         return mappingFunction.apply(value);
     }

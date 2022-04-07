@@ -5,8 +5,7 @@ import io.github.pellse.assembler.BillingInfo
 import io.github.pellse.assembler.Customer
 import io.github.pellse.assembler.OrderItem
 import io.github.pellse.assembler.Transaction
-import io.github.pellse.reactive.assembler.Mapper.*
-import io.github.pellse.reactive.assembler.QueryCache.cache
+import io.github.pellse.reactive.assembler.Mapper.rule
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -14,8 +13,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
+import java.time.Duration.ofSeconds
 import java.util.concurrent.atomic.AtomicInteger
 
 class FluxAssemblerKotlinTest {
@@ -36,7 +35,7 @@ class FluxAssemblerKotlinTest {
     }
 
     private fun getCustomers(): Flux<Customer> {
-        return Flux.just(customer1, customer2, customer3, customer1, customer2, customer3)
+        return Flux.just(customer1, customer2, customer3, customer1, customer2, customer3, customer1, customer2, customer3)
     }
 
     @BeforeEach
@@ -62,33 +61,32 @@ class FluxAssemblerKotlinTest {
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
-            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
             .expectComplete()
             .verify()
 
-        assertEquals(2, billingInvocationCount.get())
-        assertEquals(2, ordersInvocationCount.get())
+        assertEquals(3, billingInvocationCount.get())
+        assertEquals(3, ordersInvocationCount.get())
     }
 
     @Test
-    fun testReusableAssemblerBuilderWithCaffeineCache() {
-        val orderItemCache = hashMapOf<Iterable<Long>, Mono<Map<Long, List<OrderItem>>>>()
-
+    fun testReusableAssemblerBuilderWithCache() {
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfos, ::BillingInfo)).cached(cache(::hashMapOf)),
-                rule(OrderItem::customerId, oneToMany(::getAllOrders)).cached(orderItemCache::computeIfAbsent),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfos.cached(), ::BillingInfo)),
+                rule(OrderItem::customerId, oneToMany(::getAllOrders.cached())),
                 ::Transaction
             ).build()
 
         StepVerifier.create(
             getCustomers()
                 .window(3)
+                .delayElements(ofSeconds(1))
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
-            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
             .expectComplete()
             .verify()
 

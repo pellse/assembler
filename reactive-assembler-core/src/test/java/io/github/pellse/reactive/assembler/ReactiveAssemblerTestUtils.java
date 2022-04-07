@@ -82,4 +82,14 @@ public final class ReactiveAssemblerTestUtils {
         // throw new IOException("Unable to query database");
         return Flux.error(new SQLException("Unable to query database"));
     }
+
+    public static Publisher<BillingInfo> errorBillingInfos(List<Long> customerIds) {
+        // throw new IOException("Unable to query database");
+        return Flux.error(new SQLException("Unable to query database"));
+    }
+
+    public static Publisher<OrderItem> errorOrderItems(List<Long> customerIds) {
+        // throw new IOException("Unable to query database");
+        return Flux.error(new SQLException("Unable to query database"));
+    }
 }
