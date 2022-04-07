@@ -9,28 +9,28 @@ import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 
-public interface CaffeineMapperCacheHelper {
+public interface CaffeineCacheHelper {
 
-    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> cache() {
-        return cache(newBuilder());
+    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> caffeineCache() {
+        return caffeineCache(newBuilder());
     }
 
-    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> cache(Caffeine<Object, Object> caffeine) {
-        return cache(caffeine, Caffeine::build);
+    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> caffeineCache(Caffeine<Object, Object> caffeine) {
+        return caffeineCache(caffeine, Caffeine::build);
     }
 
-    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> cache(Function<Caffeine<Object, Object>, Cache<ID, List<R>>> builder) {
-        return cache(newBuilder(), builder);
+    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> caffeineCache(Function<Caffeine<Object, Object>, Cache<ID, List<R>>> builder) {
+        return caffeineCache(newBuilder(), builder);
     }
 
-    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> cache(
+    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> caffeineCache(
             Caffeine<Object, Object> caffeine,
             Function<Caffeine<Object, Object>, Cache<ID, List<R>>> builder
     ) {
-        return cache(builder.apply(caffeine));
+        return caffeineCache(builder.apply(caffeine));
     }
 
-    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> cache(Cache<ID, List<R>> delegateCache) {
+    static <ID, R> io.github.pellse.reactive.assembler.Cache<ID, R> caffeineCache(Cache<ID, List<R>> delegateCache) {
         return new io.github.pellse.reactive.assembler.Cache<>() {
 
             @Override

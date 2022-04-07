@@ -21,7 +21,7 @@ import static io.github.pellse.reactive.assembler.Cache.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.cache;
+import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheHelper.caffeineCache;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -62,7 +62,7 @@ public class TestAssemblerCaffeineCache {
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, c1::getAllPresent, c1::putAll), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(c2)))),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(c2)))),
                         Transaction::new)
                 .build();
 
@@ -85,8 +85,8 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, cache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(builder -> builder.maximumSize(10).build())))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, caffeineCache()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(builder -> builder.maximumSize(10).build())))),
                         Transaction::new)
                 .build();
 
