@@ -51,44 +51,40 @@ public interface Cache<ID, R> {
         };
     }
 
-    static <ID, R> RuleMapperSource<ID, List<ID>, R> cached(Function<List<ID>, Publisher<R>> queryFunction) {
+    static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(Function<IDC, Publisher<R>> queryFunction) {
         return cached(queryFunction, ConcurrentHashMap::new);
-    }
-
-    static <ID, R> RuleMapperSource<ID, List<ID>, R> cached(Function<List<ID>, Publisher<R>> queryFunction, Supplier<Map<ID, List<R>>> mapFactory) {
-        return cached(queryFunction, mapFactory.get());
-    }
-
-    static <ID, R> RuleMapperSource<ID, List<ID>, R> cached(Function<List<ID>, Publisher<R>> queryFunction, Map<ID, List<R>> map) {
-        return cached(queryFunction, cache(map));
-    }
-
-    static <ID, R> RuleMapperSource<ID, List<ID>, R> cached(Function<List<ID>, Publisher<R>> queryFunction, Cache<ID, R> cache) {
-        return cached(queryFunction, cache::getAllPresent, cache::putAll);
-    }
-
-    static <ID, R> RuleMapperSource<ID, List<ID>, R> cached(
-            Function<List<ID>, Publisher<R>> queryFunction,
-            Function<Iterable<ID>, Map<ID, List<R>>> getAllPresent,
-            Consumer<Map<ID, List<R>>> putAll
-    ) {
-        return cached(queryFunction, ArrayList::new, getAllPresent, putAll);
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(
             Function<IDC, Publisher<R>> queryFunction,
-            Supplier<IDC> idCollectionFactory,
+            Supplier<Map<ID, List<R>>> mapFactory) {
+        return cached(queryFunction, mapFactory.get());
+    }
+
+    static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(
+            Function<IDC, Publisher<R>> queryFunction,
+            Map<ID, List<R>> map) {
+        return cached(queryFunction, cache(map));
+    }
+
+    static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(
+            Function<IDC, Publisher<R>> queryFunction,
+            Cache<ID, R> cache) {
+        return cached(queryFunction, cache::getAllPresent, cache::putAll);
+    }
+
+    static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(
+            Function<IDC, Publisher<R>> queryFunction,
             Function<Iterable<ID>, Map<ID, List<R>>> getAllPresent,
             Consumer<Map<ID, List<R>>> putAll
     ) {
-        return idExtractor -> ids -> cachedPublisher(ids, idExtractor, queryFunction, idCollectionFactory, getAllPresent, putAll);
+        return ruleContext -> ids -> cachedPublisher(ids, ruleContext, queryFunction, getAllPresent, putAll);
     }
 
     private static <ID, IDC extends Collection<ID>, R> Publisher<R> cachedPublisher(
             IDC ids,
-            Function<R, ID> idExtractor,
+            RuleContext<ID, IDC, R> ruleContext,
             Function<IDC, Publisher<R>> queryFunction,
-            Supplier<IDC> idCollectionFactory,
             Function<Iterable<ID>, Map<ID, List<R>>> getAllPresent,
             Consumer<Map<ID, List<R>>> putAll
     ) {
@@ -98,15 +94,15 @@ public interface Cache<ID, R> {
         var cachedFlux = fromStream(cachedEntitiesMap.values().stream().flatMap(Collection::stream));
 
         return entityIds.isEmpty() ? cachedFlux : Flux.merge(
-                Flux.from(queryFunction.apply(translate(entityIds, idCollectionFactory)))
+                Flux.from(queryFunction.apply(translate(entityIds, ruleContext.idCollectionFactory())))
                         .collectList()
-                        .doOnNext(entities -> putAll.accept(buildMap(entityIds, entities, idExtractor)))
+                        .doOnNext(entities -> putAll.accept(buildCacheFragment(entityIds, entities, ruleContext.idExtractor())))
                         .flatMapIterable(identity()),
                 cachedFlux);
     }
 
-    private static <ID, R> Map<ID, List<R>> buildMap(Set<ID> entityIds, List<R> entities, Function<R, ID> idExtractor) {
+    private static <ID, R> Map<ID, List<R>> buildCacheFragment(Set<ID> entityIds, List<R> entities, Function<R, ID> idExtractor) {
         return also(new HashMap<>(entities.stream().collect(groupingBy(idExtractor, toList()))),
-                map -> intersect(entityIds, map.keySet()).forEach(id -> map.put(id, List.of())));
+                cacheFragment -> intersect(entityIds, cacheFragment.keySet()).forEach(id -> cacheFragment.put(id, List.of())));
     }
 }
