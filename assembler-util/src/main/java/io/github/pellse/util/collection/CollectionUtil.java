@@ -53,13 +53,8 @@ public interface CollectionUtil {
         return asCollection(iterable).size();
     }
 
-    @SuppressWarnings("unchecked")
     static <E, C extends Collection<E>> Set<E> intersect(C coll1, C coll2) {
-        return also(coll1 instanceof Set ? (Set<E>) coll1 : new HashSet<>(coll1), set -> intersect(set, coll2));
-    }
-
-    static <E, C extends Collection<E>> Set<E> intersect(Set<E> initialSet, C coll2) {
-        return also(initialSet, set -> set.removeAll(coll2));
+        return also(new HashSet<>(coll1), set -> set.removeAll(coll2));
     }
 
     @SafeVarargs

@@ -1,27 +1,26 @@
 package io.github.pellse.reactive.assembler;
 
-import io.github.pellse.assembler.BillingInfo;
-import io.github.pellse.assembler.Customer;
-import io.github.pellse.assembler.OrderItem;
-import io.github.pellse.assembler.Transaction;
+import io.github.pellse.assembler.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Cache.cache;
-import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.Cache.cached;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static java.time.Duration.ofSeconds;
+import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.RuleMapper.*;
+import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CacheTest {
@@ -36,6 +35,18 @@ public class CacheTest {
     }
 
     private Publisher<OrderItem> getAllOrders(List<Long> customerIds) {
+        return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                .filter(orderItem -> customerIds.contains(orderItem.customerId()))
+                .doOnComplete(ordersInvocationCount::incrementAndGet);
+    }
+
+    private Publisher<BillingInfo> getBillingInfosWithIdSet(Set<Long> customerIds) {
+        return Flux.just(billingInfo1, billingInfo3)
+                .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                .doOnComplete(billingInvocationCount::incrementAndGet);
+    }
+
+    private Publisher<OrderItem> getAllOrdersWithIdSet(Set<Long> customerIds) {
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
@@ -64,7 +75,7 @@ public class CacheTest {
 
         StepVerifier.create(getCustomers()
                         .window(3)
-                        .delayElements(ofSeconds(1))
+                        .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
@@ -90,7 +101,54 @@ public class CacheTest {
 
         StepVerifier.create(getCustomers()
                         .window(2)
-                        .delayElements(ofSeconds(1))
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(2, billingInvocationCount.get());
+        assertEquals(2, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithCachingSet() {
+
+        var assembler = assemblerOf(TransactionSet.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfosWithIdSet), BillingInfo::new)),
+                        rule(OrderItem::customerId, HashSet::new, oneToManyAsSet(cached(this::getAllOrdersWithIdSet))),
+                        TransactionSet::new)
+                .build(Schedulers.immediate());
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(1, billingInvocationCount.get());
+        assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithCachingWithIDsAsSet() {
+
+        var assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfosWithIdSet), BillingInfo::new)),
+                        rule(OrderItem::customerId, HashSet::new, oneToMany(cached(this::getAllOrdersWithIdSet))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(2)
+                        .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)

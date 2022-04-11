@@ -17,9 +17,3 @@ fun <ID, R> ((List<ID>) -> Publisher<R>).cached(
     getAllPresent: (Iterable<ID>) -> Map<ID, List<R>>,
     putAll: (Map<ID, List<R>>) -> Unit
 ): RuleMapperSource<ID, List<ID>, R> = cached(this, getAllPresent, putAll)
-
-fun <ID, IDC : Collection<ID>, R> ((IDC) -> Publisher<R>).cached(
-    idCollectionFactory: () -> IDC,
-    getAllPresent: (Iterable<ID>) -> Map<ID, List<R>>,
-    putAll: (Map<ID, List<R>>) -> Unit
-): RuleMapperSource<ID, IDC, R> = cached(this, idCollectionFactory, getAllPresent, putAll)

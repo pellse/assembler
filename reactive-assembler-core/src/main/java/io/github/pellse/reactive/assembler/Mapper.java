@@ -18,13 +18,29 @@ package io.github.pellse.reactive.assembler;
 
 import reactor.core.publisher.Mono;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
+
+import static io.github.pellse.reactive.assembler.RuleContext.ruleContext;
 
 @FunctionalInterface
 public interface Mapper<ID, R> extends Function<Iterable<ID>, Mono<Map<ID, R>>> {
 
-    static <ID, T, R> Mapper<ID, R> rule(Function<T, ID> idExtractor, RuleMapper<ID, T, R> mapper) {
-        return ids -> mapper.apply(idExtractor, ids);
+    static <ID, T, R> Mapper<ID, R> rule(Function<T, ID> idExtractor, RuleMapper<ID, List<ID>, T, R> mapper) {
+        return rule(ruleContext(idExtractor), mapper);
+    }
+
+    static <ID, IDC extends Collection<ID>, T, R> Mapper<ID, R> rule(
+            Function<T, ID> idExtractor,
+            Supplier<IDC> idCollectionFactory,
+            RuleMapper<ID, IDC, T, R> mapper) {
+        return ids -> mapper.apply(ruleContext(idExtractor, idCollectionFactory), ids);
+    }
+
+    static <ID, IDC extends Collection<ID>, T, R> Mapper<ID, R> rule(RuleContext<ID, IDC, T> ruleContext, RuleMapper<ID, IDC, T, R> mapper) {
+        return ids -> mapper.apply(ruleContext, ids);
     }
 }
