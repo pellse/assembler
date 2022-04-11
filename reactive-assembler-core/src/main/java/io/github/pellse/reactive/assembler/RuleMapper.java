@@ -8,7 +8,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.github.pellse.reactive.assembler.MapFactory.defaultMapFactory;
 import static io.github.pellse.reactive.assembler.QueryUtils.queryOneToMany;
 import static io.github.pellse.reactive.assembler.QueryUtils.queryOneToOne;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
@@ -36,109 +35,57 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC> extends BiFu
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
             Function<IDC, Publisher<R>> queryFunction,
             Function<ID, R> defaultResultProvider) {
-        return oneToOne(call(queryFunction), defaultResultProvider, defaultMapFactory());
-    }
-
-    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
-            RuleMapperSource<ID, IDC, R, R> ruleMapperSource,
-            Function<ID, R> defaultResultProvider) {
-        return oneToOne(ruleMapperSource, defaultResultProvider, defaultMapFactory());
-    }
-
-    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
-            Function<IDC, Publisher<R>> queryFunction,
-            Function<ID, R> defaultResultProvider,
-            MapFactory<ID, R> mapFactory) {
-        return oneToOne(call(queryFunction), defaultResultProvider, mapFactory);
+        return oneToOne(call(queryFunction), defaultResultProvider);
     }
 
     @SuppressWarnings("unchecked")
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
             RuleMapperSource<ID, IDC, R, R> ruleMapperSource,
-            Function<ID, R> defaultResultProvider,
-            MapFactory<ID, R> mapFactory) {
+            Function<ID, R> defaultResultProvider) {
         return convertIdTypeMapperDelegateOneToOne((ruleContext, entityIds) ->
                         queryOneToOne((IDC) entityIds,
                                 ruleMapperSource.apply(ruleContext),
                                 ruleContext.idExtractor(),
                                 defaultResultProvider,
-                                mapFactory));
+                                ruleContext.mapFactory()));
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
             Function<IDC, Publisher<R>> queryFunction) {
-        return oneToMany(call(queryFunction), ArrayList::new, defaultMapFactory());
+        return oneToMany(call(queryFunction), ArrayList::new);
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
             RuleMapperSource<ID, IDC, R, List<R>> ruleMapperSource) {
-        return oneToMany(ruleMapperSource, ArrayList::new, defaultMapFactory());
-    }
-
-    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
-            Function<IDC, Publisher<R>> queryFunction,
-            MapFactory<ID, List<R>> mapFactory) {
-        return oneToMany(call(queryFunction), ArrayList::new, mapFactory);
-    }
-
-    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
-            RuleMapperSource<ID, IDC, R, List<R>> ruleMapperSource,
-            MapFactory<ID, List<R>> mapFactory) {
-        return oneToMany(ruleMapperSource, ArrayList::new, mapFactory);
+        return oneToMany(ruleMapperSource, ArrayList::new);
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSet(
             Function<IDC, Publisher<R>> queryFunction) {
-        return oneToMany(call(queryFunction), HashSet::new, defaultMapFactory());
+        return oneToMany(call(queryFunction), HashSet::new);
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSet(
             RuleMapperSource<ID, IDC, R, Set<R>> ruleMapperSource) {
-        return oneToMany(ruleMapperSource, HashSet::new, defaultMapFactory());
-    }
-
-    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSet(
-            Function<IDC, Publisher<R>> queryFunction,
-            MapFactory<ID, Set<R>> mapFactory) {
-        return oneToMany(call(queryFunction), HashSet::new, mapFactory);
-    }
-
-    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSet(
-            RuleMapperSource<ID, IDC, R, Set<R>> ruleMapperSource,
-            MapFactory<ID, Set<R>> mapFactory) {
-        return oneToMany(ruleMapperSource, HashSet::new, mapFactory);
+        return oneToMany(ruleMapperSource, HashSet::new);
     }
 
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(
             Function<IDC, Publisher<R>> queryFunction,
             Supplier<RC> collectionFactory) {
-        return oneToMany(call(queryFunction), collectionFactory, defaultMapFactory());
-    }
-
-    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(
-            RuleMapperSource<ID, IDC, R, RC> ruleMapperSource,
-            Supplier<RC> collectionFactory) {
-        return oneToMany(ruleMapperSource, collectionFactory, defaultMapFactory());
-    }
-
-    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(
-            Function<IDC, Publisher<R>> queryFunction,
-            Supplier<RC> collectionFactory,
-            MapFactory<ID, RC> mapFactory) {
-        return oneToMany(call(queryFunction), collectionFactory, mapFactory);
+        return oneToMany(call(queryFunction), collectionFactory);
     }
 
     @SuppressWarnings("unchecked")
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(
             RuleMapperSource<ID, IDC, R, RC> ruleMapperSource,
-            Supplier<RC> collectionFactory,
-            MapFactory<ID, RC> mapFactory) {
+            Supplier<RC> collectionFactory) {
         return convertIdTypeMapperDelegateOneToMany((ruleContext, entityIds) ->
                 queryOneToMany((IDC) entityIds,
                         ruleMapperSource.apply(ruleContext),
                         ruleContext.idExtractor(),
                         collectionFactory,
-                        mapFactory));
+                        ruleContext.mapFactory()));
     }
 
     private static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> convertIdTypeMapperDelegateOneToOne(

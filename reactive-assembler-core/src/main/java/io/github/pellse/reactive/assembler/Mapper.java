@@ -27,20 +27,32 @@ import java.util.function.Supplier;
 import static io.github.pellse.reactive.assembler.RuleContext.ruleContext;
 
 @FunctionalInterface
-public interface Mapper<ID, R> extends Function<Iterable<ID>, Mono<Map<ID, R>>> {
+public interface Mapper<ID, RRC> extends Function<Iterable<ID>, Mono<Map<ID, RRC>>> {
 
-    static <ID, T, R> Mapper<ID, R> rule(Function<T, ID> idExtractor, RuleMapper<ID, List<ID>, T, R> mapper) {
+    static <ID, R, RRC> Mapper<ID, RRC> rule(
+            Function<R, ID> idExtractor,
+            RuleMapper<ID, List<ID>, R, RRC> mapper) {
         return rule(ruleContext(idExtractor), mapper);
     }
 
-    static <ID, IDC extends Collection<ID>, T, R> Mapper<ID, R> rule(
-            Function<T, ID> idExtractor,
+    static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(
+            Function<R, ID> idExtractor,
             Supplier<IDC> idCollectionFactory,
-            RuleMapper<ID, IDC, T, R> mapper) {
-        return ids -> mapper.apply(ruleContext(idExtractor, idCollectionFactory), ids);
+            RuleMapper<ID, IDC, R, RRC> mapper) {
+        return rule(ruleContext(idExtractor, idCollectionFactory), mapper);
     }
 
-    static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(RuleContext<ID, IDC, R, RRC> ruleContext, RuleMapper<ID, IDC, R, RRC> mapper) {
+    static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(
+            Function<R, ID> idExtractor,
+            Supplier<IDC> idCollectionFactory,
+            MapFactory<ID, RRC> mapFactory,
+            RuleMapper<ID, IDC, R, RRC> mapper) {
+        return rule(ruleContext(idExtractor, idCollectionFactory, mapFactory), mapper);
+    }
+
+    static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(
+            RuleContext<ID, IDC, R, RRC> ruleContext,
+            RuleMapper<ID, IDC, R, RRC> mapper) {
         return ids -> mapper.apply(ruleContext, ids);
     }
 }
