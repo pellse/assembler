@@ -51,38 +51,38 @@ public interface Cache<ID, R> {
         };
     }
 
-    static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(Function<IDC, Publisher<R>> queryFunction) {
+    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(Function<IDC, Publisher<R>> queryFunction) {
         return cached(queryFunction, ConcurrentHashMap::new);
     }
 
-    static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(
+    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
             Supplier<Map<ID, List<R>>> mapFactory) {
         return cached(queryFunction, mapFactory.get());
     }
 
-    static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(
+    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
             Map<ID, List<R>> map) {
         return cached(queryFunction, cache(map));
     }
 
-    static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(
+    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
             Cache<ID, R> cache) {
         return cached(queryFunction, cache::getAllPresent, cache::putAll);
     }
 
-    static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(
+    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
             Function<Iterable<ID>, Map<ID, List<R>>> getAllPresent,
             Consumer<Map<ID, List<R>>> putAll) {
         return ruleContext -> ids -> cachedPublisher(ids, ruleContext, queryFunction, getAllPresent, putAll);
     }
 
-    private static <ID, IDC extends Collection<ID>, R> Publisher<R> cachedPublisher(
+    private static <ID, IDC extends Collection<ID>, R, RRC> Publisher<R> cachedPublisher(
             IDC ids,
-            RuleContext<ID, IDC, R> ruleContext,
+            RuleContext<ID, IDC, R, RRC> ruleContext,
             Function<IDC, Publisher<R>> queryFunction,
             Function<Iterable<ID>, Map<ID, List<R>>> getAllPresent,
             Consumer<Map<ID, List<R>>> putAll) {

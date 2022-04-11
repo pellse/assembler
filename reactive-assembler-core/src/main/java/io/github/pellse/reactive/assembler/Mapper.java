@@ -40,7 +40,7 @@ public interface Mapper<ID, R> extends Function<Iterable<ID>, Mono<Map<ID, R>>> 
         return ids -> mapper.apply(ruleContext(idExtractor, idCollectionFactory), ids);
     }
 
-    static <ID, IDC extends Collection<ID>, T, R> Mapper<ID, R> rule(RuleContext<ID, IDC, T> ruleContext, RuleMapper<ID, IDC, T, R> mapper) {
+    static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(RuleContext<ID, IDC, R, RRC> ruleContext, RuleMapper<ID, IDC, R, RRC> mapper) {
         return ids -> mapper.apply(ruleContext, ids);
     }
 }
