@@ -76,8 +76,7 @@ public interface Cache<ID, R> {
     static <ID, IDC extends Collection<ID>, R> RuleMapperSource<ID, IDC, R> cached(
             Function<IDC, Publisher<R>> queryFunction,
             Function<Iterable<ID>, Map<ID, List<R>>> getAllPresent,
-            Consumer<Map<ID, List<R>>> putAll
-    ) {
+            Consumer<Map<ID, List<R>>> putAll) {
         return ruleContext -> ids -> cachedPublisher(ids, ruleContext, queryFunction, getAllPresent, putAll);
     }
 
@@ -86,8 +85,8 @@ public interface Cache<ID, R> {
             RuleContext<ID, IDC, R> ruleContext,
             Function<IDC, Publisher<R>> queryFunction,
             Function<Iterable<ID>, Map<ID, List<R>>> getAllPresent,
-            Consumer<Map<ID, List<R>>> putAll
-    ) {
+            Consumer<Map<ID, List<R>>> putAll) {
+
         var cachedEntitiesMap = getAllPresent.apply(ids);
 
         var entityIds = intersect(ids, cachedEntitiesMap.keySet());
@@ -103,6 +102,7 @@ public interface Cache<ID, R> {
 
     private static <ID, R> Map<ID, List<R>> buildCacheFragment(Set<ID> entityIds, List<R> entities, Function<R, ID> idExtractor) {
         return also(new HashMap<>(entities.stream().collect(groupingBy(idExtractor, toList()))),
-                cacheFragment -> intersect(entityIds, cacheFragment.keySet()).forEach(id -> cacheFragment.put(id, List.of())));
+                cacheFragment -> intersect(entityIds, cacheFragment.keySet())
+                        .forEach(id -> cacheFragment.put(id, List.of())));
     }
 }

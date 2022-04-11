@@ -20,7 +20,7 @@ import static io.github.pellse.reactive.assembler.Cache.cache;
 import static io.github.pellse.reactive.assembler.Cache.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
-import static java.time.Duration.ofSeconds;
+import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CacheTest {
@@ -75,7 +75,7 @@ public class CacheTest {
 
         StepVerifier.create(getCustomers()
                         .window(3)
-                        .delayElements(ofSeconds(1))
+                        .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
@@ -101,7 +101,7 @@ public class CacheTest {
 
         StepVerifier.create(getCustomers()
                         .window(2)
-                        .delayElements(ofSeconds(1))
+                        .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
@@ -142,21 +142,21 @@ public class CacheTest {
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfosWithIdSet), BillingInfo::new)),
-                        rule(OrderItem::customerId, HashSet::new, oneToMany(this::getAllOrdersWithIdSet)),
+                        rule(OrderItem::customerId, HashSet::new, oneToMany(cached(this::getAllOrdersWithIdSet))),
                         Transaction::new)
                 .build();
 
         StepVerifier.create(getCustomers()
-                        .window(3)
-                        .delayElements(ofSeconds(1))
+                        .window(2)
+                        .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
                 .expectComplete()
                 .verify();
 
-        assertEquals(1, billingInvocationCount.get());
-        assertEquals(1, ordersInvocationCount.get());
+        assertEquals(2, billingInvocationCount.get());
+        assertEquals(2, ordersInvocationCount.get());
     }
 }
 
