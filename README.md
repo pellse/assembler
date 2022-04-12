@@ -34,14 +34,16 @@ When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/ma
 
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.Mapper.*;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.Mapper.rule;
 import reactor.core.publisher.Flux;
-
+    
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        oneToOne(this::billingInfo, BillingInfo::customerId),
-        oneToMany(this::allOrders, OrderItem::customerId),
+        rule(BillingInfo::customerId, oneToOne(this::getBillingInfo)),
+        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
         Transaction::new)
     .build();
 
@@ -54,19 +56,21 @@ Flux<Transaction> transactionFlux = customers()
     .flatMapSequential(assembler::assemble);
 ```
 ## Caching
-In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `OneToMany()`), `Mapper` also provides a simple caching/memoization mechanism through the `cached()` wrapper method.
+In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `OneToMany()`), the Assembler also provides a caching/memoization mechanism of the downstreams through the `cached()` wrapper method.
 
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.Mapper.*;
-import static io.github.pellse.reactive.assembler.MapperCache.cached;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.Cache.cached;
 import reactor.core.publisher.Flux;
-
+    
 var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId)),
-        cached(oneToMany(this::getAllOrders, OrderItem::customerId)),
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo))),
+        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders))),
         Transaction::new)
     .build();
     
@@ -76,44 +80,46 @@ var transactionFlux = customers()
 ```
 This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
 
-The `cached()` method internally uses the list of correlation ids from the upstream (list of customer ids in the above example) as the cache key. The result of the consumed downstream is cached, not each separate item from the downstream. Concretely, if we take the line `cached(oneToOne(this::getBillingInfos, BillingInfo::customerId))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g. ( *(C1, C2, C3)*, *(C1, C4, C7)*, *(C4, C5, C6)*, *(C2, C8, C9)* ), at that moment in time the cache would like this:
+The `cached()` method internally uses the list of correlation ids from the upstream (list of customer ids in the above example) as the cache key and each individual value (or entity) of the downstream is cached. Concretely, if we take the line `rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g. ( *[C1, C2, C3]*, *[C1, C4, C7]*, *[C4, C5, C6]*, *[C2, C4, C6]* ). At that specific moment in time the execution would like this:
 
-| Key [correlation id list] | Cached BillingInfo Downstream |
-| --- | --- |
-| *[1, 2, 3]* | *(B1, B2, B3)* |
-| *[1, 4, 7]* | *(B1, B4, B7)* |
-| *[4, 5, 6]* | *(B4, B5, B6)* |
-| *[2, 8, 9]* | *(B2, B8, B9)* |
-
-Here B1, B2 and B4 are each cached twice as each are part of 2 different streams. This is because we effectively cache the query itself vs. separate individual values, so when caching downstreams we need to be careful to have predictable results otherwise the number of different combinations (of correlation id lists) might not justify to use caching.
-
-**_In the upcoming 0.4.0 release (the next release after 0.3.4), reactive caching of individual elements in a reactive stream will be supported_**.
+1. *getBillingInfo([1, 2, 3]) = [B1, B2, B3]*
+2. *merge(getBillingInfo([4, 7]), fromCache([1])) = [B4, B7, B1]*
+3. *merge(getBillingInfo([5, 6]), fromCache([4])) = [B5, B6, B4]*
+4. *fromCache([2, 4, 6]) = [B2, B4, B6]*
 
 ### Pluggable Caching Strategy
 
-Overloaded versions of the `cached()` method are also defined to allow plugging your own cache implementation. We can pass an additional parameter of type `MapperCache` to customize the caching mechanism. Here is how the `MapperCache` interface is defined:
+Overloaded versions of the `cached()` method are also defined to allow plugging your own cache implementation. We can pass an additional parameter of type `Cache` to customize the caching mechanism. Here is how the `Cache` interface is defined:
 ```java
-public interface Mapper<ID, R> extends Function<Iterable<ID>, Publisher<Map<ID, R>>>
-public interface MapperCache<ID, R> extends BiFunction<Iterable<ID>, Mapper<ID, R>, Publisher<Map<ID, R>>> {}
+public interface Cache<ID, R> {
+    Map<ID, List<R>> getAllPresent(Iterable<ID> ids);
+    void putAll(Map<ID, List<R>> map);
+}
 ```
-If no `MapperCache` is passed to `cached()`, the default implementation of `MapperCache` used internally is based on `ConcurrentHashMap`, below is an example of how we can explicitely customize the caching mecanism:
+If no `Cache` parameter is passed to `cached()`, the default implementation of `Cache` used internally is based on `ConcurrentHashMap`.
+
+Below is an example of a few different ways we can explicitely customize the caching mecanism:
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.Mapper.*;
-import static io.github.pellse.reactive.assembler.MapperCache.cached;
-import static io.github.pellse.reactive.assembler.MapperCache.cache;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.Cache.cached;
+import static io.github.pellse.reactive.assembler.Cache.cache;
+import reactor.core.publisher.Flux;
 
-var billingInfoCache = new HashMap<Iterable<Long>, Publisher<Map<Long, BillingInfo>>>();
-
+Cache<Long, BillingInfo> c = cache(HashMap::new);
+    
 var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::computeIfAbsent),
-        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(HashMap::new)),
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, c::getAllPresent, c::putAll))),
+        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, HashMap::new))),
         Transaction::new)
     .build();
 ```
-As we can see above, the declaration of a cache implementing `MapperCache` can be verbose. Utility methods are provided to take care of the generic types verbosity and make it more convenient to define new implementations of `MapperCache` via `cache()`.
+A `cache()` utility function is provided to wrap any implementation of `java.util.Map` since it doesn't natively implement
+`Map<ID, List<R>> getAllPresent(Iterable<ID> ids)`.
 
 ### Third Party Cache Integration
 
@@ -124,22 +130,26 @@ Here is a list of add-on modules that can be used to integrate third party cachi
 | [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-cache-caffeine`%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core) [reactive-assembler-cache-caffeine](https://github.com/pellse/assembler/tree/master/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
 
-Below is an example of defining a `MapperCache` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library. For `BillingInfo` stream the integration is done manually, for `OrderItem` stream the `cache()` helper method is used: 
+Below is an example of defining a `Cache` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library. For `BillingInfo` stream, the integration is done without the caffeine add-on module. For `OrderItem` stream, the `caffeineCache()` helper method from the caffeine add-on module is used: 
 ```java
-import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.cache;
-import static io.github.pellse.reactive.assembler.Mapper.oneToMany;
-import static io.github.pellse.reactive.assembler.Mapper.oneToOne;
-import static io.github.pellse.reactive.assembler.MapperCache.cached;
+import com.github.benmanes.caffeine.cache.Cache;
+
+import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.Cache.cached;
+import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineMapperCacheHelper.caffeineCache;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 
-final Cache<Iterable<Long>, Publisher<Map<Long, BillingInfo>>> billingInfoCache = newBuilder().maximumSize(10).build();
+Cache<Long, List<BillingInfo>> c = newBuilder().maximumSize(10).build();
 
 var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        cached(oneToOne(this::getBillingInfos, BillingInfo::customerId), billingInfoCache::get),
-        cached(oneToMany(this::getAllOrders, OrderItem::customerId), cache(newBuilder().maximumSize(10))),
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, c::getAllPresent, c::putAll))),
+        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
         Transaction::new)
     .build();
 ```
@@ -147,19 +157,17 @@ var assembler = assemblerOf(Transaction.class)
 ## Kotlin Support
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-kotlin-extension%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-kotlin-extension.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-kotlin-extension)  [reactive-assembler-kotlin-extension](https://github.com/pellse/assembler/tree/master/reactive-assembler-kotlin-extension)
 ```kotlin
-import io.github.pellse.reactive.assembler.Mapper.oneToMany
-import io.github.pellse.reactive.assembler.Mapper.oneToOne
-import io.github.pellse.reactive.assembler.MapperCache.cache
-import io.github.pellse.reactive.assembler.kotlin.assembler
-import io.github.pellse.reactive.assembler.kotlin.cached
-
-val orderItemCache = hashMapOf<Iterable<Long>, Publisher<Map<Long, List<OrderItem>>>>()
+import io.github.pellse.reactive.assembler.kotlin.assembler;
+import io.github.pellse.reactive.assembler.kotlin.cached;
+import io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import io.github.pellse.reactive.assembler.Mapper.rule;
 
 val assembler = assembler<Transaction>()
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        oneToOne(::getBillingInfos, BillingInfo::customerId).cached(cache(::hashMapOf)),
-        oneToMany(::getAllOrders, OrderItem::customerId).cached(orderItemCache::computeIfAbsent),
+        rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached())),
+        rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(::hashMapOf))),
         ::Transaction
     ).build()
 ```
