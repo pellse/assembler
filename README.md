@@ -121,7 +121,7 @@ var assembler = assemblerOf(Transaction.class)
 A `cache()` utility function is provided to wrap any implementation of `java.util.Map` since it doesn't natively implement
 `Map<ID, List<R>> getAllPresent(Iterable<ID> ids)`.
 
-### Third Party Cache Integration
+### Third Party Cache Provider Integration
 
 Here is a list of add-on modules that can be used to integrate third party caching libraries (more will be added in the future):
 
