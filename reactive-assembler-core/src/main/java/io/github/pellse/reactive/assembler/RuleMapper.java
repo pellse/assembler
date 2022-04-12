@@ -17,9 +17,9 @@ import static java.util.stream.StreamSupport.stream;
 /**
  *
  * @param <ID> Correlation Id type
- * @param <IDC> Collection of correlation ids type (e.g. List<ID>, Set<ID>)
- * @param <R> Type of the publisher elements returned from <code>queryFunction</code>
- * @param <RRC> Either R or collection of R (e.g. R vs. List<R>)
+ * @param <IDC> Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
+ * @param <R> Type of the publisher elements returned from {@code queryFunction}
+ * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
  */
 @FunctionalInterface
 public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC> extends BiFunction<RuleContext<ID, IDC, R, RRC>, Iterable<ID>, Mono<Map<ID, RRC>>> {

@@ -14,9 +14,9 @@ import static io.github.pellse.reactive.assembler.MapFactory.defaultMapFactory;
  * @param idCollectionFactory
  * @param mapFactory
  * @param <ID> Correlation Id type
- * @param <IDC> Collection of correlation ids type (e.g. List<ID>, Set<ID>)
- * @param <R> Type of the publisher elements returned from <code>queryFunction</code>
- * @param <RRC> Either R or collection of R (e.g. R vs. List<R>)
+ * @param <IDC> Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
+ * @param <R> Type of the publisher elements returned from {@code queryFunction}
+ * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
  */
 record RuleContext<ID, IDC extends Collection<ID>, R, RRC>(
         Function<R, ID> idExtractor,
