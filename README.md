@@ -1,13 +1,11 @@
 # Assembler
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-core%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
+
 Functional, type-safe and stateless Java API for efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying/merging data from multiple datasources/services, with a specific focus on solving the N + 1 query problem.
 
 ## Native Reactive Streams Support
 
-As of version 0.3.1, a new implementation [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) was added to natively support [Reactive Streams](http://www.reactive-streams.org) specification:
-
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-core%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
-
-This new implementation internally leverages [Project Reactor](https://projectreactor.io), which now allows the Assembler library (through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module) to participate in end to end reactive streams chains (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+As of version 0.3.1, a new implementation [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) was added to natively support [Reactive Streams](http://www.reactive-streams.org) specification. This new implementation internally leverages [Project Reactor](https://projectreactor.io), which now allows the Assembler library (through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module) to participate in end to end reactive streams chains (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
 
 This is the only module still actively maintained, all the other ones (see below) are still available but deprecated in favor of this one.
 
@@ -80,7 +78,11 @@ var transactionFlux = customers()
 ```
 This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
 
-The `cached()` method internally uses the list of correlation ids from the upstream (list of customer ids in the above example) as the cache key and each individual value (or entity) of the downstream is cached. Concretely, if we take the line `rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g. ( *[C1, C2, C3]*, *[C1, C4, C7]*, *[C4, C5, C6]*, *[C2, C4, C6]* ). At that specific moment in time the execution would like this:
+The `cached()` method internally uses the list of correlation ids from the upstream (list of customer ids in the above example) as the cache key and each individual value (or entity) of the downstream is cached. Concretely, if we take the line `rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g.:
+
+*[C1, C2, C3]*, *[C1, C4, C7]*, *[C4, C5, C6]*, *[C2, C4, C6]*
+
+At that specific moment in time the execution would like this:
 
 1. *getBillingInfo([1, 2, 3]) = [B1, B2, B3]*
 2. *merge(getBillingInfo([4, 7]), fromCache([1])) = [B4, B7, B1]*
