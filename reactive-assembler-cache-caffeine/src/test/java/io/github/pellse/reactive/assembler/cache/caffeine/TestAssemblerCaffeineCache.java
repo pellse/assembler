@@ -1,6 +1,8 @@
 package io.github.pellse.reactive.assembler.cache.caffeine;
 
+import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.pellse.assembler.BillingInfo;
 import io.github.pellse.assembler.Customer;
 import io.github.pellse.assembler.OrderItem;
@@ -11,17 +13,21 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.github.benmanes.caffeine.cache.AsyncCacheLoader.bulk;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.Cache.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheHelper.caffeineCache;
+import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheHelper.cached;
+import static io.github.pellse.util.collection.CollectionUtil.translate;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -53,6 +59,27 @@ public class TestAssemblerCaffeineCache {
     }
 
     @Test
+    public void testAsyncLoader() throws ExecutionException, InterruptedException {
+        AsyncLoadingCache<Long, Collection<OrderItem>> delegateCache = Caffeine.newBuilder().buildAsync(
+                bulk((ids, executor) -> {
+                    System.out.println("Thread = " + Thread.currentThread().getName() + ", ids = " + ids);
+                    return Flux.from(getAllOrders(translate(ids, ArrayList::new)))
+                            .collectMultimap(OrderItem::customerId)
+                            .doOnNext(map -> System.out.println(("Thread = " + Thread.currentThread().getName() +", collect multimap: " + map)))
+                            .toFuture();
+                })
+        );
+
+        var map1 = delegateCache.getAll(List.of(2L)).get();
+        var map2 = delegateCache.getAll(List.of(1L, 2L)).get();
+        var map3 = delegateCache.getAll(List.of(1L)).get();
+
+        System.out.println("map1 = " + map1);
+        System.out.println("map2 = " + map2);
+        System.out.println("map3 = " + map3);
+    }
+
+    @Test
     public void testReusableAssemblerBuilderWithCaffeineCache() {
 
         final Cache<Long, List<BillingInfo>> c1 = newBuilder().maximumSize(10).build();
@@ -61,8 +88,8 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, c1::getAllPresent, c1::putAll), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(c2)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders))),
                         Transaction::new)
                 .build();
 
@@ -85,8 +112,8 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, caffeineCache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(builder -> builder.maximumSize(10).build())))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, newBuilder()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, newBuilder().maximumSize(10)))),
                         Transaction::new)
                 .build();
 

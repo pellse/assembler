@@ -25,6 +25,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.reactive.assembler.RuleContext.ruleContext;
+import static io.github.pellse.util.ObjectUtils.then;
 
 @FunctionalInterface
 public interface Mapper<ID, RRC> extends Function<Iterable<ID>, Mono<Map<ID, RRC>>> {
@@ -53,6 +54,6 @@ public interface Mapper<ID, RRC> extends Function<Iterable<ID>, Mono<Map<ID, RRC
     static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(
             RuleContext<ID, IDC, R, RRC> ruleContext,
             RuleMapper<ID, IDC, R, RRC> mapper) {
-        return ids -> mapper.apply(ruleContext, ids);
+        return then(mapper.apply(ruleContext), queryFunction -> queryFunction::apply);
     }
 }

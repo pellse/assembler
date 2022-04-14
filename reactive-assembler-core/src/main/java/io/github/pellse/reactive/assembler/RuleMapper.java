@@ -4,25 +4,25 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.reactive.assembler.QueryUtils.queryOneToMany;
 import static io.github.pellse.reactive.assembler.QueryUtils.queryOneToOne;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
+import static io.github.pellse.util.ObjectUtils.then;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.StreamSupport.stream;
 
 /**
- *
- * @param <ID> Correlation Id type
+ * @param <ID>  Correlation Id type
  * @param <IDC> Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
- * @param <R> Type of the publisher elements returned from {@code queryFunction}
+ * @param <R>   Type of the publisher elements returned from {@code queryFunction}
  * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
  */
 @FunctionalInterface
-public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC> extends BiFunction<RuleContext<ID, IDC, R, RRC>, Iterable<ID>, Mono<Map<ID, RRC>>> {
+public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
+        extends Function<RuleContext<ID, IDC, R, RRC>, Function<Iterable<ID>, Mono<Map<ID, RRC>>>> {
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(Function<IDC, Publisher<R>> queryFunction) {
         return oneToOne(call(queryFunction), id -> null);
@@ -42,9 +42,10 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC> extends BiFu
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
             RuleMapperSource<ID, IDC, R, R> ruleMapperSource,
             Function<ID, R> defaultResultProvider) {
-        return convertIdTypeMapperDelegateOneToOne((ruleContext, entityIds) ->
+        return ruleContext ->
+                then(ruleMapperSource.apply(ruleContext), queryFunction -> entityIds ->
                         queryOneToOne((IDC) entityIds,
-                                ruleMapperSource.apply(ruleContext),
+                                ids -> queryFunction.apply(refineEntityIDType(entityIds, ruleContext.idCollectionFactory())),
                                 ruleContext.idExtractor(),
                                 defaultResultProvider,
                                 ruleContext.mapFactory()));
@@ -80,22 +81,13 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC> extends BiFu
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(
             RuleMapperSource<ID, IDC, R, RC> ruleMapperSource,
             Supplier<RC> collectionFactory) {
-        return convertIdTypeMapperDelegateOneToMany((ruleContext, entityIds) ->
-                queryOneToMany((IDC) entityIds,
-                        ruleMapperSource.apply(ruleContext),
-                        ruleContext.idExtractor(),
-                        collectionFactory,
-                        ruleContext.mapFactory()));
-    }
-
-    private static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> convertIdTypeMapperDelegateOneToOne(
-            RuleMapper<ID, IDC, R, R> mapper) {
-        return (ruleContext, entityIds) -> mapper.apply(ruleContext, refineEntityIDType(entityIds, ruleContext.idCollectionFactory()));
-    }
-
-    private static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> convertIdTypeMapperDelegateOneToMany(
-            RuleMapper<ID, IDC, R, RC> mapper) {
-        return (ruleContext, entityIds) -> mapper.apply(ruleContext, refineEntityIDType(entityIds, ruleContext.idCollectionFactory()));
+        return ruleContext ->
+                then(ruleMapperSource.apply(ruleContext), queryFunction -> entityIds ->
+                        queryOneToMany((IDC) entityIds,
+                                ids -> queryFunction.apply(refineEntityIDType(entityIds, ruleContext.idCollectionFactory())),
+                                ruleContext.idExtractor(),
+                                collectionFactory,
+                                ruleContext.mapFactory()));
     }
 
     private static <ID, IDC extends Collection<ID>> IDC refineEntityIDType(Iterable<ID> entityIds, Supplier<IDC> idCollectionFactory) {

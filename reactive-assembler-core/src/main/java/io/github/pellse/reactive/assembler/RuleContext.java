@@ -18,7 +18,7 @@ import static io.github.pellse.reactive.assembler.MapFactory.defaultMapFactory;
  * @param <R> Type of the publisher elements returned from {@code queryFunction}
  * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
  */
-record RuleContext<ID, IDC extends Collection<ID>, R, RRC>(
+public record RuleContext<ID, IDC extends Collection<ID>, R, RRC>(
         Function<R, ID> idExtractor,
         Supplier<IDC> idCollectionFactory,
         MapFactory<ID, RRC> mapFactory) {

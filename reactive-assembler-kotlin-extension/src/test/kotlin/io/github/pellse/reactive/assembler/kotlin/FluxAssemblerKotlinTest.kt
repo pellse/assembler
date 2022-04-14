@@ -5,6 +5,7 @@ import io.github.pellse.assembler.BillingInfo
 import io.github.pellse.assembler.Customer
 import io.github.pellse.assembler.OrderItem
 import io.github.pellse.assembler.Transaction
+import io.github.pellse.reactive.assembler.CachedRuleMapperSource.cached
 import io.github.pellse.reactive.assembler.Mapper.rule
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
@@ -74,8 +75,8 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfos.cached(), ::BillingInfo)),
-                rule(OrderItem::customerId, oneToMany(::getAllOrders.cached())),
+                rule(BillingInfo::customerId, oneToOne(cached(::getBillingInfos), ::BillingInfo)),
+                rule(OrderItem::customerId, oneToMany(cached(::getAllOrders))),
                 ::Transaction
             ).build()
 
