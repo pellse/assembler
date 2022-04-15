@@ -1,9 +1,7 @@
 package io.github.pellse.util.collection;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -42,6 +40,18 @@ public interface CollectionUtil {
 
     static <E> Set<E> intersect(Iterable<? extends E> iter1, Iterable<? extends E> iter2) {
         return also(new HashSet<>(asCollection(iter1)), set -> set.removeAll(asCollection(iter2)));
+    }
+
+    static <K, V> Map<K, V> newMap(Consumer<Map<K, V>> initializer) {
+        final var map = new HashMap<K, V>();
+        initializer.accept(map);
+        return map;
+    }
+
+    static <K, V> Map<K, V> newMap(Map<K, V> map, Consumer<Map<K, V>> initializer) {
+        final var copyMap = new HashMap<>(map);
+        initializer.accept(copyMap);
+        return copyMap;
     }
 
     @SafeVarargs

@@ -5,7 +5,7 @@ import io.github.pellse.assembler.BillingInfo
 import io.github.pellse.assembler.Customer
 import io.github.pellse.assembler.OrderItem
 import io.github.pellse.assembler.Transaction
-import io.github.pellse.reactive.assembler.CachedRuleMapperSource.cached
+import io.github.pellse.reactive.assembler.CacheFactory.cached
 import io.github.pellse.reactive.assembler.Mapper.rule
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne

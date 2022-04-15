@@ -13,7 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.CachedRuleMapperSource.cached;
+import static io.github.pellse.reactive.assembler.CacheFactory.cache;
+import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static java.time.Duration.ofMillis;
@@ -65,7 +66,7 @@ public class CacheTest {
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders))),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, new HashMap<>()))),
                         Transaction::new)
                 .build();
 
@@ -88,8 +89,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, () -> new HashMap<>()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(HashMap::new)))),
                         Transaction::new)
                 .build();
 
