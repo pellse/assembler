@@ -5,17 +5,18 @@ import io.github.pellse.assembler.BillingInfo
 import io.github.pellse.assembler.Customer
 import io.github.pellse.assembler.OrderItem
 import io.github.pellse.assembler.Transaction
-import io.github.pellse.reactive.assembler.CacheFactory.cached
+import io.github.pellse.reactive.assembler.CacheFactory.cache
 import io.github.pellse.reactive.assembler.Mapper.rule
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
+import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Flux
 import reactor.test.StepVerifier
-import java.time.Duration.ofSeconds
+import java.time.Duration.ofMillis
 import java.util.concurrent.atomic.AtomicInteger
 
 class FluxAssemblerKotlinTest {
@@ -71,19 +72,19 @@ class FluxAssemblerKotlinTest {
     }
 
     @Test
-    fun testReusableAssemblerBuilderWithCache() {
+    fun testReusableAssemblerBuilderWithCacheWindow3() {
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(cached(::getBillingInfos), ::BillingInfo)),
-                rule(OrderItem::customerId, oneToMany(cached(::getAllOrders))),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfos.cached(), ::BillingInfo)),
+                rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(::hashMapOf))),
                 ::Transaction
             ).build()
 
         StepVerifier.create(
             getCustomers()
                 .window(3)
-                .delayElements(ofSeconds(1))
+                .delayElements(ofMillis(100))
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
@@ -93,5 +94,30 @@ class FluxAssemblerKotlinTest {
 
         assertEquals(1, billingInvocationCount.get())
         assertEquals(1, ordersInvocationCount.get())
+    }
+
+    @Test
+    fun testReusableAssemblerBuilderWithCacheWindow2() {
+        val assembler = assembler<Transaction>()
+            .withIdExtractor(Customer::customerId)
+            .withAssemblerRules(
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfos.cached(cache()), ::BillingInfo)),
+                rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(caffeineCache()))),
+                ::Transaction
+            ).build()
+
+        StepVerifier.create(
+            getCustomers()
+                .window(2)
+                .delayElements(ofMillis(100))
+                .flatMapSequential(assembler::assemble)
+        )
+            .expectSubscription()
+            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectComplete()
+            .verify()
+
+        assertEquals(2, billingInvocationCount.get())
+        assertEquals(2, ordersInvocationCount.get())
     }
 }
