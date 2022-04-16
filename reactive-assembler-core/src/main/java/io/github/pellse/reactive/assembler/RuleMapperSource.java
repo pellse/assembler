@@ -13,7 +13,8 @@ import java.util.function.Function;
  * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
  */
 @FunctionalInterface
-public interface RuleMapperSource<ID, IDC extends Collection<ID>, R, RRC> extends Function<RuleContext<ID, IDC, R, RRC>, Function<IDC, Publisher<R>>> {
+public interface RuleMapperSource<ID, IDC extends Collection<ID>, R, RRC>
+        extends Function<RuleContext<ID, IDC, R, RRC>, Function<IDC, Publisher<R>>> {
 
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> call(Function<IDC, Publisher<R>> queryFunction) {
         return ruleContext -> queryFunction;

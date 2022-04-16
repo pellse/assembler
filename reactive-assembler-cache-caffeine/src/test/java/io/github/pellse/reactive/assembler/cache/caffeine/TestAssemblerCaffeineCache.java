@@ -17,12 +17,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.Cache.cached;
+import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheHelper.caffeineCache;
-import static java.time.Duration.ofSeconds;
+import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
+import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestAssemblerCaffeineCache {
@@ -61,14 +61,14 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, c1::getAllPresent, c1::putAll), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(c2)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, caffeineCache()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
         StepVerifier.create(getCustomers()
                         .window(3)
-                        .delayElements(ofSeconds(1))
+                        .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
@@ -86,13 +86,13 @@ public class TestAssemblerCaffeineCache {
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, caffeineCache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(builder -> builder.maximumSize(10).build())))),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
         StepVerifier.create(getCustomers()
                         .window(2)
-                        .delayElements(ofSeconds(1))
+                        .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)

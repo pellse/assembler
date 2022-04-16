@@ -8,16 +8,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.Cache.cache;
-import static io.github.pellse.reactive.assembler.Cache.cached;
+import static io.github.pellse.reactive.assembler.CacheFactory.cache;
+import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static java.time.Duration.ofMillis;
@@ -69,7 +66,7 @@ public class CacheTest {
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders))),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, new HashMap<>()))),
                         Transaction::new)
                 .build();
 
@@ -89,13 +86,11 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithCustomCaching() {
 
-        Cache<Long, BillingInfo> cache = cache(HashMap::new);
-
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, cache::getAllPresent, cache::putAll), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, HashMap::new))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, () -> new HashMap<>()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(HashMap::new)))),
                         Transaction::new)
                 .build();
 
