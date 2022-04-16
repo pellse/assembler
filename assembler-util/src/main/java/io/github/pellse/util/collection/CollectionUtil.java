@@ -43,13 +43,11 @@ public interface CollectionUtil {
     }
 
     static <K, V> Map<K, V> newMap(Consumer<Map<K, V>> initializer) {
-        final var map = new HashMap<K, V>();
-        initializer.accept(map);
-        return map;
+        return newMap(null, initializer);
     }
 
     static <K, V> Map<K, V> newMap(Map<K, V> map, Consumer<Map<K, V>> initializer) {
-        final var copyMap = new HashMap<>(map);
+        final var copyMap = map != null ? new HashMap<>(map) : new HashMap<K, V>();
         initializer.accept(copyMap);
         return copyMap;
     }
