@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.pellse.reactive.assembler.CacheFactory;
 
 import java.util.Collection;
+import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.AsyncCacheLoader.bulk;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
@@ -16,11 +17,15 @@ public interface CaffeineCacheFactory {
         return caffeineCache(newBuilder());
     }
 
+    static <ID, R> CacheFactory<ID, R> caffeineCache(Function<Caffeine<Object, Object>, Caffeine<Object, Object>> customizer) {
+        return caffeineCache(customizer.apply(newBuilder()));
+    }
+
     static <ID, R> CacheFactory<ID, R> caffeineCache(Caffeine<Object, Object> caffeine) {
 
         return fetchFunction -> {
-            final AsyncLoadingCache<ID, Collection<R>> delegateCache = caffeine.buildAsync(
-                    bulk((ids, executor) -> fetchFunction.apply(ids).toFuture()));
+            final AsyncLoadingCache<ID, Collection<R>> delegateCache =
+                    caffeine.buildAsync(bulk((ids, executor) -> fetchFunction.apply(ids).toFuture()));
 
             return ids -> fromFuture(delegateCache.getAll(ids));
         };
