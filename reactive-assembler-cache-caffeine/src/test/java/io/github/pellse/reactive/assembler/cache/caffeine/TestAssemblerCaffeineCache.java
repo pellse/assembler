@@ -55,9 +55,6 @@ public class TestAssemblerCaffeineCache {
     @Test
     public void testReusableAssemblerBuilderWithCaffeineCache() {
 
-        final Cache<Long, List<BillingInfo>> c1 = newBuilder().maximumSize(10).build();
-        final Cache<Long, List<OrderItem>> c2 = newBuilder().maximumSize(10).build();
-
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
