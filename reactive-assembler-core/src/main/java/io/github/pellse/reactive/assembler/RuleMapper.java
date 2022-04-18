@@ -38,14 +38,13 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         return oneToOne(call(queryFunction), defaultResultProvider);
     }
 
-    @SuppressWarnings("unchecked")
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
             RuleMapperSource<ID, IDC, R, R> ruleMapperSource,
             Function<ID, R> defaultResultProvider) {
         return ruleContext ->
                 then(ruleMapperSource.apply(ruleContext), queryFunction -> entityIds ->
-                        queryOneToOne((IDC) entityIds,
-                                ids -> queryFunction.apply(refineEntityIDType(entityIds, ruleContext.idCollectionFactory())),
+                        queryOneToOne(refineEntityIDType(entityIds, ruleContext.idCollectionFactory()),
+                                queryFunction,
                                 ruleContext.idExtractor(),
                                 defaultResultProvider,
                                 ruleContext.mapFactory()));
@@ -77,14 +76,13 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         return oneToMany(call(queryFunction), collectionFactory);
     }
 
-    @SuppressWarnings("unchecked")
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(
             RuleMapperSource<ID, IDC, R, RC> ruleMapperSource,
             Supplier<RC> collectionFactory) {
         return ruleContext ->
                 then(ruleMapperSource.apply(ruleContext), queryFunction -> entityIds ->
-                        queryOneToMany((IDC) entityIds,
-                                ids -> queryFunction.apply(refineEntityIDType(entityIds, ruleContext.idCollectionFactory())),
+                        queryOneToMany(refineEntityIDType(entityIds, ruleContext.idCollectionFactory()),
+                                queryFunction,
                                 ruleContext.idExtractor(),
                                 collectionFactory,
                                 ruleContext.mapFactory()));
