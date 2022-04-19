@@ -3,9 +3,9 @@
 
 Functional, type-safe and stateless Java API for efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying/merging data from multiple datasources/services, with a specific focus on solving the N + 1 query problem.
 
-## Native Reactive Streams Support
+## Native Reactive Streams Support (since version 0.3.1)
 
-As of version 0.3.1, a new implementation [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) was added to natively support [Reactive Streams](http://www.reactive-streams.org) specification. This new implementation internally leverages [Project Reactor](https://projectreactor.io), which now allows the Assembler library (through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module) to participate in end to end reactive streams chains (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+A new implementation [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) was added to natively support [Reactive Streams](http://www.reactive-streams.org) specification. This new implementation internally leverages [Project Reactor](https://projectreactor.io), which now allows the Assembler library (through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module) to participate in end to end reactive streams chains (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
 
 This is the only module still actively maintained, all the other ones (see below) are still available but deprecated in favor of this one.
 
@@ -53,7 +53,7 @@ Flux<Transaction> transactionFlux = customers()
     .windowTimeout(100, ofSeconds(5))
     .flatMapSequential(assembler::assemble);
 ```
-## Asynchronous Caching
+## Asynchronous Caching  (since version 0.4.1)
 In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `OneToMany()`), the Assembler also provides a caching/memoization mechanism of the downstreams through the `cached()` wrapper method.
 
 ```java
