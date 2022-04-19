@@ -20,11 +20,6 @@ import static reactor.core.publisher.Flux.fromStream;
 @FunctionalInterface
 public interface CacheFactory<ID, R> {
 
-    @FunctionalInterface
-    interface Cache<ID, R> {
-        Mono<Map<ID, Collection<R>>> getAll(Iterable<ID> ids);
-    }
-
     Cache<ID, R> create(Function<Iterable<? extends ID>, Mono<Map<ID, Collection<R>>>> fetchFunction);
 
     static <ID, R> CacheFactory<ID, R> cache() {
