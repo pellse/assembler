@@ -124,16 +124,16 @@ var assembler = assemblerOf(Transaction.class)
 Overloaded versions of `cached()` and `cache()` are provided to wrap any implementation of `java.util.Map` since it doesn't natively implement
 `Mono<Map<ID, Collection<R>>> getAll(Iterable<ID> ids)`.
 
-### Third Party Cache Provider Integration
+### Third Party Asynchronous Cache Provider Integration
 
-Here is a list of add-on modules that can be used to integrate third party caching libraries (more will be added in the future):
+Here is a list of add-on modules that can be used to integrate third party asynchronous caching libraries (more will be added in the future):
 
 | Assembler add-on module | Third party cache library |
 | --- | --- |
 | [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-cache-caffeine`%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core) [reactive-assembler-cache-caffeine](https://github.com/pellse/assembler/tree/master/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
 
-Below is an example of using a `CacheFactory` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) through the `caffeineCache()` helper method from the caffeine add-on module: 
+Below is an example of using a `CacheFactory` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library through the `caffeineCache()` helper method from the caffeine add-on module: 
 ```java
 import com.github.benmanes.caffeine.cache.Cache;
 
