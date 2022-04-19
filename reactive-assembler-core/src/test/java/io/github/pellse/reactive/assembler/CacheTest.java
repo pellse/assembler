@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.CacheFactory.cache;
+import static io.github.pellse.reactive.assembler.Cache.cache;
 import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
