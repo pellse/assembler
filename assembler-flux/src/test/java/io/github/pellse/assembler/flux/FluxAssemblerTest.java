@@ -44,7 +44,7 @@ public class FluxAssemblerTest {
                 assemblerOf(Transaction.class)
                         .withIdExtractor(Customer::customerId)
                         .withAssemblerRules(
-                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                 Transaction::new)
                         .using(fluxAdapter())
@@ -80,7 +80,7 @@ public class FluxAssemblerTest {
                 .concatMap(customers -> assemblerOf(Transaction.class)
                         .withIdExtractor(Customer::customerId)
                         .withAssemblerRules(
-                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                 Transaction::new)
                         .using(fluxAdapter())
@@ -97,7 +97,7 @@ public class FluxAssemblerTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(fluxAdapter());

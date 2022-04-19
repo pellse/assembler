@@ -46,7 +46,7 @@ public class FluxAssemblerJavaTest {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-    private Publisher<BillingInfo> getBillingInfos(List<Long> customerIds) {
+    private Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
@@ -75,7 +75,7 @@ public class FluxAssemblerJavaTest {
                         assemblerOf(Transaction.class)
                                 .withIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
-                                        rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)),
+                                        rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
                                         rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                                         Transaction::new)
                                 .build(fluxAdapter())
@@ -114,7 +114,7 @@ public class FluxAssemblerJavaTest {
                                 .flatMapSequential(customers -> assemblerOf(Transaction.class)
                                         .withIdExtractor(Customer::customerId)
                                         .withAssemblerRules(
-                                                rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)),
+                                                rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
                                                 rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                                                 Transaction::new)
                                         .build(fluxAdapter())
@@ -132,7 +132,7 @@ public class FluxAssemblerJavaTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                         Transaction::new)
                 .build();
@@ -157,7 +157,7 @@ public class FluxAssemblerJavaTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)), billingInfoCache::computeIfAbsent),
+                        cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)), billingInfoCache::computeIfAbsent),
                         cached(rule(OrderItem::customerId, oneToMany(this::getAllOrders)), cache(HashMap::new)),
                         Transaction::new)
                 .build(Schedulers.immediate());
@@ -182,7 +182,7 @@ public class FluxAssemblerJavaTest {
         var assembler = assemblerOf(TransactionSet.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfos, BillingInfo::new)), billingInfoCache::computeIfAbsent),
+                        cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)), billingInfoCache::computeIfAbsent),
                         cached(rule(OrderItem::customerId, oneToManyAsSet(this::getAllOrders)), cache(HashMap::new)),
                         TransactionSet::new)
                 .build(Schedulers.immediate());

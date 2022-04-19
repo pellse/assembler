@@ -51,7 +51,7 @@ public class StreamAssemblerTest {
         List<Transaction> transactions = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(streamAdapter())
@@ -67,7 +67,7 @@ public class StreamAssemblerTest {
         List<Transaction> transactions = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new, defaultMapFactory()),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new, defaultMapFactory()),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId, size -> new LinkedHashMap<>(size * 2, 0.5f)),
                         Transaction::new)
                 .using(streamAdapter())
@@ -161,7 +161,7 @@ public class StreamAssemblerTest {
         List<TransactionSet> transactions = assemblerOf(TransactionSet.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfosWithSetIds, BillingInfo::customerId, BillingInfo::new, HashSet::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfoWithSetIds, BillingInfo::customerId, BillingInfo::new, HashSet::new),
                         oneToManyAsSet(AssemblerTestUtils::getAllOrdersWithLinkedListIds, OrderItem::customerId, LinkedList::new),
                         TransactionSet::new)
                 .using(streamAdapter())
@@ -177,7 +177,7 @@ public class StreamAssemblerTest {
         List<Transaction> transactions = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(streamAdapter())
@@ -190,7 +190,7 @@ public class StreamAssemblerTest {
     @Test
     public void testAssembleBuilderWithCachedMappers() {
 
-        Mapper<Long, BillingInfo, SQLException> billingInfoMapper = cached(oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId));
+        Mapper<Long, BillingInfo, SQLException> billingInfoMapper = cached(oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId));
         Mapper<Long, List<OrderItem>, SQLException> allOrdersMapper = oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId);
 
         Assembler<Customer, Stream<Transaction>> transactionAssembler = assemblerOf(Transaction.class)

@@ -45,7 +45,7 @@ public class FlowableAssemblerTest {
         Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(flowableAdapter())
@@ -81,7 +81,7 @@ public class FlowableAssemblerTest {
                 .flatMap(customers -> assemblerOf(Transaction.class)
                         .withIdExtractor(Customer::customerId)
                         .withAssemblerRules(
-                                oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                 Transaction::new)
                         .using(flowableAdapter(single()))
@@ -97,7 +97,7 @@ public class FlowableAssemblerTest {
         Assembler<Customer, Flowable<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(flowableAdapter());

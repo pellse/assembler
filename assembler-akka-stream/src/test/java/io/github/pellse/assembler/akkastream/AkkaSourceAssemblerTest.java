@@ -59,7 +59,7 @@ public class AkkaSourceAssemblerTest {
         Source<Transaction, ?> transactionSource = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(akkaSourceAdapter())
@@ -104,7 +104,7 @@ public class AkkaSourceAssemblerTest {
         Source<Transaction, ?> transactionSource = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(akkaSourceAdapter(true))
@@ -129,7 +129,7 @@ public class AkkaSourceAssemblerTest {
                         assemblerOf(Transaction.class)
                                 .withIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
-                                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                                         Transaction::new)
                                 .using(akkaSourceAdapter(Source::async))
@@ -151,7 +151,7 @@ public class AkkaSourceAssemblerTest {
         Assembler<Customer, Source<Transaction, ?>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(akkaSourceAdapter(Source::async));

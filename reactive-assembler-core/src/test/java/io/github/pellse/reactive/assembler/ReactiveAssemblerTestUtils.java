@@ -57,12 +57,12 @@ public final class ReactiveAssemblerTestUtils {
             List.of(orderItem21, orderItem22));
     public static final Transaction transaction3 = new Transaction(customer3, billingInfo3, emptyList());
 
-    public static Publisher<BillingInfo> getBillingInfos(List<Long> customerIds) {
+    public static Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()));
     }
 
-    public static Publisher<BillingInfo> getBillingInfosWithSetIds(Set<Long> customerIds) {
+    public static Publisher<BillingInfo> getBillingInfoWithSetIds(Set<Long> customerIds) {
         return Flux.just(billingInfo1, null, billingInfo3)
                 .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.customerId()));
     }

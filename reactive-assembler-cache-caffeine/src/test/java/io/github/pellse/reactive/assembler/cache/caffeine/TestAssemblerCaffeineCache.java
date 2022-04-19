@@ -1,6 +1,5 @@
 package io.github.pellse.reactive.assembler.cache.caffeine;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import io.github.pellse.assembler.BillingInfo;
 import io.github.pellse.assembler.Customer;
 import io.github.pellse.assembler.OrderItem;
@@ -30,7 +29,7 @@ public class TestAssemblerCaffeineCache {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-    private Publisher<BillingInfo> getBillingInfos(List<Long> customerIds) {
+    private Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
@@ -58,7 +57,7 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, caffeineCache()), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
@@ -82,7 +81,7 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();

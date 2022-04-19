@@ -49,7 +49,7 @@ public class ParallelStreamAssemblerTest {
         List<Transaction> transactions = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfos, BillingInfo::customerId, BillingInfo::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
                         Transaction::new)
                 .using(streamAdapter(true))
@@ -78,7 +78,7 @@ public class ParallelStreamAssemblerTest {
         List<TransactionSet> transactions = assemblerOf(TransactionSet.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        oneToOne(AssemblerTestUtils::getBillingInfosWithSetIds, BillingInfo::customerId, BillingInfo::new, HashSet::new),
+                        oneToOne(AssemblerTestUtils::getBillingInfoWithSetIds, BillingInfo::customerId, BillingInfo::new, HashSet::new),
                         oneToManyAsSet(AssemblerTestUtils::getAllOrdersWithLinkedListIds, OrderItem::customerId, LinkedList::new),
                         TransactionSet::new)
                 .using(streamAdapter(true))

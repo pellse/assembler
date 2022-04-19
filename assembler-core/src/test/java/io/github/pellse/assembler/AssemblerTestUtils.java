@@ -60,13 +60,13 @@ public final class AssemblerTestUtils {
             Set.of(orderItem21, orderItem22));
     public static final TransactionSet transactionSet3 = new TransactionSet(customer3, billingInfo3, emptySet());
 
-    public static List<BillingInfo> getBillingInfos(List<Long> customerIds) {
+    public static List<BillingInfo> getBillingInfo(List<Long> customerIds) {
         return Stream.of(billingInfo1, null, billingInfo3)
                 .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.customerId()))
                 .collect(toList());
     }
 
-    public static List<BillingInfo> getBillingInfosWithSetIds(Set<Long> customerIds) {
+    public static List<BillingInfo> getBillingInfoWithSetIds(Set<Long> customerIds) {
         return Stream.of(billingInfo1, null, billingInfo3)
                 .filter(billingInfo -> billingInfo == null || customerIds.contains(billingInfo.customerId()))
                 .collect(toList());

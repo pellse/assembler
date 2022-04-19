@@ -24,7 +24,7 @@ class FluxAssemblerKotlinTest {
     private val billingInvocationCount = AtomicInteger()
     private val ordersInvocationCount = AtomicInteger()
 
-    private fun getBillingInfos(customerIds: List<Long>): Publisher<BillingInfo> {
+    private fun getBillingInfo(customerIds: List<Long>): Publisher<BillingInfo> {
         return Flux.just(billingInfo1, billingInfo3)
             .filter { customerIds.contains(it.customerId) }
             .doOnComplete(billingInvocationCount::incrementAndGet)
@@ -52,7 +52,7 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfos, ::BillingInfo)),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfo, ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(::getAllOrders)),
                 ::Transaction
             ).build()
@@ -76,7 +76,7 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfos.cached(), ::BillingInfo)),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(), ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(::hashMapOf))),
                 ::Transaction
             ).build()
@@ -101,7 +101,7 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfos.cached(cache()), ::BillingInfo)),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache()), ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(caffeineCache()))),
                 ::Transaction
             ).build()

@@ -25,7 +25,7 @@ public class CacheTest {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-    private Publisher<BillingInfo> getBillingInfos(List<Long> customerIds) {
+    private Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
@@ -37,7 +37,7 @@ public class CacheTest {
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
     }
 
-    private Publisher<BillingInfo> getBillingInfosWithIdSet(Set<Long> customerIds) {
+    private Publisher<BillingInfo> getBillingInfoWithIdSet(Set<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
@@ -65,7 +65,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, new HashMap<>()))),
                         Transaction::new)
                 .build();
@@ -89,7 +89,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, () -> new HashMap<>()), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, () -> new HashMap<>()), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(HashMap::new)))),
                         Transaction::new)
                 .build();
@@ -113,7 +113,7 @@ public class CacheTest {
         var assembler = assemblerOf(TransactionSet.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfosWithIdSet), BillingInfo::new)),
+                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
                         rule(OrderItem::customerId, HashSet::new, oneToManyAsSet(cached(this::getAllOrdersWithIdSet))),
                         TransactionSet::new)
                 .build(Schedulers.immediate());
@@ -136,7 +136,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfosWithIdSet), BillingInfo::new)),
+                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
                         rule(OrderItem::customerId, HashSet::new, oneToMany(cached(this::getAllOrdersWithIdSet))),
                         Transaction::new)
                 .build();
