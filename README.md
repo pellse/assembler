@@ -144,13 +144,19 @@ import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 
+import static java.time.Duration.ofMinutes;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
+
+var cacheBuilder = newBuilder()
+                .recordStats()
+                .expireAfterWrite(ofMinutes(10))
+                .maximumSize(1000);
 
 var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, caffeineCache()))),
-        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
+        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(cacheBuilder))))),
         Transaction::new)
     .build();
 ```
