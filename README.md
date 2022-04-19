@@ -116,7 +116,7 @@ import reactor.core.publisher.Flux;
 var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, new HashMap<>()))),
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, new HashMap<>()))),
         rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(HashMap::new)))),
         Transaction::new)
     .build();
@@ -155,7 +155,7 @@ var cacheBuilder = newBuilder()
 var assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfos, caffeineCache()))),
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()))),
         rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(cacheBuilder))))),
         Transaction::new)
     .build();
@@ -176,7 +176,7 @@ import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.c
 val assembler = assembler<Transaction>()
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(::getBillingInfos.cached())),
+        rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached())),
         rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(::hashMapOf))),
         ::Transaction
     ).build()
@@ -185,7 +185,7 @@ val assembler = assembler<Transaction>()
 val assembler = assembler<Transaction>()
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(::getBillingInfos.cached(cache()))),
+        rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache()))),
         rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(caffeineCache()))),
         ::Transaction
     ).build()
