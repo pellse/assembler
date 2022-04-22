@@ -38,7 +38,7 @@ import static java.util.stream.Collectors.*;
 public interface QueryUtils {
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>>
+    static <ID, IDC extends Collection<ID>, R>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
                                    Function<IDC, Publisher<R>> queryFunction,
                                    Function<R, ID> idExtractorFromQueryResults) {
@@ -47,7 +47,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>>
+    static <ID, IDC extends Collection<ID>, R>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
                                    Function<IDC, Publisher<R>> queryFunction,
                                    Function<R, ID> idExtractorFromQueryResults,
@@ -57,7 +57,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>>
+    static <ID, IDC extends Collection<ID>, R>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
                                    Function<IDC, Publisher<R>> queryFunction,
                                    Function<R, ID> idExtractorFromQueryResults,
@@ -67,7 +67,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>>
+    static <ID, IDC extends Collection<ID>, R>
     Mono<Map<ID, R>> queryOneToOne(IDC ids,
                                    Function<IDC, Publisher<R>> queryFunction,
                                    Function<R, ID> idExtractorFromQueryResults,
@@ -78,7 +78,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>>
+    static <ID, IDC extends Collection<ID>, R>
     Mono<Map<ID, List<R>>> queryOneToManyAsList(IDC ids,
                                                 Function<IDC, Publisher<R>> queryFunction,
                                                 Function<R, ID> idExtractorFromQueryResults) {
@@ -87,7 +87,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>>
+    static <ID, IDC extends Collection<ID>, R>
     Mono<Map<ID, List<R>>> queryOneToManyAsList(IDC ids,
                                                 Function<IDC, Publisher<R>> queryFunction,
                                                 Function<R, ID> idExtractorFromQueryResults,
@@ -97,7 +97,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>>
+    static <ID, IDC extends Collection<ID>, R>
     Mono<Map<ID, Set<R>>> queryOneToManyAsSet(IDC ids,
                                               Function<IDC, Publisher<R>> queryFunction,
                                               Function<R, ID> idExtractorFromQueryResults) {
@@ -106,7 +106,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>>
+    static <ID, IDC extends Collection<ID>, R>
     Mono<Map<ID, Set<R>>> queryOneToManyAsSet(IDC ids,
                                               Function<IDC, Publisher<R>> queryFunction,
                                               Function<R, ID> idExtractorFromQueryResults,
@@ -116,7 +116,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>>
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>>
     Mono<Map<ID, RC>> queryOneToMany(IDC ids,
                                      Function<IDC, Publisher<R>> queryFunction,
                                      Function<R, ID> idExtractorFromQueryResults,
@@ -126,7 +126,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>>
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>>
     Mono<Map<ID, RC>> queryOneToMany(IDC ids,
                                      Function<IDC, Publisher<R>> queryFunction,
                                      Function<R, ID> idExtractorFromQueryResults,
@@ -145,24 +145,24 @@ public interface QueryUtils {
      *                              e.g. an empty collection, a default value, an empty string, etc.
      * @param mapCollector          The collector used to collect the stream of results returned by {@code queryFunction}.
      *                              It will transform a stream of results to a {@code Map<ID, V>}
-     * @param <V>                   Type of each value representing the result from {@code queryFunction} associated with each ID, will map
-     *                              to either {@code <R>} when called from {@code queryOneToOne}
-     *                              or {@code <RC>} when called from {@code queryOneToMany} i.e. a collection of {@code <R>}.
-     *                              This is conceptually a union type {@code <R> | <RC>}
      * @param <ID>                  Type of the ids passed to {@code queryFunction} e.g. {@code Long}, {@code String}
-     * @param <R>                   Type of individual results returned from the queryFunction
      * @param <IDC>                 Type of the {@link Collection} containing the ids of type {@code <ID>}
      *                              e.g. {@code List<Long>}, {@code Set<String>}, etc.
      *                              e.g. {@code List<Customer>}, {@code Set<Order>}, etc.
+     * @param <R>                   Type of individual results returned from the queryFunction
+     * @param <RRC>                 Type of each value representing the result from {@code queryFunction} associated with each ID, will map
+     *                              to either {@code <R>} when called from {@code queryOneToOne}
+     *                              or {@code <RC>} when called from {@code queryOneToMany} i.e. a collection of {@code <R>}.
+     *                              This is conceptually a union type {@code <R> | <RC>}
      * @return A {@link Map} of the results from invoking the {@code queryFunction}
      * with key = correlation ID, value = result associated with ID
      */
     @NotNull
-    static <V, ID, R, IDC extends Collection<ID>>
-    Mono<Map<ID, V>> query(IDC ids,
+    static <ID, IDC extends Collection<ID>, R, RRC>
+    Mono<Map<ID, RRC>> query(IDC ids,
                            Function<IDC, Publisher<R>> queryFunction,
-                           Function<ID, V> defaultResultProvider,
-                           Collector<R, ?, Map<ID, V>> mapCollector) {
+                           Function<ID, RRC> defaultResultProvider,
+                           Collector<R, ?, Map<ID, RRC>> mapCollector) {
 
         return safeApply(ids, queryFunction)
                 .collect(mapCollector)
@@ -180,17 +180,17 @@ public interface QueryUtils {
     }
 
     @NotNull
-    private static <V, ID, IDC extends Collection<ID>>
-    Mono<Map<ID, V>> toResultMap(IDC ids, Map<ID, V> map, Function<ID, V> defaultResultProvider) {
+    private static <ID, IDC extends Collection<ID>, RRC>
+    Mono<Map<ID, RRC>> toResultMap(IDC ids, Map<ID, RRC> map, Function<ID, RRC> defaultResultProvider) {
         return Mono.just(isSafeEqual(map, Map::size, ids, Collection::size) ? map : initializeResultMap(ids, map, defaultResultProvider));
     }
 
     @NotNull
-    private static <V, ID, IDC extends Collection<ID>>
-    Map<ID, V> initializeResultMap(IDC ids, Map<ID, V> resultMap, Function<ID, V> defaultResultProvider) {
-        Function<ID, V> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
+    private static <ID, IDC extends Collection<ID>, RRC>
+    Map<ID, RRC> initializeResultMap(IDC ids, Map<ID, RRC> resultMap, Function<ID, RRC> defaultResultProvider) {
+        Function<ID, RRC> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
         Set<ID> idsFromQueryResult = resultMap.keySet();
-        Map<ID, V> resultMapCopy = new HashMap<>(resultMap);
+        Map<ID, RRC> resultMapCopy = new HashMap<>(resultMap);
 
         // defaultResultProvider can provide a null value, so we cannot use a Collector here
         // as it would throw a NullPointerException
@@ -203,7 +203,7 @@ public interface QueryUtils {
 
     @NotNull
     @Contract(pure = true)
-    private static <ID, R, IDC extends Collection<ID>>
+    private static <ID, IDC extends Collection<ID>, R>
     Supplier<Map<ID, R>> toSupplier(IDC ids, MapFactory<ID, R> mapFactory) {
         MapFactory<ID, R> actualMapFactory = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
         return () -> actualMapFactory.apply(ids != null ? ids.size() : 0);
