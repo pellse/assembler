@@ -13,6 +13,7 @@ import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.util.ObjectUtils.then;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.StreamSupport.stream;
+import static reactor.core.publisher.Flux.fromIterable;
 
 /**
  * @param <ID>  Correlation Id type
@@ -24,12 +25,25 @@ import static java.util.stream.StreamSupport.stream;
 public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         extends Function<RuleContext<ID, IDC, R, RRC>, Function<Iterable<ID>, Mono<Map<ID, RRC>>>> {
 
-    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(Function<IDC, Publisher<R>> queryFunction) {
+    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOneI(
+            Function<IDC, Iterable<R>> queryFunction) {
+        return oneToOneI(queryFunction, id -> null);
+    }
+
+    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
+            Function<IDC, Publisher<R>> queryFunction) {
         return oneToOne(call(queryFunction), id -> null);
     }
 
-    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(RuleMapperSource<ID, IDC, R, R> ruleMapperSource) {
+    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
+            RuleMapperSource<ID, IDC, R, R> ruleMapperSource) {
         return oneToOne(ruleMapperSource, id -> null);
+    }
+
+    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOneI(
+            Function<IDC, Iterable<R>> queryFunction,
+            Function<ID, R> defaultResultProvider) {
+        return oneToOne(call(ids -> fromIterable(queryFunction.apply(ids))), defaultResultProvider);
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
@@ -50,6 +64,11 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                                 ruleContext.mapFactory()));
     }
 
+    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToManyI(
+            Function<IDC, Iterable<R>> queryFunction) {
+        return oneToManyI(queryFunction, ArrayList::new);
+    }
+
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
             Function<IDC, Publisher<R>> queryFunction) {
         return oneToMany(call(queryFunction), ArrayList::new);
@@ -60,6 +79,11 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         return oneToMany(ruleMapperSource, ArrayList::new);
     }
 
+    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSetI(
+            Function<IDC, Iterable<R>> queryFunction) {
+        return oneToManyI(queryFunction, HashSet::new);
+    }
+
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSet(
             Function<IDC, Publisher<R>> queryFunction) {
         return oneToMany(call(queryFunction), HashSet::new);
@@ -68,6 +92,12 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSet(
             RuleMapperSource<ID, IDC, R, Set<R>> ruleMapperSource) {
         return oneToMany(ruleMapperSource, HashSet::new);
+    }
+
+    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToManyI(
+            Function<IDC, Iterable<R>> queryFunction,
+            Supplier<RC> collectionFactory) {
+        return oneToMany(call(ids -> fromIterable(queryFunction.apply(ids))), collectionFactory);
     }
 
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(

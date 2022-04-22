@@ -24,4 +24,6 @@ import org.reactivestreams.Publisher;
  */
 public interface Assembler<T, RC> {
     RC assemble(Publisher<T> topLevelEntities);
+
+    RC assemble(Iterable<T> topLevelEntities);
 }

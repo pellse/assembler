@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.util.collection.CollectionUtil.toStream;
+import static reactor.core.publisher.Flux.fromIterable;
 
 public interface AssemblerBuilder {
 
@@ -311,6 +312,10 @@ public interface AssemblerBuilder {
                             .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
         }
 
+        @Override
+        public RC assemble(Iterable<T> topLevelEntities) {
+            return assemble(fromIterable(topLevelEntities));
+        }
 
         @Override
         public RC assemble(Publisher<T> topLevelEntitiesProvider) {

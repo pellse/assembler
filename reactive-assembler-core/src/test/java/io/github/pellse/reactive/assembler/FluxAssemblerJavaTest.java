@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
@@ -58,8 +59,24 @@ public class FluxAssemblerJavaTest {
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
     }
 
+    private List<BillingInfo> getBillingInfoNonReactive(List<Long> customerIds) {
+        return Stream.of(billingInfo1, billingInfo3)
+                .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                .toList();
+    }
+
+    private List<OrderItem> getAllOrdersNonReactive(List<Long> customerIds) {
+        return Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                .filter(orderItem -> customerIds.contains(orderItem.customerId()))
+                .toList();
+    }
+
     private Flux<Customer> getCustomers() {
         return Flux.just(customer1, customer2, customer3, customer1, customer2, customer3);
+    }
+
+    private List<Customer> getCustomersNonReactive() {
+        return List.of(customer1, customer2, customer3, customer1, customer2, customer3);
     }
 
     @BeforeEach
@@ -147,6 +164,38 @@ public class FluxAssemblerJavaTest {
 
         assertEquals(2, billingInvocationCount.get());
         assertEquals(2, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithFluxWithLists() {
+
+        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOneI(this::getBillingInfoNonReactive, BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToManyI(this::getAllOrdersNonReactive)),
+                        Transaction::new)
+                .build();
+        List<Transaction> transactions = assembler.assemble(getCustomersNonReactive())
+                .collectList()
+                .block();
+
+        List<Transaction> transactions2 = getCustomers()
+                .window(3)
+                .flatMapSequential(assembler::assemble)
+                .collectList()
+                .block();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+//        assertEquals(2, billingInvocationCount.get());
+//        assertEquals(2, ordersInvocationCount.get());
     }
 
     @Test
