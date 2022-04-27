@@ -246,8 +246,9 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?>> mappers,
-                                                                 BiFunction<T, Object[], R> aggregationFunction) {
+        public AssembleUsingBuilder<T, ID, R> withAssemblerRules(
+                List<Mapper<ID, ?>> mappers,
+                BiFunction<T, Object[], R> aggregationFunction) {
             return new AssembleUsingBuilderImpl<>(idExtractor, mappers, aggregationFunction);
         }
     }
@@ -258,9 +259,10 @@ public interface AssemblerBuilder {
         private final BiFunction<T, Object[], R> aggregationFunction;
         private final List<Mapper<ID, ?>> mappers;
 
-        private AssembleUsingBuilderImpl(Function<T, ID> idExtractor,
-                                         List<Mapper<ID, ?>> mappers,
-                                         BiFunction<T, Object[], R> aggregationFunction) {
+        private AssembleUsingBuilderImpl(
+                Function<T, ID> idExtractor,
+                List<Mapper<ID, ?>> mappers,
+                BiFunction<T, Object[], R> aggregationFunction) {
 
             this.idExtractor = idExtractor;
 
@@ -291,10 +293,11 @@ public interface AssemblerBuilder {
         private final Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> mapperSourcesBuilder;
         private final BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder;
 
-        private AssemblerImpl(Function<T, ID> idExtractor,
-                              List<Mapper<ID, ?>> mappers,
-                              BiFunction<T, Object[], R> aggregationFunction,
-                              AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
+        private AssemblerImpl(
+                Function<T, ID> idExtractor,
+                List<Mapper<ID, ?>> mappers,
+                BiFunction<T, Object[], R> aggregationFunction,
+                AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
 
             this.assemblerAdapter = assemblerAdapter;
 
@@ -322,9 +325,11 @@ public interface AssemblerBuilder {
             return assemblerAdapter.convertMapperSources(topLevelEntitiesProvider, mapperSourcesBuilder, aggregateStreamBuilder);
         }
 
-        private static <T, ID> Stream<Publisher<? extends Map<ID, ?>>> buildSubQueryMapperSources(Iterable<T> topLevelEntities,
-                                                                                                  Function<T, ID> idExtractor,
-                                                                                                  List<Mapper<ID, ?>> subQueryMappers) {
+        private static <T, ID> Stream<Publisher<? extends Map<ID, ?>>> buildSubQueryMapperSources(
+                Iterable<T> topLevelEntities,
+                Function<T, ID> idExtractor,
+                List<Mapper<ID, ?>> subQueryMappers) {
+
             List<ID> entityIDs = toStream(topLevelEntities)
                     .filter(Objects::nonNull)
                     .map(idExtractor)

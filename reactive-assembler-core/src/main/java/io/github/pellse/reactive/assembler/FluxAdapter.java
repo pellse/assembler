@@ -44,9 +44,10 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
 
     @NotNull
     @Override
-    public Flux<R> convertMapperSources(Publisher<T> topLevelEntitiesProvider,
-                                        Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> mapperSourcesBuilder,
-                                        BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+    public Flux<R> convertMapperSources(
+            Publisher<T> topLevelEntitiesProvider,
+            Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> mapperSourcesBuilder,
+            BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 
         return Flux.from(topLevelEntitiesProvider)
                 .collectList()
