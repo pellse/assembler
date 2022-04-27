@@ -38,7 +38,9 @@ import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.QueryCache.cache;
 import static io.github.pellse.reactive.assembler.QueryCache.cached;
+import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
 
@@ -60,15 +62,21 @@ public class FluxAssemblerJavaTest {
     }
 
     private List<BillingInfo> getBillingInfoNonReactive(List<Long> customerIds) {
-        return Stream.of(billingInfo1, billingInfo3)
+        var list = Stream.of(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .toList();
+
+        billingInvocationCount.incrementAndGet();
+        return list;
     }
 
     private List<OrderItem> getAllOrdersNonReactive(List<Long> customerIds) {
-        return Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+        var list = Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .toList();
+
+        ordersInvocationCount.incrementAndGet();
+        return list;
     }
 
     private Flux<Customer> getCustomers() {
@@ -149,7 +157,7 @@ public class FluxAssemblerJavaTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                         Transaction::new)
                 .build();
@@ -172,19 +180,10 @@ public class FluxAssemblerJavaTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOneI(this::getBillingInfoNonReactive, BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToManyI(this::getAllOrdersNonReactive)),
+                        rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfoNonReactive), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(toPublisher(this::getAllOrdersNonReactive))),
                         Transaction::new)
                 .build();
-        List<Transaction> transactions = assembler.assemble(getCustomersNonReactive())
-                .collectList()
-                .block();
-
-        List<Transaction> transactions2 = getCustomers()
-                .window(3)
-                .flatMapSequential(assembler::assemble)
-                .collectList()
-                .block();
 
         StepVerifier.create(getCustomers()
                         .window(3)
@@ -194,8 +193,8 @@ public class FluxAssemblerJavaTest {
                 .expectComplete()
                 .verify();
 
-//        assertEquals(2, billingInvocationCount.get());
-//        assertEquals(2, ordersInvocationCount.get());
+        assertEquals(2, billingInvocationCount.get());
+        assertEquals(2, ordersInvocationCount.get());
     }
 
     @Test

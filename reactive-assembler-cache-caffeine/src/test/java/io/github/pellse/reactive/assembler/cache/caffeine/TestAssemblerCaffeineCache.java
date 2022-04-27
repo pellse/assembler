@@ -98,4 +98,28 @@ public class TestAssemblerCaffeineCache {
         assertEquals(2, billingInvocationCount.get());
         assertEquals(2, ordersInvocationCount.get());
     }
+
+    @Test
+    public void testReusableAssemblerBuilderWithDoubleCaching() {
+
+        var assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(cached(cached(this::getAllOrders, caffeineCache())))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(1, billingInvocationCount.get());
+        assertEquals(1, ordersInvocationCount.get());
+    }
 }

@@ -10,12 +10,14 @@ import reactor.test.StepVerifier;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Cache.cache;
 import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,6 +51,24 @@ public class CacheTest {
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
     }
 
+    private List<BillingInfo> getBillingInfoNonReactive(List<Long> customerIds) {
+        var list = Stream.of(billingInfo1, billingInfo3)
+                .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                .toList();
+
+        billingInvocationCount.incrementAndGet();
+        return list;
+    }
+
+    private List<OrderItem> getAllOrdersNonReactive(List<Long> customerIds) {
+        var list = Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                .filter(orderItem -> customerIds.contains(orderItem.customerId()))
+                .toList();
+
+        ordersInvocationCount.incrementAndGet();
+        return list;
+    }
+
     private Flux<Customer> getCustomers() {
         return Flux.just(customer1, customer2, customer3, customer1, customer2, customer3, customer1, customer2, customer3);
     }
@@ -67,6 +87,30 @@ public class CacheTest {
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, new HashMap<>()))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(1, billingInvocationCount.get());
+        assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithCachingNonReactive() {
+
+        var assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(toPublisher(this::getBillingInfoNonReactive)), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(cached(toPublisher(this::getAllOrdersNonReactive), new HashMap<>()))),
                         Transaction::new)
                 .build();
 

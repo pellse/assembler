@@ -34,8 +34,13 @@ import static java.util.Objects.*;
 import static java.util.function.Function.identity;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.*;
+import static reactor.core.publisher.Flux.fromIterable;
 
 public interface QueryUtils {
+
+    static <ID, IDC extends Collection<ID>, R> Function<IDC, Publisher<R>> toPublisher(Function<IDC, Iterable<R>> queryFunction) {
+        return ids -> fromIterable(queryFunction.apply(ids));
+    }
 
     @NotNull
     static <ID, IDC extends Collection<ID>, R>
