@@ -11,8 +11,7 @@ import static io.github.pellse.reactive.assembler.QueryUtils.queryOneToMany;
 import static io.github.pellse.reactive.assembler.QueryUtils.queryOneToOne;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.util.ObjectUtils.then;
-import static java.util.stream.Collectors.toCollection;
-import static java.util.stream.StreamSupport.stream;
+import static io.github.pellse.util.collection.CollectionUtil.translate;
 
 /**
  * @param <ID>  Correlation Id type
@@ -45,7 +44,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
             Function<ID, R> defaultResultProvider) {
         return ruleContext ->
                 then(ruleMapperSource.apply(ruleContext), queryFunction -> entityIds ->
-                        queryOneToOne(refineEntityIDType(entityIds, ruleContext.idCollectionFactory()),
+                        queryOneToOne(translate(entityIds, ruleContext.idCollectionFactory()),
                                 queryFunction,
                                 ruleContext.idExtractor(),
                                 defaultResultProvider,
@@ -83,15 +82,10 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
             Supplier<RC> collectionFactory) {
         return ruleContext ->
                 then(ruleMapperSource.apply(ruleContext), queryFunction -> entityIds ->
-                        queryOneToMany(refineEntityIDType(entityIds, ruleContext.idCollectionFactory()),
+                        queryOneToMany(translate(entityIds, ruleContext.idCollectionFactory()),
                                 queryFunction,
                                 ruleContext.idExtractor(),
                                 collectionFactory,
                                 ruleContext.mapFactory()));
-    }
-
-    private static <ID, IDC extends Collection<ID>> IDC refineEntityIDType(Iterable<ID> entityIds, Supplier<IDC> idCollectionFactory) {
-        return stream(entityIds.spliterator(), false)
-                .collect(toCollection(idCollectionFactory));
     }
 }
