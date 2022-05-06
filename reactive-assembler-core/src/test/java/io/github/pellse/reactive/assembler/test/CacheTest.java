@@ -1,4 +1,4 @@
-package io.github.pellse.reactive.assembler;
+package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
 import org.junit.jupiter.api.BeforeEach;

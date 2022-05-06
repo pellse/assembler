@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package io.github.pellse.reactive.assembler;
+package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
+import io.github.pellse.reactive.assembler.Assembler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
