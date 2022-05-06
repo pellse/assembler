@@ -161,6 +161,23 @@ var assembler = assemblerOf(Transaction.class)
     .build();
 ```
 
+## Integration with non-reactive sources
+A small utility method `toPublisher()` is also provided to support non-reactive sources, useful when e.g. calling 3rd party synchronous APIs:
+```java
+import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
+
+List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
+List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
+
+var assembler = assemblerOf(Transaction.class)
+    .withIdExtractor(Customer::customerId)
+    .withAssemblerRules(
+        rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
+        rule(OrderItem::customerId, oneToMany(toPublisher(this::getAllOrders))),
+        Transaction::new)
+    .build();
+```
+
 ## Kotlin Support
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-kotlin-extension%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-kotlin-extension.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-kotlin-extension)  [reactive-assembler-kotlin-extension](https://github.com/pellse/assembler/tree/master/reactive-assembler-kotlin-extension)
 ```kotlin
