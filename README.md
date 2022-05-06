@@ -169,7 +169,7 @@ import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
 List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
 
-var assembler = assemblerOf(Transaction.class)
+Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
         rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
