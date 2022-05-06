@@ -162,7 +162,7 @@ var assembler = assemblerOf(Transaction.class)
 ```
 
 ## Integration with non-reactive sources
-A small utility method `toPublisher()` is also provided to support non-reactive sources, useful when e.g. calling 3rd party synchronous APIs:
+A utility function `toPublisher()` is also provided to wrap non-reactive sources, useful when e.g. calling 3rd party synchronous APIs:
 ```java
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 
