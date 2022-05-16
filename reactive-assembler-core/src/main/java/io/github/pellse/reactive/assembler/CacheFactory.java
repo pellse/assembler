@@ -18,7 +18,12 @@ import static reactor.core.publisher.Flux.fromStream;
 @FunctionalInterface
 public interface CacheFactory<ID, R> {
 
-    Cache<ID, R> create(Function<Iterable<? extends ID>, Mono<Map<ID, Collection<R>>>> fetchFunction);
+    record Context<ID, R>(Function<R, ID> idExtractor) {
+    }
+
+    Cache<ID, R> create(
+            Function<Iterable<? extends ID>, Mono<Map<ID, Collection<R>>>> fetchFunction,
+            Context<ID, R> context);
 
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(Function<IDC, Publisher<R>> queryFunction) {
         return cached(call(queryFunction));
@@ -68,8 +73,8 @@ public interface CacheFactory<ID, R> {
                             .collectMultimap(ruleContext.idExtractor())
                             .map(queryResultsMap -> buildCacheFragment(ids, queryResultsMap));
 
-            final var cache = cacheFactory.create(fetchFunction);
-            return ids -> cache.getAll(ids)
+            final var cache = cacheFactory.create(fetchFunction, new Context<>(ruleContext.idExtractor()));
+            return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)));
         };
     }

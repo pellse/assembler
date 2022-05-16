@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static io.github.pellse.util.ObjectUtils.also;
+import static io.github.pellse.util.ObjectUtils.ifNotNull;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.StreamSupport.stream;
@@ -50,6 +51,10 @@ public interface CollectionUtil {
         final var copyMap = map != null ? new HashMap<>(map) : new HashMap<K, V>();
         initializer.accept(copyMap);
         return copyMap;
+    }
+
+    static <K, V> Map<K, V> readAll(Iterable<K> keys, Map<K, V> sourceMap) {
+        return newMap(map -> keys.forEach(id -> ifNotNull(sourceMap.get(id), value -> map.put(id, value))));
     }
 
     @SafeVarargs

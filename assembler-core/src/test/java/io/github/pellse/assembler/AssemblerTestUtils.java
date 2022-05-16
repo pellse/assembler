@@ -40,6 +40,11 @@ public final class AssemblerTestUtils {
 
     public static final OrderItem orderItem21 = new OrderItem("4", 2L, "Shoes", 79.99);
     public static final OrderItem orderItem22 = new OrderItem("5", 2L, "Boots", 99.99);
+    public static final OrderItem orderItem23 = new OrderItem("6", 2L, "Shirt", 29.99);
+
+    public static final OrderItem orderItem31 = new OrderItem("7", 3L, "Gloves", 5.99);
+    public static final OrderItem orderItem32 = new OrderItem("8", 3L, "Dress", 45.99);
+    public static final OrderItem orderItem33 = new OrderItem("9", 3L, "Sneakers", 119.99);
 
     public static final Customer customer1 = new Customer(1L, "Clair Gabriel");
     public static final Customer customer2 = new Customer(2L, "Erick Daria");
