@@ -25,7 +25,6 @@ import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static reactor.core.publisher.Flux.empty;
 
 public class CacheTest {
 
@@ -206,8 +205,8 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCaching() {
 
-        Flux<BillingInfo> dataSource1 = Flux.just(billingInfo1, billingInfo2, billingInfo3);
-        Flux<OrderItem> dataSource2 = Flux.just(
+        Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3);
+        Flux<OrderItem> orderItemFlux = Flux.just(
                 orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33);
 
         Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
@@ -216,8 +215,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(dataSource1, 2, cache())))),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, autoCache(dataSource2, cache())))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux, 2, cache())))),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, autoCache(orderItemFlux, cache())))),
                         Transaction::new)
                 .build();
 
