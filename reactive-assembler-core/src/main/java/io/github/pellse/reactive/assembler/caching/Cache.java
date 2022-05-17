@@ -1,4 +1,4 @@
-package io.github.pellse.reactive.assembler;
+package io.github.pellse.reactive.assembler.caching;
 
 import reactor.core.publisher.Mono;
 

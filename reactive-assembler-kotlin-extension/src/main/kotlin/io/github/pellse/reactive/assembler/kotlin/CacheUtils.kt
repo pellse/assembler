@@ -1,7 +1,7 @@
 package io.github.pellse.reactive.assembler.kotlin
 
-import io.github.pellse.reactive.assembler.CacheFactory
-import io.github.pellse.reactive.assembler.CacheFactory.cached
+import io.github.pellse.reactive.assembler.caching.CacheFactory
+import io.github.pellse.reactive.assembler.caching.CacheFactory.cached
 
 import io.github.pellse.reactive.assembler.RuleMapperSource
 import org.reactivestreams.Publisher

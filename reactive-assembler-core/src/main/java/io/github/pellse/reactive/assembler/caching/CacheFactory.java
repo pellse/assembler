@@ -1,5 +1,6 @@
-package io.github.pellse.reactive.assembler;
+package io.github.pellse.reactive.assembler.caching;
 
+import io.github.pellse.reactive.assembler.RuleMapperSource;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -10,7 +11,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.github.pellse.reactive.assembler.Cache.cache;
+import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static reactor.core.publisher.Flux.fromStream;

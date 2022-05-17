@@ -83,7 +83,11 @@ public interface QueryUtils {
             Function<ID, R> defaultResultProvider,
             MapFactory<ID, R> mapFactory) {
 
-        return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u1, toSupplier(ids, mapFactory)));
+        return query(
+                ids,
+                queryFunction,
+                defaultResultProvider,
+                toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u2, toSupplier(ids, mapFactory)));
     }
 
     @NotNull

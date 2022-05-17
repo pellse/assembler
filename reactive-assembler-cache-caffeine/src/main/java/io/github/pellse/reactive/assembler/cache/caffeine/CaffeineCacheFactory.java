@@ -2,8 +2,8 @@ package io.github.pellse.reactive.assembler.cache.caffeine;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.github.pellse.reactive.assembler.Cache;
-import io.github.pellse.reactive.assembler.CacheFactory;
+import io.github.pellse.reactive.assembler.caching.Cache;
+import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;

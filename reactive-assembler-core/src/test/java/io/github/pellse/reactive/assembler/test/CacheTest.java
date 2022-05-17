@@ -17,12 +17,13 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.AutoCacheFactory.autoCache;
-import static io.github.pellse.reactive.assembler.Cache.cache;
-import static io.github.pellse.reactive.assembler.CacheFactory.cached;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
+import static io.github.pellse.reactive.assembler.caching.Cache.cache;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
+import static io.github.pellse.reactive.assembler.caching.MergeStrategy.replace;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -231,6 +232,36 @@ public class CacheTest {
 
         assertEquals(0, billingInvocationCount.get());
         assertEquals(0, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithAutoCaching2() {
+
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+
+        Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3, updatedBillingInfo2);
+
+        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
+
+        var assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux, 4, replace(), cache())))),
+                        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(0, billingInvocationCount.get());
+        assertEquals(3, ordersInvocationCount.get());
     }
 }
 

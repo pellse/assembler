@@ -16,9 +16,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.AutoCacheFactory.autoCache;
-import static io.github.pellse.reactive.assembler.Cache.cache;
-import static io.github.pellse.reactive.assembler.CacheFactory.cached;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
+import static io.github.pellse.reactive.assembler.caching.Cache.cache;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
@@ -26,7 +26,6 @@ import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFa
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static reactor.core.publisher.Flux.empty;
 
 public class TestAssemblerCaffeineCache {
 
