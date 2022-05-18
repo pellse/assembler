@@ -41,156 +41,156 @@ public interface MapperUtils {
 
     static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
             CheckedFunction1<List<ID>, RC, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults) {
+            Function<R, ID> idExtractor) {
 
-        return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null, ArrayList::new, null);
+        return oneToOne(queryFunction, idExtractor, id -> null, ArrayList::new, null);
     }
 
 //    static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
 //            CheckedFunction1<List<ID>, RC, EX> queryFunction,
-//            Function<R, ID> idExtractorFromQueryResults,
+//            Function<R, ID> idExtractor,
 //            MapFactory<ID, R> mapFactory) {
 //
-//        return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null, ArrayList::new, mapFactory);
+//        return oneToOne(queryFunction, idExtractor, id -> null, ArrayList::new, mapFactory);
 //    }
 
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
             CheckedFunction1<IDC, RC, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<IDC> idCollectionFactory) {
 
-        return oneToOne(queryFunction, idExtractorFromQueryResults, id -> null, idCollectionFactory);
+        return oneToOne(queryFunction, idExtractor, id -> null, idCollectionFactory);
     }
 
     static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
             CheckedFunction1<List<ID>, RC, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Function<ID, R> defaultResultProvider) {
 
-        return oneToOne(queryFunction, idExtractorFromQueryResults, defaultResultProvider, ArrayList::new, null);
+        return oneToOne(queryFunction, idExtractor, defaultResultProvider, ArrayList::new, null);
     }
 
     static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
             CheckedFunction1<List<ID>, RC, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Function<ID, R> defaultResultProvider,
             MapFactory<ID, R> mapFactory) {
 
-        return oneToOne(queryFunction, idExtractorFromQueryResults, defaultResultProvider, ArrayList::new, mapFactory);
+        return oneToOne(queryFunction, idExtractor, defaultResultProvider, ArrayList::new, mapFactory);
     }
 
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
             CheckedFunction1<IDC, RC, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Function<ID, R> defaultResultProvider,
             Supplier<IDC> idCollectionFactory) {
 
-        return oneToOne(queryFunction, idExtractorFromQueryResults, defaultResultProvider, idCollectionFactory, null);
+        return oneToOne(queryFunction, idExtractor, defaultResultProvider, idCollectionFactory, null);
     }
 
     @SuppressWarnings("unchecked")
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, R, EX> oneToOne(
             CheckedFunction1<IDC, RC, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Function<ID, R> defaultResultProvider,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, R> mapFactory) {
 
         return convertIdTypeMapperDelegate(entityIds ->
-                queryOneToOne((IDC) entityIds, queryFunction, idExtractorFromQueryResults, defaultResultProvider, mapFactory), idCollectionFactory);
+                queryOneToOne((IDC) entityIds, queryFunction, idExtractor, defaultResultProvider, mapFactory), idCollectionFactory);
     }
 
     static <ID, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
             CheckedFunction1<List<ID>, List<R>, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults) {
+            Function<R, ID> idExtractor) {
 
-        return oneToManyAsList(queryFunction, idExtractorFromQueryResults, ArrayList::new, null);
+        return oneToManyAsList(queryFunction, idExtractor, ArrayList::new, null);
     }
 
     static <ID, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
             CheckedFunction1<List<ID>, List<R>, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             MapFactory<ID, List<R>> mapFactory) {
 
-        return oneToManyAsList(queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
+        return oneToManyAsList(queryFunction, idExtractor, ArrayList::new, mapFactory);
     }
 
     static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
             CheckedFunction1<IDC, List<R>, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<IDC> idCollectionFactory) {
 
-        return oneToMany(queryFunction, idExtractorFromQueryResults, ArrayList::new, idCollectionFactory);
+        return oneToMany(queryFunction, idExtractor, ArrayList::new, idCollectionFactory);
     }
 
     static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, List<R>, EX> oneToManyAsList(
             CheckedFunction1<IDC, List<R>, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, List<R>> mapFactory) {
 
-        return oneToMany(queryFunction, idExtractorFromQueryResults, ArrayList::new, idCollectionFactory, mapFactory);
+        return oneToMany(queryFunction, idExtractor, ArrayList::new, idCollectionFactory, mapFactory);
     }
 
     static <ID, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
             CheckedFunction1<Set<ID>, Set<R>, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults) {
+            Function<R, ID> idExtractor) {
 
-        return oneToManyAsSet(queryFunction, idExtractorFromQueryResults, HashSet::new, null);
+        return oneToManyAsSet(queryFunction, idExtractor, HashSet::new, null);
     }
 
     static <ID, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
             CheckedFunction1<Set<ID>, Set<R>, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             MapFactory<ID, Set<R>> mapFactory) {
 
-        return oneToManyAsSet(queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
+        return oneToManyAsSet(queryFunction, idExtractor, HashSet::new, mapFactory);
     }
 
     static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
             CheckedFunction1<IDC, Set<R>, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<IDC> idCollectionFactory) {
 
-        return oneToMany(queryFunction, idExtractorFromQueryResults, HashSet::new, idCollectionFactory);
+        return oneToMany(queryFunction, idExtractor, HashSet::new, idCollectionFactory);
     }
 
     static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, Set<R>, EX> oneToManyAsSet(
             CheckedFunction1<IDC, Set<R>, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, Set<R>> mapFactory) {
 
-        return oneToMany(queryFunction, idExtractorFromQueryResults, HashSet::new, idCollectionFactory, mapFactory);
+        return oneToMany(queryFunction, idExtractor, HashSet::new, idCollectionFactory, mapFactory);
     }
 
     static <ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, RC, EX> oneToMany(
             CheckedFunction1<List<ID>, RC, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<RC> collectionFactory) {
 
-        return oneToMany(queryFunction, idExtractorFromQueryResults, collectionFactory, ArrayList::new);
+        return oneToMany(queryFunction, idExtractor, collectionFactory, ArrayList::new);
     }
 
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, RC, EX> oneToMany(
             CheckedFunction1<IDC, RC, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<RC> collectionFactory,
             Supplier<IDC> idCollectionFactory) {
 
-        return oneToMany(queryFunction, idExtractorFromQueryResults, collectionFactory, idCollectionFactory, null);
+        return oneToMany(queryFunction, idExtractor, collectionFactory, idCollectionFactory, null);
     }
 
     @SuppressWarnings("unchecked")
     static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>, EX extends Throwable> Mapper<ID, RC, EX> oneToMany(
             CheckedFunction1<IDC, RC, EX> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<RC> collectionFactory,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, RC> mapFactory) {
 
         return convertIdTypeMapperDelegate(entityIds ->
-                queryOneToMany((IDC) entityIds, queryFunction, idExtractorFromQueryResults, collectionFactory, mapFactory), idCollectionFactory);
+                queryOneToMany((IDC) entityIds, queryFunction, idExtractor, collectionFactory, mapFactory), idCollectionFactory);
     }
 
     private static <ID, IDC extends Collection<ID>, R, EX extends Throwable> Mapper<ID, R, EX> convertIdTypeMapperDelegate(

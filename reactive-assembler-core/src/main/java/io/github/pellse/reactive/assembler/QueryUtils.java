@@ -47,9 +47,9 @@ public interface QueryUtils {
     Mono<Map<ID, R>> queryOneToOne(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults) {
+            Function<R, ID> idExtractor) {
 
-        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
+        return queryOneToOne(ids, queryFunction, idExtractor, defaultMapFactory());
     }
 
     @NotNull
@@ -57,10 +57,10 @@ public interface QueryUtils {
     Mono<Map<ID, R>> queryOneToOne(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             MapFactory<ID, R> mapFactory) {
 
-        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null, mapFactory);
+        return queryOneToOne(ids, queryFunction, idExtractor, id -> null, mapFactory);
     }
 
     @NotNull
@@ -68,10 +68,10 @@ public interface QueryUtils {
     Mono<Map<ID, R>> queryOneToOne(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Function<ID, R> defaultResultProvider) {
 
-        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultResultProvider, defaultMapFactory());
+        return queryOneToOne(ids, queryFunction, idExtractor, defaultResultProvider, defaultMapFactory());
     }
 
     @NotNull
@@ -79,7 +79,7 @@ public interface QueryUtils {
     Mono<Map<ID, R>> queryOneToOne(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Function<ID, R> defaultResultProvider,
             MapFactory<ID, R> mapFactory) {
 
@@ -87,7 +87,7 @@ public interface QueryUtils {
                 ids,
                 queryFunction,
                 defaultResultProvider,
-                toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u2, toSupplier(ids, mapFactory)));
+                toMap(idExtractor, identity(), (u1, u2) -> u2, toSupplier(ids, mapFactory)));
     }
 
     @NotNull
@@ -95,9 +95,9 @@ public interface QueryUtils {
     Mono<Map<ID, List<R>>> queryOneToManyAsList(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults) {
+            Function<R, ID> idExtractor) {
 
-        return queryOneToManyAsList(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
+        return queryOneToManyAsList(ids, queryFunction, idExtractor, defaultMapFactory());
     }
 
     @NotNull
@@ -105,10 +105,10 @@ public interface QueryUtils {
     Mono<Map<ID, List<R>>> queryOneToManyAsList(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             MapFactory<ID, List<R>> mapFactory) {
 
-        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
+        return queryOneToMany(ids, queryFunction, idExtractor, ArrayList::new, mapFactory);
     }
 
     @NotNull
@@ -116,9 +116,9 @@ public interface QueryUtils {
     Mono<Map<ID, Set<R>>> queryOneToManyAsSet(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults) {
+            Function<R, ID> idExtractor) {
 
-        return queryOneToManyAsSet(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
+        return queryOneToManyAsSet(ids, queryFunction, idExtractor, defaultMapFactory());
     }
 
     @NotNull
@@ -126,10 +126,10 @@ public interface QueryUtils {
     Mono<Map<ID, Set<R>>> queryOneToManyAsSet(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             MapFactory<ID, Set<R>> mapFactory) {
 
-        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
+        return queryOneToMany(ids, queryFunction, idExtractor, HashSet::new, mapFactory);
     }
 
     @NotNull
@@ -137,10 +137,10 @@ public interface QueryUtils {
     Mono<Map<ID, RC>> queryOneToMany(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<RC> collectionFactory) {
 
-        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, collectionFactory, defaultMapFactory());
+        return queryOneToMany(ids, queryFunction, idExtractor, collectionFactory, defaultMapFactory());
     }
 
     @NotNull
@@ -148,12 +148,12 @@ public interface QueryUtils {
     Mono<Map<ID, RC>> queryOneToMany(
             IDC ids,
             Function<IDC, Publisher<R>> queryFunction,
-            Function<R, ID> idExtractorFromQueryResults,
+            Function<R, ID> idExtractor,
             Supplier<RC> collectionFactory,
             MapFactory<ID, RC> mapFactory) {
 
         return query(ids, queryFunction, id -> collectionFactory.get(),
-                groupingBy(idExtractorFromQueryResults, toSupplier(ids, mapFactory), toCollection(collectionFactory)));
+                groupingBy(idExtractor, toSupplier(ids, mapFactory), toCollection(collectionFactory)));
     }
 
     /**
@@ -200,7 +200,7 @@ public interface QueryUtils {
     }
 
     @NotNull
-    private static <ID, IDC extends Collection<ID>, RRC>
+    static <ID, IDC extends Collection<ID>, RRC>
     Mono<Map<ID, RRC>> toResultMap(IDC ids, Map<ID, RRC> map, Function<ID, RRC> defaultResultProvider) {
         return Mono.just(isSafeEqual(map, Map::size, ids, Collection::size) ? map : initializeResultMap(ids, map, defaultResultProvider));
     }
