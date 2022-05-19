@@ -19,7 +19,8 @@ public interface RuleContext<ID, IDC extends Collection<ID>, R, RRC> {
     record DefaultRuleContext<ID, IDC extends Collection<ID>, R, RRC>(
             Function<R, ID> idExtractor,
             Supplier<IDC> idCollectionFactory,
-            MapFactory<ID, RRC> mapFactory) implements RuleContext<ID, IDC, R, RRC> { }
+            MapFactory<ID, RRC> mapFactory) implements RuleContext<ID, IDC, R, RRC> {
+    }
 
     static <ID, R, RRC> RuleContext<ID, List<ID>, R, RRC> ruleContext(Function<R, ID> idExtractor) {
         return ruleContext(idExtractor, ArrayList::new);

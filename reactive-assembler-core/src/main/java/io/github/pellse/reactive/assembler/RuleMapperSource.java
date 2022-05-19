@@ -14,7 +14,7 @@ import java.util.function.Function;
  */
 @FunctionalInterface
 public interface RuleMapperSource<ID, IDC extends Collection<ID>, R, RRC>
-        extends Function<RuleContext<ID, IDC, R, RRC>, Function<IDC, Publisher<R>>> {
+        extends Function<RuleMapperContext<ID, IDC, R, RRC>, Function<IDC, Publisher<R>>> {
 
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> call(Function<IDC, Publisher<R>> queryFunction) {
         return ruleContext -> queryFunction;
