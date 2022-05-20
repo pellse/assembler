@@ -124,18 +124,18 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
     }
 
     private static <ID, R> MergeStrategy<ID, R> replaceStrategy() {
-        return (mapFromCache, map) -> also(mapFromCache, m -> m.putAll(map));
+        return (cache, map) -> also(cache, m -> m.putAll(map));
     }
 
     private static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> appendValuesStrategy(Supplier<RC> collectionFactory) {
 
-        return (mapFromCache, map) -> {
-            mapFromCache.replaceAll((id, coll) ->
+        return (cache, map) -> {
+            cache.replaceAll((id, coll) ->
                     concat(toStream(coll), toStream(map.get(id)))
                             .distinct()
                             .collect(toCollection(collectionFactory)));
 
-            return mergeMaps(mapFromCache, readAll(intersect(map.keySet(), mapFromCache.keySet()), map));
+            return mergeMaps(cache, readAll(intersect(map.keySet(), cache.keySet()), map));
         };
     }
 }
