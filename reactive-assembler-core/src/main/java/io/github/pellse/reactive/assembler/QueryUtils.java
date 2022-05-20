@@ -75,9 +75,9 @@ public interface QueryUtils {
 
     @NotNull
     @Contract(pure = true)
-    static <ID, IDC extends Collection<ID>, R>
-    Supplier<Map<ID, R>> toSupplier(IDC ids, MapFactory<ID, R> mapFactory) {
+    static <ID, R>
+    Supplier<Map<ID, R>> toSupplier(int initialCapacity, MapFactory<ID, R> mapFactory) {
         MapFactory<ID, R> actualMapFactory = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
-        return () -> actualMapFactory.apply(ids != null ? ids.size() : 0);
+        return () -> actualMapFactory.apply(initialCapacity);
     }
 }

@@ -1,5 +1,6 @@
 package io.github.pellse.reactive.assembler;
 
+import io.github.pellse.reactive.assembler.caching.MergeStrategy;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -7,14 +8,17 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 import static io.github.pellse.reactive.assembler.QueryUtils.*;
 import static io.github.pellse.reactive.assembler.RuleMapperContext.toRuleMapperContext;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
+import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.then;
-import static io.github.pellse.util.collection.CollectionUtil.translate;
+import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
+import static java.util.stream.Stream.concat;
 
 /**
  * @param <ID>  Correlation Id type
@@ -49,7 +53,10 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         return createRuleMapper(
                 ruleMapperSource,
                 defaultResultProvider,
-                ctx -> ids -> toMap(ctx.idExtractor(), identity(), (u1, u2) -> u2, toSupplier(ids, ctx.mapFactory())));
+                ctx -> initialMapCapacity ->
+                        toMap(ctx.idExtractor(), identity(), (u1, u2) -> u2, toSupplier(initialMapCapacity, ctx.mapFactory())),
+                identity(),
+                replace());
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
@@ -85,27 +92,50 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         return createRuleMapper(
                 ruleMapperSource,
                 id -> collectionFactory.get(),
-                ctx -> ids -> groupingBy(ctx.idExtractor(), toSupplier(ids, ctx.mapFactory()), toCollection(collectionFactory)));
+                ctx -> initialMapCapacity ->
+                        groupingBy(ctx.idExtractor(), toSupplier(initialMapCapacity, ctx.mapFactory()), toCollection(collectionFactory)),
+                stream -> stream.flatMap(Collection::stream),
+                append(collectionFactory));
     }
 
-    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapper<ID, IDC, R, RRC> createRuleMapper(
+    private static <ID, IDC extends Collection<ID>, R, RRC> RuleMapper<ID, IDC, R, RRC> createRuleMapper(
             RuleMapperSource<ID, IDC, R, RRC> ruleMapperSource,
             Function<ID, RRC> defaultResultProvider,
-            Function<RuleContext<ID, IDC, R, RRC>, Function<IDC, Collector<R, ?, Map<ID, RRC>>>> mapCollector) {
+            Function<RuleContext<ID, IDC, R, RRC>, Function<Integer, Collector<R, ?, Map<ID, RRC>>>> mapCollector,
+            Function<Stream<RRC>, Stream<R>> streamFlattener,
+            MergeStrategy<ID, RRC> mergeStrategy) {
 
         return ruleContext -> {
             var ruleMapperContext = toRuleMapperContext(
                     ruleContext,
                     defaultResultProvider,
-                    mapCollector.apply(ruleContext));
+                    mapCollector.apply(ruleContext),
+                    streamFlattener,
+                    mergeStrategy);
 
             var queryFunction = ruleMapperSource.apply(ruleMapperContext);
 
             return entityIds ->
                     then(translate(entityIds, ruleMapperContext.idCollectionFactory()), ids ->
                             safeApply(ids, queryFunction)
-                                    .collect(ruleMapperContext.mapCollector().apply(ids))
+                                    .collect(ruleMapperContext.mapCollector().apply(ids.size()))
                                     .map(map -> toResultMap(ids, map, ruleMapperContext.defaultResultProvider())));
+        };
+    }
+
+    static <ID, R> MergeStrategy<ID, R> replace() {
+        return (mapFromCache, map) -> also(mapFromCache, m -> m.putAll(map));
+    }
+
+    static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> append(Supplier<RC> collectionFactory) {
+
+        return (mapFromCache, map) -> {
+            mapFromCache.replaceAll((id, coll) ->
+                    concat(toStream(coll), toStream(map.get(id)))
+                            .collect(toCollection(collectionFactory)));
+                            //.collect(toCollection(LinkedHashSet::new)));
+
+            return mergeMaps(mapFromCache, readAll(intersect(map.keySet(), mapFromCache.keySet()), map));
         };
     }
 }

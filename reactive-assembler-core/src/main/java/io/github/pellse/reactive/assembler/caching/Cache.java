@@ -2,7 +2,6 @@ package io.github.pellse.reactive.assembler.caching;
 
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -10,24 +9,24 @@ import java.util.function.Supplier;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 
-public interface Cache<ID, R> {
-    Mono<Map<ID, Collection<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
+public interface Cache<ID, RRC> {
+    Mono<Map<ID, RRC>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
 
-    void putAll(Map<ID, Collection<R>> map);
+    void putAll(Map<ID, RRC> map);
 
-    static <ID, R> CacheFactory<ID, R> cache() {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache() {
         return cache(ConcurrentHashMap::new);
     }
 
-    static <ID, R> CacheFactory<ID, R> cache(Supplier<Map<ID, Collection<R>>> mapSupplier) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Supplier<Map<ID, RRC>> mapSupplier) {
         return cache(mapSupplier.get());
     }
 
-    static <ID, R> CacheFactory<ID, R> cache(Map<ID, Collection<R>> delegateMap) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Map<ID, RRC> delegateMap) {
 
-        return (fetchFunction, idExtractor) -> new Cache<>() {
+        return (fetchFunction, _context) -> new Cache<>() {
             @Override
-            public Mono<Map<ID, Collection<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
+            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
                 return Mono.just(readAll(ids, delegateMap))
                         .flatMap(cachedEntitiesMap -> then(intersect(ids, cachedEntitiesMap.keySet()), entityIds ->
                                 !computeIfAbsent || entityIds.isEmpty() ? Mono.just(cachedEntitiesMap) :
@@ -37,7 +36,7 @@ public interface Cache<ID, R> {
             }
 
             @Override
-            public void putAll(Map<ID, Collection<R>> map) {
+            public void putAll(Map<ID, RRC> map) {
                 delegateMap.putAll(map);
             }
         };
