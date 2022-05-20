@@ -54,7 +54,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                 ruleMapperSource,
                 defaultResultProvider,
                 ctx -> initialMapCapacity ->
-                        toMap(ctx.idExtractor(), identity(), (u1, u2) -> u2, toSupplier(initialMapCapacity, ctx.mapFactory())),
+                        toMap(ctx.idExtractor(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
                 identity(),
                 replaceStrategy());
     }
@@ -93,7 +93,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                 ruleMapperSource,
                 id -> collectionFactory.get(),
                 ctx -> initialMapCapacity ->
-                        groupingBy(ctx.idExtractor(), toSupplier(initialMapCapacity, ctx.mapFactory()), toCollection(collectionFactory)),
+                        groupingBy(ctx.idExtractor(), toSupplier(validate(initialMapCapacity), ctx.mapFactory()), toCollection(collectionFactory)),
                 stream -> stream.flatMap(Collection::stream),
                 appendValuesStrategy(collectionFactory));
     }
@@ -137,5 +137,9 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
 
             return mergeMaps(cache, readAll(intersect(map.keySet(), cache.keySet()), map));
         };
+    }
+
+    private static int validate(int initialCapacity) {
+        return Math.max(initialCapacity, 0);
     }
 }

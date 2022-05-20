@@ -71,7 +71,7 @@ public interface AutoCacheFactory {
             var cache = cacheFactory.create(fetchFunction, context);
 
             var cacheSourceFlux = windowingStrategy.toWindowedFlux(dataSource)
-                    .flatMap(flux -> flux.collect(context.mapCollector().apply(0)))
+                    .flatMap(flux -> flux.collect(context.mapCollector().apply(-1)))
                     .flatMap(map -> mergeWithCache(context.mergeStrategy(), map, cache))
                     .doOnNext(cache::putAll);
 
