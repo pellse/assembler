@@ -215,7 +215,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux, cache())))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux)))),
                         rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, autoCache(orderItemFlux, cache())))),
                         Transaction::new)
                 .build();
@@ -245,7 +245,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux, 4, cache())))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux, 4)))),
                         rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                         Transaction::new)
                 .build();

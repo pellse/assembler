@@ -56,7 +56,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                 ctx -> initialMapCapacity ->
                         toMap(ctx.idExtractor(), identity(), (u1, u2) -> u2, toSupplier(initialMapCapacity, ctx.mapFactory())),
                 identity(),
-                replace());
+                replaceStrategy());
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
@@ -95,7 +95,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                 ctx -> initialMapCapacity ->
                         groupingBy(ctx.idExtractor(), toSupplier(initialMapCapacity, ctx.mapFactory()), toCollection(collectionFactory)),
                 stream -> stream.flatMap(Collection::stream),
-                append(collectionFactory));
+                appendValuesStrategy(collectionFactory));
     }
 
     private static <ID, IDC extends Collection<ID>, R, RRC> RuleMapper<ID, IDC, R, RRC> createRuleMapper(
@@ -123,17 +123,17 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         };
     }
 
-    static <ID, R> MergeStrategy<ID, R> replace() {
+    private static <ID, R> MergeStrategy<ID, R> replaceStrategy() {
         return (mapFromCache, map) -> also(mapFromCache, m -> m.putAll(map));
     }
 
-    static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> append(Supplier<RC> collectionFactory) {
+    private static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> appendValuesStrategy(Supplier<RC> collectionFactory) {
 
         return (mapFromCache, map) -> {
             mapFromCache.replaceAll((id, coll) ->
                     concat(toStream(coll), toStream(map.get(id)))
+                            .distinct()
                             .collect(toCollection(collectionFactory)));
-                            //.collect(toCollection(LinkedHashSet::new)));
 
             return mergeMaps(mapFromCache, readAll(intersect(map.keySet(), mapFromCache.keySet()), map));
         };

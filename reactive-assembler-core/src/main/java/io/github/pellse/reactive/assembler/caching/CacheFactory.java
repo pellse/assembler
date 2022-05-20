@@ -79,7 +79,10 @@ public interface CacheFactory<ID, R, RRC> {
                                     .collect(ruleContext.mapCollector().apply(ids.size()))
                                     .map(queryResultsMap -> buildCacheFragment(ids, queryResultsMap, ruleContext.defaultResultProvider())));
 
-            final var cache = cacheFactory.create(fetchFunction, new Context<>(ruleContext.mapCollector(), ruleContext.mergeStrategy()));
+            final var cache = cacheFactory.create(
+                    fetchFunction,
+                    new Context<>(ruleContext.mapCollector(), ruleContext.mergeStrategy()));
+
             return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())));
         };
