@@ -17,14 +17,15 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
-import static io.github.pellse.reactive.assembler.caching.Cache.cache;
-import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
+import static io.github.pellse.reactive.assembler.caching.Cache.cache;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static reactor.core.scheduler.Schedulers.parallel;
 
 public class CacheTest {
 
@@ -205,9 +206,11 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCaching() {
 
-        Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3);
-        Flux<OrderItem> orderItemFlux = Flux.just(
-                orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33);
+        Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3)
+                .subscribeOn(parallel());
+
+        Flux<OrderItem> orderItemFlux = Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33)
+                .subscribeOn(parallel());
 
         Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
@@ -221,7 +224,7 @@ public class CacheTest {
                 .build();
 
         StepVerifier.create(getCustomers()
-                        .window(5)
+                        .window(2)
                         .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()

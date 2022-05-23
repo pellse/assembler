@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
+import static io.github.pellse.util.ObjectUtils.also;
 import static java.util.Collections.emptyMap;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static reactor.core.publisher.Mono.fromFuture;
@@ -37,8 +38,9 @@ public interface CaffeineCacheFactory {
             }
 
             @Override
-            public void putAll(Map<ID, RRC> map) {
-                map.forEach((id, value) -> delegateCache.put(id, completedFuture(value)));
+            public Mono<Map<ID, RRC>> putAll(Mono<Map<ID, RRC>> mapMono) {
+                return mapMono
+                        .map(m -> also(m, map -> map.forEach((id, value) -> delegateCache.put(id, completedFuture(value)))));
             }
         };
     }

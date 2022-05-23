@@ -1,14 +1,11 @@
 package io.github.pellse.reactive.assembler.caching;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 
-import static io.github.pellse.reactive.assembler.caching.Cache.cache;
-import static java.util.Collections.unmodifiableMap;
+import static io.github.pellse.reactive.assembler.caching.Cache.*;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
 
 public interface AutoCacheFactory {
 
@@ -68,23 +65,14 @@ public interface AutoCacheFactory {
             CacheFactory<ID, R, RRC> cacheFactory) {
 
         return (fetchFunction, context) -> {
-            var cache = cacheFactory.create(fetchFunction, context);
+            var cache = concurrent(delegateCache(cacheFactory.create(fetchFunction, context), context.mergeStrategy()));
 
             var cacheSourceFlux = windowingStrategy.toWindowedFlux(dataSource)
-                    .flatMap(flux -> flux.collect(context.mapCollector().apply(-1)))
-                    .flatMap(map -> mergeWithCache(context.mergeStrategy(), map, cache))
-                    .doOnNext(cache::putAll);
+                    .map(flux -> flux.collect(context.mapCollector().apply(-1)))
+                    .flatMap(cache::putAll);
 
             cacheSourceFlux.subscribe();
             return cache;
         };
-    }
-
-    private static <ID, RRC> Mono<Map<ID, RRC>> mergeWithCache(
-            MergeStrategy<ID, RRC> mergeStrategy,
-            Map<ID, RRC> map,
-            Cache<ID, RRC> cache) {
-        return cache.getAll(map.keySet(), false)
-                .map(subMapFromCache -> mergeStrategy.merge(new HashMap<>(subMapFromCache), unmodifiableMap(map)));
     }
 }
