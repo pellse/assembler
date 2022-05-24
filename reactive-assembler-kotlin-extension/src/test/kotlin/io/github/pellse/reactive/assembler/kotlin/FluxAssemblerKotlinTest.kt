@@ -2,7 +2,7 @@ package io.github.pellse.reactive.assembler.kotlin
 
 import io.github.pellse.assembler.*
 import io.github.pellse.assembler.AssemblerTestUtils.*
-import io.github.pellse.reactive.assembler.Cache.cache
+import io.github.pellse.reactive.assembler.caching.Cache.cache
 import io.github.pellse.reactive.assembler.Mapper.rule
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
