@@ -46,9 +46,7 @@ public interface Cache<ID, RRC> {
         };
     }
 
-    static <ID, RRC> Cache<ID, RRC> delegateCache(
-            Cache<ID, RRC> delegateCache,
-            MergeStrategy<ID, RRC> mergeStrategy) {
+    static <ID, RRC> Cache<ID, RRC> mergeStrategyAwareCache(Cache<ID, RRC> delegateCache, MergeStrategy<ID, RRC> mergeStrategy) {
 
         return new Cache<>() {
 

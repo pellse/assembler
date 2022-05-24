@@ -6,15 +6,19 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
+import static io.github.pellse.reactive.assembler.caching.Cache.cache;
+import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
+import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
+import static java.util.Arrays.stream;
 import static reactor.core.publisher.Flux.fromStream;
 
 @FunctionalInterface
@@ -29,47 +33,65 @@ public interface CacheFactory<ID, R, RRC> {
             Function<Iterable<? extends ID>, Mono<Map<ID, RRC>>> fetchFunction,
             Context<ID, R, RRC> context);
 
-    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(Function<IDC, Publisher<R>> queryFunction) {
-        return cached(call(queryFunction));
-    }
-
-    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(RuleMapperSource<ID, IDC, R, RRC> ruleMapperSource) {
-        return cached(ruleMapperSource, cache());
-    }
-
+    @SafeVarargs
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
-            Supplier<Map<ID, RRC>> mapSupplier) {
-        return cached(call(queryFunction), mapSupplier);
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(call(queryFunction), delegateCacheFactories);
     }
 
+    @SafeVarargs
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             RuleMapperSource<ID, IDC, R, RRC> ruleMapperSource,
-            Supplier<Map<ID, RRC>> mapSupplier) {
-        return cached(ruleMapperSource, cache(mapSupplier));
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(ruleMapperSource, cache(), delegateCacheFactories);
     }
 
+    @SafeVarargs
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
-            Map<ID, RRC> delegateMap) {
-        return cached(call(queryFunction), delegateMap);
+            Supplier<Map<ID, RRC>> mapSupplier,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(call(queryFunction), mapSupplier, delegateCacheFactories);
     }
 
+    @SafeVarargs
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             RuleMapperSource<ID, IDC, R, RRC> ruleMapperSource,
-            Map<ID, RRC> delegateMap) {
-        return cached(ruleMapperSource, cache(delegateMap));
+            Supplier<Map<ID, RRC>> mapSupplier,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(ruleMapperSource, cache(mapSupplier), delegateCacheFactories);
     }
 
+    @SafeVarargs
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
-            CacheFactory<ID, R, RRC> cache) {
-        return cached(call(queryFunction), cache);
+            Map<ID, RRC> delegateMap,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(call(queryFunction), delegateMap, delegateCacheFactories);
     }
 
+    @SafeVarargs
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
             RuleMapperSource<ID, IDC, R, RRC> ruleMapperSource,
-            CacheFactory<ID, R, RRC> cacheFactory) {
+            Map<ID, RRC> delegateMap,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(ruleMapperSource, cache(delegateMap), delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
+            Function<IDC, Publisher<R>> queryFunction,
+            CacheFactory<ID, R, RRC> cache,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(call(queryFunction), cache, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> cached(
+            RuleMapperSource<ID, IDC, R, RRC> ruleMapperSource,
+            CacheFactory<ID, R, RRC> cacheFactory,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
         return ruleContext -> {
             var queryFunction = ruleMapperSource.apply(ruleContext);
@@ -79,13 +101,24 @@ public interface CacheFactory<ID, R, RRC> {
                                     .collect(ruleContext.mapCollector().apply(ids.size()))
                                     .map(queryResultsMap -> buildCacheFragment(ids, queryResultsMap, ruleContext.defaultResultProvider())));
 
-            var cache = cacheFactory.create(
+            var cache = delegate(cacheFactory, delegateCacheFactories).create(
                     fetchFunction,
                     new Context<>(ruleContext.mapCollector(), ruleContext.mergeStrategy()));
 
             return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())));
         };
+    }
+
+    @SafeVarargs
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> delegate(
+            CacheFactory<ID, R, RRC> cacheFactory,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+
+        return also(stream(delegateCacheFactories).toList(), Collections::reverse).stream()
+                .reduce((fetchFunction, context) -> mergeStrategyAwareCache(cacheFactory.create(fetchFunction, context), context.mergeStrategy()),
+                        (mergeStrategyAwareCache, delegateWrapperFunction) -> delegateWrapperFunction.apply(mergeStrategyAwareCache),
+                        (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory);
     }
 
     private static <ID, RRC> Map<ID, RRC> buildCacheFragment(

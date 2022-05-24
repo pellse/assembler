@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.util.HashMap;
@@ -25,6 +24,7 @@ import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static reactor.core.scheduler.Schedulers.immediate;
 import static reactor.core.scheduler.Schedulers.parallel;
 
 public class CacheTest {
@@ -165,7 +165,7 @@ public class CacheTest {
                         rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
                         rule(OrderItem::customerId, HashSet::new, oneToManyAsSet(cached(this::getAllOrdersWithIdSet))),
                         TransactionSet::new)
-                .build(Schedulers.immediate());
+                .build(immediate());
 
         StepVerifier.create(getCustomers()
                         .window(3)
@@ -218,13 +218,13 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux)))),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, autoCache(orderItemFlux, cache())))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux, 10)))),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(), autoCache(orderItemFlux, 10)))),
                         Transaction::new)
                 .build();
 
         StepVerifier.create(getCustomers()
-                        .window(2)
+                        .window(3)
                         .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
