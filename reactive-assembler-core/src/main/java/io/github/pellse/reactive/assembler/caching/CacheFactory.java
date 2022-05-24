@@ -5,6 +5,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -18,7 +19,7 @@ import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwa
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
-import static java.util.Arrays.stream;
+import static java.util.Arrays.asList;
 import static reactor.core.publisher.Flux.fromStream;
 
 @FunctionalInterface
@@ -111,11 +112,11 @@ public interface CacheFactory<ID, R, RRC> {
     }
 
     @SafeVarargs
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> delegate(
+    private static <ID, R, RRC> CacheFactory<ID, R, RRC> delegate(
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        return also(stream(delegateCacheFactories).toList(), Collections::reverse).stream()
+        return also(new ArrayList<>(asList(delegateCacheFactories)), Collections::reverse).stream()
                 .reduce((fetchFunction, context) -> mergeStrategyAwareCache(cacheFactory.create(fetchFunction, context), context.mergeStrategy()),
                         (mergeStrategyAwareCache, delegateWrapperFunction) -> delegateWrapperFunction.apply(mergeStrategyAwareCache),
                         (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory);
