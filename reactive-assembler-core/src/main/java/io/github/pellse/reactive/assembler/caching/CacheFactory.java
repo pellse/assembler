@@ -118,7 +118,7 @@ public interface CacheFactory<ID, R, RRC> {
 
         return also(new ArrayList<>(asList(delegateCacheFactories)), Collections::reverse).stream()
                 .reduce((fetchFunction, context) -> mergeStrategyAwareCache(cacheFactory.create(fetchFunction, context), context.mergeStrategy()),
-                        (mergeStrategyAwareCache, delegateWrapperFunction) -> delegateWrapperFunction.apply(mergeStrategyAwareCache),
+                        (previousCacheFactory, delegateWrapperFunction) -> delegateWrapperFunction.apply(previousCacheFactory),
                         (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory);
     }
 
