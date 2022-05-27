@@ -21,6 +21,7 @@ import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -137,8 +138,8 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(dataSource1)))),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(), autoCache(dataSource2)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(toCacheEvent(dataSource1))))),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(), autoCache(toCacheEvent(dataSource2))))),
                         Transaction::new)
                 .build();
 

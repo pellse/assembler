@@ -26,6 +26,7 @@ import static reactor.core.publisher.Flux.fromStream;
 public interface CacheFactory<ID, R, RRC> {
 
     record Context<ID, R, RRC>(
+            Function<R, ID> idExtractor,
             Function<Integer, Collector<R, ?, Map<ID, RRC>>> mapCollector,
             MergeStrategy<ID, RRC> mergeStrategy) {
     }
@@ -104,7 +105,7 @@ public interface CacheFactory<ID, R, RRC> {
 
             var cache = delegate(cacheFactory, delegateCacheFactories).create(
                     fetchFunction,
-                    new Context<>(ruleContext.mapCollector(), ruleContext.mergeStrategy()));
+                    new Context<>(ruleContext.idExtractor(), ruleContext.mapCollector(), ruleContext.mergeStrategy()));
 
             return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())));

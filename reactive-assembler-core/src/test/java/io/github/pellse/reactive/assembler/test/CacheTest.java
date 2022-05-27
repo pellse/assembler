@@ -1,16 +1,17 @@
 package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
-import io.github.pellse.reactive.assembler.caching.Cache;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -21,9 +22,9 @@ import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.util.ObjectUtils.also;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
@@ -223,8 +224,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux, 10), cff1, cff2))),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(), autoCache(orderItemFlux, 10)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvent(billingInfoFlux), 10), cff1, cff2))),
+                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(), autoCache(toCacheEvent(orderItemFlux), 10)))),
                         Transaction::new)
                 .build();
 
@@ -253,7 +254,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux, 4)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvent(billingInfoFlux), 4)))),
                         rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                         Transaction::new)
                 .build();

@@ -2,7 +2,6 @@ package io.github.pellse.reactive.assembler.caching;
 
 import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -10,13 +9,14 @@ import java.util.function.Supplier;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
-import static java.util.Collections.unmodifiableMap;
 import static reactor.core.publisher.Mono.just;
 
 public interface Cache<ID, RRC> {
     Mono<Map<ID, RRC>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
 
-    Mono<Map<ID, RRC>> putAll(Mono<Map<ID, RRC>> mapMono);
+    Mono<?> putAll(Map<ID, RRC> map);
+
+    Mono<?> removeAll(Map<ID, RRC> map);
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache() {
         return cache(ConcurrentHashMap::new);
@@ -40,8 +40,13 @@ public interface Cache<ID, RRC> {
             }
 
             @Override
-            public Mono<Map<ID, RRC>> putAll(Mono<Map<ID, RRC>> mapMono) {
-                return mapMono.map(m -> also(m, delegateMap::putAll));
+            public Mono<?> putAll(Map<ID, RRC> map) {
+                return just(also(map, delegateMap::putAll));
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, RRC> map) {
+                return just(also(map, m ->  delegateMap.keySet().removeAll(m.keySet())));
             }
         };
     }
@@ -56,11 +61,16 @@ public interface Cache<ID, RRC> {
             }
 
             @Override
-            public Mono<Map<ID, RRC>> putAll(Mono<Map<ID, RRC>> mapMono) {
-                return mapMono
-                        .map(map -> delegateCache.getAll(map.keySet(), false)
-                                .map(mapFromCache -> mergeStrategy.merge(new HashMap<>(mapFromCache), unmodifiableMap(map))))
+            public Mono<?> putAll(Map<ID, RRC> map) {
+                return just(map)
+                        .flatMap(m -> delegateCache.getAll(m.keySet(), false)
+                                .map(mapFromCache -> mergeStrategy.merge(mapFromCache, m)))
                         .flatMap(delegateCache::putAll);
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, RRC> map) {
+                return delegateCache.removeAll(map);
             }
         };
     }

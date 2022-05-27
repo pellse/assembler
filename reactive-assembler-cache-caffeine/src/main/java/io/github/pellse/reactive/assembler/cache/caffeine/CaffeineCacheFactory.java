@@ -14,6 +14,7 @@ import static io.github.pellse.util.ObjectUtils.also;
 import static java.util.Collections.emptyMap;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static reactor.core.publisher.Mono.fromFuture;
+import static reactor.core.publisher.Mono.just;
 
 public interface CaffeineCacheFactory {
 
@@ -38,9 +39,13 @@ public interface CaffeineCacheFactory {
             }
 
             @Override
-            public Mono<Map<ID, RRC>> putAll(Mono<Map<ID, RRC>> mapMono) {
-                return mapMono
-                        .map(m -> also(m, map -> map.forEach((id, value) -> delegateCache.put(id, completedFuture(value)))));
+            public Mono<?> putAll(Map<ID, RRC> map) {
+                return just(also(map, m ->  m.forEach((id, value) -> delegateCache.put(id, completedFuture(value)))));
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, RRC> map) {
+                return just(also(map, m -> delegateCache.synchronous().invalidateAll(m.keySet())));
             }
         };
     }

@@ -20,7 +20,7 @@ class BusyException extends Exception {
 public interface ConcurrentCache {
 
     static <ID, RRC> Cache<ID, RRC> concurrent(Cache<ID, RRC> delegateCache) {
-        return concurrent(delegateCache, indefinitely());
+        return concurrent(delegateCache, retryStrategy(indefinitely(), RetrySpec::filter));
     }
 
     static <ID, RRC> Cache<ID, RRC> concurrent(Cache<ID, RRC> delegateCache, long maxAttempts) {
@@ -39,26 +39,35 @@ public interface ConcurrentCache {
 
             @Override
             public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
-                return execute(delegateCache.getAll(ids, computeIfAbsent), shouldRunFlag);
+                return execute(delegateCache.getAll(ids, computeIfAbsent), shouldRunFlag, retrySpec);
             }
 
             @Override
-            public Mono<Map<ID, RRC>> putAll(Mono<Map<ID, RRC>> mapMono) {
-                return execute(delegateCache.putAll(mapMono), shouldRunFlag);
+            public Mono<?> putAll(Map<ID, RRC> map) {
+                return execute(delegateCache.putAll(map), shouldRunFlag, retrySpec);
             }
 
-            private Mono<Map<ID, RRC>> execute(Mono<Map<ID, RRC>> mono, final AtomicBoolean shouldRunFlag) {
-                return defer(() -> just(shouldRunFlag.compareAndSet(false, true)))
-                        .filter(shouldRun -> shouldRun)
-                        .flatMap($ -> mono)
-                        .switchIfEmpty(error(BusyException::new))
-                        .doFinally($ -> shouldRunFlag.set(false))
-                        .retryWhen(retrySpec);
+            @Override
+            public Mono<?> removeAll(Map<ID, RRC> map) {
+                return execute(delegateCache.removeAll(map), shouldRunFlag, retrySpec);
             }
         };
     }
 
-    private static <T extends Retry> T retryStrategy(T retrySpec, BiFunction<T, Predicate<? super Throwable>, T> filterFunction) {
+    static <T> Mono<T> execute(Mono<T> mono, final AtomicBoolean shouldRunFlag) {
+        return execute(mono, shouldRunFlag, retryStrategy(indefinitely(), RetrySpec::filter));
+    }
+
+    static <T> Mono<T> execute(Mono<T> mono, final AtomicBoolean shouldRunFlag, Retry retrySpec) {
+        return defer(() -> just(shouldRunFlag.compareAndSet(false, true)))
+                .filter(shouldRun -> shouldRun)
+                .flatMap($ -> mono)
+                .switchIfEmpty(error(BusyException::new))
+                .doFinally($ -> shouldRunFlag.set(false))
+                .retryWhen(retrySpec);
+    }
+
+    static <T extends Retry> T retryStrategy(T retrySpec, BiFunction<T, Predicate<? super Throwable>, T> filterFunction) {
         return filterFunction.apply(retrySpec, BusyException.class::isInstance);
     }
 }

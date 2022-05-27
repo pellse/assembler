@@ -1,6 +1,7 @@
 package io.github.pellse.reactive.assembler;
 
 import io.github.pellse.reactive.assembler.caching.MergeStrategy;
+import io.github.pellse.reactive.assembler.caching.RemoveStrategy;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -16,6 +17,7 @@ import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
+import static java.util.Collections.unmodifiableMap;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 import static java.util.stream.Stream.concat;
@@ -56,7 +58,8 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                 ctx -> initialMapCapacity ->
                         toMap(ctx.idExtractor(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
                 identity(),
-                replaceStrategy());
+                replaceStrategy(),
+                removeStrategy());
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
@@ -95,7 +98,8 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                 ctx -> initialMapCapacity ->
                         groupingBy(ctx.idExtractor(), toSupplier(validate(initialMapCapacity), ctx.mapFactory()), toCollection(collectionFactory)),
                 stream -> stream.flatMap(Collection::stream),
-                appendValuesStrategy(collectionFactory));
+                appendValuesStrategy(collectionFactory),
+                removeMultiStrategy(collectionFactory));
     }
 
     private static <ID, IDC extends Collection<ID>, R, RRC> RuleMapper<ID, IDC, R, RRC> createRuleMapper(
@@ -103,7 +107,8 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
             Function<ID, RRC> defaultResultProvider,
             Function<RuleContext<ID, IDC, R, RRC>, Function<Integer, Collector<R, ?, Map<ID, RRC>>>> mapCollector,
             Function<Stream<RRC>, Stream<R>> streamFlattener,
-            MergeStrategy<ID, RRC> mergeStrategy) {
+            MergeStrategy<ID, RRC> mergeStrategy,
+            RemoveStrategy<ID, RRC> removeStrategy) {
 
         return ruleContext -> {
             var ruleMapperContext = toRuleMapperContext(
@@ -111,7 +116,8 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                     defaultResultProvider,
                     mapCollector.apply(ruleContext),
                     streamFlattener,
-                    mergeStrategy);
+                    (mapFromCache, map) -> mergeStrategy.merge(new HashMap<>(mapFromCache), unmodifiableMap(map)),
+                    removeStrategy);
 
             var queryFunction = ruleMapperSource.apply(ruleMapperContext);
 
@@ -130,13 +136,20 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
     private static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> appendValuesStrategy(Supplier<RC> collectionFactory) {
 
         return (cache, map) -> {
-            cache.replaceAll((id, coll) ->
-                    concat(toStream(coll), toStream(map.get(id)))
-                            .distinct()
-                            .collect(toCollection(collectionFactory)));
+            cache.replaceAll((id, coll) -> concat(toStream(coll), toStream(map.get(id)))
+                    .distinct()
+                    .collect(toCollection(collectionFactory)));
 
             return mergeMaps(cache, readAll(intersect(map.keySet(), cache.keySet()), map));
         };
+    }
+
+    private static <ID, R> RemoveStrategy<ID, R> removeStrategy() {
+        return (cache, map) -> also(cache, c -> c.keySet().removeAll(map.keySet()));
+    }
+
+    private static <ID, R, RC extends Collection<R>> RemoveStrategy<ID, RC> removeMultiStrategy(Supplier<RC> collectionFactory) {
+        return null;
     }
 
     private static int validate(int initialCapacity) {
