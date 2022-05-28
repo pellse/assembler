@@ -6,11 +6,11 @@ import reactor.util.retry.RetryBackoffSpec;
 import reactor.util.retry.RetrySpec;
 
 import java.time.Duration;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
+import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCache;
 import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.*;
 
@@ -33,25 +33,13 @@ public interface ConcurrentCache {
 
     static <ID, RRC> Cache<ID, RRC> concurrent(Cache<ID, RRC> delegateCache, Retry retrySpec) {
 
-        return new Cache<>() {
+        final AtomicBoolean shouldRunFlag = new AtomicBoolean();
 
-            private final AtomicBoolean shouldRunFlag = new AtomicBoolean();
-
-            @Override
-            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
-                return execute(delegateCache.getAll(ids, computeIfAbsent), shouldRunFlag, retrySpec);
-            }
-
-            @Override
-            public Mono<?> putAll(Map<ID, RRC> map) {
-                return execute(delegateCache.putAll(map), shouldRunFlag, retrySpec);
-            }
-
-            @Override
-            public Mono<?> removeAll(Map<ID, RRC> map) {
-                return execute(delegateCache.removeAll(map), shouldRunFlag, retrySpec);
-            }
-        };
+        return adapterCache(
+                (ids, computeIfAbsent) -> execute(delegateCache.getAll(ids, computeIfAbsent), shouldRunFlag, retrySpec),
+                map -> execute(delegateCache.putAll(map), shouldRunFlag, retrySpec),
+                map -> execute(delegateCache.removeAll(map), shouldRunFlag, retrySpec)
+        );
     }
 
     static <T> Mono<T> execute(Mono<T> mono, final AtomicBoolean shouldRunFlag) {

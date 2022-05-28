@@ -2,14 +2,12 @@ package io.github.pellse.reactive.assembler.cache.caffeine;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.github.pellse.reactive.assembler.caching.Cache;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
-import reactor.core.publisher.Mono;
 
-import java.util.Map;
 import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
+import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.util.ObjectUtils.also;
 import static java.util.Collections.emptyMap;
 import static java.util.concurrent.CompletableFuture.completedFuture;
@@ -28,25 +26,13 @@ public interface CaffeineCacheFactory {
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(Caffeine<Object, Object> caffeine) {
 
-        return (fetchFunction, context) -> new Cache<>() {
+        final AsyncCache<ID, RRC> delegateCache = caffeine.buildAsync();
 
-            private final AsyncCache<ID, RRC> delegateCache = caffeine.buildAsync();
-
-            @Override
-            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
-                return fromFuture(delegateCache.getAll(ids, (keys, executor) ->
-                        computeIfAbsent ? fetchFunction.apply(keys).toFuture() : completedFuture(emptyMap())));
-            }
-
-            @Override
-            public Mono<?> putAll(Map<ID, RRC> map) {
-                return just(also(map, m ->  m.forEach((id, value) -> delegateCache.put(id, completedFuture(value)))));
-            }
-
-            @Override
-            public Mono<?> removeAll(Map<ID, RRC> map) {
-                return just(also(map, m -> delegateCache.synchronous().invalidateAll(m.keySet())));
-            }
-        };
+        return (fetchFunction, context) -> adapterCache(
+                (ids, computeIfAbsent) -> fromFuture(delegateCache.getAll(ids, (keys, executor) ->
+                        computeIfAbsent ? fetchFunction.apply(keys).toFuture() : completedFuture(emptyMap()))),
+                map -> just(also(map, m -> m.forEach((id, value) -> delegateCache.put(id, completedFuture(value))))),
+                map -> just(also(map, m -> delegateCache.synchronous().invalidateAll(m.keySet())))
+        );
     }
 }
