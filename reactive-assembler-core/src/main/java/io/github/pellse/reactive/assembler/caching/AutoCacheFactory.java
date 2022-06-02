@@ -1,5 +1,6 @@
 package io.github.pellse.reactive.assembler.caching;
 
+import io.github.pellse.reactive.assembler.caching.CacheEvent.AddUpdateEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.Context;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

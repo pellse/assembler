@@ -1,6 +1,7 @@
 package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
+import io.github.pellse.reactive.assembler.caching.CacheEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,9 +22,12 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.add;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.remove;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -254,7 +258,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvent(billingInfoFlux), 4)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(toCacheEvent(billingInfoFlux), 4)))),
                         rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                         Transaction::new)
                 .build();
@@ -270,6 +274,54 @@ public class CacheTest {
 
         assertEquals(0, billingInvocationCount.get());
         assertEquals(3, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithAutoCachingEvents() {
+
+        Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
+            assertEquals(List.of(3L), customerIds);
+            return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                    .filter(orderItem -> customerIds.contains(orderItem.customerId()))
+                    .doOnComplete(ordersInvocationCount::incrementAndGet);
+        };
+
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+
+        Flux<CacheEvent<BillingInfo>> billingInfoFlux = Flux.just(
+                        add(billingInfo1), add(billingInfo2), add(billingInfo3), add(updatedBillingInfo2))
+                .subscribeOn(parallel());
+
+        Flux<CacheEvent<OrderItem>> orderItemFlux = Flux.just(
+                        add(orderItem11), add(orderItem12), add(orderItem13),
+                        add(orderItem21), add(orderItem22),
+                        add(orderItem31), add(orderItem32), add(orderItem33),
+                        remove(orderItem31), remove(orderItem32))
+                .subscribeOn(parallel());
+
+        Transaction transaction3a = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
+        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
+
+        var assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(cached(getAllOrders, cache(), autoCache(orderItemFlux, 3)))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(0, billingInvocationCount.get());
+        assertEquals(0, ordersInvocationCount.get());
     }
 }
 

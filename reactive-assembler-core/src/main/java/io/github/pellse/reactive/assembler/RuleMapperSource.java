@@ -1,6 +1,7 @@
 package io.github.pellse.reactive.assembler;
 
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.function.Function;
@@ -18,5 +19,9 @@ public interface RuleMapperSource<ID, IDC extends Collection<ID>, R, RRC>
 
     static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> call(Function<IDC, Publisher<R>> queryFunction) {
         return ruleContext -> queryFunction;
+    }
+
+    static <ID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, IDC, R, RRC> emptyQuery() {
+        return ruleContext -> ids -> Mono.empty();
     }
 }
