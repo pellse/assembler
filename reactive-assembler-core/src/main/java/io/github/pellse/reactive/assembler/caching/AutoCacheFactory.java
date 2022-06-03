@@ -33,30 +33,30 @@ public interface AutoCacheFactory {
     }
 
     static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<CacheEvent<R>> dataSource) {
+            Flux<? extends CacheEvent<R>> dataSource) {
         return autoCache(dataSource, MAX_WINDOW_SIZE);
     }
 
     static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<CacheEvent<R>> dataSource, int maxWindowSize) {
+            Flux<? extends CacheEvent<R>> dataSource, int maxWindowSize) {
         return autoCache(dataSource, flux -> flux.window(maxWindowSize));
     }
 
     static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<CacheEvent<R>> dataSource, Duration maxWindowTime) {
+            Flux<? extends CacheEvent<R>> dataSource, Duration maxWindowTime) {
         return autoCache(dataSource, flux -> flux.window(maxWindowTime));
     }
 
     static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<CacheEvent<R>> dataSource,
+            Flux<? extends CacheEvent<R>> dataSource,
             int maxWindowSize,
             Duration maxWindowTime) {
         return autoCache(dataSource, flux -> flux.windowTimeout(maxWindowSize, maxWindowTime));
     }
 
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<CacheEvent<R>> dataSource,
-            WindowingStrategy<CacheEvent<R>> windowingStrategy) {
+    static <ID, R, RRC, T extends CacheEvent<R>> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
+            Flux<T> dataSource,
+            WindowingStrategy<T> windowingStrategy) {
 
         return cacheFactory -> (fetchFunction, context) -> {
             var cache = synchronous(cacheFactory.create(fetchFunction, context));
@@ -100,7 +100,7 @@ public interface AutoCacheFactory {
         };
     }
 
-    private static <ID, R, RRC> Map<ID, RRC> toMap(List<CacheEvent<R>> cacheEvents, Context<ID, R, RRC> context) {
+    private static <ID, R, RRC> Map<ID, RRC> toMap(List<? extends CacheEvent<R>> cacheEvents, Context<ID, R, RRC> context) {
         return cacheEvents.stream()
                 .map(CacheEvent::value)
                 .collect(context.mapCollector().apply(-1));

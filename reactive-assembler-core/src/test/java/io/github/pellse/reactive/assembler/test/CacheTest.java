@@ -2,6 +2,8 @@ package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
+import io.github.pellse.reactive.assembler.caching.CacheEvent.AddUpdateEvent;
+import io.github.pellse.reactive.assembler.caching.CacheEvent.RemoveEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +29,6 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoC
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.add;
-import static io.github.pellse.reactive.assembler.caching.CacheEvent.remove;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -279,6 +280,12 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents() {
 
+        record CDCAdd(OrderItem item) {
+        }
+
+        record CDCDelete(OrderItem item) {
+        }
+
         Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
             assertEquals(List.of(3L), customerIds);
             return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
@@ -292,11 +299,15 @@ public class CacheTest {
                         add(billingInfo1), add(billingInfo2), add(billingInfo3), add(updatedBillingInfo2))
                 .subscribeOn(parallel());
 
-        Flux<CacheEvent<OrderItem>> orderItemFlux = Flux.just(
-                        add(orderItem11), add(orderItem12), add(orderItem13),
-                        add(orderItem21), add(orderItem22),
-                        add(orderItem31), add(orderItem32), add(orderItem33),
-                        remove(orderItem31), remove(orderItem32))
+        var orderItemFlux = Flux.just(
+                        new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
+                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),
+                        new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
+                        new CDCDelete(orderItem31), new CDCDelete(orderItem32))
+                .map(cdcEvent -> {
+                    if (cdcEvent instanceof CDCAdd e) return new AddUpdateEvent<>(e.item);
+                    else return new RemoveEvent<>(((CDCDelete)cdcEvent).item);
+                })
                 .subscribeOn(parallel());
 
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
