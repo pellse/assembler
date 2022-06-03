@@ -4,6 +4,7 @@ import io.github.pellse.assembler.BillingInfo;
 import io.github.pellse.assembler.Customer;
 import io.github.pellse.assembler.OrderItem;
 import io.github.pellse.assembler.Transaction;
+import io.github.pellse.reactive.assembler.caching.CacheEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -12,6 +13,7 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
@@ -22,9 +24,11 @@ import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.add;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static reactor.core.scheduler.Schedulers.parallel;
 
 public class TestAssemblerCaffeineCache {
 
@@ -145,6 +149,63 @@ public class TestAssemblerCaffeineCache {
 
         StepVerifier.create(getCustomers()
                         .window(5)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(0, billingInvocationCount.get());
+        assertEquals(0, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithAutoCachingEvents() {
+
+        record CDCAdd(OrderItem item) {
+        }
+
+        record CDCDelete(OrderItem item) {
+        }
+
+        Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
+            assertEquals(List.of(3L), customerIds);
+            return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                    .filter(orderItem -> customerIds.contains(orderItem.customerId()))
+                    .doOnComplete(ordersInvocationCount::incrementAndGet);
+        };
+
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+
+        Flux<CacheEvent<BillingInfo>> billingInfoFlux = Flux.just(
+                        add(billingInfo1), add(billingInfo2), add(billingInfo3), add(updatedBillingInfo2))
+                .subscribeOn(parallel());
+
+        var orderItemFlux = Flux.just(
+                        new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
+                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),
+                        new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
+                        new CDCDelete(orderItem31), new CDCDelete(orderItem32))
+                .map(cdcEvent -> {
+                    if (cdcEvent instanceof CDCAdd e) return new CacheEvent.AddUpdateEvent<>(e.item);
+                    else return new CacheEvent.RemoveEvent<>(((CDCDelete)cdcEvent).item);
+                })
+                .subscribeOn(parallel());
+
+        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
+
+        var assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(cached(getAllOrders, caffeineCache(), autoCache(orderItemFlux, 3)))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
                         .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
