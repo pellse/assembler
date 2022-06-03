@@ -9,12 +9,35 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.execute;
 import static java.util.stream.Collectors.partitioningBy;
 
 public interface AutoCacheFactory {
+
+    sealed interface ErrorHandler {
+    }
+
+    record OnErrorContinue(BiConsumer<Throwable, Object> errorConsumer) implements ErrorHandler {
+        public static OnErrorContinue onErrorContinue(BiConsumer<Throwable, Object> errorConsumer) {
+            return new OnErrorContinue(errorConsumer);
+        }
+    }
+
+    record OnErrorMap(Function<? super Throwable, ? extends Throwable> mapper) implements ErrorHandler {
+        public static OnErrorMap onErrorMap(Function<? super Throwable, ? extends Throwable> mapper) {
+            return new OnErrorMap(mapper);
+        }
+    }
+
+    record OnErrorStop() implements ErrorHandler {
+        public static OnErrorStop onErrorStop() {
+            return new OnErrorStop();
+        }
+    }
 
     int MAX_WINDOW_SIZE = 1;
 
@@ -38,13 +61,35 @@ public interface AutoCacheFactory {
     }
 
     static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource, int maxWindowSize) {
+            Flux<? extends CacheEvent<R>> dataSource,
+            ErrorHandler handler) {
+        return autoCache(dataSource, MAX_WINDOW_SIZE, handler);
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
+            Flux<? extends CacheEvent<R>> dataSource,
+            int maxWindowSize) {
         return autoCache(dataSource, flux -> flux.window(maxWindowSize));
     }
 
     static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource, Duration maxWindowTime) {
+            Flux<? extends CacheEvent<R>> dataSource,
+            int maxWindowSize,
+            ErrorHandler handler) {
+        return autoCache(dataSource, flux -> flux.window(maxWindowSize), handler);
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
+            Flux<? extends CacheEvent<R>> dataSource,
+            Duration maxWindowTime) {
         return autoCache(dataSource, flux -> flux.window(maxWindowTime));
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
+            Flux<? extends CacheEvent<R>> dataSource,
+            Duration maxWindowTime,
+            ErrorHandler handler) {
+        return autoCache(dataSource, flux -> flux.window(maxWindowTime), handler);
     }
 
     static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
@@ -54,16 +99,33 @@ public interface AutoCacheFactory {
         return autoCache(dataSource, flux -> flux.windowTimeout(maxWindowSize, maxWindowTime));
     }
 
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
+            Flux<? extends CacheEvent<R>> dataSource,
+            int maxWindowSize,
+            Duration maxWindowTime,
+            ErrorHandler handler) {
+        return autoCache(dataSource, flux -> flux.windowTimeout(maxWindowSize, maxWindowTime), handler);
+    }
+
     static <ID, R, RRC, T extends CacheEvent<R>> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
             Flux<T> dataSource,
             WindowingStrategy<T> windowingStrategy) {
 
+        return autoCache(dataSource, windowingStrategy, onErrorStop());
+    }
+
+    static <ID, R, RRC, T extends CacheEvent<R>> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
+            Flux<T> dataSource,
+            WindowingStrategy<T> windowingStrategy,
+            ErrorHandler errorHandler) {
+
         return cacheFactory -> (fetchFunction, context) -> {
             var cache = synchronous(cacheFactory.create(fetchFunction, context));
 
-            var cacheSourceFlux = windowingStrategy.toWindowedFlux(dataSource)
-                    .flatMap(flux -> flux.collect(partitioningBy(AddUpdateEvent.class::isInstance)))
-                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context)));
+            var cacheSourceFlux = toFluxErrorHandler(errorHandler).apply(
+                    windowingStrategy.toWindowedFlux(dataSource)
+                            .flatMap(flux -> flux.collect(partitioningBy(value -> value instanceof AddUpdateEvent)))
+                            .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context))));
 
             cacheSourceFlux.subscribe();
             return cache;
@@ -104,5 +166,11 @@ public interface AutoCacheFactory {
         return cacheEvents.stream()
                 .map(CacheEvent::value)
                 .collect(context.mapCollector().apply(-1));
+    }
+
+    private static Function<Flux<?>, Flux<?>> toFluxErrorHandler(ErrorHandler handler) {
+        if (handler instanceof OnErrorContinue h) return flux -> flux.onErrorContinue(h.errorConsumer());
+        else if (handler instanceof OnErrorMap h) return flux -> flux.onErrorMap(h.mapper());
+        return Flux::onErrorStop;
     }
 }

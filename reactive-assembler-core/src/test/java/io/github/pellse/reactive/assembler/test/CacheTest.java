@@ -25,6 +25,7 @@ import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
@@ -32,6 +33,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheEvent.add;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static reactor.core.scheduler.Schedulers.immediate;
 import static reactor.core.scheduler.Schedulers.parallel;
 
@@ -278,6 +280,37 @@ public class CacheTest {
     }
 
     @Test
+    public void testReusableAssemblerBuilderWithAutoCachingError() {
+
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, null, "4540111111111111"); // null customerId, will trigger NullPointerException
+
+        Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2Unknown, billingInfo3, updatedBillingInfo2);
+
+        var assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(),
+                                autoCache(
+                                        toCacheEvent(billingInfoFlux),
+                                        onErrorContinue((error, value) -> assertInstanceOf(NullPointerException.class, error)))))),
+                        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(0, billingInvocationCount.get());
+        assertEquals(3, ordersInvocationCount.get());
+    }
+
+    @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents() {
 
         record CDCAdd(OrderItem item) {
@@ -306,7 +339,7 @@ public class CacheTest {
                         new CDCDelete(orderItem31), new CDCDelete(orderItem32))
                 .map(cdcEvent -> {
                     if (cdcEvent instanceof CDCAdd e) return new AddUpdateEvent<>(e.item);
-                    else return new RemoveEvent<>(((CDCDelete)cdcEvent).item);
+                    else return new RemoveEvent<>(((CDCDelete) cdcEvent).item);
                 })
                 .subscribeOn(parallel());
 

@@ -56,6 +56,6 @@ public interface ConcurrentCache {
     }
 
     static <T extends Retry> T retryStrategy(T retrySpec, BiFunction<T, Predicate<? super Throwable>, T> filterFunction) {
-        return filterFunction.apply(retrySpec, BusyException.class::isInstance);
+        return filterFunction.apply(retrySpec, e -> e instanceof BusyException);
     }
 }
