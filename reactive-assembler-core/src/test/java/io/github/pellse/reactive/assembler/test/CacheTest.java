@@ -299,7 +299,6 @@ public class CacheTest {
                         remove(orderItem31), remove(orderItem32))
                 .subscribeOn(parallel());
 
-        Transaction transaction3a = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
