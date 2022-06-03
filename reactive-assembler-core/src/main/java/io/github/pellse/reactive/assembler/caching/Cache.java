@@ -49,10 +49,16 @@ public interface Cache<ID, RRC> {
             MergeStrategy<ID, RRC> mergeStrategy,
             MergeStrategy<ID, RRC> removeStrategy) {
 
-        return adapterCache(
+        Cache<ID, RRC> optimizedCache = adapterCache(
                 (ids, computeIfAbsent) -> isEmpty(ids) ? just(of()) : delegateCache.getAll(ids, computeIfAbsent),
-                applyMergeStrategy(delegateCache, (cache, mapFromCache, newChanges) -> cache.putAll(mergeStrategy.apply(mapFromCache, newChanges))),
-                applyMergeStrategy(delegateCache, (cache, mapFromCache, newChanges) -> {
+                map -> isEmpty(map) ? just(of()) : delegateCache.putAll(map),
+                map -> isEmpty(map) ? just(of()) : delegateCache.removeAll(map)
+        );
+
+        return adapterCache(
+                optimizedCache::getAll,
+                applyMergeStrategy(optimizedCache, (cache, mapFromCache, newChanges) -> cache.putAll(mergeStrategy.apply(mapFromCache, newChanges))),
+                applyMergeStrategy(optimizedCache, (cache, mapFromCache, newChanges) -> {
                     var mapAfterRemove = removeStrategy.apply(mapFromCache, newChanges);
                     var removedItems = readAll(
                             intersect(mapFromCache.keySet(), mapAfterRemove.keySet()),
