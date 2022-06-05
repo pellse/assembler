@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
@@ -19,11 +19,17 @@ import static java.util.stream.Collectors.partitioningBy;
 public interface AutoCacheFactory {
 
     sealed interface ErrorHandler {
+        Function<Flux<?>, Flux<?>> toFluxErrorHandler();
     }
 
-    record OnErrorContinue(BiConsumer<Throwable, Object> errorConsumer) implements ErrorHandler {
-        public static OnErrorContinue onErrorContinue(BiConsumer<Throwable, Object> errorConsumer) {
+    record OnErrorContinue(Consumer<Throwable> errorConsumer) implements ErrorHandler {
+        public static OnErrorContinue onErrorContinue(Consumer<Throwable> errorConsumer) {
             return new OnErrorContinue(errorConsumer);
+        }
+
+        @Override
+        public Function<Flux<?>, Flux<?>> toFluxErrorHandler() {
+            return flux -> flux.onErrorContinue((error, object) -> errorConsumer().accept(error));
         }
     }
 
@@ -31,11 +37,21 @@ public interface AutoCacheFactory {
         public static OnErrorMap onErrorMap(Function<? super Throwable, ? extends Throwable> mapper) {
             return new OnErrorMap(mapper);
         }
+
+        @Override
+        public Function<Flux<?>, Flux<?>> toFluxErrorHandler() {
+            return flux -> flux.onErrorMap(mapper());
+        }
     }
 
     record OnErrorStop() implements ErrorHandler {
         public static OnErrorStop onErrorStop() {
             return new OnErrorStop();
+        }
+
+        @Override
+        public Function<Flux<?>, Flux<?>> toFluxErrorHandler() {
+            return Flux::onErrorStop;
         }
     }
 
@@ -122,7 +138,7 @@ public interface AutoCacheFactory {
         return cacheFactory -> (fetchFunction, context) -> {
             var cache = synchronous(cacheFactory.create(fetchFunction, context));
 
-            var cacheSourceFlux = toFluxErrorHandler(errorHandler).apply(
+            var cacheSourceFlux = errorHandler.toFluxErrorHandler().apply(
                     windowingStrategy.toWindowedFlux(dataSource)
                             .flatMap(flux -> flux.collect(partitioningBy(value -> value instanceof AddUpdateEvent)))
                             .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context))));
@@ -166,11 +182,5 @@ public interface AutoCacheFactory {
         return cacheEvents.stream()
                 .map(CacheEvent::value)
                 .collect(context.mapCollector().apply(-1));
-    }
-
-    private static Function<Flux<?>, Flux<?>> toFluxErrorHandler(ErrorHandler handler) {
-        if (handler instanceof OnErrorContinue h) return flux -> flux.onErrorContinue(h.errorConsumer());
-        else if (handler instanceof OnErrorMap h) return flux -> flux.onErrorMap(h.mapper());
-        return Flux::onErrorStop;
     }
 }

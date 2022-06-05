@@ -291,7 +291,7 @@ public class CacheTest {
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(
                                 toCacheEvent(billingInfoFlux),
-                                onErrorContinue((error, value) -> assertInstanceOf(NullPointerException.class, error)))))),
+                                onErrorContinue(error -> assertInstanceOf(NullPointerException.class, error)))))),
                         rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
                         Transaction::new)
                 .build();
