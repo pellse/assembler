@@ -27,6 +27,14 @@ public interface CollectionUtil {
         return !isEmpty(iterable);
     }
 
+    static boolean isEmpty(Map<?, ?> map) {
+        return map == null || map.isEmpty();
+    }
+
+    static boolean isNotEmpty(Map<?, ?> map) {
+        return !isEmpty(map);
+    }
+
     static <E> Collection<E> asCollection(Iterable<E> iter) {
         return iter instanceof Collection ? (Collection<E>) iter : stream(iter.spliterator(), false).toList();
     }

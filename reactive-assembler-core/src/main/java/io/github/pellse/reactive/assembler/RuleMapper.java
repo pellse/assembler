@@ -5,7 +5,9 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
@@ -16,6 +18,8 @@ import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
+import static java.util.Collections.unmodifiableMap;
+import static java.util.Map.entry;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 import static java.util.stream.Stream.concat;
@@ -56,7 +60,8 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                 ctx -> initialMapCapacity ->
                         toMap(ctx.idExtractor(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
                 identity(),
-                replaceStrategy());
+                updateStrategy(),
+                removeStrategy());
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
@@ -95,15 +100,17 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                 ctx -> initialMapCapacity ->
                         groupingBy(ctx.idExtractor(), toSupplier(validate(initialMapCapacity), ctx.mapFactory()), toCollection(collectionFactory)),
                 stream -> stream.flatMap(Collection::stream),
-                appendValuesStrategy(collectionFactory));
+                updateMultiStrategy(collectionFactory),
+                removeMultiStrategy(collectionFactory));
     }
 
     private static <ID, IDC extends Collection<ID>, R, RRC> RuleMapper<ID, IDC, R, RRC> createRuleMapper(
             RuleMapperSource<ID, IDC, R, RRC> ruleMapperSource,
             Function<ID, RRC> defaultResultProvider,
-            Function<RuleContext<ID, IDC, R, RRC>, Function<Integer, Collector<R, ?, Map<ID, RRC>>>> mapCollector,
+            Function<RuleContext<ID, IDC, R, RRC>, IntFunction<Collector<R, ?, Map<ID, RRC>>>> mapCollector,
             Function<Stream<RRC>, Stream<R>> streamFlattener,
-            MergeStrategy<ID, RRC> mergeStrategy) {
+            MergeStrategy<ID, RRC> mergeStrategy,
+            MergeStrategy<ID, RRC> removeStrategy) {
 
         return ruleContext -> {
             var ruleMapperContext = toRuleMapperContext(
@@ -111,7 +118,8 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                     defaultResultProvider,
                     mapCollector.apply(ruleContext),
                     streamFlattener,
-                    mergeStrategy);
+                    safeStrategy(mergeStrategy),
+                    safeStrategy(removeStrategy));
 
             var queryFunction = ruleMapperSource.apply(ruleMapperContext);
 
@@ -123,20 +131,45 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         };
     }
 
-    private static <ID, R> MergeStrategy<ID, R> replaceStrategy() {
-        return (cache, map) -> also(cache, m -> m.putAll(map));
+    private static <ID, R> MergeStrategy<ID, R> updateStrategy() {
+        return (cache, map) -> map;
     }
 
-    private static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> appendValuesStrategy(Supplier<RC> collectionFactory) {
+    private static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> updateMultiStrategy(Supplier<RC> collectionFactory) {
 
         return (cache, map) -> {
-            cache.replaceAll((id, coll) ->
-                    concat(toStream(coll), toStream(map.get(id)))
+            cache.replaceAll((id, collToReplace) -> then(map.get(id),
+                    coll -> coll != null ? concat(toStream(collToReplace), toStream(coll))
                             .distinct()
-                            .collect(toCollection(collectionFactory)));
+                            .collect(toCollection(collectionFactory)) : collToReplace));
 
             return mergeMaps(cache, readAll(intersect(map.keySet(), cache.keySet()), map));
         };
+    }
+
+    private static <ID, R> MergeStrategy<ID, R> removeStrategy() {
+        return (cache, map) -> also(cache, c -> c.keySet().removeAll(map.keySet()));
+    }
+
+    private static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> removeMultiStrategy(Supplier<RC> collectionFactory) {
+
+        return (cache, map) -> cache.entrySet().stream()
+                .map(entry -> {
+                    var coll = map.get(entry.getKey());
+                    if (coll == null)
+                        return entry;
+
+                    var newColl = toStream(entry.getValue())
+                            .filter(element -> !coll.contains(element))
+                            .collect(toCollection(collectionFactory));
+                    return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
+                })
+                .filter(Objects::nonNull)
+                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1));
+    }
+
+    private static <ID, RRC> MergeStrategy<ID, RRC> safeStrategy(MergeStrategy<ID, RRC> strategy) {
+        return (mapFromCache, map) -> strategy.apply(new HashMap<>(mapFromCache), unmodifiableMap(map));
     }
 
     private static int validate(int initialCapacity) {

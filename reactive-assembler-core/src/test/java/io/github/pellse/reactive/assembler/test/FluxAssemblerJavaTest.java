@@ -42,6 +42,8 @@ import static io.github.pellse.reactive.assembler.QueryCache.cached;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
 
@@ -173,6 +175,30 @@ public class FluxAssemblerJavaTest {
 
         assertEquals(2, billingInvocationCount.get());
         assertEquals(2, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithEmptyReplies() {
+
+        Transaction transaction1 = new Transaction(customer1, null, emptyList());
+        Transaction transaction2 = new Transaction(customer2, null, emptyList());
+        Transaction transaction3 = new Transaction(customer3, null, emptyList());
+
+        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+                .withIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(emptyQuery())),
+                        rule(OrderItem::customerId, oneToMany(emptyQuery())),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
     }
 
     @Test

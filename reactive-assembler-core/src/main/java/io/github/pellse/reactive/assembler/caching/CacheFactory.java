@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
@@ -26,8 +27,10 @@ import static reactor.core.publisher.Flux.fromStream;
 public interface CacheFactory<ID, R, RRC> {
 
     record Context<ID, R, RRC>(
-            Function<Integer, Collector<R, ?, Map<ID, RRC>>> mapCollector,
-            MergeStrategy<ID, RRC> mergeStrategy) {
+            Function<R, ID> idExtractor,
+            IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
+            MergeStrategy<ID, RRC> mergeStrategy,
+            MergeStrategy<ID, RRC> removeStrategy) {
     }
 
     Cache<ID, RRC> create(
@@ -104,7 +107,7 @@ public interface CacheFactory<ID, R, RRC> {
 
             var cache = delegate(cacheFactory, delegateCacheFactories).create(
                     fetchFunction,
-                    new Context<>(ruleContext.mapCollector(), ruleContext.mergeStrategy()));
+                    new Context<>(ruleContext.idExtractor(), ruleContext.mapCollector(), ruleContext.mergeStrategy(), ruleContext.removeStrategy()));
 
             return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())));
@@ -117,7 +120,8 @@ public interface CacheFactory<ID, R, RRC> {
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
         return also(new ArrayList<>(asList(delegateCacheFactories)), Collections::reverse).stream()
-                .reduce((fetchFunction, context) -> mergeStrategyAwareCache(cacheFactory.create(fetchFunction, context), context.mergeStrategy()),
+                .reduce((fetchFunction, context) -> mergeStrategyAwareCache(
+                        cacheFactory.create(fetchFunction, context), context.mergeStrategy(), context.removeStrategy()),
                         (previousCacheFactory, delegateWrapperFunction) -> delegateWrapperFunction.apply(previousCacheFactory),
                         (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory);
     }
