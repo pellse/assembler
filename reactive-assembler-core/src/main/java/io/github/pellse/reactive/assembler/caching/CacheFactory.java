@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
@@ -27,7 +28,7 @@ public interface CacheFactory<ID, R, RRC> {
 
     record Context<ID, R, RRC>(
             Function<R, ID> idExtractor,
-            Function<Integer, Collector<R, ?, Map<ID, RRC>>> mapCollector,
+            IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
             MergeStrategy<ID, RRC> mergeStrategy,
             MergeStrategy<ID, RRC> removeStrategy) {
     }

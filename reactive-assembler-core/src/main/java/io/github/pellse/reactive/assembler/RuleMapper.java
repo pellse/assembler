@@ -7,6 +7,7 @@ import reactor.core.publisher.Mono;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
@@ -106,7 +107,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
     private static <ID, IDC extends Collection<ID>, R, RRC> RuleMapper<ID, IDC, R, RRC> createRuleMapper(
             RuleMapperSource<ID, IDC, R, RRC> ruleMapperSource,
             Function<ID, RRC> defaultResultProvider,
-            Function<RuleContext<ID, IDC, R, RRC>, Function<Integer, Collector<R, ?, Map<ID, RRC>>>> mapCollector,
+            Function<RuleContext<ID, IDC, R, RRC>, IntFunction<Collector<R, ?, Map<ID, RRC>>>> mapCollector,
             Function<Stream<RRC>, Stream<R>> streamFlattener,
             MergeStrategy<ID, RRC> mergeStrategy,
             MergeStrategy<ID, RRC> removeStrategy) {
