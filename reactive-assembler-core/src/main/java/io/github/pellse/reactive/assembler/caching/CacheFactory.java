@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -22,6 +23,7 @@ import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Arrays.asList;
 import static reactor.core.publisher.Flux.fromStream;
+import static reactor.core.publisher.Mono.just;
 
 @FunctionalInterface
 public interface CacheFactory<ID, R, RRC> {
@@ -112,6 +114,10 @@ public interface CacheFactory<ID, R, RRC> {
             return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())));
         };
+    }
+
+    static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> toMono(Consumer<Map<ID, RRC>> consumer) {
+        return map -> just(also(map, consumer));
     }
 
     @SafeVarargs

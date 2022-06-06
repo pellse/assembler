@@ -8,11 +8,10 @@ import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCache;
-import static io.github.pellse.util.ObjectUtils.also;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.toMono;
 import static java.util.Collections.emptyMap;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static reactor.core.publisher.Mono.fromFuture;
-import static reactor.core.publisher.Mono.just;
 
 public interface CaffeineCacheFactory {
 
@@ -31,8 +30,8 @@ public interface CaffeineCacheFactory {
         return (fetchFunction, context) -> adapterCache(
                 (ids, computeIfAbsent) -> fromFuture(delegateCache.getAll(ids, (keys, executor) ->
                         computeIfAbsent ? fetchFunction.apply(keys).toFuture() : completedFuture(emptyMap()))),
-                map -> just(also(map, m -> m.forEach((id, value) -> delegateCache.put(id, completedFuture(value))))),
-                map -> just(also(map, m -> delegateCache.synchronous().invalidateAll(m.keySet())))
+                toMono(map -> map.forEach((id, value) -> delegateCache.put(id, completedFuture(value)))),
+                toMono(map -> delegateCache.synchronous().invalidateAll(map.keySet()))
         );
     }
 }

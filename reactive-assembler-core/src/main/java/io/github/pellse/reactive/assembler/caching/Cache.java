@@ -5,11 +5,12 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCache;
-import static io.github.pellse.util.ObjectUtils.also;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.toMono;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Map.of;
@@ -39,8 +40,8 @@ public interface Cache<ID, RRC> {
                                         fetchFunction.apply(entityIds)
                                                 .doOnNext(delegateMap::putAll)
                                                 .map(map -> mergeMaps(map, cachedEntitiesMap)))),
-                map -> just(also(map, delegateMap::putAll)),
-                map -> just(also(map, m -> delegateMap.keySet().removeAll(m.keySet())))
+                toMono(delegateMap::putAll),
+                toMono(map -> delegateMap.keySet().removeAll(map.keySet()))
         );
     }
 
@@ -50,14 +51,14 @@ public interface Cache<ID, RRC> {
             MergeStrategy<ID, RRC> removeStrategy) {
 
         Cache<ID, RRC> optimizedCache = adapterCache(
-                (ids, computeIfAbsent) -> isEmpty(ids) ? just(of()) : delegateCache.getAll(ids, computeIfAbsent),
-                map -> isEmpty(map) ? just(of()) : delegateCache.putAll(map),
-                map -> isEmpty(map) ? just(of()) : delegateCache.removeAll(map)
+                emptyOr(delegateCache::getAll),
+                emptyOr(delegateCache::putAll),
+                emptyOr(delegateCache::removeAll)
         );
 
         return adapterCache(
                 optimizedCache::getAll,
-                applyMergeStrategy(optimizedCache, (cache, mapFromCache, newChanges) -> cache.putAll(mergeStrategy.apply(mapFromCache, newChanges))),
+                applyMergeStrategy(optimizedCache, mergeStrategy, Cache::putAll),
                 applyMergeStrategy(optimizedCache, (cache, mapFromCache, newChanges) -> {
                     var mapAfterRemove = removeStrategy.apply(mapFromCache, newChanges);
                     var removedItems = readAll(
@@ -72,10 +73,29 @@ public interface Cache<ID, RRC> {
 
     private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> applyMergeStrategy(
             Cache<ID, RRC> delegateCache,
+            MergeStrategy<ID, RRC> mergeStrategy,
+            BiFunction<Cache<ID, RRC>, Map<ID, RRC>, Mono<?>> strategy) {
+
+        return applyMergeStrategy(
+                delegateCache,
+                (cache, mapFromCache, newChanges) -> strategy.apply(cache, mergeStrategy.apply(mapFromCache, newChanges)));
+    }
+
+    private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> applyMergeStrategy(
+            Cache<ID, RRC> delegateCache,
             Function3<Cache<ID, RRC>, Map<ID, RRC>, Map<ID, RRC>, Mono<?>> strategy) {
 
-        return map -> just(map)
-                .flatMap(m -> isEmpty(m) ? just(m) : delegateCache.getAll(m.keySet(), false)
+        return map -> isEmpty(map) ? just(of()) : just(map)
+                .flatMap(m -> delegateCache.getAll(m.keySet(), false)
                         .flatMap(mapFromCache -> strategy.apply(delegateCache, mapFromCache, m)));
+    }
+
+    private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> emptyOr(Function<Map<ID, RRC>, Mono<?>> mappingFunction) {
+        return map -> isEmpty(map) ? just(of()) : mappingFunction.apply(map);
+    }
+
+    private static <ID, RRC> BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, RRC>>> emptyOr(
+            BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, RRC>>> mappingFunction) {
+        return (ids, computeIfAbsent) -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids, computeIfAbsent);
     }
 }
