@@ -12,6 +12,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheFactory.toMono;
 import static java.util.Collections.emptyMap;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static reactor.core.publisher.Mono.fromFuture;
+import static reactor.core.scheduler.Schedulers.fromExecutor;
 
 public interface CaffeineCacheFactory {
 
@@ -29,7 +30,9 @@ public interface CaffeineCacheFactory {
 
         return (fetchFunction, context) -> adapterCache(
                 (ids, computeIfAbsent) -> fromFuture(delegateCache.getAll(ids, (keys, executor) ->
-                        computeIfAbsent ? fetchFunction.apply(keys).toFuture() : completedFuture(emptyMap()))),
+                        computeIfAbsent
+                                ? fetchFunction.apply(keys).subscribeOn(fromExecutor(executor)).toFuture()
+                                : completedFuture(emptyMap()))),
                 toMono(map -> map.forEach((id, value) -> delegateCache.put(id, completedFuture(value)))),
                 toMono(map -> delegateCache.synchronous().invalidateAll(map.keySet()))
         );
