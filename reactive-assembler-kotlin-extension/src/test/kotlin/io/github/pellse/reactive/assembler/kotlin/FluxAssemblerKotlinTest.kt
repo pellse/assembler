@@ -2,16 +2,19 @@ package io.github.pellse.reactive.assembler.kotlin
 
 import io.github.pellse.assembler.*
 import io.github.pellse.assembler.AssemblerTestUtils.*
-import io.github.pellse.reactive.assembler.caching.Cache.cache
 import io.github.pellse.reactive.assembler.Mapper.rule
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
 import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache
+import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache
+import io.github.pellse.reactive.assembler.caching.Cache.cache
+import io.github.pellse.reactive.assembler.caching.CacheEvent.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Flux
+import reactor.core.scheduler.Schedulers.parallel
 import reactor.test.StepVerifier
 import java.time.Duration.ofMillis
 import java.util.concurrent.atomic.AtomicInteger
@@ -220,5 +223,63 @@ class FluxAssemblerKotlinTest {
 
         assertEquals(2, billingInvocationCount.get())
         assertEquals(2, ordersInvocationCount.get())
+    }
+
+    @Test
+    fun testReusableAssemblerBuilderWithAutoCachingEvents2() {
+        data class CDCAdd(val item: OrderItem)
+        data class CDCDelete(val item: OrderItem)
+
+        val getAllOrders = { customerIds: List<Long> ->
+            assertEquals(listOf(3L), customerIds)
+            Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                .filter { orderItem: OrderItem -> customerIds.contains(orderItem.customerId()) }
+                .doOnComplete { ordersInvocationCount.incrementAndGet() }
+        }
+
+        val updatedBillingInfo2 = BillingInfo(2L, 2L, "4540111111111111")
+
+        val billingInfoFlux = Flux.just(add(billingInfo1), add(billingInfo2), add(updatedBillingInfo2), add(billingInfo3))
+            .subscribeOn(parallel())
+
+        val orderItemFlux = Flux.just(
+            CDCAdd(orderItem11), CDCAdd(orderItem12), CDCAdd(orderItem13),
+            CDCAdd(orderItem21), CDCAdd(orderItem22),
+            CDCAdd(orderItem31), CDCAdd(orderItem32), CDCAdd(orderItem33),
+            CDCDelete(orderItem31), CDCDelete(orderItem32), CDCDelete(orderItem33)
+        )
+            .map {
+                when (it) {
+                    is CDCAdd -> AddUpdateEvent(it.item)
+                    is CDCDelete -> RemoveEvent(it.item)
+                    else -> throw Exception()
+                }
+            }
+            .subscribeOn(parallel())
+
+        val transaction2 = Transaction(customer2, updatedBillingInfo2, listOf(orderItem21, orderItem22))
+
+        val assembler = assembler<Transaction>()
+            .withIdExtractor(Customer::customerId)
+            .withAssemblerRules(
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(autoCache(billingInfoFlux, 3)))),
+                rule(OrderItem::customerId, oneToMany(getAllOrders.cached(cache(), autoCache(orderItemFlux, 3)))),
+                ::Transaction
+            )
+            .build()
+
+        StepVerifier.create(
+            getCustomers()
+                .window(3)
+                .delayElements(ofMillis(100))
+                .flatMapSequential(assembler::assemble)
+        )
+            .expectSubscription()
+            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectComplete()
+            .verify()
+
+        assertEquals(0, billingInvocationCount.get())
+        assertEquals(1, ordersInvocationCount.get())
     }
 }
