@@ -1,19 +1,17 @@
 package io.github.pellse.reactive.assembler.caching;
 
-import io.github.pellse.reactive.assembler.caching.CacheEvent.AddUpdateEvent;
+import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.Context;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.execute;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
 import static java.util.stream.Collectors.partitioningBy;
 
 public interface AutoCacheFactory {
@@ -57,18 +55,13 @@ public interface AutoCacheFactory {
 
     int MAX_WINDOW_SIZE = 1;
 
-    interface CRUDCache<ID, RRC> extends Cache<ID, RRC> {
-
-        Mono<?> updateAll(Map<ID, RRC> mapMonoToAdd, Map<ID, RRC> mapMonoToRemove);
-    }
-
     @FunctionalInterface
     interface WindowingStrategy<R> {
         Flux<Flux<R>> toWindowedFlux(Flux<R> flux);
     }
 
     static <R> Flux<CacheEvent<R>> toCacheEvent(Flux<R> flux) {
-        return flux.map(AddUpdateEvent::new);
+        return flux.map(Updated::new);
     }
 
     static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
@@ -136,45 +129,15 @@ public interface AutoCacheFactory {
             ErrorHandler errorHandler) {
 
         return cacheFactory -> (fetchFunction, context) -> {
-            var cache = synchronous(cacheFactory.create(fetchFunction, context));
+            var cache = concurrent(cacheFactory.create(fetchFunction, context));
 
             var cacheSourceFlux = errorHandler.toFluxErrorHandler().apply(
                     windowingStrategy.toWindowedFlux(dataSource)
-                            .flatMap(flux -> flux.collect(partitioningBy(value -> value instanceof AddUpdateEvent)))
+                            .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                             .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context))));
 
             cacheSourceFlux.subscribe();
             return cache;
-        };
-    }
-
-    private static <ID, RRC> CRUDCache<ID, RRC> synchronous(Cache<ID, RRC> delegateCache) {
-
-        return new CRUDCache<>() {
-
-            private final AtomicBoolean shouldRunFlag = new AtomicBoolean();
-
-            @Override
-            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
-                return execute(delegateCache.getAll(ids, computeIfAbsent), shouldRunFlag);
-            }
-
-            @Override
-            public Mono<?> putAll(Map<ID, RRC> map) {
-                return execute(delegateCache.putAll(map), shouldRunFlag);
-            }
-
-            @Override
-            public Mono<?> removeAll(Map<ID, RRC> map) {
-                return execute(delegateCache.removeAll(map), shouldRunFlag);
-            }
-
-            @Override
-            public Mono<?> updateAll(Map<ID, RRC> mapMonoToAdd, Map<ID, RRC> mapMonoToRemove) {
-                return execute(
-                        delegateCache.putAll(mapMonoToAdd).then(delegateCache.removeAll(mapMonoToRemove)),
-                        shouldRunFlag);
-            }
         };
     }
 

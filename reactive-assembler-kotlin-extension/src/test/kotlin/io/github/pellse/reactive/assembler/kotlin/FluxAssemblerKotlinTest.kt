@@ -239,7 +239,7 @@ class FluxAssemblerKotlinTest {
 
         val updatedBillingInfo2 = BillingInfo(2L, 2L, "4540111111111111")
 
-        val billingInfoFlux = Flux.just(add(billingInfo1), add(billingInfo2), add(updatedBillingInfo2), add(billingInfo3))
+        val billingInfoFlux = Flux.just(updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
             .subscribeOn(parallel())
 
         val orderItemFlux = Flux.just(
@@ -250,8 +250,8 @@ class FluxAssemblerKotlinTest {
         )
             .map {
                 when (it) {
-                    is CDCAdd -> AddUpdateEvent(it.item)
-                    is CDCDelete -> RemoveEvent(it.item)
+                    is CDCAdd -> Updated(it.item)
+                    is CDCDelete -> Removed(it.item)
                     else -> throw Exception()
                 }
             }

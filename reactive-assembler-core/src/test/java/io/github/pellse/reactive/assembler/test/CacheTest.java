@@ -2,8 +2,8 @@ package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
-import io.github.pellse.reactive.assembler.caching.CacheEvent.AddUpdateEvent;
-import io.github.pellse.reactive.assembler.caching.CacheEvent.RemoveEvent;
+import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
+import io.github.pellse.reactive.assembler.caching.CacheEvent.Removed;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,8 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErr
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
-import static io.github.pellse.reactive.assembler.caching.CacheEvent.add;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -327,8 +328,8 @@ public class CacheTest {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
 
-        Flux<CacheEvent<BillingInfo>> billingInfoFlux = Flux.just(
-                        add(billingInfo1), add(billingInfo2), add(updatedBillingInfo2), add(billingInfo3))
+        Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
+                        updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
                 .subscribeOn(parallel());
 
         var orderItemFlux = Flux.just(
@@ -337,8 +338,8 @@ public class CacheTest {
                         new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
                         new CDCDelete(orderItem31), new CDCDelete(orderItem32))
                 .map(cdcEvent -> {
-                    if (cdcEvent instanceof CDCAdd e) return new AddUpdateEvent<>(e.item);
-                    else return new RemoveEvent<>(((CDCDelete) cdcEvent).item);
+                    if (cdcEvent instanceof CDCAdd e) return updated(e.item);
+                    else return removed(((CDCDelete) cdcEvent).item);
                 })
                 .subscribeOn(parallel());
 
@@ -348,7 +349,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoFlux, 3)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoEventFlux, 3)))),
                         rule(OrderItem::customerId, oneToMany(cached(emptyQuery(), cache(), autoCache(orderItemFlux, 3)))),
                         Transaction::new)
                 .build();
@@ -385,7 +386,7 @@ public class CacheTest {
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
 
         Flux<CacheEvent<BillingInfo>> billingInfoFlux = Flux.just(
-                        add(billingInfo1), add(billingInfo2), add(updatedBillingInfo2), add(billingInfo3))
+                        updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
                 .subscribeOn(parallel());
 
         var orderItemFlux = Flux.just(
@@ -394,8 +395,8 @@ public class CacheTest {
                         new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
                         new CDCDelete(orderItem31), new CDCDelete(orderItem32), new CDCDelete(orderItem33))
                 .map(cdcEvent -> {
-                    if (cdcEvent instanceof CDCAdd e) return new AddUpdateEvent<>(e.item);
-                    else return new RemoveEvent<>(((CDCDelete) cdcEvent).item);
+                    if (cdcEvent instanceof CDCAdd e) return new Updated<>(e.item);
+                    else return new Removed<>(((CDCDelete) cdcEvent).item);
                 })
                 .subscribeOn(parallel());
 

@@ -23,6 +23,10 @@ public interface Cache<ID, RRC> {
 
     Mono<?> removeAll(Map<ID, RRC> map);
 
+    default Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
+        return putAll(mapToAdd).then(removeAll(mapToRemove));
+    }
+
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache() {
         return cache(ConcurrentHashMap::new);
     }
