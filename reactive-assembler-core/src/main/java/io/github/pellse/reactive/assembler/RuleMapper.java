@@ -21,6 +21,7 @@ import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Map.entry;
 import static java.util.function.Function.identity;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.*;
 import static java.util.stream.Stream.concat;
 
@@ -132,35 +133,35 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
     }
 
     private static <ID, R> MergeStrategy<ID, R> updateStrategy() {
-        return (cache, map) -> map;
+        return (cache, itemsToUpdate) -> itemsToUpdate;
     }
 
     private static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> updateMultiStrategy(Supplier<RC> collectionFactory) {
 
-        return (cache, map) -> {
-            cache.replaceAll((id, collToReplace) -> then(map.get(id),
+        return (cache, itemsToUpdate) -> {
+            cache.replaceAll((id, collToReplace) -> then(itemsToUpdate.get(id),
                     coll -> coll != null ? concat(toStream(collToReplace), toStream(coll))
                             .distinct()
                             .collect(toCollection(collectionFactory)) : collToReplace));
 
-            return mergeMaps(cache, readAll(intersect(map.keySet(), cache.keySet()), map));
+            return mergeMaps(cache, readAll(intersect(itemsToUpdate.keySet(), cache.keySet()), itemsToUpdate));
         };
     }
 
     private static <ID, R> MergeStrategy<ID, R> removeStrategy() {
-        return (cache, map) -> also(cache, c -> c.keySet().removeAll(map.keySet()));
+        return (cache, itemsToRemove) -> also(cache, c -> c.keySet().removeAll(itemsToRemove.keySet()));
     }
 
     private static <ID, R, RC extends Collection<R>> MergeStrategy<ID, RC> removeMultiStrategy(Supplier<RC> collectionFactory) {
 
-        return (cache, map) -> cache.entrySet().stream()
+        return (cache, itemsToRemove) -> cache.entrySet().stream()
                 .map(entry -> {
-                    var coll = map.get(entry.getKey());
+                    var coll = itemsToRemove.get(entry.getKey());
                     if (coll == null)
                         return entry;
 
                     var newColl = toStream(entry.getValue())
-                            .filter(element -> !coll.contains(element))
+                            .filter(not(coll::contains))
                             .collect(toCollection(collectionFactory));
                     return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
                 })
