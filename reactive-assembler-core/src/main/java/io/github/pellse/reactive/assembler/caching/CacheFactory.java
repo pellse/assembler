@@ -18,8 +18,7 @@ import java.util.stream.Collector;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
-import static io.github.pellse.util.ObjectUtils.also;
-import static io.github.pellse.util.ObjectUtils.then;
+import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Arrays.asList;
 import static reactor.core.publisher.Flux.fromStream;
@@ -29,7 +28,7 @@ import static reactor.core.publisher.Mono.just;
 public interface CacheFactory<ID, R, RRC> {
 
     record Context<ID, R, RRC>(
-            Function<R, ID> idExtractor,
+            Function<R, ID> correlationIdExtractor,
             IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
             MergeStrategy<ID, RRC> mergeStrategy,
             MergeStrategy<ID, RRC> removeStrategy) {
@@ -109,7 +108,7 @@ public interface CacheFactory<ID, R, RRC> {
 
             var cache = delegate(cacheFactory, delegateCacheFactories).create(
                     fetchFunction,
-                    new Context<>(ruleContext.idExtractor(), ruleContext.mapCollector(), ruleContext.mergeStrategy(), ruleContext.removeStrategy()));
+                    new Context<>(ruleContext.correlationIdExtractor(), ruleContext.mapCollector(), ruleContext.mergeStrategy(), ruleContext.removeStrategy()));
 
             return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())));
@@ -138,6 +137,6 @@ public interface CacheFactory<ID, R, RRC> {
             Function<ID, RRC> defaultResultProvider) {
 
         return newMap(queryResultsMap, map ->
-                intersect(entityIds, map.keySet()).forEach(id -> map.put(id, defaultResultProvider.apply(id))));
+                intersect(entityIds, map.keySet()).forEach(id -> ifNotNull(defaultResultProvider.apply(id), value -> map.put(id, value))));
     }
 }
