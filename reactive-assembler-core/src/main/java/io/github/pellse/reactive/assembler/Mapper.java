@@ -31,24 +31,24 @@ import static io.github.pellse.util.ObjectUtils.then;
 public interface Mapper<ID, RRC> extends Function<Iterable<ID>, Mono<Map<ID, RRC>>> {
 
     static <ID, R, RRC> Mapper<ID, RRC> rule(
-            Function<R, ID> idExtractor,
+            Function<R, ID> correlationIdExtractor,
             RuleMapper<ID, List<ID>, R, RRC> mapper) {
-        return rule(ruleContext(idExtractor), mapper);
+        return rule(ruleContext(correlationIdExtractor), mapper);
     }
 
     static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(
-            Function<R, ID> idExtractor,
+            Function<R, ID> correlationIdExtractor,
             Supplier<IDC> idCollectionFactory,
             RuleMapper<ID, IDC, R, RRC> mapper) {
-        return rule(ruleContext(idExtractor, idCollectionFactory), mapper);
+        return rule(ruleContext(correlationIdExtractor, idCollectionFactory), mapper);
     }
 
     static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(
-            Function<R, ID> idExtractor,
+            Function<R, ID> correlationIdExtractor,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, RRC> mapFactory,
             RuleMapper<ID, IDC, R, RRC> mapper) {
-        return rule(ruleContext(idExtractor, idCollectionFactory, mapFactory), mapper);
+        return rule(ruleContext(correlationIdExtractor, idCollectionFactory, mapFactory), mapper);
     }
 
     static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(

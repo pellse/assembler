@@ -99,10 +99,10 @@ public class CacheTest {
     public void testReusableAssemblerBuilderWithCaching() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, new HashMap<>()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, new HashMap<>()))),
                         Transaction::new)
                 .build();
 
@@ -123,10 +123,10 @@ public class CacheTest {
     public void testReusableAssemblerBuilderWithCachingNonReactive() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(toPublisher(this::getBillingInfoNonReactive)), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(toPublisher(this::getAllOrdersNonReactive), new HashMap<>()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(toPublisher(this::getAllOrdersNonReactive), new HashMap<>()))),
                         Transaction::new)
                 .build();
 
@@ -147,10 +147,10 @@ public class CacheTest {
     public void testReusableAssemblerBuilderWithCustomCaching() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, () -> new HashMap<>()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(HashMap::new)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(HashMap::new)))),
                         Transaction::new)
                 .build();
 
@@ -171,10 +171,10 @@ public class CacheTest {
     public void testReusableAssemblerBuilderWithCachingSet() {
 
         var assembler = assemblerOf(TransactionSet.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
-                        rule(OrderItem::customerId, HashSet::new, oneToManyAsSet(cached(this::getAllOrdersWithIdSet))),
+                        rule(OrderItem::customerId, HashSet::new, oneToManyAsSet(OrderItem::id, cached(this::getAllOrdersWithIdSet))),
                         TransactionSet::new)
                 .build(immediate());
 
@@ -194,10 +194,10 @@ public class CacheTest {
     public void testReusableAssemblerBuilderWithCachingWithIDsAsSet() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
-                        rule(OrderItem::customerId, HashSet::new, oneToMany(cached(this::getAllOrdersWithIdSet))),
+                        rule(OrderItem::customerId, HashSet::new, oneToMany(OrderItem::id, cached(this::getAllOrdersWithIdSet))),
                         Transaction::new)
                 .build();
 
@@ -230,10 +230,10 @@ public class CacheTest {
         Function<CacheFactory<Long, BillingInfo, BillingInfo>, CacheFactory<Long, BillingInfo, BillingInfo>> cff2 = cf -> cf;
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvent(billingInfoFlux), 10), cff1, cff2))),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(), autoCache(toCacheEvent(orderItemFlux), 10)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), autoCache(toCacheEvent(orderItemFlux), 10)))),
                         Transaction::new)
                 .build();
 
@@ -260,10 +260,10 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(toCacheEvent(billingInfoFlux), 4)))),
-                        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
                 .build();
 
@@ -288,12 +288,12 @@ public class CacheTest {
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2Unknown, updatedBillingInfo2, billingInfo3);
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(
                                 toCacheEvent(billingInfoFlux),
                                 onErrorContinue(error -> assertInstanceOf(NullPointerException.class, error)))))),
-                        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
                 .build();
 
@@ -319,14 +319,9 @@ public class CacheTest {
         record CDCDelete(OrderItem item) {
         }
 
-        Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
-            assertEquals(List.of(3L), customerIds);
-            return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                    .filter(orderItem -> customerIds.contains(orderItem.customerId()))
-                    .doOnComplete(ordersInvocationCount::incrementAndGet);
-        };
-
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
+        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
+        OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
 
         Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
                         updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
@@ -334,23 +329,24 @@ public class CacheTest {
 
         var orderItemFlux = Flux.just(
                         new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
-                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),
+                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),// new CDCAdd(updatedOrderItem22),
                         new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
-                        new CDCDelete(orderItem31), new CDCDelete(orderItem32))
+                        new CDCDelete(orderItem31), new CDCDelete(orderItem32), new CDCAdd(updatedOrderItem11))
                 .map(cdcEvent -> {
                     if (cdcEvent instanceof CDCAdd e) return updated(e.item);
                     else return removed(((CDCDelete) cdcEvent).item);
                 })
                 .subscribeOn(parallel());
 
-        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
+        Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(updatedOrderItem11, orderItem12, orderItem13));
+        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoEventFlux, 3)))),
-                        rule(OrderItem::customerId, oneToMany(cached(emptyQuery(), cache(), autoCache(orderItemFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(emptyQuery(), cache(), autoCache(orderItemFlux, 3)))),
                         Transaction::new)
                 .build();
 
@@ -403,10 +399,10 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoFlux, 3)))),
-                        rule(OrderItem::customerId, oneToMany(cached(getAllOrders, cache(), autoCache(orderItemFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders, cache(), autoCache(orderItemFlux, 3)))),
                         Transaction::new)
                 .build();
 
@@ -421,6 +417,56 @@ public class CacheTest {
 
         assertEquals(0, billingInvocationCount.get());
         assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testAssemblerWithAutoCachingEvents() {
+
+        Flux<CacheEvent<OrderItem>> f = Flux.generate(() -> 0L, (counter, sink) -> {
+            var id = counter + 1;
+            sink.next(updated(new OrderItem(Long.toString(id), (id % 3) + 1, null, 2.0)));
+            return id;
+        });
+
+//        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+//
+//        Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
+//                        updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
+//                .subscribeOn(parallel());
+//
+//        var orderItemFlux = Flux.just(
+//                        new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
+//                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),
+//                        new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
+//                        new CDCDelete(orderItem31), new CDCDelete(orderItem32))
+//                .map(cdcEvent -> {
+//                    if (cdcEvent instanceof CDCAdd e) return updated(e.item);
+//                    else return removed(((CDCDelete) cdcEvent).item);
+//                })
+//                .subscribeOn(parallel());
+//
+//        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
+//        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
+//
+//        var assembler = assemblerOf(Transaction.class)
+//                .withCorrelationIdExtractor(Customer::customerId)
+//                .withAssemblerRules(
+//                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoEventFlux, 3)))),
+//                        rule(OrderItem::customerId, oneToMany(cached(emptyQuery(), cache(), autoCache(orderItemFlux, 3)))),
+//                        Transaction::new)
+//                .build();
+//
+//        StepVerifier.create(getCustomers()
+//                        .window(3)
+//                        .delayElements(ofMillis(100))
+//                        .flatMapSequential(assembler::assemble))
+//                .expectSubscription()
+//                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+//                .expectComplete()
+//                .verify();
+//
+//        assertEquals(0, billingInvocationCount.get());
+//        assertEquals(0, ordersInvocationCount.get());
     }
 }
 

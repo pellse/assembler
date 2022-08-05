@@ -62,10 +62,10 @@ public class TestAssemblerCaffeineCache {
     public void testReusableAssemblerBuilderWithCaffeineCache() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
@@ -86,10 +86,10 @@ public class TestAssemblerCaffeineCache {
     public void testReusableAssemblerBuilderWithCaffeineCache2() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
@@ -110,10 +110,10 @@ public class TestAssemblerCaffeineCache {
     public void testReusableAssemblerBuilderWithDoubleCaching() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(cached(cached(this::getAllOrders, caffeineCache())))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cached(this::getAllOrders, caffeineCache())))),
                         Transaction::new)
                 .build();
 
@@ -141,10 +141,10 @@ public class TestAssemblerCaffeineCache {
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(toCacheEvent(dataSource1))))),
-                        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(), autoCache(toCacheEvent(dataSource2))))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCache(toCacheEvent(dataSource2))))),
                         Transaction::new)
                 .build();
 
@@ -198,10 +198,10 @@ public class TestAssemblerCaffeineCache {
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoEventFlux, 3)))),
-                        rule(OrderItem::customerId, oneToMany(cached(getAllOrders, caffeineCache(), autoCache(orderItemFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders, caffeineCache(), autoCache(orderItemFlux, 3)))),
                         Transaction::new)
                 .build();
 

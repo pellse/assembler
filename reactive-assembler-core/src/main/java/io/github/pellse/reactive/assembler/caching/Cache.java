@@ -37,7 +37,7 @@ public interface Cache<ID, RRC> {
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Map<ID, RRC> delegateMap) {
 
-        return (fetchFunction, $) -> adapterCache(
+        return (fetchFunction, __) -> adapterCache(
                 (ids, computeIfAbsent) -> just(readAll(ids, delegateMap))
                         .flatMap(cachedEntitiesMap -> then(intersect(ids, cachedEntitiesMap.keySet()), entityIds ->
                                 !computeIfAbsent || entityIds.isEmpty() ? just(cachedEntitiesMap) :
@@ -64,7 +64,7 @@ public interface Cache<ID, RRC> {
                 optimizedCache::getAll,
                 applyMergeStrategy(optimizedCache, mergeStrategy, Cache::putAll),
                 applyMergeStrategy(optimizedCache, (cache, cacheQueryResults, incomingChanges) -> {
-                    var mapAfterRemove = removeStrategy.apply(cacheQueryResults, incomingChanges);
+                    var mapAfterRemove = removeStrategy.merge(cacheQueryResults, incomingChanges);
                     var removedItems = readAll(
                             intersect(cacheQueryResults.keySet(), mapAfterRemove.keySet()),
                             cacheQueryResults);
@@ -83,7 +83,7 @@ public interface Cache<ID, RRC> {
         return applyMergeStrategy(
                 delegateCache,
                 (cache, cacheQueryResults, incomingChanges) ->
-                        cacheUpdater.apply(cache, mergeStrategy.apply(cacheQueryResults, incomingChanges)));
+                        cacheUpdater.apply(cache, mergeStrategy.merge(cacheQueryResults, incomingChanges)));
     }
 
     private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> applyMergeStrategy(

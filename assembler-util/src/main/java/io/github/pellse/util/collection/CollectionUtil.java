@@ -19,7 +19,7 @@ public interface CollectionUtil {
 
     static boolean isEmpty(Iterable<?> iterable) {
         return iterable == null ||
-                (iterable instanceof Collection coll && coll.isEmpty()) ||
+                (iterable instanceof Collection<?> coll && coll.isEmpty()) ||
                 !iterable.iterator().hasNext();
     }
 

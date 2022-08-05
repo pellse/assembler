@@ -23,7 +23,7 @@ public interface RuleMapperContext<ID, IDC extends Collection<ID>, R, RRC> exten
     MergeStrategy<ID, RRC> removeStrategy();
 
     record DefaultRuleMapperContext<ID, IDC extends Collection<ID>, R, RRC>(
-            Function<R, ID> idExtractor,
+            Function<R, ID> correlationIdExtractor,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, RRC> mapFactory,
             Function<ID, RRC> defaultResultProvider,
@@ -42,7 +42,7 @@ public interface RuleMapperContext<ID, IDC extends Collection<ID>, R, RRC> exten
             MergeStrategy<ID, RRC> removeStrategy) {
 
         return new DefaultRuleMapperContext<>(
-                ruleContext.idExtractor(),
+                ruleContext.correlationIdExtractor(),
                 ruleContext.idCollectionFactory(),
                 ruleContext.mapFactory(),
                 defaultResultProvider,

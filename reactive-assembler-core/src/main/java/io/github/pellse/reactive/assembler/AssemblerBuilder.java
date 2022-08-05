@@ -34,13 +34,13 @@ import static reactor.core.publisher.Flux.fromIterable;
 
 public interface AssemblerBuilder {
 
-    static <R> WithIdExtractorBuilder<R> assemblerOf(@SuppressWarnings("unused") Class<R> outputClass) {
-        return new WithIdExtractorBuilderImpl<>();
+    static <R> WithCorrelationIdExtractorBuilder<R> assemblerOf(@SuppressWarnings("unused") Class<R> outputClass) {
+        return new WithCorrelationIdExtractorBuilderImpl<>();
     }
 
     @FunctionalInterface
-    interface WithIdExtractorBuilder<R> {
-        <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdExtractor(Function<T, ID> idExtractor);
+    interface WithCorrelationIdExtractorBuilder<R> {
+        <T, ID> WithAssemblerRulesBuilder<T, ID, R> withCorrelationIdExtractor(Function<T, ID> correlationIdExtractor);
     }
 
     @FunctionalInterface
@@ -226,45 +226,45 @@ public interface AssemblerBuilder {
         <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> adapter);
     }
 
-    class WithIdExtractorBuilderImpl<R> implements WithIdExtractorBuilder<R> {
+    class WithCorrelationIdExtractorBuilderImpl<R> implements WithCorrelationIdExtractorBuilder<R> {
 
-        private WithIdExtractorBuilderImpl() {
+        private WithCorrelationIdExtractorBuilderImpl() {
         }
 
         @Override
-        public <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdExtractor(Function<T, ID> idExtractor) {
-            return new WithAssemblerRulesBuilderImpl<>(idExtractor);
+        public <T, ID> WithAssemblerRulesBuilder<T, ID, R> withCorrelationIdExtractor(Function<T, ID> correlationIdExtractor) {
+            return new WithAssemblerRulesBuilderImpl<>(correlationIdExtractor);
         }
     }
 
     class WithAssemblerRulesBuilderImpl<T, ID, R> implements WithAssemblerRulesBuilder<T, ID, R> {
 
-        private final Function<T, ID> idExtractor;
+        private final Function<T, ID> correlationIdExtractor;
 
-        private WithAssemblerRulesBuilderImpl(Function<T, ID> idExtractor) {
-            this.idExtractor = idExtractor;
+        private WithAssemblerRulesBuilderImpl(Function<T, ID> correlationIdExtractor) {
+            this.correlationIdExtractor = correlationIdExtractor;
         }
 
         @Override
         public AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 List<Mapper<ID, ?>> mappers,
                 BiFunction<T, Object[], R> aggregationFunction) {
-            return new AssembleUsingBuilderImpl<>(idExtractor, mappers, aggregationFunction);
+            return new AssembleUsingBuilderImpl<>(correlationIdExtractor, mappers, aggregationFunction);
         }
     }
 
     class AssembleUsingBuilderImpl<T, ID, R> implements AssembleUsingBuilder<T, ID, R> {
 
-        private final Function<T, ID> idExtractor;
+        private final Function<T, ID> correlationIdExtractor;
         private final BiFunction<T, Object[], R> aggregationFunction;
         private final List<Mapper<ID, ?>> mappers;
 
         private AssembleUsingBuilderImpl(
-                Function<T, ID> idExtractor,
+                Function<T, ID> correlationIdExtractor,
                 List<Mapper<ID, ?>> mappers,
                 BiFunction<T, Object[], R> aggregationFunction) {
 
-            this.idExtractor = idExtractor;
+            this.correlationIdExtractor = correlationIdExtractor;
 
             this.aggregationFunction = aggregationFunction;
             this.mappers = mappers;
@@ -283,7 +283,7 @@ public interface AssemblerBuilder {
 
         @Override
         public <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
-            return new AssemblerImpl<>(idExtractor, mappers, aggregationFunction, assemblerAdapter);
+            return new AssemblerImpl<>(correlationIdExtractor, mappers, aggregationFunction, assemblerAdapter);
         }
     }
 
@@ -294,19 +294,19 @@ public interface AssemblerBuilder {
         private final BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder;
 
         private AssemblerImpl(
-                Function<T, ID> idExtractor,
+                Function<T, ID> correlationIdExtractor,
                 List<Mapper<ID, ?>> mappers,
                 BiFunction<T, Object[], R> aggregationFunction,
                 AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
 
             this.assemblerAdapter = assemblerAdapter;
 
-            this.mapperSourcesBuilder = topLevelEntities -> buildSubQueryMapperSources(topLevelEntities, idExtractor, mappers);
+            this.mapperSourcesBuilder = topLevelEntities -> buildSubQueryMapperSources(topLevelEntities, correlationIdExtractor, mappers);
 
             BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
                     (topLevelEntity, listOfMapperResults) -> aggregationFunction.apply(topLevelEntity,
                             listOfMapperResults.stream()
-                                    .map(mapperResult -> mapperResult.get(idExtractor.apply(topLevelEntity)))
+                                    .map(mapperResult -> mapperResult.get(correlationIdExtractor.apply(topLevelEntity)))
                                     .toArray());
 
             this.aggregateStreamBuilder =
@@ -327,12 +327,12 @@ public interface AssemblerBuilder {
 
         private static <T, ID> Stream<Publisher<? extends Map<ID, ?>>> buildSubQueryMapperSources(
                 Iterable<T> topLevelEntities,
-                Function<T, ID> idExtractor,
+                Function<T, ID> correlationIdExtractor,
                 List<Mapper<ID, ?>> subQueryMappers) {
 
             List<ID> entityIDs = toStream(topLevelEntities)
                     .filter(Objects::nonNull)
-                    .map(idExtractor)
+                    .map(correlationIdExtractor)
                     .toList();
 
             return subQueryMappers.stream()

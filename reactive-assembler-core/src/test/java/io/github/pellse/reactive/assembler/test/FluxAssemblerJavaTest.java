@@ -101,10 +101,10 @@ public class FluxAssemblerJavaTest {
 
         StepVerifier.create(
                         assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::customerId)
+                                .withCorrelationIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
                                         rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
-                                        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
+                                        rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                                         Transaction::new)
                                 .build(fluxAdapter())
                                 .assemble(getCustomers())
@@ -120,10 +120,10 @@ public class FluxAssemblerJavaTest {
 
         StepVerifier.create(
                         assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::customerId)
+                                .withCorrelationIdExtractor(Customer::customerId)
                                 .withAssemblerRules(
                                         rule(BillingInfo::customerId, oneToOne(ReactiveAssemblerTestUtils::errorBillingInfos, BillingInfo::new)),
-                                        rule(OrderItem::customerId, oneToMany(ReactiveAssemblerTestUtils::errorOrderItems)),
+                                        rule(OrderItem::customerId, oneToMany(OrderItem::id, ReactiveAssemblerTestUtils::errorOrderItems)),
                                         Transaction::new)
                                 .build(fluxAdapter(immediate()))
                                 .assemble(getCustomers())
@@ -140,10 +140,10 @@ public class FluxAssemblerJavaTest {
                         getCustomers()
                                 .window(3)
                                 .flatMapSequential(customers -> assemblerOf(Transaction.class)
-                                        .withIdExtractor(Customer::customerId)
+                                        .withCorrelationIdExtractor(Customer::customerId)
                                         .withAssemblerRules(
                                                 rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
-                                                rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
+                                                rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                                                 Transaction::new)
                                         .build(fluxAdapter())
                                         .assemble(customers))
@@ -158,10 +158,10 @@ public class FluxAssemblerJavaTest {
     public void testReusableAssemblerBuilderWithFluxWithBuffering() {
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
                 .build();
 
@@ -185,10 +185,10 @@ public class FluxAssemblerJavaTest {
         Transaction transaction3 = new Transaction(customer3, null, emptyList());
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(emptyQuery())),
-                        rule(OrderItem::customerId, oneToMany(emptyQuery())),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, emptyQuery())),
                         Transaction::new)
                 .build();
 
@@ -205,10 +205,10 @@ public class FluxAssemblerJavaTest {
     public void testReusableAssemblerBuilderWithFluxWithLists() {
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfoNonReactive), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(toPublisher(this::getAllOrdersNonReactive))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, toPublisher(this::getAllOrdersNonReactive))),
                         Transaction::new)
                 .build();
 
@@ -230,10 +230,10 @@ public class FluxAssemblerJavaTest {
         var billingInfoCache = new HashMap<Iterable<Long>, Mono<Map<Long, BillingInfo>>>();
 
         var assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)), billingInfoCache::computeIfAbsent),
-                        cached(rule(OrderItem::customerId, oneToMany(this::getAllOrders)), cache(HashMap::new)),
+                        cached(rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)), cache(HashMap::new)),
                         Transaction::new)
                 .build(Schedulers.immediate());
 
@@ -255,10 +255,10 @@ public class FluxAssemblerJavaTest {
         var billingInfoCache = new HashMap<Iterable<Long>, Mono<Map<Long, BillingInfo>>>();
 
         var assembler = assemblerOf(TransactionSet.class)
-                .withIdExtractor(Customer::customerId)
+                .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)), billingInfoCache::computeIfAbsent),
-                        cached(rule(OrderItem::customerId, oneToManyAsSet(this::getAllOrders)), cache(HashMap::new)),
+                        cached(rule(OrderItem::customerId, oneToManyAsSet(OrderItem::id, this::getAllOrders)), cache(HashMap::new)),
                         TransactionSet::new)
                 .build(Schedulers.immediate());
 
