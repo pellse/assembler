@@ -76,38 +76,6 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                 removeStrategy());
     }
 
-//    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
-//            Function<IDC, Publisher<R>> queryFunction) {
-//        return ruleContext -> oneToMany(ruleContext.correlationIdExtractor(), queryFunction).apply(ruleContext);
-//    }
-//
-//    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
-//            RuleMapperSource<ID, IDC, R, List<R>> ruleMapperSource) {
-//        return ruleContext -> oneToMany(ruleContext.correlationIdExtractor(), ruleMapperSource).apply(ruleContext);
-//    }
-//
-//    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSet(
-//            Function<IDC, Publisher<R>> queryFunction) {
-//        return ruleContext -> oneToManyAsSet(ruleContext.correlationIdExtractor(), queryFunction).apply(ruleContext);
-//    }
-//
-//    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSet(
-//            RuleMapperSource<ID, IDC, R, Set<R>> ruleMapperSource) {
-//        return ruleContext -> oneToManyAsSet(ruleContext.correlationIdExtractor(), ruleMapperSource).apply(ruleContext);
-//    }
-//
-//    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(
-//            Function<IDC, Publisher<R>> queryFunction,
-//            Supplier<RC> collectionFactory) {
-//        return ruleContext -> oneToMany(ruleContext.correlationIdExtractor(), queryFunction, collectionFactory).apply(ruleContext);
-//    }
-//
-//    static <ID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(
-//            RuleMapperSource<ID, IDC, R, RC> ruleMapperSource,
-//            Supplier<RC> collectionFactory) {
-//        return ruleContext -> oneToMany(ruleContext.correlationIdExtractor(), ruleMapperSource, collectionFactory).apply(ruleContext);
-//    }
-
     static <ID, EID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
             Function<R, EID> idExtractor,
             Function<IDC, Publisher<R>> queryFunction) {
@@ -189,15 +157,12 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
             Function<R, EID> idExtractor,
             Supplier<RC> collectionFactory) {
 
-        return (cacheQueryResults, itemsToUpdateMap) -> {
-
-            var newItems = toStream(itemsToUpdateMap.entrySet());
-            return concat(toStream(cacheQueryResults.entrySet()), newItems)
-                    .flatMap(entry -> entry.getValue().stream()
-                            .map(e -> new Wrapper<>(entry.getKey(), idExtractor.apply(e), e)))
-                    .distinct()
-                    .collect(groupingBy(Wrapper::correlationId, mapping(Wrapper::payload, toCollection(collectionFactory))));
-        };
+        return (cacheQueryResults, itemsToUpdateMap) ->
+                concat(toStream(cacheQueryResults.entrySet()), toStream(itemsToUpdateMap.entrySet()))
+                        .flatMap(entry -> entry.getValue().stream()
+                                .map(e -> new Wrapper<>(entry.getKey(), idExtractor.apply(e), e)))
+                        .distinct()
+                        .collect(groupingBy(Wrapper::correlationId, mapping(Wrapper::payload, toCollection(collectionFactory))));
     }
 
     private static <ID, R> MergeStrategy<ID, R> removeStrategy() {
