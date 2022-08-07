@@ -329,7 +329,7 @@ public class CacheTest {
 
         var orderItemFlux = Flux.just(
                         new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
-                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),// new CDCAdd(updatedOrderItem22),
+                        new CDCAdd(orderItem21), new CDCAdd(orderItem22), new CDCAdd(updatedOrderItem22),
                         new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
                         new CDCDelete(orderItem31), new CDCDelete(orderItem32), new CDCAdd(updatedOrderItem11))
                 .map(cdcEvent -> {
@@ -417,56 +417,6 @@ public class CacheTest {
 
         assertEquals(0, billingInvocationCount.get());
         assertEquals(1, ordersInvocationCount.get());
-    }
-
-    @Test
-    public void testAssemblerWithAutoCachingEvents() {
-
-        Flux<CacheEvent<OrderItem>> f = Flux.generate(() -> 0L, (counter, sink) -> {
-            var id = counter + 1;
-            sink.next(updated(new OrderItem(Long.toString(id), (id % 3) + 1, null, 2.0)));
-            return id;
-        });
-
-//        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
-//
-//        Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
-//                        updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
-//                .subscribeOn(parallel());
-//
-//        var orderItemFlux = Flux.just(
-//                        new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
-//                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),
-//                        new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
-//                        new CDCDelete(orderItem31), new CDCDelete(orderItem32))
-//                .map(cdcEvent -> {
-//                    if (cdcEvent instanceof CDCAdd e) return updated(e.item);
-//                    else return removed(((CDCDelete) cdcEvent).item);
-//                })
-//                .subscribeOn(parallel());
-//
-//        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
-//        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
-//
-//        var assembler = assemblerOf(Transaction.class)
-//                .withCorrelationIdExtractor(Customer::customerId)
-//                .withAssemblerRules(
-//                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoEventFlux, 3)))),
-//                        rule(OrderItem::customerId, oneToMany(cached(emptyQuery(), cache(), autoCache(orderItemFlux, 3)))),
-//                        Transaction::new)
-//                .build();
-//
-//        StepVerifier.create(getCustomers()
-//                        .window(3)
-//                        .delayElements(ofMillis(100))
-//                        .flatMapSequential(assembler::assemble))
-//                .expectSubscription()
-//                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
-//                .expectComplete()
-//                .verify();
-//
-//        assertEquals(0, billingInvocationCount.get());
-//        assertEquals(0, ordersInvocationCount.get());
     }
 }
 
