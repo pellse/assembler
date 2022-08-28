@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 public interface ObjectUtils {
 
@@ -69,11 +68,11 @@ public interface ObjectUtils {
         return mappingFunction.apply(value);
     }
 
-    static <T> T takeIf(T value, Supplier<T> defaultValueSupplier) {
-        return takeIf(value, Objects::nonNull, defaultValueSupplier);
+    static <T> T takeIfNotNull(T value, T defaultValue) {
+        return takeIf(value, Objects::nonNull, defaultValue);
     }
 
-    static <T> T takeIf(T value, Predicate<T> predicate, Supplier<T> defaultValueSupplier) {
-        return predicate.test(value) ? value : defaultValueSupplier.get();
+    static <T> T takeIf(T value, Predicate<T> predicate, T defaultValue) {
+        return predicate.test(value) ? value : defaultValue;
     }
 }

@@ -281,6 +281,37 @@ public class CacheTest {
     }
 
     @Test
+    public void testReusableAssemblerBuilderWithAutoCaching3() {
+
+        Flux<BillingInfo> dataSource1 = Flux.just(billingInfo1, billingInfo2, billingInfo3);
+        Flux<OrderItem> dataSource2 = Flux.just(
+                orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33);
+
+        Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvent(dataSource1))))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(toCacheEvent(dataSource2), 1)))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(5)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(0, billingInvocationCount.get());
+        assertEquals(0, ordersInvocationCount.get());
+    }
+
+    @Test
     public void testReusableAssemblerBuilderWithAutoCachingError() {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, null, "4540111111111111"); // null customerId, will trigger NullPointerException

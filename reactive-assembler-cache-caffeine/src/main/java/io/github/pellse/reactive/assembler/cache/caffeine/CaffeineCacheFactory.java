@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 
+import java.util.List;
 import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
@@ -26,7 +27,7 @@ public interface CaffeineCacheFactory {
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(Caffeine<Object, Object> caffeine) {
 
-        final AsyncCache<ID, RRC> delegateCache = caffeine.buildAsync();
+        final AsyncCache<ID, List<R>> delegateCache = caffeine.buildAsync();
 
         return (fetchFunction, context) -> adapterCache(
                 (ids, computeIfAbsent) -> fromFuture(delegateCache.getAll(ids, (keys, executor) ->

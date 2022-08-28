@@ -39,3 +39,35 @@ public interface RuleContext<ID, IDC extends Collection<ID>, R, RRC> {
         return new DefaultRuleContext<>(correlationIdExtractor, idCollectionFactory, mapFactory);
     }
 }
+
+interface IdAwareRuleContext<ID, EID, IDC extends Collection<ID>, R, RRC> extends RuleContext<ID, IDC, R, RRC> {
+
+    Function<R, EID> idExtractor();
+
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> IdAwareRuleContext<ID, EID, IDC, R, RRC> toIdAwareRuleContext(
+            Function<R, EID> idExtractor,
+            RuleContext<ID, IDC, R, RRC> ruleContext) {
+
+        return new IdAwareRuleContext<>() {
+            @Override
+            public Function<R, EID> idExtractor() {
+                return idExtractor;
+            }
+
+            @Override
+            public Function<R, ID> correlationIdExtractor() {
+                return ruleContext.correlationIdExtractor();
+            }
+
+            @Override
+            public Supplier<IDC> idCollectionFactory() {
+                return ruleContext.idCollectionFactory();
+            }
+
+            @Override
+            public MapFactory<ID, RRC> mapFactory() {
+                return ruleContext.mapFactory();
+            }
+        };
+    }
+}
