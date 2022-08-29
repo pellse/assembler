@@ -9,9 +9,9 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.ifNotNull;
+import static java.util.Map.entry;
 import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toCollection;
-import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.*;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.StreamSupport.stream;
 
@@ -77,10 +77,6 @@ public interface CollectionUtil {
         return newMap(map -> keys.forEach(id -> ifNotNull(sourceMap.get(id), value -> map.put(id, value))));
     }
 
-    static <T> Iterable<T> toIterable(Iterator<T> iterator) {
-        return () -> iterator;
-    }
-
     static <K, V, VC extends Collection<V>> VC removeDuplicates(
             Collection<V> coll,
             Function<? super V, K> keyExtractor,
@@ -115,7 +111,18 @@ public interface CollectionUtil {
             Supplier<VC> collectionFactory,
             boolean copyMap) {
 
-        return also(copyMap ? new HashMap<>(map) : map, m -> m.replaceAll((id, coll) -> removeDuplicates(coll, idExtractor, collectionFactory)));
+        var newMap = copyMap ? new HashMap<>(map) : map;
+
+        newMap.replaceAll((id, coll) -> removeDuplicates(coll, idExtractor, collectionFactory));
+        return newMap;
+    }
+
+    static <K, V, ID> Map<K, List<V>> mergeMaps(
+            Map<K, List<V>> srcMap,
+            Map<K, List<V>> targetMap,
+            Function<? super V, ID> idExtractor) {
+
+        return mergeMaps(srcMap, targetMap, idExtractor, ArrayList::new);
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> mergeMaps(
@@ -124,17 +131,7 @@ public interface CollectionUtil {
             Function<? super V, ID> idExtractor,
             Supplier<VC> collectionFactory) {
 
-        return mergeMaps(srcMap, targetMap, idExtractor, collectionFactory, true);
-    }
-
-    static <K, V, VC extends Collection<V>, ID> Map<K, VC> mergeMaps(
-            Map<K, VC> srcMap,
-            Map<K, VC> targetMap,
-            Function<? super V, ID> idExtractor,
-            Supplier<VC> collectionFactory,
-            boolean copyTargetMap) {
-
-        var newTargetMap = copyTargetMap ? new HashMap<>(targetMap) : targetMap;
+        var newTargetMap = new HashMap<>(targetMap);
 
         newTargetMap.replaceAll((id, oldList) ->
                 removeDuplicates(concat(toStream(oldList), toStream(srcMap.get(id))), idExtractor, collectionFactory));
@@ -147,6 +144,40 @@ public interface CollectionUtil {
     static <K, V> Map<K, V> mergeMaps(Map<K, V>... maps) {
         return Stream.of(maps)
                 .flatMap(map -> map.entrySet().stream())
+                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1));
+    }
+
+    static <K, V, ID> Map<K, List<V>> removeFromMap(
+            Map<K, List<V>> mapToRemove,
+            Map<K, List<V>> targetMap,
+            Function<? super V, ID> idExtractor) {
+
+        return removeFromMap(mapToRemove, targetMap, idExtractor, ArrayList::new);
+    }
+
+    static <K, V, VC extends Collection<V>, ID> Map<K, VC> removeFromMap(
+            Map<K, VC> mapToRemove,
+            Map<K, VC> targetMap,
+            Function<? super V, ID> idExtractor,
+            Supplier<VC> collectionFactory) {
+
+        return targetMap.entrySet().stream()
+                .map(entry -> {
+                    var itemsToRemove = mapToRemove.get(entry.getKey());
+                    if (itemsToRemove == null)
+                        return entry;
+
+                    var idsToRemove = itemsToRemove.stream()
+                            .map(idExtractor)
+                            .collect(toSet());
+
+                    var newColl = toStream(entry.getValue())
+                            .filter(element -> !idsToRemove.contains((idExtractor.apply(element))))
+                            .collect(toCollection(collectionFactory));
+
+                    return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
+                })
+                .filter(Objects::nonNull)
                 .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1));
     }
 }

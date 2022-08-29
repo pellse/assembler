@@ -1,10 +1,12 @@
 package io.github.pellse.reactive.assembler.caching;
 
 import io.github.pellse.reactive.assembler.RuleMapperContext;
+import io.github.pellse.util.function.Function3;
 import reactor.core.publisher.Mono;
 
-import java.util.*;
-import java.util.Map.Entry;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -14,10 +16,7 @@ import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCa
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.toMono;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
-import static java.util.Map.entry;
 import static java.util.Map.of;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
 import static reactor.core.publisher.Mono.just;
 
 public interface Cache<ID, R> {
@@ -67,58 +66,38 @@ public interface Cache<ID, R> {
 
         return adapterCache(
                 optimizedCache::getAll,
-                incomingChangesMap -> isEmpty(incomingChangesMap) ? just(of()) : just(incomingChangesMap)
-                        .flatMap(incomingChanges -> optimizedCache.getAll(incomingChanges.keySet(), false)
-                                .map(cacheQueryResults -> mergeMaps(incomingChanges, cacheQueryResults, idExtractor, ArrayList::new)))
-                        .flatMap(optimizedCache::putAll),
-                incomingChangesMap -> isEmpty(incomingChangesMap) ? just(of()) : just(incomingChangesMap)
-                        .flatMap(incomingChanges -> optimizedCache.getAll(incomingChanges.keySet(), false)
-                                .flatMap(cacheQueryResults -> {
-                                    var mapAfterRemove = cacheQueryResults.entrySet().stream()
-                                            .map(entry -> {
-                                                var itemsToRemove = incomingChanges.get(entry.getKey());
-                                                if (itemsToRemove == null)
-                                                    return entry;
-
-                                                var idsToRemove = itemsToRemove.stream()
-                                                        .map(idExtractor)
-                                                        .collect(toSet());
-
-                                                var newColl = toStream(entry.getValue())
-                                                        .filter(element -> !idsToRemove.contains((idExtractor.apply(element))))
-                                                        .toList();
-
-                                                return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
-                                            })
-                                            .filter(Objects::nonNull)
-                                            .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1));
-
-                                    return optimizedCache.putAll(mapAfterRemove)
-                                            .then(optimizedCache.removeAll(diff(cacheQueryResults, mapAfterRemove)));
-                                })
-                        )
+                applyMergeStrategy(
+                        optimizedCache,
+                        (cacheQueryResults, incomingChanges) -> mergeMaps(incomingChanges, cacheQueryResults, idExtractor),
+                        Cache::putAll),
+                applyMergeStrategy(
+                        optimizedCache,
+                        (cache, cacheQueryResults, incomingChanges) ->
+                                then(removeFromMap(incomingChanges, cacheQueryResults, idExtractor),
+                                        updatedMap -> cache.putAll(updatedMap)
+                                                .then(cache.removeAll(diff(cacheQueryResults, updatedMap)))))
         );
     }
 
-//    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
-//            Cache<ID, R> delegateCache,
-//            MergeStrategy<ID, R> mergeStrategy,
-//            BiFunction<Cache<ID, R>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
-//
-//        return applyMergeStrategy(
-//                delegateCache,
-//                (cache, cacheQueryResults, incomingChanges) ->
-//                        cacheUpdater.apply(cache, mergeStrategy.merge(cacheQueryResults, incomingChanges)));
-//    }
-//
-//    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
-//            Cache<ID, R> delegateCache,
-//            Function3<Cache<ID, R>, Map<ID, List<R>>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
-//
-//        return incomingChangesMap -> isEmpty(incomingChangesMap) ? just(of()) : just(incomingChangesMap)
-//                .flatMap(incomingChanges -> delegateCache.getAll(incomingChanges.keySet(), false)
-//                        .flatMap(cacheQueryResults -> cacheUpdater.apply(delegateCache, cacheQueryResults, incomingChanges)));
-//    }
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+            Cache<ID, R> delegateCache,
+            MergeStrategy<ID, R> mergeStrategy,
+            BiFunction<Cache<ID, R>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
+
+        return applyMergeStrategy(
+                delegateCache,
+                (cache, cacheQueryResults, incomingChanges) ->
+                        cacheUpdater.apply(cache, mergeStrategy.merge(cacheQueryResults, incomingChanges)));
+    }
+
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+            Cache<ID, R> delegateCache,
+            Function3<Cache<ID, R>, Map<ID, List<R>>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
+
+        return incomingChangesMap -> isEmpty(incomingChangesMap) ? just(of()) : just(incomingChangesMap)
+                .flatMap(incomingChanges -> delegateCache.getAll(incomingChanges.keySet(), false)
+                        .flatMap(cacheQueryResults -> cacheUpdater.apply(delegateCache, cacheQueryResults, incomingChanges)));
+    }
 
     private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyOr(
             Function<Map<ID, List<R>>, Mono<?>> mappingFunction) {
