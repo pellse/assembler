@@ -26,7 +26,6 @@ public interface CacheFactory<ID, R, RRC> {
 
     record Context<ID, R, RRC>(
             Function<R, ID> correlationIdExtractor,
-
             Function<List<R>, RRC> fromListConverter,
             Function<RRC, List<R>> toListConverter) {
     }

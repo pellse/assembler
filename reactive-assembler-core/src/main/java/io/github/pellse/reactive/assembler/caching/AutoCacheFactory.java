@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
 
@@ -129,9 +130,7 @@ public interface AutoCacheFactory {
             ErrorHandler errorHandler) {
 
         return cacheFactory -> (fetchFunction, context) -> {
-//            var cache = concurrent(cacheFactory.create(fetchFunction, context));
-            var cache = cacheFactory.create(fetchFunction, context);
-
+            var cache = concurrent(cacheFactory.create(fetchFunction, context));
             var cacheSourceFlux = errorHandler.toFluxErrorHandler().apply(
                     windowingStrategy.toWindowedFlux(dataSource)
                             .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))

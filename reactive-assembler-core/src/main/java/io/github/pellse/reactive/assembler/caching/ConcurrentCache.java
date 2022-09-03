@@ -8,6 +8,7 @@ import reactor.util.retry.RetrySpec;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
@@ -21,13 +22,13 @@ import static reactor.util.retry.Retry.*;
 class LockNotAcquiredException extends Exception {
 }
 
+interface Lock {
+    boolean tryAcquireLock();
+
+    void releaseLock();
+}
+
 public interface ConcurrentCache {
-
-    interface Lock {
-        boolean tryAcquireLock();
-
-        void releaseLock();
-    }
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
@@ -47,20 +48,25 @@ public interface ConcurrentCache {
 
         return new Cache<>() {
 
-            private final AtomicLong atomicLock = new AtomicLong();
+            private final AtomicBoolean isLocked = new AtomicBoolean();
+
+            private final AtomicLong readCount = new AtomicLong();
 
             private final Lock readLock = new Lock() {
 
                 @Override
                 public boolean tryAcquireLock() {
-                    var readCount = atomicLock.get();
-//                    System.out.println("readCount = " + readCount);
-                    return readCount != -1 && atomicLock.compareAndSet(readCount, readCount + 1);
+                    if (isLocked.compareAndSet(false, true)) {
+                        readCount.incrementAndGet();
+                        isLocked.set(false);
+                        return true;
+                    }
+                    return false;
                 }
 
                 @Override
-                public void releaseLock() { // this should never be called if tryAcquireLock() returned false
-//                    System.out.println("readCount release: " + atomicLock.getAndDecrement());
+                public void releaseLock() {
+                    readCount.decrementAndGet();
                 }
             };
 
@@ -68,16 +74,18 @@ public interface ConcurrentCache {
 
                 @Override
                 public boolean tryAcquireLock() {
-                    var lockAcquired = atomicLock.compareAndSet(0, -1);
-//                    System.out.println("lockAcquired = " + lockAcquired);
-                    return lockAcquired;
-//                    System.out.println("lockAcquired = false");
-//                    return false;
+                    if (isLocked.compareAndSet(false, true)) {
+                        if (readCount.get() == 0) {
+                            return true;
+                        }
+                        isLocked.set(false);
+                    }
+                    return false;
                 }
 
                 @Override
-                public void releaseLock() { // this should never be called if tryAcquireLock() returned false
-//                    System.out.println("Write Lock release: " + atomicLock.getAndSet(0));
+                public void releaseLock() {
+                    isLocked.set(false);
                 }
             };
 
@@ -107,7 +115,6 @@ public interface ConcurrentCache {
                         .filter(lockAcquired -> lockAcquired)
                         .flatMap(__ -> mono)
                         .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
-//                        .doOnError(t -> System.out.println("empty: " +  t))
                         .doOnError(runIf(not(LOCK_NOT_ACQUIRED::equals), lock::releaseLock))
                         .doOnSuccess(run(lock::releaseLock))
                         .retryWhen(retrySpec);
