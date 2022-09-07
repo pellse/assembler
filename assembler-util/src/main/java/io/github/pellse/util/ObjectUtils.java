@@ -75,4 +75,12 @@ public interface ObjectUtils {
     static <T> T takeIf(T value, Predicate<T> predicate, T defaultValue) {
         return predicate.test(value) ? value : defaultValue;
     }
+
+    static <T> Predicate<T> or(Predicate<T> predicate1, Predicate<T> predicate2) {
+        return nonNull(predicate1).or(nonNull(predicate2));
+    }
+
+    static <T> Predicate<T> nonNull(Predicate<T> predicate) {
+        return predicate != null ? predicate : t -> true;
+    }
 }

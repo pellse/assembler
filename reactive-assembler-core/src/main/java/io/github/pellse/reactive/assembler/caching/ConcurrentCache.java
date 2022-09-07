@@ -11,10 +11,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.github.pellse.util.ObjectUtils.run;
-import static io.github.pellse.util.ObjectUtils.runIf;
+import static io.github.pellse.util.ObjectUtils.*;
 import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.*;
@@ -33,18 +33,27 @@ public interface ConcurrentCache {
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
     static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache) {
-        return concurrent(delegateCache, retryStrategy(indefinitely(), RetrySpec::filter));
+        return concurrent(delegateCache, indefinitely(), RetrySpec::filter, t -> t.errorFilter);
     }
 
     static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts) {
-        return concurrent(delegateCache, retryStrategy(max(maxAttempts), RetrySpec::filter));
+        return concurrent(delegateCache, max(maxAttempts), RetrySpec::filter, t -> t.errorFilter);
     }
 
     static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay) {
-        return concurrent(delegateCache, retryStrategy(fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter));
+        return concurrent(delegateCache, fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter, t -> t.errorFilter);
     }
 
-    static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, Retry retrySpec) {
+    private static <ID, R, T extends Retry> Cache<ID, R> concurrent(
+            Cache<ID, R> delegateCache,
+            T retrySpec,
+            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction,
+            Function<T, Predicate<? super Throwable>> predicateGetter) {
+
+        return concurrent(delegateCache, retryStrategy(retrySpec, errorFilterFunction, predicateGetter));
+    }
+
+    private static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, Retry retrySpec) {
 
         return new Cache<>() {
 
@@ -122,7 +131,11 @@ public interface ConcurrentCache {
         };
     }
 
-    private static <T extends Retry> T retryStrategy(T retrySpec, BiFunction<T, Predicate<? super Throwable>, T> filterFunction) {
-        return filterFunction.apply(retrySpec, LOCK_NOT_ACQUIRED::equals);
+    private static <T extends Retry> T retryStrategy(
+            T retrySpec,
+            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction,
+            Function<T, Predicate<? super Throwable>> predicateGetter) {
+
+        return errorFilterFunction.apply(retrySpec, or(LOCK_NOT_ACQUIRED::equals, predicateGetter.apply(retrySpec)));
     }
 }

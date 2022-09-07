@@ -2,8 +2,6 @@ package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
-import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
-import io.github.pellse.reactive.assembler.caching.CacheEvent.Removed;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,14 +27,24 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErr
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
-import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static reactor.core.scheduler.Schedulers.immediate;
 import static reactor.core.scheduler.Schedulers.parallel;
+
+interface CDC {
+    OrderItem item();
+}
+
+record CDCAdd(OrderItem item) implements CDC {
+}
+
+record CDCDelete(OrderItem item) implements CDC {
+}
 
 public class CacheTest {
 
@@ -344,16 +352,6 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents() {
 
-        interface CDC {
-            OrderItem item();
-        }
-
-        record CDCAdd(OrderItem item) implements CDC {
-        }
-
-        record CDCDelete(OrderItem item) implements CDC {
-        }
-
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
@@ -398,12 +396,6 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents2() {
 
-        record CDCAdd(OrderItem item) {
-        }
-
-        record CDCDelete(OrderItem item) {
-        }
-
         Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
             assertEquals(List.of(3L), customerIds);
             return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
@@ -422,10 +414,7 @@ public class CacheTest {
                         new CDCAdd(orderItem21), new CDCAdd(orderItem22),
                         new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
                         new CDCDelete(orderItem31), new CDCDelete(orderItem32), new CDCDelete(orderItem33))
-                .map(cdcEvent -> {
-                    if (cdcEvent instanceof CDCAdd e) return new Updated<>(e.item);
-                    else return new Removed<>(((CDCDelete) cdcEvent).item);
-                })
+                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
                 .subscribeOn(parallel());
 
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
