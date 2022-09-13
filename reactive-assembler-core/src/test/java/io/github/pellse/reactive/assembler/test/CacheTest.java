@@ -30,20 +30,28 @@ import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
+import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static reactor.core.scheduler.Schedulers.immediate;
 import static reactor.core.scheduler.Schedulers.parallel;
 
-interface CDC {
-    OrderItem item();
+interface CDC<T> {
+    T item();
 }
 
-record CDCAdd(OrderItem item) implements CDC {
+record CDCAdd<T>(T item) implements CDC<T> {
+    static <T> CDC<T> cdcAdd(T item) {
+        return new CDCAdd<>(item);
+    }
 }
 
-record CDCDelete(OrderItem item) implements CDC {
+record CDCDelete<T>(T item) implements CDC<T> {
+    static <T> CDC<T> cdcDelete(T item) {
+        return new CDCDelete<>(item);
+    }
 }
 
 public class CacheTest {
@@ -361,10 +369,10 @@ public class CacheTest {
                 .subscribeOn(parallel());
 
         var orderItemFlux = Flux.just(
-                        new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
-                        new CDCAdd(orderItem21), new CDCAdd(orderItem22), new CDCAdd(updatedOrderItem22),
-                        new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
-                        new CDCDelete(orderItem31), new CDCDelete(orderItem32), new CDCAdd(updatedOrderItem11))
+                        cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                        cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
+                        cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
+                        cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11))
                 .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
                 .subscribeOn(parallel());
 
@@ -410,10 +418,10 @@ public class CacheTest {
                 .subscribeOn(parallel());
 
         var orderItemFlux = Flux.just(
-                        new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
-                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),
-                        new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
-                        new CDCDelete(orderItem31), new CDCDelete(orderItem32), new CDCDelete(orderItem33))
+                        cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                        cdcAdd(orderItem21), cdcAdd(orderItem22),
+                        cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
+                        cdcDelete(orderItem31), cdcDelete(orderItem32), cdcDelete(orderItem33))
                 .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
                 .subscribeOn(parallel());
 
