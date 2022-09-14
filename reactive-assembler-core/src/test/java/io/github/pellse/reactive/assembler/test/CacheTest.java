@@ -33,10 +33,10 @@ import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
 import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static reactor.core.scheduler.Schedulers.immediate;
-import static reactor.core.scheduler.Schedulers.parallel;
+import static reactor.core.scheduler.Schedulers.*;
 
 interface CDC<T> {
     T item();
@@ -446,6 +446,62 @@ public class CacheTest {
 
         assertEquals(0, billingInvocationCount.get());
         assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testLongRunningAutoCachingEvents() {
+
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
+        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
+        OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
+
+        var customerList = List.of(customer1, customer2, customer3);
+
+        var billingInfoList = List.of(cdcAdd(billingInfo1), cdcAdd(billingInfo2), cdcAdd(updatedBillingInfo2), cdcAdd(billingInfo3));
+
+        var orderItemList = List.of(cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
+                cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
+                cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
+
+        var billingInfoCount = new AtomicInteger();
+        var orderItemCount = new AtomicInteger();
+
+        var customerFlux = longRunningFlux(customerList, null, 6, 1000);
+
+        var billingInfoFlux = longRunningFlux(billingInfoList, billingInfoCount, 5, 1100)
+                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
+
+        var orderItemFlux = longRunningFlux(orderItemList, orderItemCount, 10, 1100)
+                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(emptyQuery(), autoCache(orderItemFlux, 3)))),
+                        Transaction::new)
+                .build(boundedElastic());
+
+        customerFlux
+                .window(3)
+                .delayElements(ofMillis(7))
+                .flatMapSequential(assembler::assemble)
+                .take(1_000)
+                .subscribeOn(boundedElastic())
+                .blockLast(ofSeconds(30));
+    }
+
+    private <T> Flux<T> longRunningFlux(List<T> list, AtomicInteger counter, int msDelay, int maxItems) {
+        return Flux.<T, Integer>generate(() -> 0, (index, sink) -> {
+                    if (counter != null && counter.incrementAndGet() == maxItems) {
+                        sink.complete();
+                    }
+                    sink.next(list.get(index));
+                    return (index + 1) % list.size();
+                })
+                .delayElements(ofMillis(msDelay))
+                .subscribeOn(boundedElastic());
     }
 }
 
