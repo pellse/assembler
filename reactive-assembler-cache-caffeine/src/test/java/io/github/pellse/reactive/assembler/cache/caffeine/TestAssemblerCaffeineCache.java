@@ -164,10 +164,14 @@ public class TestAssemblerCaffeineCache {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents() {
 
-        record CDCAdd(OrderItem item) {
+        interface CDC {
+            OrderItem item();
         }
 
-        record CDCDelete(OrderItem item) {
+        record CDCAdd(OrderItem item) implements CDC {
+        }
+
+        record CDCDelete(OrderItem item) implements CDC {
         }
 
         Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
@@ -188,10 +192,7 @@ public class TestAssemblerCaffeineCache {
                         new CDCAdd(orderItem21), new CDCAdd(orderItem22),
                         new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
                         new CDCDelete(orderItem31), new CDCDelete(orderItem32))
-                .map(cdcEvent -> {
-                    if (cdcEvent instanceof CDCAdd e) return updated(e.item);
-                    else return removed(((CDCDelete)cdcEvent).item);
-                })
+                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
                 .subscribeOn(parallel());
 
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));

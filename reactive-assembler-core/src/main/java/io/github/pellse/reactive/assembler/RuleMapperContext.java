@@ -1,54 +1,51 @@
 package io.github.pellse.reactive.assembler;
 
-import io.github.pellse.reactive.assembler.caching.MergeStrategy;
-
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
-import java.util.stream.Stream;
 
-public interface RuleMapperContext<ID, IDC extends Collection<ID>, R, RRC> extends RuleContext<ID, IDC, R, RRC> {
+public interface RuleMapperContext<ID, EID, IDC extends Collection<ID>, R, RRC> extends RuleContext<ID, IDC, R, RRC> {
+
+    Function<R, EID> idExtractor();
 
     Function<ID, RRC> defaultResultProvider();
 
     IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector();
 
-    Function<Stream<RRC>, Stream<R>> streamFlattener();
+    Function<List<R>, RRC> fromListConverter();
 
-    MergeStrategy<ID, RRC> mergeStrategy();
+    Function<RRC, List<R>> toListConverter();
 
-    MergeStrategy<ID, RRC> removeStrategy();
-
-    record DefaultRuleMapperContext<ID, IDC extends Collection<ID>, R, RRC>(
+    record DefaultRuleMapperContext<ID, EID, IDC extends Collection<ID>, R, RRC>(
+            Function<R, EID> idExtractor,
             Function<R, ID> correlationIdExtractor,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, RRC> mapFactory,
             Function<ID, RRC> defaultResultProvider,
             IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
-            Function<Stream<RRC>, Stream<R>> streamFlattener,
-            MergeStrategy<ID, RRC> mergeStrategy,
-            MergeStrategy<ID, RRC> removeStrategy) implements RuleMapperContext<ID, IDC, R, RRC> {
+            Function<List<R>, RRC> fromListConverter,
+            Function<RRC, List<R>> toListConverter) implements RuleMapperContext<ID, EID, IDC, R, RRC> {
     }
 
-    static <ID, IDC extends Collection<ID>, R, RRC> DefaultRuleMapperContext<ID, IDC, R, RRC> toRuleMapperContext(
-            RuleContext<ID, IDC, R, RRC> ruleContext,
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> DefaultRuleMapperContext<ID, EID, IDC, R, RRC> toRuleMapperContext(
+            IdAwareRuleContext<ID, EID, IDC, R, RRC> ruleContext,
             Function<ID, RRC> defaultResultProvider,
             IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
-            Function<Stream<RRC>, Stream<R>> streamFlattener,
-            MergeStrategy<ID, RRC> mergeStrategy,
-            MergeStrategy<ID, RRC> removeStrategy) {
+            Function<List<R>, RRC> fromListConverter,
+            Function<RRC, List<R>> toListConverter) {
 
         return new DefaultRuleMapperContext<>(
+                ruleContext.idExtractor(),
                 ruleContext.correlationIdExtractor(),
                 ruleContext.idCollectionFactory(),
                 ruleContext.mapFactory(),
                 defaultResultProvider,
                 mapCollector,
-                streamFlattener,
-                mergeStrategy,
-                removeStrategy);
+                fromListConverter,
+                toListConverter);
     }
 }

@@ -2,8 +2,6 @@ package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
-import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
-import io.github.pellse.reactive.assembler.caching.CacheEvent.Removed;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,14 +27,32 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErr
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
-import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
+import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
 import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static reactor.core.scheduler.Schedulers.immediate;
-import static reactor.core.scheduler.Schedulers.parallel;
+import static reactor.core.scheduler.Schedulers.*;
+
+interface CDC<T> {
+    T item();
+}
+
+record CDCAdd<T>(T item) implements CDC<T> {
+    static <T> CDC<T> cdcAdd(T item) {
+        return new CDCAdd<>(item);
+    }
+}
+
+record CDCDelete<T>(T item) implements CDC<T> {
+    static <T> CDC<T> cdcDelete(T item) {
+        return new CDCDelete<>(item);
+    }
+}
 
 public class CacheTest {
 
@@ -281,6 +297,37 @@ public class CacheTest {
     }
 
     @Test
+    public void testReusableAssemblerBuilderWithAutoCaching3() {
+
+        Flux<BillingInfo> dataSource1 = Flux.just(billingInfo1, billingInfo2, billingInfo3);
+        Flux<OrderItem> dataSource2 = Flux.just(
+                orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33);
+
+        Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvent(dataSource1))))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(toCacheEvent(dataSource2), 1)))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(5)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(0, billingInvocationCount.get());
+        assertEquals(0, ordersInvocationCount.get());
+    }
+
+    @Test
     public void testReusableAssemblerBuilderWithAutoCachingError() {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, null, "4540111111111111"); // null customerId, will trigger NullPointerException
@@ -313,12 +360,6 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents() {
 
-        record CDCAdd(OrderItem item) {
-        }
-
-        record CDCDelete(OrderItem item) {
-        }
-
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
@@ -328,14 +369,11 @@ public class CacheTest {
                 .subscribeOn(parallel());
 
         var orderItemFlux = Flux.just(
-                        new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
-                        new CDCAdd(orderItem21), new CDCAdd(orderItem22), new CDCAdd(updatedOrderItem22),
-                        new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
-                        new CDCDelete(orderItem31), new CDCDelete(orderItem32), new CDCAdd(updatedOrderItem11))
-                .map(cdcEvent -> {
-                    if (cdcEvent instanceof CDCAdd e) return updated(e.item);
-                    else return removed(((CDCDelete) cdcEvent).item);
-                })
+                        cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                        cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
+                        cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
+                        cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11))
+                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
                 .subscribeOn(parallel());
 
         Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(updatedOrderItem11, orderItem12, orderItem13));
@@ -366,12 +404,6 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents2() {
 
-        record CDCAdd(OrderItem item) {
-        }
-
-        record CDCDelete(OrderItem item) {
-        }
-
         Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
             assertEquals(List.of(3L), customerIds);
             return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
@@ -386,14 +418,11 @@ public class CacheTest {
                 .subscribeOn(parallel());
 
         var orderItemFlux = Flux.just(
-                        new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
-                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),
-                        new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
-                        new CDCDelete(orderItem31), new CDCDelete(orderItem32), new CDCDelete(orderItem33))
-                .map(cdcEvent -> {
-                    if (cdcEvent instanceof CDCAdd e) return new Updated<>(e.item);
-                    else return new Removed<>(((CDCDelete) cdcEvent).item);
-                })
+                        cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                        cdcAdd(orderItem21), cdcAdd(orderItem22),
+                        cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
+                        cdcDelete(orderItem31), cdcDelete(orderItem32), cdcDelete(orderItem33))
+                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
                 .subscribeOn(parallel());
 
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
@@ -417,6 +446,62 @@ public class CacheTest {
 
         assertEquals(0, billingInvocationCount.get());
         assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testLongRunningAutoCachingEvents() {
+
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
+        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
+        OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
+
+        var customerList = List.of(customer1, customer2, customer3);
+
+        var billingInfoList = List.of(cdcAdd(billingInfo1), cdcAdd(billingInfo2), cdcAdd(updatedBillingInfo2), cdcAdd(billingInfo3));
+
+        var orderItemList = List.of(cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
+                cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
+                cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
+
+        var billingInfoCount = new AtomicInteger();
+        var orderItemCount = new AtomicInteger();
+
+        var customerFlux = longRunningFlux(customerList, null, 6, 1000);
+
+        var billingInfoFlux = longRunningFlux(billingInfoList, billingInfoCount, 5, 1100)
+                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
+
+        var orderItemFlux = longRunningFlux(orderItemList, orderItemCount, 10, 1100)
+                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(emptyQuery(), autoCache(orderItemFlux, 3)))),
+                        Transaction::new)
+                .build(boundedElastic());
+
+        customerFlux
+                .window(3)
+                .delayElements(ofMillis(7))
+                .flatMapSequential(assembler::assemble)
+                .take(1_000)
+                .subscribeOn(boundedElastic())
+                .blockLast(ofSeconds(30));
+    }
+
+    private <T> Flux<T> longRunningFlux(List<T> list, AtomicInteger counter, int msDelay, int maxItems) {
+        return Flux.<T, Integer>generate(() -> 0, (index, sink) -> {
+                    if (counter != null && counter.incrementAndGet() == maxItems) {
+                        sink.complete();
+                    }
+                    sink.next(list.get(index));
+                    return (index + 1) % list.size();
+                })
+                .delayElements(ofMillis(msDelay))
+                .subscribeOn(boundedElastic());
     }
 }
 

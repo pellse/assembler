@@ -1,6 +1,7 @@
 package io.github.pellse.reactive.assembler;
 
 import io.github.pellse.reactive.assembler.caching.MergeStrategy;
+import io.github.pellse.util.collection.CollectionUtil;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -10,8 +11,8 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
-import java.util.stream.Stream;
 
+import static io.github.pellse.reactive.assembler.IdAwareRuleContext.toIdAwareRuleContext;
 import static io.github.pellse.reactive.assembler.QueryUtils.*;
 import static io.github.pellse.reactive.assembler.RuleMapperContext.toRuleMapperContext;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
@@ -34,25 +35,13 @@ import static java.util.stream.Stream.concat;
 public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         extends Function<RuleContext<ID, IDC, R, RRC>, Function<Iterable<ID>, Mono<Map<ID, RRC>>>> {
 
-    record Wrapper<ID, EID, R>(ID correlationId, EID id, R payload) {
-        @Override
-        public boolean equals(Object obj) {
-            return Objects.equals(id, obj);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(id);
-        }
-    }
-
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
             Function<IDC, Publisher<R>> queryFunction) {
         return oneToOne(call(queryFunction), id -> null);
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
-            RuleMapperSource<ID, IDC, R, R> ruleMapperSource) {
+            RuleMapperSource<ID, ID, IDC, R, R> ruleMapperSource) {
         return oneToOne(ruleMapperSource, id -> null);
     }
 
@@ -63,17 +52,17 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
-            RuleMapperSource<ID, IDC, R, R> ruleMapperSource,
+            RuleMapperSource<ID, ID, IDC, R, R> ruleMapperSource,
             Function<ID, R> defaultResultProvider) {
 
         return createRuleMapper(
                 ruleMapperSource,
+                ctx -> toIdAwareRuleContext(ctx.correlationIdExtractor(), ctx),
                 defaultResultProvider,
                 ctx -> initialMapCapacity ->
                         toMap(ctx.correlationIdExtractor(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
-                identity(),
-                updateStrategy(),
-                removeStrategy());
+                CollectionUtil::first,
+                Collections::singletonList);
     }
 
     static <ID, EID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
@@ -84,7 +73,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
 
     static <ID, EID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
             Function<R, EID> idExtractor,
-            RuleMapperSource<ID, IDC, R, List<R>> ruleMapperSource) {
+            RuleMapperSource<ID, EID, IDC, R, List<R>> ruleMapperSource) {
         return oneToMany(idExtractor, ruleMapperSource, ArrayList::new);
     }
 
@@ -96,7 +85,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
 
     static <ID, EID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, Set<R>> oneToManyAsSet(
             Function<R, EID> idExtractor,
-            RuleMapperSource<ID, IDC, R, Set<R>> ruleMapperSource) {
+            RuleMapperSource<ID, EID, IDC, R, Set<R>> ruleMapperSource) {
         return oneToMany(idExtractor, ruleMapperSource, HashSet::new);
     }
 
@@ -109,35 +98,38 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
 
     static <ID, EID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<ID, IDC, R, RC> oneToMany(
             Function<R, EID> idExtractor,
-            RuleMapperSource<ID, IDC, R, RC> ruleMapperSource,
+            RuleMapperSource<ID, EID, IDC, R, RC> ruleMapperSource,
             Supplier<RC> collectionFactory) {
 
         return createRuleMapper(
                 ruleMapperSource,
+                ctx -> toIdAwareRuleContext(idExtractor, ctx),
                 id -> collectionFactory.get(),
                 ctx -> initialMapCapacity ->
-                        groupingBy(ctx.correlationIdExtractor(), toSupplier(validate(initialMapCapacity), ctx.mapFactory()), toCollection(collectionFactory)),
-                stream -> stream.flatMap(Collection::stream),
-                updateMultiStrategy(idExtractor, collectionFactory),
-                removeMultiStrategy(idExtractor, collectionFactory));
+                        groupingBy(
+                                ctx.correlationIdExtractor(),
+                                toSupplier(validate(initialMapCapacity), ctx.mapFactory()),
+                                toCollection(collectionFactory)),
+                list -> toStream(list)
+                        .collect(toCollection(collectionFactory)),
+                List::copyOf);
     }
 
-    private static <ID, IDC extends Collection<ID>, R, RRC> RuleMapper<ID, IDC, R, RRC> createRuleMapper(
-            RuleMapperSource<ID, IDC, R, RRC> ruleMapperSource,
+    private static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapper<ID, IDC, R, RRC> createRuleMapper(
+            RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource,
+            Function<RuleContext<ID, IDC, R, RRC>, IdAwareRuleContext<ID, EID, IDC, R, RRC>> ruleContextConverter,
             Function<ID, RRC> defaultResultProvider,
             Function<RuleContext<ID, IDC, R, RRC>, IntFunction<Collector<R, ?, Map<ID, RRC>>>> mapCollector,
-            Function<Stream<RRC>, Stream<R>> streamFlattener,
-            MergeStrategy<ID, RRC> mergeStrategy,
-            MergeStrategy<ID, RRC> removeStrategy) {
+            Function<List<R>, RRC> fromListConverter,
+            Function<RRC, List<R>> toListConverter) {
 
         return ruleContext -> {
             var ruleMapperContext = toRuleMapperContext(
-                    ruleContext,
+                    ruleContextConverter.apply(ruleContext),
                     defaultResultProvider,
                     mapCollector.apply(ruleContext),
-                    streamFlattener,
-                    safeStrategy(mergeStrategy),
-                    safeStrategy(removeStrategy));
+                    fromListConverter,
+                    toListConverter);
 
             var queryFunction = ruleMapperSource.apply(ruleMapperContext);
 
@@ -149,29 +141,27 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         };
     }
 
-    private static <ID, R> MergeStrategy<ID, R> updateStrategy() {
-        return (cache, itemsToUpdateMap) -> itemsToUpdateMap;
-    }
-
-    private static <ID, EID, R, RC extends Collection<R>> MergeStrategy<ID, RC> updateMultiStrategy(
-            Function<R, EID> idExtractor,
-            Supplier<RC> collectionFactory) {
-
-        return (cacheQueryResults, itemsToUpdateMap) ->
-                concat(toStream(cacheQueryResults.entrySet()), toStream(itemsToUpdateMap.entrySet()))
-                        .flatMap(entry -> entry.getValue().stream()
-                                .map(e -> new Wrapper<>(entry.getKey(), idExtractor.apply(e), e)))
-                        .distinct()
-                        .collect(groupingBy(Wrapper::correlationId, mapping(Wrapper::payload, toCollection(collectionFactory))));
-    }
-
-    private static <ID, R> MergeStrategy<ID, R> removeStrategy() {
-        return (cacheQueryResults, itemsToRemoveMap) -> also(cacheQueryResults, c -> c.keySet().removeAll(itemsToRemoveMap.keySet()));
-    }
-
-    private static <ID, EID, R, RC extends Collection<R>> MergeStrategy<ID, RC> removeMultiStrategy(
-            Function<R, EID> idExtractor,
-            Supplier<RC> collectionFactory) {
+//    private static <ID, R> MergeStrategy<ID, R> updateStrategy() {
+//        return (cache, itemsToUpdateMap) -> itemsToUpdateMap;
+//    }
+//
+//    private static <ID, EID, R, RC extends Collection<R>> MergeStrategy<ID, RC> updateMultiStrategy(
+//            Function<R, EID> idExtractor,
+//            Supplier<RC> collectionFactory) {
+//
+//        return (cacheQueryResults, itemsToUpdateMap) ->
+//                concat(toStream(cacheQueryResults.entrySet()), toStream(itemsToUpdateMap.entrySet()))
+//                        .flatMap(entry -> entry.getValue().stream()
+//                                .map(e -> new Wrapper<>(entry.getKey(), idExtractor.apply(e), e)))
+//                        .distinct()
+//                        .collect(groupingBy(Wrapper::correlationId, mapping(Wrapper::payload, toCollection(collectionFactory))));
+//    }
+//
+//    private static <ID, R> MergeStrategy<ID, R> removeStrategy() {
+//        return (cacheQueryResults, itemsToRemoveMap) -> also(cacheQueryResults, c -> c.keySet().removeAll(itemsToRemoveMap.keySet()));
+//    }
+//
+    private static <ID, EID, R> MergeStrategy<ID, R> removeMultiStrategy(Function<R, EID> idExtractor) {
 
         return (cacheQueryResults, itemsToRemoveMap) -> cacheQueryResults.entrySet().stream()
                 .map(entry -> {
@@ -185,17 +175,17 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
 
                     var newColl = toStream(entry.getValue())
                             .filter(element -> !idsToRemove.contains(idExtractor.apply(element)))
-                            .collect(toCollection(collectionFactory));
+                            .toList();
 
                     return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
                 })
                 .filter(Objects::nonNull)
                 .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1));
     }
-
-    private static <ID, RRC> MergeStrategy<ID, RRC> safeStrategy(MergeStrategy<ID, RRC> strategy) {
-        return (cacheQueryResults, itemsToUpdateMap) -> strategy.merge(new HashMap<>(cacheQueryResults), unmodifiableMap(itemsToUpdateMap));
-    }
+//
+//    private static <ID, R> MergeStrategy<ID, R> safeStrategy(MergeStrategy<ID, R> strategy) {
+//        return (cacheQueryResults, itemsToUpdateMap) -> strategy.merge(new HashMap<>(cacheQueryResults), unmodifiableMap(itemsToUpdateMap));
+//    }
 
     private static int validate(int initialCapacity) {
         return Math.max(initialCapacity, 0);

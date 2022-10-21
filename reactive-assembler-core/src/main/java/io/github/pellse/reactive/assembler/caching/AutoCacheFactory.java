@@ -12,6 +12,7 @@ import java.util.function.Function;
 
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
 
 public interface AutoCacheFactory {
@@ -130,7 +131,6 @@ public interface AutoCacheFactory {
 
         return cacheFactory -> (fetchFunction, context) -> {
             var cache = concurrent(cacheFactory.create(fetchFunction, context));
-
             var cacheSourceFlux = errorHandler.toFluxErrorHandler().apply(
                     windowingStrategy.toWindowedFlux(dataSource)
                             .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
@@ -141,9 +141,9 @@ public interface AutoCacheFactory {
         };
     }
 
-    private static <ID, R, RRC> Map<ID, RRC> toMap(List<? extends CacheEvent<R>> cacheEvents, Context<ID, R, RRC> context) {
+    private static <ID, R, RRC> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, Context<ID, R, RRC> context) {
         return cacheEvents.stream()
                 .map(CacheEvent::value)
-                .collect(context.mapCollector().apply(-1));
+                .collect(groupingBy(context.correlationIdExtractor()));
     }
 }

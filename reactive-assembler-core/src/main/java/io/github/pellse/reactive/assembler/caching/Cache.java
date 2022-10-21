@@ -1,8 +1,11 @@
 package io.github.pellse.reactive.assembler.caching;
 
+import io.github.pellse.reactive.assembler.RuleMapperContext;
 import io.github.pellse.util.function.Function3;
 import reactor.core.publisher.Mono;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -16,14 +19,14 @@ import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Map.of;
 import static reactor.core.publisher.Mono.just;
 
-public interface Cache<ID, RRC> {
-    Mono<Map<ID, RRC>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
+public interface Cache<ID, R> {
+    Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
 
-    Mono<?> putAll(Map<ID, RRC> map);
+    Mono<?> putAll(Map<ID, List<R>> map);
 
-    Mono<?> removeAll(Map<ID, RRC> map);
+    Mono<?> removeAll(Map<ID, List<R>> map);
 
-    default Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
+    default Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
         return putAll(mapToAdd).then(removeAll(mapToRemove));
     }
 
@@ -31,11 +34,11 @@ public interface Cache<ID, RRC> {
         return cache(ConcurrentHashMap::new);
     }
 
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Supplier<Map<ID, RRC>> mapSupplier) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Supplier<Map<ID, List<R>>> mapSupplier) {
         return cache(mapSupplier.get());
     }
 
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Map<ID, RRC> delegateMap) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Map<ID, List<R>> delegateMap) {
 
         return (fetchFunction, __) -> adapterCache(
                 (ids, computeIfAbsent) -> just(readAll(ids, delegateMap))
@@ -49,36 +52,37 @@ public interface Cache<ID, RRC> {
         );
     }
 
-    static <ID, RRC> Cache<ID, RRC> mergeStrategyAwareCache(
-            Cache<ID, RRC> delegateCache,
-            MergeStrategy<ID, RRC> mergeStrategy,
-            MergeStrategy<ID, RRC> removeStrategy) {
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> Cache<ID, R> mergeStrategyAwareCache(
+            RuleMapperContext<ID, EID, IDC, R, RRC> ruleContext,
+            Cache<ID, R> delegateCache) {
 
-        Cache<ID, RRC> optimizedCache = adapterCache(
+        Cache<ID, R> optimizedCache = adapterCache(
                 emptyOr(delegateCache::getAll),
                 emptyOr(delegateCache::putAll),
                 emptyOr(delegateCache::removeAll)
         );
 
+        var idExtractor = ruleContext.idExtractor();
+
         return adapterCache(
                 optimizedCache::getAll,
-                applyMergeStrategy(optimizedCache, mergeStrategy, Cache::putAll),
-                applyMergeStrategy(optimizedCache, (cache, cacheQueryResults, incomingChanges) -> {
-                    var mapAfterRemove = removeStrategy.merge(cacheQueryResults, incomingChanges);
-                    var removedItems = readAll(
-                            intersect(cacheQueryResults.keySet(), mapAfterRemove.keySet()),
-                            cacheQueryResults);
-
-                    return cache.putAll(mapAfterRemove)
-                            .then(cache.removeAll(removedItems));
-                })
+                applyMergeStrategy(
+                        optimizedCache,
+                        (cacheQueryResults, incomingChanges) -> mergeMaps(incomingChanges, cacheQueryResults, idExtractor),
+                        Cache::putAll),
+                applyMergeStrategy(
+                        optimizedCache,
+                        (cache, cacheQueryResults, incomingChanges) ->
+                                then(removeFromMap(incomingChanges, cacheQueryResults, idExtractor),
+                                        updatedMap -> cache.putAll(updatedMap)
+                                                .then(cache.removeAll(diff(cacheQueryResults, updatedMap)))))
         );
     }
 
-    private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> applyMergeStrategy(
-            Cache<ID, RRC> delegateCache,
-            MergeStrategy<ID, RRC> mergeStrategy,
-            BiFunction<Cache<ID, RRC>, Map<ID, RRC>, Mono<?>> cacheUpdater) {
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+            Cache<ID, R> delegateCache,
+            MergeStrategy<ID, R> mergeStrategy,
+            BiFunction<Cache<ID, R>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
 
         return applyMergeStrategy(
                 delegateCache,
@@ -86,21 +90,22 @@ public interface Cache<ID, RRC> {
                         cacheUpdater.apply(cache, mergeStrategy.merge(cacheQueryResults, incomingChanges)));
     }
 
-    private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> applyMergeStrategy(
-            Cache<ID, RRC> delegateCache,
-            Function3<Cache<ID, RRC>, Map<ID, RRC>, Map<ID, RRC>, Mono<?>> cacheUpdater) {
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+            Cache<ID, R> delegateCache,
+            Function3<Cache<ID, R>, Map<ID, List<R>>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
 
         return incomingChangesMap -> isEmpty(incomingChangesMap) ? just(of()) : just(incomingChangesMap)
                 .flatMap(incomingChanges -> delegateCache.getAll(incomingChanges.keySet(), false)
                         .flatMap(cacheQueryResults -> cacheUpdater.apply(delegateCache, cacheQueryResults, incomingChanges)));
     }
 
-    private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> emptyOr(Function<Map<ID, RRC>, Mono<?>> mappingFunction) {
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyOr(
+            Function<Map<ID, List<R>>, Mono<?>> mappingFunction) {
         return map -> isEmpty(map) ? just(of()) : mappingFunction.apply(map);
     }
 
-    private static <ID, RRC> BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, RRC>>> emptyOr(
-            BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, RRC>>> mappingFunction) {
+    private static <ID, R> BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> emptyOr(
+            BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> mappingFunction) {
         return (ids, computeIfAbsent) -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids, computeIfAbsent);
     }
 }

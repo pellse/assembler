@@ -6,14 +6,15 @@ import reactor.util.retry.RetryBackoffSpec;
 import reactor.util.retry.RetrySpec;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
-import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.github.pellse.util.ObjectUtils.run;
-import static io.github.pellse.util.ObjectUtils.runIf;
+import static io.github.pellse.util.ObjectUtils.*;
 import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.*;
@@ -21,72 +22,120 @@ import static reactor.util.retry.Retry.*;
 class LockNotAcquiredException extends Exception {
 }
 
+interface Lock {
+    boolean tryAcquireLock();
+
+    void releaseLock();
+}
+
 public interface ConcurrentCache {
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
-    static <ID, RRC> Cache<ID, RRC> concurrent(Cache<ID, RRC> delegateCache) {
-        return concurrent(delegateCache, retryStrategy(indefinitely(), RetrySpec::filter));
+    static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache) {
+        return concurrent(delegateCache, indefinitely(), RetrySpec::filter, t -> t.errorFilter);
     }
 
-    static <ID, RRC> Cache<ID, RRC> concurrent(Cache<ID, RRC> delegateCache, long maxAttempts) {
-        return concurrent(delegateCache, retryStrategy(max(maxAttempts), RetrySpec::filter));
+    static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts) {
+        return concurrent(delegateCache, max(maxAttempts), RetrySpec::filter, t -> t.errorFilter);
     }
 
-    static <ID, RRC> Cache<ID, RRC> concurrent(Cache<ID, RRC> delegateCache, long maxAttempts, Duration delay) {
-        return concurrent(delegateCache, retryStrategy(fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter));
+    static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay) {
+        return concurrent(delegateCache, fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter, t -> t.errorFilter);
     }
 
-    static <ID, RRC> Cache<ID, RRC> concurrent(Cache<ID, RRC> delegateCache, Retry retrySpec) {
+    private static <ID, R, T extends Retry> Cache<ID, R> concurrent(
+            Cache<ID, R> delegateCache,
+            T retrySpec,
+            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction,
+            Function<T, Predicate<? super Throwable>> predicateGetter) {
+
+        return concurrent(delegateCache, retryStrategy(retrySpec, errorFilterFunction, predicateGetter));
+    }
+
+    private static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, Retry retrySpec) {
 
         return new Cache<>() {
 
-            private final AtomicBoolean atomicLock = new AtomicBoolean();
+            private final AtomicBoolean isLocked = new AtomicBoolean();
+
+            private final AtomicLong readCount = new AtomicLong();
+
+            private final Lock readLock = new Lock() {
+
+                @Override
+                public boolean tryAcquireLock() {
+                    if (isLocked.compareAndSet(false, true)) {
+                        readCount.incrementAndGet();
+                        isLocked.set(false);
+                        return true;
+                    }
+                    return false;
+                }
+
+                @Override
+                public void releaseLock() {
+                    readCount.decrementAndGet();
+                }
+            };
+
+            private final Lock writeLock = new Lock() {
+
+                @Override
+                public boolean tryAcquireLock() {
+                    if (isLocked.compareAndSet(false, true)) {
+                        if (readCount.get() == 0) {
+                            return true;
+                        }
+                        isLocked.set(false);
+                    }
+                    return false;
+                }
+
+                @Override
+                public void releaseLock() {
+                    isLocked.set(false);
+                }
+            };
 
             @Override
-            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
-                return execute(delegateCache.getAll(ids, computeIfAbsent), this::tryAcquireReadLock);
+            public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
+                return execute(delegateCache.getAll(ids, computeIfAbsent), readLock);
             }
 
             @Override
-            public Mono<?> putAll(Map<ID, RRC> map) {
-                return execute(delegateCache.putAll(map), this::tryAcquireWriteLock);
+            public Mono<?> putAll(Map<ID, List<R>> map) {
+                return execute(delegateCache.putAll(map), writeLock);
             }
 
             @Override
-            public Mono<?> removeAll(Map<ID, RRC> map) {
-                return execute(delegateCache.removeAll(map), this::tryAcquireWriteLock);
+            public Mono<?> removeAll(Map<ID, List<R>> map) {
+                return execute(delegateCache.removeAll(map), writeLock);
             }
 
             @Override
-            public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
-                return execute(delegateCache.updateAll(mapToAdd, mapToRemove), this::tryAcquireWriteLock);
+            public Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
+                return execute(delegateCache.updateAll(mapToAdd, mapToRemove), writeLock);
             }
 
-            private <T> Mono<T> execute(Mono<T> mono, BooleanSupplier tryAcquireLock) {
+            private <T> Mono<T> execute(Mono<T> mono, Lock lock) {
 
-                Runnable releaseLock = () -> atomicLock.set(false);
-
-                return defer(() -> just(tryAcquireLock.getAsBoolean()))
+                return defer(() -> just(lock.tryAcquireLock()))
                         .filter(lockAcquired -> lockAcquired)
                         .flatMap(__ -> mono)
                         .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
-                        .doOnError(runIf(not(LOCK_NOT_ACQUIRED::equals), releaseLock))
-                        .doOnSuccess(run(releaseLock))
+                        .doOnError(runIf(not(LOCK_NOT_ACQUIRED::equals), lock::releaseLock))
+                        .doOnSuccess(run(lock::releaseLock))
                         .retryWhen(retrySpec);
-            }
-
-            private boolean tryAcquireReadLock() {
-                return !atomicLock.get();
-            }
-
-            private boolean tryAcquireWriteLock() {
-                return atomicLock.compareAndSet(false, true);
             }
         };
     }
 
-    private static <T extends Retry> T retryStrategy(T retrySpec, BiFunction<T, Predicate<? super Throwable>, T> filterFunction) {
-        return filterFunction.apply(retrySpec, LOCK_NOT_ACQUIRED::equals);
+    private static <T extends Retry> T retryStrategy(
+            T retrySpec,
+            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction,
+            Function<T, Predicate<? super Throwable>> predicateGetter) {
+
+        return errorFilterFunction.apply(retrySpec, or(LOCK_NOT_ACQUIRED::equals, predicateGetter.apply(retrySpec)));
     }
 }
