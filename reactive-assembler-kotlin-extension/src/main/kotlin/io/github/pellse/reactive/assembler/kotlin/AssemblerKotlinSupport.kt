@@ -16,17 +16,17 @@ fun <ID, IDC : Collection<ID>, R> ((IDC) -> Iterable<R>).toPublisher(): (IDC) ->
 fun <ID, IDC : Collection<ID>, R> ((IDC) -> Publisher<R>).oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<ID, IDC, R, R> =
     oneToOne(this, defaultResultProvider)
 
-//fun <ID, EID, IDC : Collection<ID>, R> RuleMapperSource<ID, EID, IDC, R, R>.oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<ID, IDC, R, R> =
-//    oneToOne(this, defaultResultProvider)
-//
-//fun <ID, IDC : Collection<ID>, R> ((IDC) -> Publisher<R>).oneToMany(): RuleMapper<ID, IDC, R, List<R>> =
-//    oneToMany(this)
-//
-//fun <ID, EID, IDC : Collection<ID>, R> RuleMapperSource<ID, EID, IDC, R, List<R>>.oneToMany(): RuleMapper<ID, IDC, R, List<R>> =
-//    oneToMany(this)
-//
-//fun <ID, IDC : Collection<ID>, R, RC : Collection<R>> ((IDC) -> Publisher<R>).oneToMany(collectionFactory: () -> RC): RuleMapper<ID, IDC, R, RC> =
-//    oneToMany(this, collectionFactory)
-//
-//fun <ID, EID, IDC : Collection<ID>, R, RC : Collection<R>> RuleMapperSource<ID, EID, IDC, R, RC>.oneToMany(collectionFactory: () -> RC): RuleMapper<ID, IDC, R, RC> =
-//    oneToMany(this, collectionFactory)
+fun <ID, IDC : Collection<ID>, R> RuleMapperSource<ID, ID, IDC, R, R>.oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<ID, IDC, R, R> =
+    oneToOne(this, defaultResultProvider)
+
+fun <ID, EID, IDC : Collection<ID>, R> ((IDC) -> Publisher<R>).oneToMany(idExtractor: (R) -> EID): RuleMapper<ID, IDC, R, List<R>> =
+    oneToMany(idExtractor, this)
+
+fun <ID, EID, IDC : Collection<ID>, R> RuleMapperSource<ID, EID, IDC, R, List<R>>.oneToMany(idExtractor: (R) -> EID): RuleMapper<ID, IDC, R, List<R>> =
+    oneToMany(idExtractor, this)
+
+fun <ID, EID, IDC : Collection<ID>, R, RC : Collection<R>> ((IDC) -> Publisher<R>).oneToMany(idExtractor: (R) -> EID, collectionFactory: () -> RC): RuleMapper<ID, IDC, R, RC> =
+    oneToMany(idExtractor, this, collectionFactory)
+
+fun <ID, EID, IDC : Collection<ID>, R, RC : Collection<R>> RuleMapperSource<ID, EID, IDC, R, RC>.oneToMany(idExtractor: (R) -> EID, collectionFactory: () -> RC): RuleMapper<ID, IDC, R, RC> =
+    oneToMany(idExtractor, this, collectionFactory)
