@@ -1,5 +1,5 @@
 ext {
-    reactorVersion = '3.4.21'
+    reactorVersion = '3.4.24'
 }
 
 dependencies {
