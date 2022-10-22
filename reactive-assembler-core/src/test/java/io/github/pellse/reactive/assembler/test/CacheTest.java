@@ -53,7 +53,6 @@ record CDCDelete<T>(T item) implements CDC<T> {
         return new CDCDelete<>(item);
     }
 }
-
 public class CacheTest {
 
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
@@ -118,7 +117,7 @@ public class CacheTest {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, new HashMap<>()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
                         Transaction::new)
                 .build();
 

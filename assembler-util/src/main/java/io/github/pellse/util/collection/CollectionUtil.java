@@ -85,7 +85,7 @@ public interface CollectionUtil {
         return removeDuplicates(toStream(coll), keyExtractor, collectionFactory);
     }
 
-    static <K, V, VC extends Collection<V>> VC removeDuplicates(
+    private static <K, V, VC extends Collection<V>> VC removeDuplicates(
             Stream<V> stream,
             Function<? super V, K> keyExtractor,
             Supplier<VC> collectionFactory) {
