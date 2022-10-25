@@ -99,9 +99,9 @@ public interface Cache<ID, R> {
             Cache<ID, R> delegateCache,
             CacheUpdater<ID, R> cacheUpdater) {
 
-        return incomingChangesMap -> isEmpty(incomingChangesMap) ? just(of()) : just(incomingChangesMap)
-                .flatMap(incomingChanges -> delegateCache.getAll(incomingChanges.keySet(), false)
-                        .flatMap(cacheQueryResults -> cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges)));
+        return incomingChanges -> isEmpty(incomingChanges) ? just(of()) :
+                delegateCache.getAll(incomingChanges.keySet(), false)
+                        .flatMap(cacheQueryResults -> cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges));
     }
 
     private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyOr(
