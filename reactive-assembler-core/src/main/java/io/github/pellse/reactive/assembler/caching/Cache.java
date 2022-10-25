@@ -1,7 +1,6 @@
 package io.github.pellse.reactive.assembler.caching;
 
 import io.github.pellse.reactive.assembler.RuleMapperContext;
-import io.github.pellse.util.function.Function3;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
@@ -19,7 +18,13 @@ import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Map.of;
 import static reactor.core.publisher.Mono.just;
 
+@FunctionalInterface
+interface CacheUpdater<ID, R> {
+    Mono<?> updateCache(Cache<ID, R> cache, Map<ID, List<R>> cacheQueryResults, Map<ID, List<R>> incomingChanges);
+}
+
 public interface Cache<ID, R> {
+
     Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
 
     Mono<?> putAll(Map<ID, List<R>> map);
@@ -92,11 +97,11 @@ public interface Cache<ID, R> {
 
     private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
             Cache<ID, R> delegateCache,
-            Function3<Cache<ID, R>, Map<ID, List<R>>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
+            CacheUpdater<ID, R> cacheUpdater) {
 
         return incomingChangesMap -> isEmpty(incomingChangesMap) ? just(of()) : just(incomingChangesMap)
                 .flatMap(incomingChanges -> delegateCache.getAll(incomingChanges.keySet(), false)
-                        .flatMap(cacheQueryResults -> cacheUpdater.apply(delegateCache, cacheQueryResults, incomingChanges)));
+                        .flatMap(cacheQueryResults -> cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges)));
     }
 
     private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyOr(
