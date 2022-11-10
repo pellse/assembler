@@ -9,6 +9,8 @@ import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.c
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache
 import io.github.pellse.reactive.assembler.caching.Cache.cache
 import io.github.pellse.reactive.assembler.caching.CacheEvent.*
+import io.github.pellse.reactive.assembler.kotlin.FluxAssemblerKotlinTest.CDC.CDCAdd
+import io.github.pellse.reactive.assembler.kotlin.FluxAssemblerKotlinTest.CDC.CDCDelete
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -225,10 +227,13 @@ class FluxAssemblerKotlinTest {
         assertEquals(2, ordersInvocationCount.get())
     }
 
+    sealed interface CDC {
+        data class CDCAdd(val item: OrderItem) : CDC
+        data class CDCDelete(val item: OrderItem) : CDC
+    }
+
     @Test
     fun testReusableAssemblerBuilderWithAutoCachingEvents2() {
-        data class CDCAdd(val item: OrderItem)
-        data class CDCDelete(val item: OrderItem)
 
         val getAllOrders = { customerIds: List<Long> ->
             assertEquals(listOf(3L), customerIds)
@@ -252,7 +257,6 @@ class FluxAssemblerKotlinTest {
                 when (it) {
                     is CDCAdd -> Updated(it.item)
                     is CDCDelete -> Removed(it.item)
-                    else -> throw Exception()
                 }
             }
             .subscribeOn(parallel())
