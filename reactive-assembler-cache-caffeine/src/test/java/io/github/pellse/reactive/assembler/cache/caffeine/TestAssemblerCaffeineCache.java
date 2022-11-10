@@ -13,7 +13,6 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
@@ -21,6 +20,7 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
@@ -162,7 +162,7 @@ public class TestAssemblerCaffeineCache {
     }
 
     @Test
-    public void testReusableAssemblerBuilderWithAutoCachingEvents() {
+    public void testReusableAssemblerBuilderWithAutoCachingEvents() throws Exception {
 
         interface CDC {
             OrderItem item();
@@ -174,13 +174,6 @@ public class TestAssemblerCaffeineCache {
         record CDCDelete(OrderItem item) implements CDC {
         }
 
-        Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
-            assertEquals(List.of(3L), customerIds);
-            return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                    .filter(orderItem -> customerIds.contains(orderItem.customerId()))
-                    .doOnComplete(ordersInvocationCount::incrementAndGet);
-        };
-
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
 
         Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
@@ -189,9 +182,9 @@ public class TestAssemblerCaffeineCache {
 
         var orderItemFlux = Flux.just(
                         new CDCAdd(orderItem11), new CDCAdd(orderItem12), new CDCAdd(orderItem13),
-                        new CDCAdd(orderItem21), new CDCAdd(orderItem22),
-                        new CDCAdd(orderItem31), new CDCAdd(orderItem32), new CDCAdd(orderItem33),
-                        new CDCDelete(orderItem31), new CDCDelete(orderItem32))
+                        new CDCAdd(orderItem21), new CDCAdd(orderItem22), new CDCAdd(orderItem31),
+                        new CDCAdd(orderItem32), new CDCAdd(orderItem33), new CDCDelete(orderItem31),
+                        new CDCDelete(orderItem32))
                 .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
                 .subscribeOn(parallel());
 
@@ -202,13 +195,14 @@ public class TestAssemblerCaffeineCache {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoEventFlux, 3)))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders, caffeineCache(), autoCache(orderItemFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(emptyQuery(), caffeineCache(), autoCache(orderItemFlux, 3)))),
                         Transaction::new)
                 .build();
 
+        Thread.sleep(100); // To give enough time to autoCache() calls above to subscribe and consume their flux
+
         StepVerifier.create(getCustomers()
                         .window(3)
-                        .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)

@@ -16,6 +16,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheFactory.toMono;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Map.of;
+import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.just;
 
 @FunctionalInterface
@@ -99,9 +100,10 @@ public interface Cache<ID, R> {
             Cache<ID, R> delegateCache,
             CacheUpdater<ID, R> cacheUpdater) {
 
-        return incomingChanges -> isEmpty(incomingChanges) ? just(of()) :
+        return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() ->
                 delegateCache.getAll(incomingChanges.keySet(), false)
-                        .flatMap(cacheQueryResults -> cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges));
+                        .flatMap(cacheQueryResults ->
+                                cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges)));
     }
 
     private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyOr(
