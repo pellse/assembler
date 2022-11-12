@@ -448,6 +448,44 @@ public class CacheTest {
     }
 
     @Test
+    public void testReusableAssemblerBuilderWithAutoCachingEventsOnSameThread() {
+
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+
+        Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
+                        updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2));
+
+        var orderItemFlux = Flux.just(
+                        cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                        cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(orderItem31),
+                        cdcAdd(orderItem32), cdcAdd(orderItem33), cdcDelete(orderItem31),
+                        cdcDelete(orderItem32))
+                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
+
+        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoEventFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(orderItemFlux, 3)))),
+                        Transaction::new)
+                .build(immediate());
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(0, billingInvocationCount.get());
+        assertEquals(0, ordersInvocationCount.get());
+    }
+
+    @Test
     public void testLongRunningAutoCachingEvents() {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
