@@ -504,12 +504,12 @@ public class CacheTest {
         var billingInfoCount = new AtomicInteger();
         var orderItemCount = new AtomicInteger();
 
-        var customerFlux = longRunningFlux(customerList, null, 6, 1000);
+        var customerFlux = longRunningFlux(customerList, 6);
 
-        var billingInfoFlux = longRunningFlux(billingInfoList, billingInfoCount, 5, 1100)
+        var billingInfoFlux = longRunningFlux(billingInfoList, billingInfoCount, 5, 1_100)
                 .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
 
-        var orderItemFlux = longRunningFlux(orderItemList, orderItemCount, 10, 1100)
+        var orderItemFlux = longRunningFlux(orderItemList, orderItemCount, 10, 1_100)
                 .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
 
         var assembler = assemblerOf(Transaction.class)
@@ -527,6 +527,10 @@ public class CacheTest {
                 .take(1_000)
                 .subscribeOn(boundedElastic())
                 .blockLast(ofSeconds(30));
+    }
+
+    private <T> Flux<T> longRunningFlux(List<T> list, int msDelay) {
+        return longRunningFlux(list, null, msDelay, -1);
     }
 
     private <T> Flux<T> longRunningFlux(List<T> list, AtomicInteger counter, int msDelay, int maxItems) {
