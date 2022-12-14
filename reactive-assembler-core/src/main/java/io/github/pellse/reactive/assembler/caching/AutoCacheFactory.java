@@ -61,7 +61,7 @@ public interface AutoCacheFactory {
         Flux<Flux<R>> toWindowedFlux(Flux<R> flux);
     }
 
-    static <R> Flux<CacheEvent<R>> toCacheEvent(Flux<R> flux) {
+    static <R> Flux<CacheEvent<R>> toCacheEvents(Flux<R> flux) {
         return flux.map(Updated::new);
     }
 

@@ -25,10 +25,9 @@ import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvents;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
-import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
-import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.*;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
@@ -247,8 +246,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvent(billingInfoFlux), 10), cff1, cff2))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), autoCache(toCacheEvent(orderItemFlux), 10)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvents(billingInfoFlux), 10), cff1, cff2))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), autoCache(toCacheEvents(orderItemFlux), 10)))),
                         Transaction::new)
                 .build();
 
@@ -277,7 +276,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(toCacheEvent(billingInfoFlux), 4)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(toCacheEvents(billingInfoFlux), 4)))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
                 .build();
@@ -308,8 +307,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvent(dataSource1))))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(toCacheEvent(dataSource2), 1)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(toCacheEvents(dataSource1))))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(toCacheEvents(dataSource2), 1)))),
                         Transaction::new)
                 .build();
 
@@ -337,7 +336,7 @@ public class CacheTest {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(
-                                toCacheEvent(billingInfoFlux),
+                                toCacheEvents(billingInfoFlux),
                                 onErrorContinue(error -> assertInstanceOf(NullPointerException.class, error)))))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
@@ -363,7 +362,7 @@ public class CacheTest {
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
 
-        Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
+        Flux<Updated<BillingInfo>> billingInfoEventFlux = Flux.just(
                         updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
                 .subscribeOn(parallel());
 
@@ -372,7 +371,7 @@ public class CacheTest {
                         cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
                         cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                         cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11))
-                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
+                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item))
                 .subscribeOn(parallel());
 
         Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(updatedOrderItem11, orderItem12, orderItem13));
@@ -412,7 +411,7 @@ public class CacheTest {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
 
-        Flux<CacheEvent<BillingInfo>> billingInfoFlux = Flux.just(
+        Flux<Updated<BillingInfo>> billingInfoFlux = Flux.just(
                         updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
                 .subscribeOn(parallel());
 
@@ -421,7 +420,7 @@ public class CacheTest {
                         cdcAdd(orderItem21), cdcAdd(orderItem22),
                         cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                         cdcDelete(orderItem31), cdcDelete(orderItem32), cdcDelete(orderItem33))
-                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
+                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item))
                 .subscribeOn(parallel());
 
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
@@ -460,7 +459,7 @@ public class CacheTest {
                         cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(orderItem31),
                         cdcAdd(orderItem32), cdcAdd(orderItem33), cdcDelete(orderItem31),
                         cdcDelete(orderItem32))
-                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
+                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item));
 
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
@@ -507,10 +506,10 @@ public class CacheTest {
         var customerFlux = longRunningFlux(customerList, 6);
 
         var billingInfoFlux = longRunningFlux(billingInfoList, billingInfoCount, 5, 1_100)
-                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
+                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item));
 
         var orderItemFlux = longRunningFlux(orderItemList, orderItemCount, 10, 1_100)
-                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()));
+                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)

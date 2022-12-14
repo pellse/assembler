@@ -4,7 +4,7 @@ import io.github.pellse.assembler.BillingInfo;
 import io.github.pellse.assembler.Customer;
 import io.github.pellse.assembler.OrderItem;
 import io.github.pellse.assembler.Transaction;
-import io.github.pellse.reactive.assembler.caching.CacheEvent;
+import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -23,7 +23,7 @@ import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvent;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvents;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
@@ -143,8 +143,8 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(toCacheEvent(dataSource1))))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCache(toCacheEvent(dataSource2))))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(toCacheEvents(dataSource1))))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCache(toCacheEvents(dataSource2))))),
                         Transaction::new)
                 .build();
 
@@ -176,7 +176,7 @@ public class TestAssemblerCaffeineCache {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
 
-        Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
+        Flux<Updated<BillingInfo>> billingInfoEventFlux = Flux.just(
                         updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2))
                 .subscribeOn(parallel());
 
