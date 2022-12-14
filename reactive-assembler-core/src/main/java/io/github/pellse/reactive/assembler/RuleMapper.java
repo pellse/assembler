@@ -16,14 +16,11 @@ import static io.github.pellse.reactive.assembler.IdAwareRuleContext.toIdAwareRu
 import static io.github.pellse.reactive.assembler.QueryUtils.*;
 import static io.github.pellse.reactive.assembler.RuleMapperContext.toRuleMapperContext;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
-import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
-import static java.util.Collections.unmodifiableMap;
 import static java.util.Map.entry;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
-import static java.util.stream.Stream.concat;
 
 /**
  * @param <ID>  Correlation Id type
