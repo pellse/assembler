@@ -20,7 +20,6 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvents;
@@ -195,7 +194,7 @@ public class TestAssemblerCaffeineCache {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoEventFlux, 3)))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(emptyQuery(), caffeineCache(), autoCache(orderItemFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(caffeineCache(), autoCache(orderItemFlux, 3)))),
                         Transaction::new)
                 .build();
 

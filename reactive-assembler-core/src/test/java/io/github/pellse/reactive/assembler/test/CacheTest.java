@@ -22,7 +22,6 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.toCacheEvents;
@@ -276,7 +275,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(toCacheEvents(billingInfoFlux), 4)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(autoCache(toCacheEvents(billingInfoFlux), 4)))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
                 .build();
@@ -335,7 +334,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(
+                        rule(BillingInfo::customerId, oneToOne(cached(autoCache(
                                 toCacheEvents(billingInfoFlux),
                                 onErrorContinue(error -> assertInstanceOf(NullPointerException.class, error)))))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
@@ -381,8 +380,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoEventFlux, 3)))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(emptyQuery(), cache(), autoCache(orderItemFlux, 3)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(autoCache(billingInfoEventFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), autoCache(orderItemFlux, 3)))),
                         Transaction::new)
                 .build();
 
@@ -428,7 +427,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoFlux, 3)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(autoCache(billingInfoFlux, 3)))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders, cache(), autoCache(orderItemFlux, 3)))),
                         Transaction::new)
                 .build();
@@ -514,8 +513,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(emptyQuery(), autoCache(billingInfoFlux, 3)))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(emptyQuery(), autoCache(orderItemFlux, 3)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(autoCache(billingInfoFlux, 3)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(autoCache(orderItemFlux, 3)))),
                         Transaction::new)
                 .build(boundedElastic());
 

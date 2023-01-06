@@ -12,6 +12,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
 import static io.github.pellse.util.ObjectUtils.*;
@@ -33,6 +34,33 @@ public interface CacheFactory<ID, R, RRC> {
     Cache<ID, R> create(
             Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction,
             Context<ID, R, RRC> context);
+
+    @SafeVarargs
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(cache(), delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
+            Supplier<Map<ID, List<R>>> mapSupplier,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(emptyQuery(), mapSupplier, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
+            Map<ID, List<R>> delegateMap,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(emptyQuery(), delegateMap, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
+            CacheFactory<ID, R, RRC> cache,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+        return cached(emptyQuery(), cache, delegateCacheFactories);
+    }
 
     @SafeVarargs
     static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
