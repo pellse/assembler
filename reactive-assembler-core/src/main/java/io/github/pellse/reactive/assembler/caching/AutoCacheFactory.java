@@ -65,6 +65,73 @@ public interface AutoCacheFactory {
         return flux.map(Updated::new);
     }
 
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource) {
+        return autoCacheFlux(dataSource, MAX_WINDOW_SIZE);
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource,
+            ErrorHandler handler) {
+        return autoCacheFlux(dataSource, MAX_WINDOW_SIZE, handler);
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource,
+            int maxWindowSize) {
+        return autoCacheFlux(dataSource, flux -> flux.window(maxWindowSize));
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource,
+            int maxWindowSize,
+            ErrorHandler handler) {
+        return autoCacheFlux(dataSource, flux -> flux.window(maxWindowSize), handler);
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource,
+            Duration maxWindowTime) {
+        return autoCacheFlux(dataSource, flux -> flux.window(maxWindowTime));
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource,
+            Duration maxWindowTime,
+            ErrorHandler handler) {
+        return autoCacheFlux(dataSource, flux -> flux.window(maxWindowTime), handler);
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource,
+            int maxWindowSize,
+            Duration maxWindowTime) {
+        return autoCacheFlux(dataSource, flux -> flux.windowTimeout(maxWindowSize, maxWindowTime));
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource,
+            int maxWindowSize,
+            Duration maxWindowTime,
+            ErrorHandler handler) {
+        return autoCacheFlux(dataSource, flux -> flux.windowTimeout(maxWindowSize, maxWindowTime), handler);
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource,
+            WindowingStrategy<CacheEvent<R>> windowingStrategy) {
+
+        return autoCacheFlux(dataSource, windowingStrategy, onErrorStop());
+    }
+
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
+            Flux<R> dataSource,
+            WindowingStrategy<CacheEvent<R>> windowingStrategy,
+            ErrorHandler errorHandler) {
+
+        return autoCache(toCacheEvents(dataSource), windowingStrategy, errorHandler);
+    }
+
     static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
             Flux<? extends CacheEvent<R>> dataSource) {
         return autoCache(dataSource, MAX_WINDOW_SIZE);
@@ -131,12 +198,13 @@ public interface AutoCacheFactory {
 
         return cacheFactory -> (fetchFunction, context) -> {
             var cache = concurrent(cacheFactory.create(fetchFunction, context));
-            var cacheSourceFlux = errorHandler.toFluxErrorHandler().apply(
-                    windowingStrategy.toWindowedFlux(dataSource)
-                            .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
-                            .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context))));
 
-            cacheSourceFlux.subscribe();
+            var cacheSourceFlux = windowingStrategy.toWindowedFlux(dataSource)
+                    .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
+                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context)));
+
+            errorHandler.toFluxErrorHandler().apply(cacheSourceFlux).subscribe();
+
             return cache;
         };
     }
