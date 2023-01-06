@@ -20,7 +20,6 @@ import io.github.pellse.assembler.*;
 import io.github.pellse.reactive.assembler.Assembler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -52,16 +51,21 @@ public class FluxAssemblerJavaTest {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-    private Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
+    private Flux<BillingInfo> getBillingInfo(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
     }
 
-    private Publisher<OrderItem> getAllOrders(List<Long> customerIds) {
+    private Flux<OrderItem> getAllOrders(List<Long> customerIds) {
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
+    }
+
+    private Flux<OrderItem> getAllOrdersWithErrorOn2ndOrderItemOf1stCustomer(List<Long> customerIds) {
+        return getAllOrders(customerIds)
+                .flatMap(orderItem -> !orderItem.equals(orderItem12) ? Flux.just(orderItem) : Flux.error(new Exception()));
     }
 
     private List<BillingInfo> getBillingInfoNonReactive(List<Long> customerIds) {
@@ -168,6 +172,31 @@ public class FluxAssemblerJavaTest {
         StepVerifier.create(getCustomers()
                         .window(3)
                         .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(2, billingInvocationCount.get());
+        assertEquals(2, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithErrorOn2ndOrderItemOf1stCustomer() {
+
+        Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(orderItem11, orderItem13));
+
+        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrdersWithErrorOn2ndOrderItemOf1stCustomer)),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .flatMapSequential(customers -> assembler.assemble(customers).onErrorContinue((error, o) -> {})))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
                 .expectComplete()
