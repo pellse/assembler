@@ -4,7 +4,7 @@ dependencies {
     implementation("com.lightbend.microprofile.reactive.streams:lightbend-microprofile-reactive-streams-zerodep:1.0.0")
 
     testImplementation project(':assembler-core').sourceSets.test.output
-    testImplementation 'io.projectreactor:reactor-core:3.5.0'
+    testImplementation 'io.projectreactor:reactor-core:3.5.1'
     testImplementation 'io.reactivex.rxjava3:rxjava:3.1.5'
-    testImplementation 'io.projectreactor:reactor-test:3.5.0'
+    testImplementation 'io.projectreactor:reactor-test:3.5.1'
 }
