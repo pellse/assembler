@@ -57,9 +57,7 @@ public interface AutoCacheFactory {
     int MAX_WINDOW_SIZE = 1;
 
     @FunctionalInterface
-    interface WindowingStrategy<R> {
-        Flux<Flux<R>> toWindowedFlux(Flux<R> flux);
-    }
+    interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {}
 
     static <R> Flux<CacheEvent<R>> toCacheEvents(Flux<R> flux) {
         return flux.map(Updated::new);
@@ -199,7 +197,7 @@ public interface AutoCacheFactory {
         return cacheFactory -> (fetchFunction, context) -> {
             var cache = concurrent(cacheFactory.create(fetchFunction, context));
 
-            var cacheSourceFlux = windowingStrategy.toWindowedFlux(dataSource)
+            var cacheSourceFlux = dataSource.transform(windowingStrategy)
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context)));
 
