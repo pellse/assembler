@@ -5,6 +5,7 @@ import io.github.pellse.assembler.Customer;
 import io.github.pellse.assembler.OrderItem;
 import io.github.pellse.assembler.Transaction;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
+import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -20,8 +21,10 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.compose;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.*;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCacheFlux;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
@@ -112,6 +115,35 @@ public class TestAssemblerCaffeineCache {
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cached(this::getAllOrders, caffeineCache())))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(1, billingInvocationCount.get());
+        assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithTripleCaching() {
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
+                        rule(OrderItem::customerId,
+                                oneToMany(OrderItem::id,
+                                        compose(
+                                                cached(this::getAllOrders, caffeineCache()),
+                                                CacheFactory::cached,
+                                                CacheFactory::cached))),
                         Transaction::new)
                 .build();
 
