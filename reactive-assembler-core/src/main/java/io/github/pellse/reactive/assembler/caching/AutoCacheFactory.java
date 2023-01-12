@@ -27,26 +27,26 @@ public interface AutoCacheFactory {
         ConfigBuilder<R> windowingStrategy(WindowingStrategy<T> windowingStrategy);
     }
 
-    interface ConfigBuilder<R> extends SubscriptionEventSourceBuilder<R> {
-        SubscriptionEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler);
+    interface ConfigBuilder<R> extends LifeCycleEventSourceBuilder<R> {
+        LifeCycleEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler);
     }
 
-    interface SubscriptionEventSourceBuilder<R> extends AutoCacheBuilder<R> {
-        AutoCacheBuilder<R> subscriptionEventSource(SubscriptionEventSource eventSource);
+    interface LifeCycleEventSourceBuilder<R> extends AutoCacheBuilder<R> {
+        AutoCacheBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource);
     }
 
     interface AutoCacheBuilder<R> {
         <ID, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> build();
     }
 
-    interface SubscriptionEventSource {
-        void addSubscriptionEventListener(SubscriptionEventListener listener);
+    interface LifeCycleEventSource {
+        void addLifeCycleEventListener(LifeCycleEventListener listener);
     }
 
-    interface SubscriptionEventListener {
-        void onSubscribe();
+    interface LifeCycleEventListener {
+        void onStart();
 
-        void onDispose();
+        void onComplete();
     }
 
     class Builder<R, T extends CacheEvent<R>> implements WindowingStrategyBuilder<R, T> {
@@ -54,7 +54,7 @@ public interface AutoCacheFactory {
         private final Flux<T> dataSource;
         private WindowingStrategy<T> windowingStrategy = flux -> flux.window(MAX_WINDOW_SIZE);
         private ErrorHandler errorHandler = onErrorStop();
-        private SubscriptionEventSource eventSource = SubscriptionEventListener::onSubscribe;
+        private LifeCycleEventSource eventSource = LifeCycleEventListener::onStart;
 
         Builder(Flux<T> dataSource) {
             this.dataSource = dataSource;
@@ -82,13 +82,13 @@ public interface AutoCacheFactory {
         }
 
         @Override
-        public SubscriptionEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler) {
+        public LifeCycleEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler) {
             this.errorHandler = errorHandler;
             return this;
         }
 
         @Override
-        public AutoCacheBuilder<R> subscriptionEventSource(SubscriptionEventSource eventSource) {
+        public AutoCacheBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource) {
             this.eventSource = eventSource;
             return this;
         }
@@ -156,7 +156,7 @@ public interface AutoCacheFactory {
             Flux<T> dataSource,
             WindowingStrategy<T> windowingStrategy,
             ErrorHandler errorHandler,
-            SubscriptionEventSource subscriptionEventSource) {
+            LifeCycleEventSource lifeCycleEventSource) {
 
         return cacheFactory -> (fetchFunction, context) -> {
             var cache = concurrent(cacheFactory.create(fetchFunction, context));
@@ -166,19 +166,19 @@ public interface AutoCacheFactory {
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context)))
                     .transform(errorHandler.toFluxErrorHandler());
 
-            subscriptionEventSource.addSubscriptionEventListener(new SubscriptionEventListener() {
+            lifeCycleEventSource.addLifeCycleEventListener(new LifeCycleEventListener() {
 
                 private Disposable disposable;
 
                 @Override
-                public void onSubscribe() {
+                public void onStart() {
                     if (this.disposable ==  null || this.disposable.isDisposed()) {
                         this.disposable = cacheSourceFlux.subscribe();
                     }
                 }
 
                 @Override
-                public void onDispose() {
+                public void onComplete() {
                     if (!this.disposable.isDisposed()) {
                         this.disposable.dispose();
                     }
