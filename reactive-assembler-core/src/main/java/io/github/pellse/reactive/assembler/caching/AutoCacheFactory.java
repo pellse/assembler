@@ -2,6 +2,7 @@ package io.github.pellse.reactive.assembler.caching;
 
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.Context;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
@@ -17,8 +18,89 @@ import static java.util.stream.Collectors.partitioningBy;
 
 public interface AutoCacheFactory {
 
+    int MAX_WINDOW_SIZE = 1;
+
+    interface WindowingStrategyBuilder<R, T extends CacheEvent<R>> extends ConfigBuilder<R> {
+        ConfigBuilder<R> maxWindowSize(int maxWindowSize);
+        ConfigBuilder<R> maxWindowTime(Duration maxWindowTime);
+        ConfigBuilder<R> maxWindowSizeAndTime(int maxWindowSize, Duration maxWindowTime);
+        ConfigBuilder<R> windowingStrategy(WindowingStrategy<T> windowingStrategy);
+    }
+
+    interface ConfigBuilder<R> extends SubscriptionEventSourceBuilder<R> {
+        SubscriptionEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler);
+    }
+
+    interface SubscriptionEventSourceBuilder<R> extends AutoCacheBuilder<R> {
+        AutoCacheBuilder<R> subscriptionEventSource(SubscriptionEventSource eventSource);
+    }
+
+    interface AutoCacheBuilder<R> {
+        <ID, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> build();
+    }
+
+    interface SubscriptionEventSource {
+        void addSubscriptionEventListener(SubscriptionEventListener listener);
+    }
+
+    interface SubscriptionEventListener {
+        void onSubscribe();
+
+        void onDispose();
+    }
+
+    class Builder<R, T extends CacheEvent<R>> implements WindowingStrategyBuilder<R, T> {
+
+        private final Flux<T> dataSource;
+        private WindowingStrategy<T> windowingStrategy = flux -> flux.window(MAX_WINDOW_SIZE);
+        private ErrorHandler errorHandler = onErrorStop();
+        private SubscriptionEventSource eventSource = SubscriptionEventListener::onSubscribe;
+
+        Builder(Flux<T> dataSource) {
+            this.dataSource = dataSource;
+        }
+
+        @Override
+        public ConfigBuilder<R> maxWindowSize(int maxWindowSize) {
+            return windowingStrategy(flux -> flux.window(maxWindowSize));
+        }
+
+        @Override
+        public ConfigBuilder<R> maxWindowTime(Duration maxWindowTime) {
+            return windowingStrategy(flux -> flux.window(maxWindowTime));
+        }
+
+        @Override
+        public ConfigBuilder<R> maxWindowSizeAndTime(int maxWindowSize, Duration maxWindowTime) {
+            return windowingStrategy(flux -> flux.windowTimeout(maxWindowSize, maxWindowTime));
+        }
+
+        @Override
+        public ConfigBuilder<R> windowingStrategy(WindowingStrategy<T> windowingStrategy) {
+            this.windowingStrategy = windowingStrategy;
+            return this;
+        }
+
+        @Override
+        public SubscriptionEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler) {
+            this.errorHandler = errorHandler;
+            return this;
+        }
+
+        @Override
+        public AutoCacheBuilder<R> subscriptionEventSource(SubscriptionEventSource eventSource) {
+            this.eventSource = eventSource;
+            return this;
+        }
+
+        @Override
+        public <ID, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> build() {
+            return autoCache(this.dataSource, this.windowingStrategy, this.errorHandler, this.eventSource);
+        }
+    }
+
     sealed interface ErrorHandler {
-        Function<Flux<?>, Flux<?>> toFluxErrorHandler();
+        <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler();
     }
 
     record OnErrorContinue(Consumer<Throwable> errorConsumer) implements ErrorHandler {
@@ -27,7 +109,7 @@ public interface AutoCacheFactory {
         }
 
         @Override
-        public Function<Flux<?>, Flux<?>> toFluxErrorHandler() {
+        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
             return flux -> flux.onErrorContinue((error, object) -> errorConsumer().accept(error));
         }
     }
@@ -38,7 +120,7 @@ public interface AutoCacheFactory {
         }
 
         @Override
-        public Function<Flux<?>, Flux<?>> toFluxErrorHandler() {
+        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
             return flux -> flux.onErrorMap(mapper());
         }
     }
@@ -49,159 +131,59 @@ public interface AutoCacheFactory {
         }
 
         @Override
-        public Function<Flux<?>, Flux<?>> toFluxErrorHandler() {
+        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
             return Flux::onErrorStop;
         }
     }
 
-    int MAX_WINDOW_SIZE = 1;
-
     @FunctionalInterface
-    interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {}
+    interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
+    }
 
     static <R> Flux<CacheEvent<R>> toCacheEvents(Flux<R> flux) {
         return flux.map(Updated::new);
     }
 
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource) {
-        return autoCacheFlux(dataSource, MAX_WINDOW_SIZE);
+    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> autoCacheFlux(Flux<R> dataSource) {
+        return autoCache(toCacheEvents(dataSource));
     }
 
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource,
-            ErrorHandler handler) {
-        return autoCacheFlux(dataSource, MAX_WINDOW_SIZE, handler);
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource,
-            int maxWindowSize) {
-        return autoCacheFlux(dataSource, flux -> flux.window(maxWindowSize));
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource,
-            int maxWindowSize,
-            ErrorHandler handler) {
-        return autoCacheFlux(dataSource, flux -> flux.window(maxWindowSize), handler);
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource,
-            Duration maxWindowTime) {
-        return autoCacheFlux(dataSource, flux -> flux.window(maxWindowTime));
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource,
-            Duration maxWindowTime,
-            ErrorHandler handler) {
-        return autoCacheFlux(dataSource, flux -> flux.window(maxWindowTime), handler);
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource,
-            int maxWindowSize,
-            Duration maxWindowTime) {
-        return autoCacheFlux(dataSource, flux -> flux.windowTimeout(maxWindowSize, maxWindowTime));
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource,
-            int maxWindowSize,
-            Duration maxWindowTime,
-            ErrorHandler handler) {
-        return autoCacheFlux(dataSource, flux -> flux.windowTimeout(maxWindowSize, maxWindowTime), handler);
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource,
-            WindowingStrategy<CacheEvent<R>> windowingStrategy) {
-
-        return autoCacheFlux(dataSource, windowingStrategy, onErrorStop());
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCacheFlux(
-            Flux<R> dataSource,
-            WindowingStrategy<CacheEvent<R>> windowingStrategy,
-            ErrorHandler errorHandler) {
-
-        return autoCache(toCacheEvents(dataSource), windowingStrategy, errorHandler);
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource) {
-        return autoCache(dataSource, MAX_WINDOW_SIZE);
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource,
-            ErrorHandler handler) {
-        return autoCache(dataSource, MAX_WINDOW_SIZE, handler);
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource,
-            int maxWindowSize) {
-        return autoCache(dataSource, flux -> flux.window(maxWindowSize));
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource,
-            int maxWindowSize,
-            ErrorHandler handler) {
-        return autoCache(dataSource, flux -> flux.window(maxWindowSize), handler);
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource,
-            Duration maxWindowTime) {
-        return autoCache(dataSource, flux -> flux.window(maxWindowTime));
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource,
-            Duration maxWindowTime,
-            ErrorHandler handler) {
-        return autoCache(dataSource, flux -> flux.window(maxWindowTime), handler);
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource,
-            int maxWindowSize,
-            Duration maxWindowTime) {
-        return autoCache(dataSource, flux -> flux.windowTimeout(maxWindowSize, maxWindowTime));
-    }
-
-    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<? extends CacheEvent<R>> dataSource,
-            int maxWindowSize,
-            Duration maxWindowTime,
-            ErrorHandler handler) {
-        return autoCache(dataSource, flux -> flux.windowTimeout(maxWindowSize, maxWindowTime), handler);
-    }
-
-    static <ID, R, RRC, T extends CacheEvent<R>> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
-            Flux<T> dataSource,
-            WindowingStrategy<T> windowingStrategy) {
-
-        return autoCache(dataSource, windowingStrategy, onErrorStop());
+    static <R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCache(Flux<T> dataSource) {
+        return new Builder<>(dataSource);
     }
 
     static <ID, R, RRC, T extends CacheEvent<R>> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
             Flux<T> dataSource,
             WindowingStrategy<T> windowingStrategy,
-            ErrorHandler errorHandler) {
+            ErrorHandler errorHandler,
+            SubscriptionEventSource subscriptionEventSource) {
 
         return cacheFactory -> (fetchFunction, context) -> {
             var cache = concurrent(cacheFactory.create(fetchFunction, context));
 
             var cacheSourceFlux = dataSource.transform(windowingStrategy)
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
-                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context)));
+                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context)))
+                    .transform(errorHandler.toFluxErrorHandler());
 
-            errorHandler.toFluxErrorHandler().apply(cacheSourceFlux).subscribe();
+            subscriptionEventSource.addSubscriptionEventListener(new SubscriptionEventListener() {
+
+                private Disposable disposable;
+
+                @Override
+                public void onSubscribe() {
+                    if (this.disposable ==  null || this.disposable.isDisposed()) {
+                        this.disposable = cacheSourceFlux.subscribe();
+                    }
+                }
+
+                @Override
+                public void onDispose() {
+                    if (!this.disposable.isDisposed()) {
+                        this.disposable.dispose();
+                    }
+                }
+            });
 
             return cache;
         };

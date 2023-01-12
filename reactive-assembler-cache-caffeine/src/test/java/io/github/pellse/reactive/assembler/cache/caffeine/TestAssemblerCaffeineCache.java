@@ -181,8 +181,8 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheFlux(dataSource1)))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCacheFlux(dataSource2)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheFlux(dataSource1).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCacheFlux(dataSource2).build()))),
                         Transaction::new)
                 .build();
 
@@ -232,8 +232,8 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoEventFlux, 3)))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(caffeineCache(), autoCache(orderItemFlux, 3)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoEventFlux).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(caffeineCache(), autoCache(orderItemFlux).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build();
 
