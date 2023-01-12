@@ -18,6 +18,44 @@ import static java.util.Arrays.stream;
 public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
         extends Function<RuleMapperContext<ID, EID, IDC, R, RRC>, Function<IDC, Publisher<R>>> {
 
+    interface RuleMapperBuilder<ID, IDC extends Collection<ID>, R> {
+        RuleMapperBuilder<ID, IDC, R> compose(
+                Function<? super RuleMapperSource<ID, ?, IDC, R, ?>, ? extends RuleMapperSource<ID, ?, IDC, R, ?>> mappingFunction);
+
+        <EID, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> get();
+    }
+
+    class Builder<ID, IDC extends Collection<ID>, R> implements RuleMapperBuilder<ID, IDC, R> {
+
+        private RuleMapperSource<ID, ?, IDC, R, ?> source;
+
+        public Builder(RuleMapperSource<ID, ?, IDC, R, ?> source) {
+            this.source = source;
+        }
+
+        @Override
+        public RuleMapperBuilder<ID, IDC, R> compose(
+                Function<? super RuleMapperSource<ID, ?, IDC, R, ?>, ? extends RuleMapperSource<ID, ?, IDC, R, ?>> mappingFunction) {
+
+            this.source = mappingFunction.apply(source);
+            return this;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public <EID, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> get() {
+            return (RuleMapperSource<ID, EID, IDC, R, RRC>) this.source;
+        }
+    }
+
+    static <ID, IDC extends Collection<ID>, R> RuleMapperBuilder<ID, IDC, R> from(Function<IDC, Publisher<R>> queryFunction) {
+        return from(call(queryFunction));
+    }
+
+    static <ID, IDC extends Collection<ID>, R> RuleMapperBuilder<ID, IDC, R> from(RuleMapperSource<ID, ?, IDC, R, ?> source) {
+        return new Builder<>(source);
+    }
+
     static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> call(Function<IDC, Publisher<R>> queryFunction) {
         return ruleContext -> queryFunction;
     }

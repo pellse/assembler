@@ -113,9 +113,9 @@ public interface CacheFactory<ID, R, RRC> {
     @SafeVarargs
     static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
-            CacheFactory<ID, R, RRC> cache,
+            CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(call(queryFunction), cache, delegateCacheFactories);
+        return cached(call(queryFunction), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs

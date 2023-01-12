@@ -22,6 +22,7 @@ import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.compose;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.from;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCacheFlux;
@@ -137,13 +138,20 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(
+                                compose(
+                                        cached(this::getBillingInfo, caffeineCache()),
+                                        CacheFactory::cached,
+                                        CacheFactory::cached),
+                                BillingInfo::new)),
                         rule(OrderItem::customerId,
                                 oneToMany(OrderItem::id,
-                                        compose(
-                                                cached(this::getAllOrders, caffeineCache()),
-                                                CacheFactory::cached,
-                                                CacheFactory::cached))),
+                                        from(this::getAllOrders)
+                                                .compose(ruleMapperSource -> cached(ruleMapperSource, caffeineCache()))
+                                                .compose(CacheFactory::cached)
+                                                .compose(CacheFactory::cached)
+                                                .get()
+                                )),
                         Transaction::new)
                 .build();
 
