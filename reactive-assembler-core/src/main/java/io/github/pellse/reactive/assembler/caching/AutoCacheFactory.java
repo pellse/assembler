@@ -1,5 +1,7 @@
 package io.github.pellse.reactive.assembler.caching;
 
+import io.github.pellse.reactive.assembler.LifeCycleEventSource;
+import io.github.pellse.reactive.assembler.LifeCycleEventSource.LifeCycleEventListener;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.Context;
 import reactor.core.Disposable;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
 import static java.util.stream.Collectors.groupingBy;
@@ -22,8 +25,11 @@ public interface AutoCacheFactory {
 
     interface WindowingStrategyBuilder<R, T extends CacheEvent<R>> extends ConfigBuilder<R> {
         ConfigBuilder<R> maxWindowSize(int maxWindowSize);
+
         ConfigBuilder<R> maxWindowTime(Duration maxWindowTime);
+
         ConfigBuilder<R> maxWindowSizeAndTime(int maxWindowSize, Duration maxWindowTime);
+
         ConfigBuilder<R> windowingStrategy(WindowingStrategy<T> windowingStrategy);
     }
 
@@ -39,22 +45,12 @@ public interface AutoCacheFactory {
         <ID, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> build();
     }
 
-    interface LifeCycleEventSource {
-        void addLifeCycleEventListener(LifeCycleEventListener listener);
-    }
-
-    interface LifeCycleEventListener {
-        void onStart();
-
-        void onComplete();
-    }
-
     class Builder<R, T extends CacheEvent<R>> implements WindowingStrategyBuilder<R, T> {
 
         private final Flux<T> dataSource;
         private WindowingStrategy<T> windowingStrategy = flux -> flux.window(MAX_WINDOW_SIZE);
         private ErrorHandler errorHandler = onErrorStop();
-        private LifeCycleEventSource eventSource = LifeCycleEventListener::onStart;
+        private LifeCycleEventSource eventSource = LifeCycleEventListener::start;
 
         Builder(Flux<T> dataSource) {
             this.dataSource = dataSource;
@@ -166,24 +162,7 @@ public interface AutoCacheFactory {
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context)))
                     .transform(errorHandler.toFluxErrorHandler());
 
-            lifeCycleEventSource.addLifeCycleEventListener(new LifeCycleEventListener() {
-
-                private Disposable disposable;
-
-                @Override
-                public void onStart() {
-                    if (this.disposable ==  null || this.disposable.isDisposed()) {
-                        this.disposable = cacheSourceFlux.subscribe();
-                    }
-                }
-
-                @Override
-                public void onComplete() {
-                    if (!this.disposable.isDisposed()) {
-                        this.disposable.dispose();
-                    }
-                }
-            });
+            lifeCycleEventSource.addLifeCycleEventListener(lifeCycleEventAdapter(cacheSourceFlux, Flux::subscribe, Disposable::dispose));
 
             return cache;
         };
