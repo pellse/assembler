@@ -2,6 +2,7 @@ package io.github.pellse.reactive.assembler;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public interface LifeCycleEventBroadcaster extends LifeCycleEventSource {
     void start();
@@ -13,15 +14,20 @@ public interface LifeCycleEventBroadcaster extends LifeCycleEventSource {
         return new LifeCycleEventBroadcaster() {
 
             private final List<LifeCycleEventListener> listeners = new ArrayList<>();
+            private final AtomicBoolean isStarted = new AtomicBoolean();
 
             @Override
             public void start() {
-                listeners.forEach(LifeCycleEventListener::start);
+                if (isStarted.compareAndSet(false, true)) {
+                    listeners.forEach(LifeCycleEventListener::start);
+                }
             }
 
             @Override
             public void stop() {
-                listeners.forEach(LifeCycleEventListener::stop);
+                if (isStarted.get()) {
+                    listeners.forEach(LifeCycleEventListener::stop);
+                }
             }
 
             @Override
