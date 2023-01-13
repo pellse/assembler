@@ -23,6 +23,9 @@ public interface AutoCacheFactory {
 
     int MAX_WINDOW_SIZE = 1;
 
+    interface AutoCacheFactoryDelegate<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
+    }
+
     interface WindowingStrategyBuilder<R, T extends CacheEvent<R>> extends ConfigBuilder<R> {
         ConfigBuilder<R> maxWindowSize(int maxWindowSize);
 
@@ -42,7 +45,7 @@ public interface AutoCacheFactory {
     }
 
     interface AutoCacheBuilder<R> {
-        <ID, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> build();
+        <ID, RRC> AutoCacheFactoryDelegate<ID, R, RRC> build();
     }
 
     class Builder<R, T extends CacheEvent<R>> implements WindowingStrategyBuilder<R, T> {
@@ -90,7 +93,7 @@ public interface AutoCacheFactory {
         }
 
         @Override
-        public <ID, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> build() {
+        public <ID, RRC> AutoCacheFactoryDelegate<ID, R, RRC> build() {
             return autoCache(this.dataSource, this.windowingStrategy, this.errorHandler, this.eventSource);
         }
     }
@@ -148,7 +151,7 @@ public interface AutoCacheFactory {
         return new Builder<>(dataSource);
     }
 
-    static <ID, R, RRC, T extends CacheEvent<R>> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> autoCache(
+    static <ID, R, RRC, T extends CacheEvent<R>> AutoCacheFactoryDelegate<ID, R, RRC> autoCache(
             Flux<T> dataSource,
             WindowingStrategy<T> windowingStrategy,
             ErrorHandler errorHandler,

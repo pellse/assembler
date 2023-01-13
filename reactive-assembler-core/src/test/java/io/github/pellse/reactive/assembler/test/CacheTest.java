@@ -425,11 +425,19 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
+        AutoCacheFactoryDelegate<Long, BillingInfo, BillingInfo> billingInfoAutoCache = autoCache(billingInfoEventFlux)
+                .maxWindowSize(3)
+                .build();
+
+        AutoCacheFactoryDelegate<Long, OrderItem, List<OrderItem>> orderItemAutoCache = autoCache(orderItemFlux)
+                .maxWindowSize(3)
+                .build();
+
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(autoCache(billingInfoEventFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), autoCache(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache))),
                         Transaction::new)
                 .build();
 
