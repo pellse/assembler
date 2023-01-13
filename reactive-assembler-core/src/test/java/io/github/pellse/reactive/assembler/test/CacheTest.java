@@ -19,6 +19,7 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.LifeCycleEventBroadcaster.lifeCycleEventBroadcaster;
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
@@ -29,6 +30,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheEvent.*;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
+import static io.github.pellse.util.ObjectUtils.run;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,6 +52,7 @@ record CDCDelete<T>(T item) implements CDC<T> {
         return new CDCDelete<>(item);
     }
 }
+
 public class CacheTest {
 
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
@@ -324,6 +327,51 @@ public class CacheTest {
     }
 
     @Test
+    public void testReusableAssemblerBuilderWithAutoCachingLifeCycleEventListener() {
+
+        Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3)
+                .subscribeOn(parallel());
+
+        Flux<OrderItem> orderItemFlux = Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33)
+                .subscribeOn(parallel());
+
+        Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
+
+        var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
+                                autoCacheFlux(billingInfoFlux)
+                                        .maxWindowSize(3)
+                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
+                                        .build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(),
+                                autoCacheFlux(orderItemFlux)
+                                        .maxWindowSize(3)
+                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
+                                        .build()))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble)
+                        .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
+                        .doOnComplete(lifeCycleEventBroadcaster::stop))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(0, billingInvocationCount.get());
+        assertEquals(0, ordersInvocationCount.get());
+    }
+
+    @Test
     public void testReusableAssemblerBuilderWithAutoCachingError() {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, null, "4540111111111111"); // null customerId, will trigger NullPointerException
@@ -451,7 +499,7 @@ public class CacheTest {
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
 
         Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
-                        updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2));
+                updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2));
 
         var orderItemFlux = Flux.just(
                         cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
