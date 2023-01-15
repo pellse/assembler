@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+@FunctionalInterface
 public interface LifeCycleEventSource {
 
     interface LifeCycleEventListener {
