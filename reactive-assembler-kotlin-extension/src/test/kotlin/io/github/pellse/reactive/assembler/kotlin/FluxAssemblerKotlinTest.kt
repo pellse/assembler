@@ -6,7 +6,7 @@ import io.github.pellse.reactive.assembler.Mapper.rule
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
 import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache
-import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache
+import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents
 import io.github.pellse.reactive.assembler.caching.Cache.cache
 import io.github.pellse.reactive.assembler.caching.CacheEvent.*
 import io.github.pellse.reactive.assembler.kotlin.FluxAssemblerKotlinTest.CDC.CDCAdd
@@ -266,8 +266,8 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withCorrelationIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(autoCache(billingInfoFlux).maxWindowSize(3).build()))),
-                rule(OrderItem::customerId, oneToMany(OrderItem::id, getAllOrders.cached(cache(), autoCache(orderItemFlux).maxWindowSize(3).build()))),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(autoCacheEvents(billingInfoFlux).maxWindowSize(3).build()))),
+                rule(OrderItem::customerId, oneToMany(OrderItem::id, getAllOrders.cached(cache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
                 ::Transaction
             )
             .build()

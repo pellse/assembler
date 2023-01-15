@@ -1,6 +1,7 @@
 package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
+import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.AutoCacheFactoryDelegate;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,8 +24,9 @@ import static io.github.pellse.reactive.assembler.LifeCycleEventBroadcaster.life
 import static io.github.pellse.reactive.assembler.Mapper.rule;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.*;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCache;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
 import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.*;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
@@ -247,8 +249,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCacheFlux(billingInfoFlux).maxWindowSize(10).build(), cff1, cff2))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), autoCacheFlux(orderItemFlux).maxWindowSize(10).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoFlux).maxWindowSize(10).build(), cff1, cff2))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), autoCache(orderItemFlux).maxWindowSize(10).build()))),
                         Transaction::new)
                 .build();
 
@@ -277,7 +279,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(autoCacheFlux(billingInfoFlux).maxWindowSize(4).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(autoCache(billingInfoFlux).maxWindowSize(4).build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
                 .build();
@@ -308,8 +310,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCacheFlux(dataSource1).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCacheFlux(dataSource2).maxWindowSize(1).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(dataSource1).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(dataSource2).maxWindowSize(1).build()))),
                         Transaction::new)
                 .build();
 
@@ -344,12 +346,12 @@ public class CacheTest {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
-                                autoCacheFlux(billingInfoFlux)
+                                autoCache(billingInfoFlux)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(),
-                                autoCacheFlux(orderItemFlux)
+                                autoCache(orderItemFlux)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
                                         .build()))),
@@ -382,7 +384,7 @@ public class CacheTest {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(
-                                autoCache(toCacheEvents(billingInfoFlux))
+                                autoCache(billingInfoFlux)
                                         .errorHandler(onErrorContinue(error -> assertInstanceOf(NullPointerException.class, error)))
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
@@ -425,11 +427,11 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
-        AutoCacheFactoryDelegate<Long, BillingInfo, BillingInfo> billingInfoAutoCache = autoCache(billingInfoEventFlux)
+        AutoCacheFactoryDelegate<Long, BillingInfo, BillingInfo> billingInfoAutoCache = autoCacheEvents(billingInfoEventFlux)
                 .maxWindowSize(3)
                 .build();
 
-        AutoCacheFactoryDelegate<Long, OrderItem, List<OrderItem>> orderItemAutoCache = autoCache(orderItemFlux)
+        AutoCacheFactoryDelegate<Long, OrderItem, List<OrderItem>> orderItemAutoCache = autoCacheEvents(orderItemFlux)
                 .maxWindowSize(3)
                 .build();
 
@@ -483,8 +485,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(autoCache(billingInfoFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders, cache(), autoCache(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(autoCacheEvents(billingInfoFlux).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders, cache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build();
 
@@ -522,8 +524,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCache(billingInfoEventFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCacheEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build(immediate());
 
@@ -569,8 +571,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(autoCache(billingInfoFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(autoCache(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(autoCacheEvents(billingInfoFlux).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build(boundedElastic());
 
