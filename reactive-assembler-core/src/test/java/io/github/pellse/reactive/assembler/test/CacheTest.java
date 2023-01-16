@@ -420,20 +420,21 @@ public class CacheTest {
                         cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
                         cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                         cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11))
-                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item))
                 .subscribeOn(parallel());
 
         Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(updatedOrderItem11, orderItem12, orderItem13));
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
-        AutoCacheFactoryDelegate<Long, BillingInfo, BillingInfo> billingInfoAutoCache = autoCacheEvents(billingInfoEventFlux)
-                .maxWindowSize(3)
-                .build();
+        AutoCacheFactoryDelegate<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
+                autoCacheEvents(billingInfoEventFlux)
+                        .maxWindowSize(3)
+                        .build();
 
-        AutoCacheFactoryDelegate<Long, OrderItem, List<OrderItem>> orderItemAutoCache = autoCacheEvents(orderItemFlux)
-                .maxWindowSize(3)
-                .build();
+        AutoCacheFactoryDelegate<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
+                autoCache(orderItemFlux, toCacheEvent(CDCAdd.class::isInstance, CDC::item))
+                        .maxWindowSize(3)
+                        .build();
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
@@ -477,7 +478,6 @@ public class CacheTest {
                         cdcAdd(orderItem21), cdcAdd(orderItem22),
                         cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                         cdcDelete(orderItem31), cdcDelete(orderItem32), cdcDelete(orderItem33))
-                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item))
                 .subscribeOn(parallel());
 
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
@@ -485,8 +485,14 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(autoCacheEvents(billingInfoFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders, cache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(
+                                autoCacheEvents(billingInfoFlux)
+                                        .maxWindowSize(3)
+                                        .build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders, cache(),
+                                autoCache(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+                                        .maxWindowSize(3)
+                                        .build()))),
                         Transaction::new)
                 .build();
 

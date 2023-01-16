@@ -9,9 +9,11 @@ import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.MAX_WINDOW_SIZE;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 
 public interface AutoCacheFactoryBuilder {
 
@@ -92,7 +94,14 @@ public interface AutoCacheFactoryBuilder {
         return autoCache(dataSource, CacheEvent::updated);
     }
 
-    static <R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCache(Flux<R> dataSource, Function<R, T> mapper) {
+    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCache(
+            Flux<U> dataSource,
+            Predicate<U> isUpdated,
+            Function<U, R> cacheEventValueExtractor) {
+        return autoCacheEvents(dataSource.map(toCacheEvent(isUpdated, cacheEventValueExtractor)));
+    }
+
+    static <U, R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCache(Flux<U> dataSource, Function<U, T> mapper) {
         return autoCacheEvents(dataSource.map(mapper));
     }
 
