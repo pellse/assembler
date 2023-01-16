@@ -20,7 +20,7 @@ public interface AutoCacheFactory {
 
     int MAX_WINDOW_SIZE = 1;
 
-    interface AutoCacheFactoryDelegate<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
+    interface AutoCacheTransformer<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
     }
 
     sealed interface ErrorHandler {
@@ -64,7 +64,7 @@ public interface AutoCacheFactory {
     interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
     }
 
-    static <ID, R, RRC, T extends CacheEvent<R>> AutoCacheFactoryDelegate<ID, R, RRC> autoCache(
+    static <ID, R, RRC, T extends CacheEvent<R>> AutoCacheTransformer<ID, R, RRC> autoCache(
             Flux<T> dataSource,
             WindowingStrategy<T> windowingStrategy,
             ErrorHandler errorHandler,

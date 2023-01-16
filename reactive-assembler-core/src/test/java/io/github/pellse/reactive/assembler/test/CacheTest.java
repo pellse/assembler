@@ -1,7 +1,7 @@
 package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
-import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.AutoCacheFactoryDelegate;
+import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.AutoCacheTransformer;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -426,12 +426,12 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
-        AutoCacheFactoryDelegate<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
+        AutoCacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
                 autoCacheEvents(billingInfoEventFlux)
                         .maxWindowSize(3)
                         .build();
 
-        AutoCacheFactoryDelegate<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
+        AutoCacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
                 autoCache(orderItemFlux, toCacheEvent(CDCAdd.class::isInstance, CDC::item))
                         .maxWindowSize(3)
                         .build();
