@@ -363,7 +363,7 @@ public class CacheTest {
                         .delayElements(ofMillis(100))
                         .flatMapSequential(assembler::assemble)
                         .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
-                        .doOnComplete(lifeCycleEventBroadcaster::stop))
+                        .doFinally(run(lifeCycleEventBroadcaster::stop)))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
                 .expectComplete()
@@ -436,12 +436,12 @@ public class CacheTest {
                         .maxWindowSize(3)
                         .build();
 
+        var billingInfoRule = rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache)));
+        var orderItemRule = rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache)));
+
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
-                .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache))),
-                        Transaction::new)
+                .withAssemblerRules(billingInfoRule, orderItemRule, Transaction::new)
                 .build();
 
         StepVerifier.create(getCustomers()
