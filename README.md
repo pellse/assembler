@@ -32,7 +32,7 @@ When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/ma
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.Rule.rule;
 import reactor.core.publisher.Flux;
     
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
@@ -58,7 +58,7 @@ In addition to providing helper functions to define mapping semantics (e.g. `one
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import reactor.core.publisher.Flux;
     
@@ -106,7 +106,7 @@ Below is an example of a few different ways we can explicitely customize the cac
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.Cache.cache;
 import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import reactor.core.publisher.Flux;
@@ -138,7 +138,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 
@@ -184,7 +184,7 @@ import io.github.pellse.reactive.assembler.kotlin.cached
 import io.github.pellse.reactive.assembler.Cache.cache
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
-import io.github.pellse.reactive.assembler.Mapper.rule
+import io.github.pellse.reactive.assembler.Rule.rule
 import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache
 
 // Example 1:

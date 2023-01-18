@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.Mapper.rule;
+import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.compose;

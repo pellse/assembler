@@ -9,22 +9,22 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 @FunctionalInterface
-public interface QueryCache<ID, R> extends BiFunction<Iterable<ID>, Mapper<ID, R>, Mono<Map<ID, R>>> {
+public interface QueryCache<ID, R> extends BiFunction<Iterable<ID>, Rule<ID, R>, Mono<Map<ID, R>>> {
 
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper) {
-        return cached(mapper, defaultCache());
+    static <ID, R> Rule<ID, R> cached(Rule<ID, R> rule) {
+        return cached(rule, defaultCache());
     }
 
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, QueryCache<ID, R> cache) {
-        return cached(mapper, cache, null);
+    static <ID, R> Rule<ID, R> cached(Rule<ID, R> rule, QueryCache<ID, R> cache) {
+        return cached(rule, cache, null);
     }
 
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, Duration ttl) {
-        return cached(mapper, defaultCache(), ttl);
+    static <ID, R> Rule<ID, R> cached(Rule<ID, R> rule, Duration ttl) {
+        return cached(rule, defaultCache(), ttl);
     }
 
-    static <ID, R> Mapper<ID, R> cached(Mapper<ID, R> mapper, QueryCache<ID, R> cache, Duration ttl) {
-        return entityIds -> cache.apply(entityIds, ids -> toCachedMono(mapper.apply(ids), ttl));
+    static <ID, R> Rule<ID, R> cached(Rule<ID, R> rule, QueryCache<ID, R> cache, Duration ttl) {
+        return entityIds -> cache.apply(entityIds, ids -> toCachedMono(rule.apply(ids), ttl));
     }
 
     static <ID, R> QueryCache<ID, R> cache(Supplier<Map<Iterable<ID>, Mono<Map<ID, R>>>> mapSupplier) {

@@ -28,22 +28,22 @@ import static io.github.pellse.reactive.assembler.RuleContext.ruleContext;
 import static io.github.pellse.util.ObjectUtils.then;
 
 @FunctionalInterface
-public interface Mapper<ID, RRC> extends Function<Iterable<ID>, Mono<Map<ID, RRC>>> {
+public interface Rule<ID, RRC> extends Function<Iterable<ID>, Mono<Map<ID, RRC>>> {
 
-    static <ID, R, RRC> Mapper<ID, RRC> rule(
+    static <ID, R, RRC> Rule<ID, RRC> rule(
             Function<R, ID> correlationIdExtractor,
             RuleMapper<ID, List<ID>, R, RRC> mapper) {
         return rule(ruleContext(correlationIdExtractor), mapper);
     }
 
-    static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(
+    static <ID, IDC extends Collection<ID>, R, RRC> Rule<ID, RRC> rule(
             Function<R, ID> correlationIdExtractor,
             Supplier<IDC> idCollectionFactory,
             RuleMapper<ID, IDC, R, RRC> mapper) {
         return rule(ruleContext(correlationIdExtractor, idCollectionFactory), mapper);
     }
 
-    static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(
+    static <ID, IDC extends Collection<ID>, R, RRC> Rule<ID, RRC> rule(
             Function<R, ID> correlationIdExtractor,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, RRC> mapFactory,
@@ -51,7 +51,7 @@ public interface Mapper<ID, RRC> extends Function<Iterable<ID>, Mono<Map<ID, RRC
         return rule(ruleContext(correlationIdExtractor, idCollectionFactory, mapFactory), mapper);
     }
 
-    static <ID, IDC extends Collection<ID>, R, RRC> Mapper<ID, RRC> rule(
+    static <ID, IDC extends Collection<ID>, R, RRC> Rule<ID, RRC> rule(
             RuleContext<ID, IDC, R, RRC> ruleContext,
             RuleMapper<ID, IDC, R, RRC> mapper) {
         return then(mapper.apply(ruleContext), queryFunction -> queryFunction::apply);

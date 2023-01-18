@@ -48,89 +48,89 @@ public interface AssemblerBuilder {
 
         @SuppressWarnings("unchecked")
         default <E1> AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper,
+                Rule<ID, E1> rule,
                 BiFunction<T, E1, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper), (t, s) -> assemblerFunction.apply(t, (E1) s[0]));
+            return withAssemblerRules(List.of(rule), (t, s) -> assemblerFunction.apply(t, (E1) s[0]));
         }
 
         @SuppressWarnings("unchecked")
         default <E1, E2>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
                 Function3<T, E1, E2, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2), (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1]));
+            return withAssemblerRules(List.of(rule1, rule2), (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1]));
         }
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
-                Mapper<ID, E3> mapper3,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
+                Rule<ID, E3> rule3,
                 Function4<T, E1, E2, E3, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2, mapper3),
+            return withAssemblerRules(List.of(rule1, rule2, rule3),
                     (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1], (E3) s[2]));
         }
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
-                Mapper<ID, E3> mapper3,
-                Mapper<ID, E4> mapper4,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
+                Rule<ID, E3> rule3,
+                Rule<ID, E4> rule4,
                 Function5<T, E1, E2, E3, E4, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4),
+            return withAssemblerRules(List.of(rule1, rule2, rule3, rule4),
                     (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3]));
         }
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
-                Mapper<ID, E3> mapper3,
-                Mapper<ID, E4> mapper4,
-                Mapper<ID, E5> mapper5,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
+                Rule<ID, E3> rule3,
+                Rule<ID, E4> rule4,
+                Rule<ID, E5> rule5,
                 Function6<T, E1, E2, E3, E4, E5, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5),
+            return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5),
                     (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4]));
         }
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
-                Mapper<ID, E3> mapper3,
-                Mapper<ID, E4> mapper4,
-                Mapper<ID, E5> mapper5,
-                Mapper<ID, E6> mapper6,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
+                Rule<ID, E3> rule3,
+                Rule<ID, E4> rule4,
+                Rule<ID, E5> rule5,
+                Rule<ID, E6> rule6,
                 Function7<T, E1, E2, E3, E4, E5, E6, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6),
+            return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6),
                     (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5]));
         }
 
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
-                Mapper<ID, E3> mapper3,
-                Mapper<ID, E4> mapper4,
-                Mapper<ID, E5> mapper5,
-                Mapper<ID, E6> mapper6,
-                Mapper<ID, E7> mapper7,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
+                Rule<ID, E3> rule3,
+                Rule<ID, E4> rule4,
+                Rule<ID, E5> rule5,
+                Rule<ID, E6> rule6,
+                Rule<ID, E7> rule7,
                 Function8<T, E1, E2, E3, E4, E5, E6, E7, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7),
+            return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7),
                     (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6]));
         }
@@ -138,17 +138,17 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
-                Mapper<ID, E3> mapper3,
-                Mapper<ID, E4> mapper4,
-                Mapper<ID, E5> mapper5,
-                Mapper<ID, E6> mapper6,
-                Mapper<ID, E7> mapper7,
-                Mapper<ID, E8> mapper8,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
+                Rule<ID, E3> rule3,
+                Rule<ID, E4> rule4,
+                Rule<ID, E5> rule5,
+                Rule<ID, E6> rule6,
+                Rule<ID, E7> rule7,
+                Rule<ID, E8> rule8,
                 Function9<T, E1, E2, E3, E4, E5, E6, E7, E8, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8),
+            return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8),
                     (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7]));
         }
@@ -156,18 +156,18 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
-                Mapper<ID, E3> mapper3,
-                Mapper<ID, E4> mapper4,
-                Mapper<ID, E5> mapper5,
-                Mapper<ID, E6> mapper6,
-                Mapper<ID, E7> mapper7,
-                Mapper<ID, E8> mapper8,
-                Mapper<ID, E9> mapper9,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
+                Rule<ID, E3> rule3,
+                Rule<ID, E4> rule4,
+                Rule<ID, E5> rule5,
+                Rule<ID, E6> rule6,
+                Rule<ID, E7> rule7,
+                Rule<ID, E8> rule8,
+                Rule<ID, E9> rule9,
                 Function10<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, mapper9),
+            return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9),
                     (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8]));
         }
@@ -175,19 +175,19 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
-                Mapper<ID, E3> mapper3,
-                Mapper<ID, E4> mapper4,
-                Mapper<ID, E5> mapper5,
-                Mapper<ID, E6> mapper6,
-                Mapper<ID, E7> mapper7,
-                Mapper<ID, E8> mapper8,
-                Mapper<ID, E9> mapper9,
-                Mapper<ID, E10> mapper10,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
+                Rule<ID, E3> rule3,
+                Rule<ID, E4> rule4,
+                Rule<ID, E5> rule5,
+                Rule<ID, E6> rule6,
+                Rule<ID, E7> rule7,
+                Rule<ID, E8> rule8,
+                Rule<ID, E9> rule9,
+                Rule<ID, E10> rule10,
                 Function11<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, mapper9, mapper10),
+            return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10),
                     (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9]));
         }
@@ -195,25 +195,25 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Mapper<ID, E1> mapper1,
-                Mapper<ID, E2> mapper2,
-                Mapper<ID, E3> mapper3,
-                Mapper<ID, E4> mapper4,
-                Mapper<ID, E5> mapper5,
-                Mapper<ID, E6> mapper6,
-                Mapper<ID, E7> mapper7,
-                Mapper<ID, E8> mapper8,
-                Mapper<ID, E9> mapper9,
-                Mapper<ID, E10> mapper10,
-                Mapper<ID, E11> mapper11,
+                Rule<ID, E1> rule1,
+                Rule<ID, E2> rule2,
+                Rule<ID, E3> rule3,
+                Rule<ID, E4> rule4,
+                Rule<ID, E5> rule5,
+                Rule<ID, E6> rule6,
+                Rule<ID, E7> rule7,
+                Rule<ID, E8> rule8,
+                Rule<ID, E9> rule9,
+                Rule<ID, E10> rule10,
+                Rule<ID, E11> rule11,
                 Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> assemblerFunction) {
 
-            return withAssemblerRules(List.of(mapper1, mapper2, mapper3, mapper4, mapper5, mapper6, mapper7, mapper8, mapper9, mapper10, mapper11),
+            return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10, rule11),
                     (t, s) -> assemblerFunction.apply(
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9], (E11) s[10]));
         }
 
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?>> mappers,
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Rule<ID, ?>> rules,
                                                           BiFunction<T, Object[], R> aggregationFunction);
     }
 
@@ -247,9 +247,9 @@ public interface AssemblerBuilder {
 
         @Override
         public AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                List<Mapper<ID, ?>> mappers,
+                List<Rule<ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction) {
-            return new AssembleUsingBuilderImpl<>(correlationIdExtractor, mappers, aggregationFunction);
+            return new AssembleUsingBuilderImpl<>(correlationIdExtractor, rules, aggregationFunction);
         }
     }
 
@@ -257,17 +257,17 @@ public interface AssemblerBuilder {
 
         private final Function<T, ID> correlationIdExtractor;
         private final BiFunction<T, Object[], R> aggregationFunction;
-        private final List<Mapper<ID, ?>> mappers;
+        private final List<Rule<ID, ?>> rules;
 
         private AssembleUsingBuilderImpl(
                 Function<T, ID> correlationIdExtractor,
-                List<Mapper<ID, ?>> mappers,
+                List<Rule<ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction) {
 
             this.correlationIdExtractor = correlationIdExtractor;
 
             this.aggregationFunction = aggregationFunction;
-            this.mappers = mappers;
+            this.rules = rules;
         }
 
         @Override
@@ -283,25 +283,25 @@ public interface AssemblerBuilder {
 
         @Override
         public <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
-            return new AssemblerImpl<>(correlationIdExtractor, mappers, aggregationFunction, assemblerAdapter);
+            return new AssemblerImpl<>(correlationIdExtractor, rules, aggregationFunction, assemblerAdapter);
         }
     }
 
     class AssemblerImpl<T, ID, R, RC> implements Assembler<T, RC> {
 
         private final AssemblerAdapter<T, ID, R, RC> assemblerAdapter;
-        private final Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> mapperSourcesBuilder;
+        private final Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> subQueryMapperBuilder;
         private final BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder;
 
         private AssemblerImpl(
                 Function<T, ID> correlationIdExtractor,
-                List<Mapper<ID, ?>> mappers,
+                List<Rule<ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction,
                 AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
 
             this.assemblerAdapter = assemblerAdapter;
 
-            this.mapperSourcesBuilder = topLevelEntities -> buildSubQueryMapperSources(topLevelEntities, correlationIdExtractor, mappers);
+            this.subQueryMapperBuilder = topLevelEntities -> buildSubQueryMappersFromRules(topLevelEntities, correlationIdExtractor, rules);
 
             BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
                     (topLevelEntity, listOfMapperResults) -> aggregationFunction.apply(topLevelEntity,
@@ -322,21 +322,21 @@ public interface AssemblerBuilder {
 
         @Override
         public RC assemble(Publisher<T> topLevelEntitiesProvider) {
-            return assemblerAdapter.convertMapperSources(topLevelEntitiesProvider, mapperSourcesBuilder, aggregateStreamBuilder);
+            return assemblerAdapter.convertSubQueryMappers(topLevelEntitiesProvider, subQueryMapperBuilder, aggregateStreamBuilder);
         }
 
-        private static <T, ID> Stream<Publisher<? extends Map<ID, ?>>> buildSubQueryMapperSources(
+        private static <T, ID> Stream<Publisher<? extends Map<ID, ?>>> buildSubQueryMappersFromRules(
                 Iterable<T> topLevelEntities,
                 Function<T, ID> correlationIdExtractor,
-                List<Mapper<ID, ?>> subQueryMappers) {
+                List<Rule<ID, ?>> rules) {
 
             List<ID> entityIDs = toStream(topLevelEntities)
                     .filter(Objects::nonNull)
                     .map(correlationIdExtractor)
                     .toList();
 
-            return subQueryMappers.stream()
-                    .map(mapper -> mapper.apply(entityIDs));
+            return rules.stream()
+                    .map(rule -> rule.apply(entityIDs));
         }
     }
 }

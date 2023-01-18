@@ -27,8 +27,8 @@ import java.util.stream.Stream;
 @FunctionalInterface
 public interface AssemblerAdapter<T, ID, R, RC> {
 
-    RC convertMapperSources(
+    RC convertSubQueryMappers(
             Publisher<T> topLevelEntitiesProvider,
-            Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> mapperSourcesBuilder,
+            Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> subQueryMapperBuilder,
             BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder);
 }

@@ -44,15 +44,15 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
 
     @NotNull
     @Override
-    public Flux<R> convertMapperSources(
+    public Flux<R> convertSubQueryMappers(
             Publisher<T> topLevelEntitiesProvider,
-            Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> mapperSourcesBuilder,
+            Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> subQueryMapperBuilder,
             BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
 
         return Flux.from(topLevelEntitiesProvider)
                 .collectList()
                 .flatMapMany(entities ->
-                        zip(mapperSourcesBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).collect(toList()),
+                        zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).collect(toList()),
                                 mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))
                         )
                 )
