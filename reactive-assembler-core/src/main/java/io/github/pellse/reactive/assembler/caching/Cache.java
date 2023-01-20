@@ -80,8 +80,7 @@ public interface Cache<ID, R> {
                         optimizedCache,
                         (cache, cacheQueryResults, incomingChanges) ->
                                 then(removeFromMap(incomingChanges, cacheQueryResults, idExtractor),
-                                        updatedMap -> cache.putAll(updatedMap)
-                                                .then(cache.removeAll(diff(cacheQueryResults, updatedMap)))))
+                                        updatedMap -> cache.updateAll(updatedMap, diff(cacheQueryResults, updatedMap))))
         );
     }
 
