@@ -1,9 +1,7 @@
 package io.github.pellse.reactive.assembler.caching;
 
-import io.github.pellse.reactive.assembler.RuleMapperContext;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,17 +56,15 @@ public interface Cache<ID, R> {
         );
     }
 
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> Cache<ID, R> mergeStrategyAwareCache(
-            RuleMapperContext<ID, EID, IDC, R, RRC> ruleContext,
+    static <ID, EID, R> Cache<ID, R> mergeStrategyAwareCache(
+            Function<R, EID> idExtractor,
             Cache<ID, R> delegateCache) {
 
-        Cache<ID, R> optimizedCache = adapterCache(
+        var optimizedCache = adapterCache(
                 emptyOr(delegateCache::getAll),
                 emptyOr(delegateCache::putAll),
                 emptyOr(delegateCache::removeAll)
         );
-
-        var idExtractor = ruleContext.idExtractor();
 
         return adapterCache(
                 optimizedCache::getAll,

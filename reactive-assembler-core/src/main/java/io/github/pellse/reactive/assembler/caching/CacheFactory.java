@@ -155,7 +155,7 @@ public interface CacheFactory<ID, R, RRC> {
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
         return stream(delegateCacheFactories)
-                .reduce((fetchFunction, context) -> mergeStrategyAwareCache(ruleContext, cacheFactory.create(fetchFunction, context)),
+                .reduce((fetchFunction, context) -> mergeStrategyAwareCache(ruleContext.idExtractor(), cacheFactory.create(fetchFunction, context)),
                         (previousCacheFactory, delegateWrapperFunction) -> delegateWrapperFunction.apply(previousCacheFactory),
                         (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory);
     }
