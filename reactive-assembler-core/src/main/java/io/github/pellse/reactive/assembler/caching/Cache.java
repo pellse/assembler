@@ -79,7 +79,7 @@ public interface Cache<ID, R> {
                 applyMergeStrategy(
                         optimizedCache,
                         (cache, cacheQueryResults, incomingChanges) ->
-                                then(removeFromMap(incomingChanges, cacheQueryResults, idExtractor),
+                                then(subtractFromMap(incomingChanges, cacheQueryResults, idExtractor),
                                         updatedMap -> cache.updateAll(updatedMap, diff(cacheQueryResults, updatedMap))))
         );
     }

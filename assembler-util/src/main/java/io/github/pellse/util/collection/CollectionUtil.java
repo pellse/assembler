@@ -147,32 +147,32 @@ public interface CollectionUtil {
                 .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1));
     }
 
-    static <K, V, ID> Map<K, List<V>> removeFromMap(
-            Map<K, List<V>> mapToRemove,
-            Map<K, List<V>> targetMap,
+    static <K, V, ID> Map<K, List<V>> subtractFromMap(
+            Map<K, List<V>> mapToSubtract,
+            Map<K, List<V>> srcMap,
             Function<? super V, ID> idExtractor) {
 
-        return removeFromMap(mapToRemove, targetMap, idExtractor, ArrayList::new);
+        return subtractFromMap(mapToSubtract, srcMap, idExtractor, ArrayList::new);
     }
 
-    static <K, V, VC extends Collection<V>, ID> Map<K, VC> removeFromMap(
-            Map<K, VC> mapToRemove,
-            Map<K, VC> targetMap,
+    static <K, V, VC extends Collection<V>, ID> Map<K, VC> subtractFromMap(
+            Map<K, VC> mapToSubtract,
+            Map<K, VC> srcMap,
             Function<? super V, ID> idExtractor,
             Supplier<VC> collectionFactory) {
 
-        return targetMap.entrySet().stream()
+        return srcMap.entrySet().stream()
                 .map(entry -> {
-                    var itemsToRemove = mapToRemove.get(entry.getKey());
-                    if (itemsToRemove == null)
+                    var itemsToSubtract = mapToSubtract.get(entry.getKey());
+                    if (itemsToSubtract == null)
                         return entry;
 
-                    var idsToRemove = itemsToRemove.stream()
+                    var idsToSubtract = itemsToSubtract.stream()
                             .map(idExtractor)
                             .collect(toSet());
 
                     var newColl = toStream(entry.getValue())
-                            .filter(element -> !idsToRemove.contains((idExtractor.apply(element))))
+                            .filter(element -> !idsToSubtract.contains((idExtractor.apply(element))))
                             .collect(toCollection(collectionFactory));
 
                     return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
