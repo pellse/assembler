@@ -7,7 +7,7 @@ dependencies {
     implementation project(':reactive-assembler-core')
     implementation project(':assembler-util')
 
-    api ("com.github.ben-manes.caffeine:caffeine:3.0.6")
+    api ("com.github.ben-manes.caffeine:caffeine:3.1.2")
 
     testImplementation project(':assembler-core').sourceSets.test.output
     testImplementation "io.projectreactor:reactor-test:${reactorVersion}"
