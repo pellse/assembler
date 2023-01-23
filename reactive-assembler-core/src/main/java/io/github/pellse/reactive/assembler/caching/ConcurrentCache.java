@@ -126,6 +126,7 @@ public interface ConcurrentCache {
                         .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
                         .doOnError(runIf(not(LOCK_NOT_ACQUIRED::equals), lock::releaseLock))
                         .doOnSuccess(run(lock::releaseLock))
+                        .doOnCancel(lock::releaseLock)
                         .retryWhen(retrySpec);
             }
         };
