@@ -582,13 +582,20 @@ public class CacheTest {
                         Transaction::new)
                 .build(boundedElastic());
 
-        customerFlux
+        var transactionFlux = customerFlux
                 .window(3)
                 .delayElements(ofMillis(7))
                 .flatMapSequential(assembler::assemble)
                 .take(1_000)
-                .subscribeOn(boundedElastic())
-                .blockLast(ofSeconds(30));
+                .subscribeOn(boundedElastic());
+
+        transactionFlux.subscribe();
+        transactionFlux.subscribe();
+        transactionFlux.subscribe();
+        transactionFlux.subscribe();
+        transactionFlux.subscribe();
+        transactionFlux.subscribe();
+        transactionFlux.blockLast(ofSeconds(20));
     }
 
     private <T> Flux<T> longRunningFlux(List<T> list, int msDelay) {

@@ -75,7 +75,9 @@ public interface ConcurrentCache {
 
                 @Override
                 public void releaseLock() {
-                    readCount.decrementAndGet();
+                    if (readCount.decrementAndGet() < 0) {
+                        throw new IllegalStateException("readCount cannot be < 0");
+                    }
                 }
             };
 
@@ -126,7 +128,6 @@ public interface ConcurrentCache {
                         .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
                         .doOnError(runIf(not(LOCK_NOT_ACQUIRED::equals), lock::releaseLock))
                         .doOnSuccess(run(lock::releaseLock))
-                        .doOnCancel(lock::releaseLock)
                         .retryWhen(retrySpec);
             }
         };
