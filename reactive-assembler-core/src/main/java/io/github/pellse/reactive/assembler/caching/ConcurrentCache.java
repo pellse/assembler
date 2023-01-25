@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static io.github.pellse.util.ObjectUtils.*;
@@ -33,24 +32,23 @@ public interface ConcurrentCache {
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
     static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache) {
-        return concurrent(delegateCache, indefinitely(), RetrySpec::filter, t -> t.errorFilter);
+        return concurrent(delegateCache, indefinitely(), RetrySpec::filter);
     }
 
     static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts) {
-        return concurrent(delegateCache, max(maxAttempts), RetrySpec::filter, t -> t.errorFilter);
+        return concurrent(delegateCache, max(maxAttempts), RetrySpec::filter);
     }
 
     static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay) {
-        return concurrent(delegateCache, fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter, t -> t.errorFilter);
+        return concurrent(delegateCache, fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter);
     }
 
     private static <ID, R, T extends Retry> Cache<ID, R> concurrent(
             Cache<ID, R> delegateCache,
             T retrySpec,
-            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction,
-            Function<T, Predicate<? super Throwable>> predicateGetter) {
+            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction) {
 
-        return concurrent(delegateCache, retryStrategy(retrySpec, errorFilterFunction, predicateGetter));
+        return concurrent(delegateCache, retryStrategy(retrySpec, errorFilterFunction));
     }
 
     private static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, Retry retrySpec) {
@@ -66,7 +64,9 @@ public interface ConcurrentCache {
                 @Override
                 public boolean tryAcquireLock() {
                     if (isLocked.compareAndSet(false, true)) {
-                        readCount.incrementAndGet();
+                        if (readCount.getAndIncrement() < 0) {
+                            throw new IllegalStateException("readCount cannot be < 0 in readLock.tryAcquireLock()");
+                        }
                         isLocked.set(false);
                         return true;
                     }
@@ -76,7 +76,7 @@ public interface ConcurrentCache {
                 @Override
                 public void releaseLock() {
                     if (readCount.decrementAndGet() < 0) {
-                        throw new IllegalStateException("readCount cannot be < 0");
+                        throw new IllegalStateException("readCount cannot be < 0 in readLock.releaseLock()");
                     }
                 }
             };
@@ -122,12 +122,21 @@ public interface ConcurrentCache {
 
             private <T> Mono<T> execute(Mono<T> mono, Lock lock) {
 
+                var lockReleased = new AtomicBoolean();
+
+                Runnable releaseLock = () -> {
+                    if (lockReleased.compareAndSet(false, true)) {
+                        lock.releaseLock();
+                    }
+                };
+
                 return defer(() -> just(lock.tryAcquireLock()))
                         .filter(lockAcquired -> lockAcquired)
                         .flatMap(__ -> mono)
                         .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
-                        .doOnError(runIf(not(LOCK_NOT_ACQUIRED::equals), lock::releaseLock))
-                        .doOnSuccess(run(lock::releaseLock))
+                        .doOnError(runIf(not(LOCK_NOT_ACQUIRED::equals), releaseLock))
+                        .doOnCancel(releaseLock)
+                        .doOnSuccess(run(releaseLock))
                         .retryWhen(retrySpec);
             }
         };
@@ -135,9 +144,8 @@ public interface ConcurrentCache {
 
     private static <T extends Retry> T retryStrategy(
             T retrySpec,
-            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction,
-            Function<T, Predicate<? super Throwable>> predicateGetter) {
+            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction) {
 
-        return errorFilterFunction.apply(retrySpec, or(LOCK_NOT_ACQUIRED::equals, predicateGetter.apply(retrySpec)));
+        return errorFilterFunction.apply(retrySpec, LOCK_NOT_ACQUIRED::equals);
     }
 }
