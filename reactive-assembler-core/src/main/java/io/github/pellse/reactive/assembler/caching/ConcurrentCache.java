@@ -130,7 +130,7 @@ public interface ConcurrentCache {
                     }
                 };
 
-                return defer(() -> just(lock.tryAcquireLock()))
+                return fromSupplier(lock::tryAcquireLock)
                         .filter(lockAcquired -> lockAcquired)
                         .flatMap(__ -> mono)
                         .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
