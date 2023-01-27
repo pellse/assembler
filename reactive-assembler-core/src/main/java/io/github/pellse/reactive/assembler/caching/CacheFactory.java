@@ -27,15 +27,18 @@ import static reactor.core.publisher.Mono.just;
 @FunctionalInterface
 public interface CacheFactory<ID, R, RRC> {
 
+    Cache<ID, R> create(
+            Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction,
+            Context<ID, R, RRC> context);
+
     record Context<ID, R, RRC>(
             Function<R, ID> correlationIdExtractor,
             Function<List<R>, RRC> fromListConverter,
             Function<RRC, List<R>> toListConverter) {
     }
 
-    Cache<ID, R> create(
-            Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction,
-            Context<ID, R, RRC> context);
+    interface CacheTransformer<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
+    }
 
     @SafeVarargs
     static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(

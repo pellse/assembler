@@ -2,6 +2,7 @@ package io.github.pellse.reactive.assembler.caching;
 
 import io.github.pellse.reactive.assembler.LifeCycleEventSource;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
+import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.Context;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -19,9 +20,6 @@ import static java.util.stream.Collectors.partitioningBy;
 public interface AutoCacheFactory {
 
     int MAX_WINDOW_SIZE = 1;
-
-    interface AutoCacheTransformer<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
-    }
 
     sealed interface ErrorHandler {
         <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler();
@@ -64,7 +62,7 @@ public interface AutoCacheFactory {
     interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
     }
 
-    static <ID, R, RRC, T extends CacheEvent<R>> AutoCacheTransformer<ID, R, RRC> autoCache(
+    static <ID, R, RRC, T extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
             Flux<T> dataSource,
             WindowingStrategy<T> windowingStrategy,
             ErrorHandler errorHandler,
