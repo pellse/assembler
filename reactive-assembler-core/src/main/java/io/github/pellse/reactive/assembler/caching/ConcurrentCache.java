@@ -1,5 +1,6 @@
 package io.github.pellse.reactive.assembler.caching;
 
+import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import reactor.util.retry.RetryBackoffSpec;
@@ -14,20 +15,19 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import static io.github.pellse.util.ObjectUtils.*;
-import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.*;
 
-class LockNotAcquiredException extends Exception {
-}
-
-interface Lock {
-    boolean tryAcquireLock();
-
-    void releaseLock();
-}
-
 public interface ConcurrentCache {
+
+    class LockNotAcquiredException extends Exception {
+    }
+
+    interface Lock {
+        boolean tryAcquireLock();
+
+        void releaseLock();
+    }
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
@@ -122,22 +122,25 @@ public interface ConcurrentCache {
 
             private <T> Mono<T> execute(Mono<T> mono, Lock lock) {
 
-                var lockReleased = new AtomicBoolean();
+                return defer(() -> {
+                    var lockAlreadyReleased = new AtomicBoolean();
+                    var lockAcquired = new AtomicBoolean();
 
-                Runnable releaseLock = () -> {
-                    if (lockReleased.compareAndSet(false, true)) {
-                        lock.releaseLock();
-                    }
-                };
+                    Runnable releaseLock = () -> {
+                        if (lockAcquired.get() && lockAlreadyReleased.compareAndSet(false, true)) {
+                            lock.releaseLock();
+                        }
+                    };
 
-                return fromSupplier(lock::tryAcquireLock)
-                        .filter(lockAcquired -> lockAcquired)
-                        .flatMap(__ -> mono)
-                        .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
-                        .doOnError(runIf(not(LOCK_NOT_ACQUIRED::equals), releaseLock))
-                        .doOnCancel(releaseLock)
-                        .doOnSuccess(run(releaseLock))
-                        .retryWhen(retrySpec);
+                    return fromSupplier(lock::tryAcquireLock)
+                            .filter(isLocked -> also(isLocked, lockAcquired::set))
+                            .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
+                            .retryWhen(retrySpec)
+                            .flatMap(__ -> mono)
+                            .doOnError(runIf(Exceptions::isRetryExhausted, releaseLock))
+                            .doOnCancel(releaseLock)
+                            .doOnSuccess(run(releaseLock));
+                });
             }
         };
     }
