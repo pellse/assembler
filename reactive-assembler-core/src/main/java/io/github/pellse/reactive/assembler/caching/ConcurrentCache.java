@@ -64,10 +64,13 @@ public interface ConcurrentCache {
                 @Override
                 public boolean tryAcquireLock() {
                     if (isLocked.compareAndSet(false, true)) {
-                        if (readCount.getAndIncrement() < 0) {
-                            throw new IllegalStateException("readCount cannot be < 0 in readLock.tryAcquireLock()");
+                        try {
+                            if (readCount.getAndIncrement() < 0) {
+                                throw new IllegalStateException("readCount cannot be < 0 in readLock.tryAcquireLock()");
+                            }
+                        } finally {
+                            isLocked.set(false);
                         }
-                        isLocked.set(false);
                         return true;
                     }
                     return false;
