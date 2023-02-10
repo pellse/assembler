@@ -1,6 +1,5 @@
 package io.github.pellse.reactive.assembler.caching;
 
-import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import reactor.util.retry.RetryBackoffSpec;
@@ -14,7 +13,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
-import static io.github.pellse.util.ObjectUtils.*;
+import static io.github.pellse.util.ObjectUtils.also;
+import static io.github.pellse.util.ObjectUtils.run;
 import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.*;
 
@@ -137,7 +137,7 @@ public interface ConcurrentCache {
                             .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
                             .retryWhen(retrySpec)
                             .flatMap(__ -> mono)
-                            .doOnError(runIf(Exceptions::isRetryExhausted, releaseLock))
+                            .doOnError(run(releaseLock))
                             .doOnCancel(releaseLock)
                             .doOnSuccess(run(releaseLock));
                 });
