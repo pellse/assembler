@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
@@ -33,8 +34,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
 import static io.github.pellse.util.ObjectUtils.run;
-import static java.time.Duration.ofMillis;
-import static java.time.Duration.ofSeconds;
+import static java.time.Duration.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static reactor.core.scheduler.Schedulers.*;
@@ -566,12 +566,12 @@ public class CacheTest {
         var billingInfoCount = new AtomicInteger();
         var orderItemCount = new AtomicInteger();
 
-        var customerFlux = longRunningFlux(customerList, 6);
+        var customerFlux = longRunningFlux(customerList, 1);
 
-        var billingInfoFlux = longRunningFlux(billingInfoList, billingInfoCount, 5, 1_100)
+        var billingInfoFlux = longRunningFlux(billingInfoList, billingInfoCount, 1, 10_100)
                 .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item));
 
-        var orderItemFlux = longRunningFlux(orderItemList, orderItemCount, 10, 1_100)
+        var orderItemFlux = longRunningFlux(orderItemList, orderItemCount, 1, 10_100)
                 .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item));
 
         var assembler = assemblerOf(Transaction.class)
@@ -584,33 +584,29 @@ public class CacheTest {
 
         var transactionFlux = customerFlux
                 .window(3)
-                .delayElements(ofMillis(7))
+                .delayElements(ofNanos(1))
                 .flatMapSequential(assembler::assemble)
-                .take(1_000)
+                .take(10_000)
                 .subscribeOn(boundedElastic());
 
-        transactionFlux.subscribe();
-        transactionFlux.subscribe();
-        transactionFlux.subscribe();
-        transactionFlux.subscribe();
-        transactionFlux.subscribe();
-        transactionFlux.subscribe();
-        transactionFlux.blockLast(ofSeconds(20));
+        IntStream.range(0, 200).forEach(__ -> transactionFlux.subscribe());
+        transactionFlux.blockLast(ofSeconds(30));
     }
 
-    private <T> Flux<T> longRunningFlux(List<T> list, int msDelay) {
-        return longRunningFlux(list, null, msDelay, -1);
+    private <T> Flux<T> longRunningFlux(List<T> list, int nsDelay) {
+        return longRunningFlux(list, null, nsDelay, -1);
     }
 
-    private <T> Flux<T> longRunningFlux(List<T> list, AtomicInteger counter, int msDelay, int maxItems) {
+    private <T> Flux<T> longRunningFlux(List<T> list, AtomicInteger counter, int nsDelay, int maxItems) {
+        int size = list.size();
         return Flux.<T, Integer>generate(() -> 0, (index, sink) -> {
                     if (counter != null && counter.incrementAndGet() == maxItems) {
                         sink.complete();
                     }
                     sink.next(list.get(index));
-                    return (index + 1) % list.size();
+                    return (index + 1) % size;
                 })
-                .delayElements(ofMillis(msDelay))
+                .delayElements(ofNanos(nsDelay))
                 .subscribeOn(boundedElastic());
     }
 }
