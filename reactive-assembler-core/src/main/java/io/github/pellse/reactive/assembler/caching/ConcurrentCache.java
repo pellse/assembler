@@ -18,7 +18,7 @@ import static io.github.pellse.util.ObjectUtils.run;
 import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.*;
 
-public interface ConcurrentCache {
+public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
     class LockNotAcquiredException extends Exception {
     }
@@ -31,19 +31,23 @@ public interface ConcurrentCache {
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
-    static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache) {
+    static <ID, R> ConcurrentCache<ID, R> toConcurrent(Cache<ID, R> cache) {
+        return cache instanceof ConcurrentCache<ID,R> c ? c : concurrent(cache);
+    }
+
+    static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache) {
         return concurrent(delegateCache, indefinitely(), RetrySpec::filter);
     }
 
-    static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts) {
+    static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts) {
         return concurrent(delegateCache, max(maxAttempts), RetrySpec::filter);
     }
 
-    static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay) {
+    static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay) {
         return concurrent(delegateCache, fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter);
     }
 
-    private static <ID, R, T extends Retry> Cache<ID, R> concurrent(
+    private static <ID, R, T extends Retry> ConcurrentCache<ID, R> concurrent(
             Cache<ID, R> delegateCache,
             T retrySpec,
             BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction) {
@@ -51,9 +55,9 @@ public interface ConcurrentCache {
         return concurrent(delegateCache, retryStrategy(retrySpec, errorFilterFunction));
     }
 
-    private static <ID, R> Cache<ID, R> concurrent(Cache<ID, R> delegateCache, Retry retrySpec) {
+    private static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, Retry retrySpec) {
 
-        return new Cache<>() {
+        return new ConcurrentCache<>() {
 
             private final AtomicBoolean isLocked = new AtomicBoolean();
 

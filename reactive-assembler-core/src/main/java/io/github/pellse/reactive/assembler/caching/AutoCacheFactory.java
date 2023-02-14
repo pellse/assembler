@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.toConcurrent;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
 
@@ -69,7 +69,7 @@ public interface AutoCacheFactory {
             LifeCycleEventSource lifeCycleEventSource) {
 
         return cacheFactory -> (fetchFunction, context) -> {
-            var cache = concurrent(cacheFactory.create(fetchFunction, context));
+            var cache = toConcurrent(cacheFactory.create(fetchFunction, context));
 
             var cacheSourceFlux = dataSource.transform(windowingStrategy)
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
