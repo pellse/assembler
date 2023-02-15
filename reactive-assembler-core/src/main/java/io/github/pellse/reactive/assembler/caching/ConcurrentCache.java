@@ -47,6 +47,14 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
         return concurrent(delegateCache, fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter);
     }
 
+    static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
+        return concurrent(delegateCache, retrySpec, RetrySpec::filter);
+    }
+
+    static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
+        return concurrent(delegateCache, retrySpec, RetryBackoffSpec::filter);
+    }
+
     private static <ID, R, T extends Retry> ConcurrentCache<ID, R> concurrent(
             Cache<ID, R> delegateCache,
             T retrySpec,

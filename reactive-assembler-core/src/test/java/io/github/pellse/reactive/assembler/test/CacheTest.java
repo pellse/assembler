@@ -589,7 +589,7 @@ public class CacheTest {
                 .take(10_000)
                 .subscribeOn(boundedElastic());
 
-        IntStream.range(0, 200).forEach(__ -> transactionFlux.subscribe());
+        IntStream.range(0, 500).forEach(__ -> transactionFlux.subscribe());
         transactionFlux.blockLast(ofSeconds(30));
     }
 
