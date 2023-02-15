@@ -1,79 +1,91 @@
 # Assembler
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-core%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 
-Functional, type-safe, stateless reactive Java API for efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying/merging data from multiple datasources/services, with a specific focus on solving the N + 1 query problem.
-
-## Native Reactive Streams Support (since version 0.3.1)
-
-A new implementation [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) was added to natively support [Reactive Streams](http://www.reactive-streams.org) specification. This new implementation internally leverages [Project Reactor](https://projectreactor.io), which now allows the Assembler library (through the [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) module) to participate in end to end reactive streams chains (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resillient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+[Reactive](https://www.reactivemanifesto.org), functional, type-safe and stateless Java API for efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) (similar to the Service Aggregator pattern) for querying and merging data from multiple data sources/services, with a specific focus on solving the N + 1 query problem. The Assembler Library internally leverages [Project Reactor](https://projectreactor.io) to implement end to end reactive streams pipelines (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resilient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
 
 ## Use Cases
 
-One interesting use case would be for example to build a materialized view in a microservice architecture supporting Event Sourcing and Command Query Responsibility Segregation (CQRS). In this context, if we have an incoming stream of events where each event needs to be enriched with some sort of external data before being stored, it would be convenient to be able to easily batch those events instead of hitting those external services for every single event.
+The Assembler library can be used in situations where an application needs to access data or functionality that is spread across multiple services. Some common use cases for this pattern include:
 
-## Usage Example for Native Reactive Support
-Assuming the following data model of a very simplified online store, and api to access different services:
+1. Data integration: An application may need to access data from multiple sources, such as databases, third-party services, or internal systems. The Assembler library can be used to create a single API that integrates data from all of these sources, providing a single point of access for the application.
+2. Microservices architecture: In a microservices architecture, different functionality is provided by different services. The Assembler library can be used to create a single API that combines the functionality of multiple microservices, making it easier for the application to access the services it needs. 
+3. Business logic: An application may need to access multiple services to perform a specific business logic, the Assembler library can be used to create a single API that encapsulate all that business logic and make it easier for the application to access it. 
+4. Increasing Reusability: When multiple systems are being used in an organization, it is convenient to create a composition of these systems' APIs to be used by multiple internal or external applications. 
+5. Legacy systems: An application may need to access data or functionality provided by a legacy system that does not have a modern API. The Assembler library can be used to create a new API that accesses the legacy system's functionality through existing interfaces or middleware. 
+6. Combining functionality from different APIs: The Assembler library can be used to create a new API that combines functionality from different existing APIs, making it easier for clients to access the functionality they need. 
+7. Creating a single point of entry: The Assembler library can be used to create a single point of entry for different systems, making it easier for clients to access the functionality they need.
+
+In summary, the Assembler library implements a useful pattern when an application needs to access data or functionality from multiple services or systems, or when it needs to encapsulate business logic or increase reusability.
+
+## Usage Example
+Below is an example of generating transaction information from a list of customers of an online store. Assuming the following fictional data model and api to access different services:
 ```java
 public record Customer(Long customerId, String name) {}
 public record BillingInfo(Long id, Long customerId, String creditCardNumber) {}
-public record OrderItem(Long id, Long customerId, String orderDescription, Double price) {}
+public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 
-Flux<Customer> customers(); // call to a RSocket microservice (no query filters for brevity)
-Publisher<BillingInfo> billingInfo(List<Long> customerIds); // Connects to relational database (R2DBC)
-Publisher<OrderItem> allOrders(List<Long> customerIds); // Connects to MongoDB (Reactive Streams Driver)
+Flux<Customer> getCustomers(); // call to a  REST or RSocket microservice
+Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // Connects to relational database (R2DBC)
+Flux<OrderItem> getAllOrders(List<Long> customerIds); // Connects to MongoDB (Reactive Streams Driver)
 ```
+If `getCustomers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `getCustomers()`, idem for `OrderItem`. Since we are working with 3 different and independent data sources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` (using *customerId* as a correlation id between all those entities) has to be done at the application level, which is what this library was implemented for.
 
-If `customers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `customers()`, same for `OrderItem`. Since we are working with 3 different and independent datasources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` (using *customerId* as a correlation id between all those entities) has to be done at the application level, which is what this library was implemented for.
-
-When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core), here is how we would aggregate multiple reactive datasources and implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html):
+When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core), here is how we would aggregate multiple reactive data sources and implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html):
 
 ```java
+import reactor.core.publisher.Flux;
+import io.github.pellse.reactive.assembler.Assembler;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.Rule.rule;
-import reactor.core.publisher.Flux;
     
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::customerId)
+    .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
         rule(BillingInfo::customerId, oneToOne(this::getBillingInfo)),
-        rule(OrderItem::customerId, oneToMany(this::getAllOrders)),
+        rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
         Transaction::new)
     .build();
 
-Flux<Transaction> transactionFlux = assembler.assemble(customers());
+Flux<Transaction> transactionFlux = assembler.assemble(getCustomers());
 ```
-In the scenario where we deal with an infinite stream of data, since the Assembler needs to completely drain the upstream from `customers()` to gather all the correlation ids (*customerId*), the example above will result in resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual smaller streams. Most reactive libraries already support that concept, below is an example using [Project Reactor](https://projectreactor.io):
+In the code snippet above, we first retrieve all customers, then we concurrently retrieve all billing info (in a single query) and all orders (in a single query) associated with all previously retrieved customers (as defined by the assembler rules). We finally aggregate each customer/billing info/list of order items (related by the same customer id) into a `Transaction` object. We end up with a reactive stream (`Flux`) of `Transaction` objects.
+
+## Infinite Stream of Data
+In the scenario where we deal with an infinite or very large stream of data e.g. 100 000+ customers, since the Assembler Library needs to completely drain the upstream from `getCustomers()` to gather all the correlation ids (*customerId*), the example above will result in resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual streams. Most reactive libraries already support that concept, below is an example using [Project Reactor](https://projectreactor.io):
 ```java
-Flux<Transaction> transactionFlux = customers()
+Flux<Transaction> transactionFlux = getCustomers()
     .windowTimeout(100, ofSeconds(5))
     .flatMapSequential(assembler::assemble);
 ```
-## Asynchronous Caching  (since version 0.4.1)
-In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `OneToMany()`), the Assembler also provides a caching/memoization mechanism of the downstreams through the `cached()` wrapper method.
+## Asynchronous Caching
+In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `oneToMany()`), the Assembler also provides a caching/memoization mechanism of the down streams through the `cached()` wrapper method.
 
 ```java
+import reactor.core.publisher.Flux;
+import io.github.pellse.reactive.assembler.Assembler;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.CacheFactory.cached;
-import reactor.core.publisher.Flux;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
     
 var assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::customerId)
+    .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo))),
-        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders))),
+        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
         Transaction::new)
     .build();
     
-var transactionFlux = customers()
+var transactionFlux = getCustomers()
     .window(3)
     .flatMapSequential(assembler::assemble);
 ```
+
+
 This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
 
 The `cached()` method internally uses the list of correlation ids from the upstream as cache keys (list of customer ids in the above example) with each individual value (or entity) of the downstream being cached. Concretely, if we take the line `rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g.:
@@ -91,17 +103,21 @@ At that specific moment in time the execution would like this:
 
 Overloaded versions of the `cached()` method are also defined to allow plugging your own cache implementation. We can pass an additional parameter of type `CacheFactory` to customize the caching mechanism:
 ```java
-public interface CacheFactory<ID, R> {
-    Cache<ID, R> create(Function<Iterable<? extends ID>, Mono<Map<ID, Collection<R>>>> fetchFunction);
+public interface CacheFactory<ID, R, RRC> {
+    Cache<ID, R> create(
+        Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction,
+        Context<ID, R, RRC> context);
 }
-    
+
 public interface Cache<ID, R> {
-    Mono<Map<ID, Collection<R>>> getAll(Iterable<ID> ids);
+    Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
+    Mono<?> putAll(Map<ID, List<R>> map);
+    Mono<?> removeAll(Map<ID, List<R>> map);
 }
 ```
 If no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally return a `Cache` based on `ConcurrentHashMap`.
 
-Below is an example of a few different ways we can explicitely customize the caching mecanism:
+Below is an example of a few different ways we can explicitly customize the caching mechanism:
 ```java
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
@@ -119,8 +135,7 @@ var assembler = assemblerOf(Transaction.class)
         Transaction::new)
     .build();
 ```
-Overloaded versions of `cached()` and `cache()` are provided to wrap any implementation of `java.util.Map` since it doesn't natively implement
-`Mono<Map<ID, Collection<R>>> getAll(Iterable<ID> ids)`.
+Overloaded versions of `cached()` and `cache()` are provided to wrap any implementation of `java.util.Map` since it doesn't natively implement the `CacheFactory<ID, R, RRC>` interface mentioned above.
 
 ### Third Party Asynchronous Cache Provider Integration
 
