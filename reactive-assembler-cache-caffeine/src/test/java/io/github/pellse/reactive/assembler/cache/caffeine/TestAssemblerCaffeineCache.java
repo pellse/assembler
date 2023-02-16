@@ -21,7 +21,7 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.compose;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.pipe;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.from;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCache;
@@ -139,7 +139,7 @@ public class TestAssemblerCaffeineCache {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(
-                                compose(
+                                pipe(
                                         cached(this::getBillingInfo, caffeineCache()),
                                         CacheFactory::cached,
                                         CacheFactory::cached),
@@ -147,10 +147,9 @@ public class TestAssemblerCaffeineCache {
                         rule(OrderItem::customerId,
                                 oneToMany(OrderItem::id,
                                         from(this::getAllOrders)
-                                                .compose(ruleMapperSource -> cached(ruleMapperSource, caffeineCache()))
-                                                .compose(CacheFactory::cached)
-                                                .compose(CacheFactory::cached)
-                                                .get()
+                                                .pipe(ruleMapperSource -> cached(ruleMapperSource, caffeineCache()))
+                                                .pipe(CacheFactory::cached)
+                                                .pipeAndGet(CacheFactory::cached)
                                 )),
                         Transaction::new)
                 .build();

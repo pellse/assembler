@@ -19,10 +19,15 @@ public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
         extends Function<RuleMapperContext<ID, EID, IDC, R, RRC>, Function<IDC, Publisher<R>>> {
 
     interface RuleMapperBuilder<ID, IDC extends Collection<ID>, R> {
-        RuleMapperBuilder<ID, IDC, R> compose(
+        RuleMapperBuilder<ID, IDC, R> pipe(
                 Function<? super RuleMapperSource<ID, ?, IDC, R, ?>, ? extends RuleMapperSource<ID, ?, IDC, R, ?>> mappingFunction);
 
         <EID, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> get();
+
+        default <EID, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> pipeAndGet(
+                Function<? super RuleMapperSource<ID, ?, IDC, R, ?>, ? extends RuleMapperSource<ID, ?, IDC, R, ?>> mappingFunction) {
+            return pipe(mappingFunction).get();
+        }
     }
 
     class Builder<ID, IDC extends Collection<ID>, R> implements RuleMapperBuilder<ID, IDC, R> {
@@ -34,7 +39,7 @@ public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
         }
 
         @Override
-        public RuleMapperBuilder<ID, IDC, R> compose(
+        public RuleMapperBuilder<ID, IDC, R> pipe(
                 Function<? super RuleMapperSource<ID, ?, IDC, R, ?>, ? extends RuleMapperSource<ID, ?, IDC, R, ?>> mappingFunction) {
 
             this.source = mappingFunction.apply(source);
@@ -65,7 +70,7 @@ public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
     }
 
     @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> compose(
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> pipe(
             RuleMapperSource<ID, EID, IDC, R, RRC> mapper,
             Function<? super RuleMapperSource<ID, EID, IDC, R, RRC>, ? extends RuleMapperSource<ID, EID, IDC, R, RRC>>... mappingFunctions) {
         return stream(mappingFunctions)
