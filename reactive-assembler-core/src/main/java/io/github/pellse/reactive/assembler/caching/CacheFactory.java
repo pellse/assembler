@@ -29,12 +29,16 @@ public interface CacheFactory<ID, R, RRC> {
 
     Cache<ID, R> create(
             Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction,
-            Context<ID, R, RRC> context);
+            CacheContext<ID, R, RRC> context);
 
-    record Context<ID, R, RRC>(
+    record CacheContext<ID, R, RRC>(
             Function<R, ID> correlationIdExtractor,
             Function<List<R>, RRC> fromListConverter,
             Function<RRC, List<R>> toListConverter) {
+
+        public CacheContext(RuleMapperContext<ID, ?, ?, R, RRC> ctx) {
+            this(ctx.correlationIdExtractor(), ctx.fromListConverter(), ctx.toListConverter());
+        }
     }
 
     interface CacheTransformer<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
@@ -135,12 +139,8 @@ public interface CacheFactory<ID, R, RRC> {
                                     .collect(groupingBy(ruleContext.correlationIdExtractor()))
                                     .map(queryResultsMap -> buildCacheFragment(entityIds, queryResultsMap, ruleContext)));
 
-            var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories).create(
-                    fetchFunction,
-                    new Context<>(
-                            ruleContext.correlationIdExtractor(),
-                            ruleContext.fromListConverter(),
-                            ruleContext.toListConverter()));
+            var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
+                    .create(fetchFunction, new CacheContext<>(ruleContext));
 
             return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)));
