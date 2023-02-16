@@ -3,7 +3,7 @@ package io.github.pellse.reactive.assembler.caching;
 import io.github.pellse.reactive.assembler.LifeCycleEventSource;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
-import io.github.pellse.reactive.assembler.caching.CacheFactory.Context;
+import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheContext;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
@@ -82,7 +82,7 @@ public interface AutoCacheFactory {
         };
     }
 
-    private static <ID, R, RRC> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, Context<ID, R, RRC> context) {
+    private static <ID, R, RRC> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, CacheContext<ID, R, RRC> context) {
         return cacheEvents.stream()
                 .map(CacheEvent::value)
                 .collect(groupingBy(context.correlationIdExtractor()));
