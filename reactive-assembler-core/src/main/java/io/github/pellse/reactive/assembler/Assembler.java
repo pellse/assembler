@@ -22,8 +22,7 @@ import org.reactivestreams.Publisher;
  * @param <T>  Type for Top Level Entity e.g. {@code Customer}
  * @param <RC> Output Type e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
  */
+@FunctionalInterface
 public interface Assembler<T, RC> {
     RC assemble(Publisher<T> topLevelEntities);
-
-    RC assemble(Iterable<T> topLevelEntities);
 }
