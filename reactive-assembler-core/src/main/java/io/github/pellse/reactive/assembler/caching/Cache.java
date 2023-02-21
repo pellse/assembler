@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Map.of;
@@ -29,6 +28,43 @@ public interface Cache<ID, R> {
 
     default Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
         return putAll(mapToAdd).then(removeAll(mapToRemove));
+    }
+
+    static <ID, R> Cache<ID, R> adapterCache(
+            BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> getAll,
+            Function<Map<ID, List<R>>, Mono<?>> putAll,
+            Function<Map<ID, List<R>>, Mono<?>> removeAll) {
+        return adapterCache(getAll, putAll, removeAll, null);
+    }
+
+    static <ID, R> Cache<ID, R> adapterCache(
+            BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> getAll,
+            Function<Map<ID, List<R>>, Mono<?>> putAll,
+            Function<Map<ID, List<R>>, Mono<?>> removeAll,
+            BiFunction<Map<ID, List<R>>, Map<ID, List<R>>, Mono<?>> updateAll) {
+        return new Cache<>() {
+
+            @Override
+            public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
+                return getAll.apply(ids, computeIfAbsent);
+            }
+
+            @Override
+            public Mono<?> putAll(Map<ID, List<R>> map) {
+                return putAll.apply(map);
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, List<R>> map) {
+                return removeAll.apply(map);
+            }
+
+            @Override
+            public Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
+                BiFunction<Map<ID, List<R>>, Map<ID, List<R>>, Mono<?>> f = updateAll != null ? updateAll : Cache.super::updateAll;
+                return f.apply(mapToAdd, mapToRemove);
+            }
+        };
     }
 
     static <ID, EID, R> Cache<ID, R> mergeStrategyAwareCache(

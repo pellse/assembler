@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
-import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCache;
+import static io.github.pellse.reactive.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtil.*;

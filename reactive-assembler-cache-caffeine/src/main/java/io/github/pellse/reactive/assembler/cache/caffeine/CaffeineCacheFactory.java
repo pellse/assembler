@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
-import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCache;
+import static io.github.pellse.reactive.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.toMono;
 import static java.util.Collections.emptyMap;
 import static java.util.concurrent.CompletableFuture.completedFuture;

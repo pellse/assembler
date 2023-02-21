@@ -6,7 +6,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCache;
+import static io.github.pellse.reactive.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.util.ObjectUtils.then;
 
 public interface ObservableCacheFactory {
