@@ -56,6 +56,14 @@ public interface Cache<ID, R> {
         );
     }
 
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(
+            BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> getAll,
+            Function<Map<ID, List<R>>, Mono<?>> putAll,
+            Function<Map<ID, List<R>>, Mono<?>> removeAll) {
+
+        return (fetchFunction, __) -> adapterCache(getAll, putAll, removeAll);
+    }
+
     static <ID, EID, R> Cache<ID, R> mergeStrategyAwareCache(
             Function<R, EID> idExtractor,
             Cache<ID, R> delegateCache) {
