@@ -7,8 +7,8 @@ import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
 import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents
-import io.github.pellse.reactive.assembler.caching.Cache.cache
 import io.github.pellse.reactive.assembler.caching.CacheEvent.*
+import io.github.pellse.reactive.assembler.caching.CacheFactory.cache
 import io.github.pellse.reactive.assembler.kotlin.FluxAssemblerKotlinTest.CDC.CDCAdd
 import io.github.pellse.reactive.assembler.kotlin.FluxAssemblerKotlinTest.CDC.CDCDelete
 import org.junit.jupiter.api.Assertions.assertEquals

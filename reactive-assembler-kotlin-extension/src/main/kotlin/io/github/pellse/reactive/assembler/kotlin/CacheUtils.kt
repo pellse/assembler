@@ -4,7 +4,7 @@ import io.github.pellse.reactive.assembler.caching.CacheFactory
 import io.github.pellse.reactive.assembler.caching.CacheFactory.cached
 
 import io.github.pellse.reactive.assembler.RuleMapperSource
-import io.github.pellse.reactive.assembler.caching.Cache.cache
+import io.github.pellse.reactive.assembler.caching.CacheFactory.cache
 import org.reactivestreams.Publisher
 import java.util.function.Function
 

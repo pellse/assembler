@@ -4,13 +4,10 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static io.github.pellse.reactive.assembler.caching.AdapterCache.adapterCache;
-import static io.github.pellse.reactive.assembler.caching.CacheFactory.toMono;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Map.of;
@@ -32,36 +29,6 @@ public interface Cache<ID, R> {
 
     default Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
         return putAll(mapToAdd).then(removeAll(mapToRemove));
-    }
-
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache() {
-        return cache(ConcurrentHashMap::new);
-    }
-
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Supplier<Map<ID, List<R>>> mapSupplier) {
-        return cache(mapSupplier.get());
-    }
-
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Map<ID, List<R>> delegateMap) {
-
-        return (fetchFunction, __) -> adapterCache(
-                (ids, computeIfAbsent) -> just(readAll(ids, delegateMap))
-                        .flatMap(cachedEntitiesMap -> then(intersect(ids, cachedEntitiesMap.keySet()), entityIds ->
-                                !computeIfAbsent || entityIds.isEmpty() ? just(cachedEntitiesMap) :
-                                        fetchFunction.apply(entityIds)
-                                                .doOnNext(delegateMap::putAll)
-                                                .map(map -> mergeMaps(map, cachedEntitiesMap)))),
-                toMono(delegateMap::putAll),
-                toMono(map -> delegateMap.keySet().removeAll(map.keySet()))
-        );
-    }
-
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(
-            BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> getAll,
-            Function<Map<ID, List<R>>, Mono<?>> putAll,
-            Function<Map<ID, List<R>>, Mono<?>> removeAll) {
-
-        return (fetchFunction, __) -> adapterCache(getAll, putAll, removeAll);
     }
 
     static <ID, EID, R> Cache<ID, R> mergeStrategyAwareCache(
