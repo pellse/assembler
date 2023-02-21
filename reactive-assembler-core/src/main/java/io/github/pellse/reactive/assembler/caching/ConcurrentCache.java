@@ -21,6 +21,9 @@ import static reactor.util.retry.Retry.*;
 public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
     class LockNotAcquiredException extends Exception {
+        LockNotAcquiredException() {
+            super(null, null, true, false);
+        }
     }
 
     interface Lock {
