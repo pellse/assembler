@@ -10,6 +10,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -22,14 +23,14 @@ import java.util.stream.Stream;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.LifeCycleEventBroadcaster.lifeCycleEventBroadcaster;
-import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
+import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
-import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.*;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
@@ -37,6 +38,7 @@ import static io.github.pellse.util.ObjectUtils.run;
 import static java.time.Duration.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static reactor.core.publisher.Mono.error;
 import static reactor.core.scheduler.Schedulers.*;
 
 interface CDC<T> {
@@ -133,6 +135,94 @@ public class CacheTest {
                 .verify();
 
         assertEquals(1, billingInvocationCount.get());
+        assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithFaultyCache() {
+
+        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache =cache(
+                (ids, computeIfAbsent) -> error(new RuntimeException("Cache.getAll failed")),
+                map -> error(new RuntimeException("Cache.putAll failed")),
+                map -> error(new RuntimeException("Cache.removeAll failed")));
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, faultyCache), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(3, billingInvocationCount.get());
+        assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithFaultyQueryFunction() {
+
+        Transaction defaultTransaction = new Transaction(null, null, null);
+        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = ids -> Flux.error(new IOException());
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
+                        Transaction::new)
+                .build(boundedElastic());
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMap(customers ->
+                                assembler.assemble(customers)
+                                        .onErrorResume(IOException.class, __ -> Flux.just(defaultTransaction))))
+                .expectSubscription()
+                .expectNext(defaultTransaction, defaultTransaction, defaultTransaction)
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithFaultyCacheAndQueryFunction() {
+
+        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
+                (ids, computeIfAbsent) -> error(new RuntimeException("Cache.getAll failed")),
+                map -> error(new RuntimeException("Cache.putAll failed")),
+                map -> error(new RuntimeException("Cache.removeAll failed")));
+
+        Transaction defaultTransaction = new Transaction(null, null, null);
+        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = ids -> Flux.error(new IOException());
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, faultyCache), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(customers ->
+                                assembler.assemble(customers)
+                                        .onErrorResume(IOException.class, __ -> Flux.just(defaultTransaction))))
+                .expectSubscription()
+                .expectNext(defaultTransaction, defaultTransaction, defaultTransaction)
+                .expectComplete()
+                .verify();
+
         assertEquals(1, ordersInvocationCount.get());
     }
 
