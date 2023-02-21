@@ -3,7 +3,6 @@ package io.github.pellse.reactive.assembler.caching;
 import io.github.pellse.reactive.assembler.RuleMapperContext;
 import io.github.pellse.reactive.assembler.RuleMapperSource;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
@@ -19,8 +18,12 @@ import static io.github.pellse.reactive.assembler.caching.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtil.*;
+import static java.lang.System.Logger.Level.WARNING;
+import static java.lang.System.getLogger;
 import static java.util.Arrays.stream;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.groupingBy;
+import static reactor.core.publisher.Flux.from;
 import static reactor.core.publisher.Flux.fromStream;
 import static reactor.core.publisher.Mono.just;
 
@@ -30,6 +33,12 @@ public interface CacheFactory<ID, R, RRC> {
     Cache<ID, R> create(
             Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction,
             CacheContext<ID, R, RRC> context);
+
+    class QueryFunctionException extends Exception {
+        QueryFunctionException(Throwable t) {
+            super(null, t, true, false);
+        }
+    }
 
     record CacheContext<ID, R, RRC>(
             Function<R, ID> correlationIdExtractor,
@@ -131,19 +140,27 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
+        var isCacheError = not(QueryFunctionException.class::isInstance);
+        var logger = getLogger(CacheFactory.class.getName());
+        Consumer<Throwable> logError = e -> logger.log(WARNING, "Recoverable error in cache, fall back to bypass cache and directly invoke fetchFunction:", e);
+
         return ruleContext -> {
             var queryFunction = ruleMapperSource.apply(ruleContext);
             Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction =
                     entityIds -> then(translate(entityIds, ruleContext.idCollectionFactory()), ids ->
-                            Flux.from(queryFunction.apply(ids))
+                            from(queryFunction.apply(ids))
                                     .collect(groupingBy(ruleContext.correlationIdExtractor()))
-                                    .map(queryResultsMap -> buildCacheFragment(entityIds, queryResultsMap, ruleContext)));
+                                    .map(queryResultsMap -> buildCacheFragment(entityIds, queryResultsMap, ruleContext))
+                                    .onErrorMap(QueryFunctionException::new));
 
             var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
                     .create(fetchFunction, new CacheContext<>(ruleContext));
 
             return ids -> cache.getAll(ids, true)
-                    .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)));
+                    .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)))
+                    .doOnError(isCacheError, logError)
+                    .onErrorResume(isCacheError, __ -> queryFunction.apply(ids))
+                    .onErrorMap(QueryFunctionException.class, Throwable::getCause);
         };
     }
 
