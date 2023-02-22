@@ -1,7 +1,7 @@
 dependencies {
     implementation project(':assembler-core')
     implementation project(':assembler-util')
-    implementation "io.reactivex.rxjava3:rxjava:3.1.2"
+    implementation "io.reactivex.rxjava3:rxjava:3.1.6"
 
     testImplementation project(':assembler-core').sourceSets.test.output
 }
