@@ -32,6 +32,7 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilde
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.*;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCacheFactory.concurrentCache;
 import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
 import static io.github.pellse.util.ObjectUtils.run;
@@ -122,6 +123,30 @@ public class CacheTest {
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(1, billingInvocationCount.get());
+        assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithConcurrentCaching() {
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, concurrentCache(cache())), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), concurrentCache()))),
                         Transaction::new)
                 .build();
 

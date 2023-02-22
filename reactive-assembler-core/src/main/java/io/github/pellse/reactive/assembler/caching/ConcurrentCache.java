@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static io.github.pellse.util.ObjectUtils.also;
@@ -34,28 +35,28 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
-    static <ID, R> ConcurrentCache<ID, R> toConcurrent(Cache<ID, R> cache) {
-        return cache instanceof ConcurrentCache<ID,R> c ? c : concurrent(cache);
+    static <ID, R> ConcurrentCache<ID, R> toConcurrent(Cache<ID, R> delegateCache) {
+        return build(delegateCache, ConcurrentCache::concurrent);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache) {
-        return concurrent(delegateCache, indefinitely(), RetrySpec::filter);
+        return build(delegateCache, cache -> concurrent(cache, indefinitely(), RetrySpec::filter));
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts) {
-        return concurrent(delegateCache, max(maxAttempts), RetrySpec::filter);
+        return build(delegateCache, cache -> concurrent(cache, max(maxAttempts), RetrySpec::filter));
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay) {
-        return concurrent(delegateCache, fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter);
+        return build(delegateCache, cache -> concurrent(cache, fixedDelay(maxAttempts, delay), RetryBackoffSpec::filter));
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
-        return concurrent(delegateCache, retrySpec, RetrySpec::filter);
+        return build(delegateCache, cache -> concurrent(cache, retrySpec, RetrySpec::filter));
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
-        return concurrent(delegateCache, retrySpec, RetryBackoffSpec::filter);
+        return build(delegateCache, cache -> concurrent(cache, retrySpec, RetryBackoffSpec::filter));
     }
 
     private static <ID, R, T extends Retry> ConcurrentCache<ID, R> concurrent(
@@ -63,7 +64,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
             T retrySpec,
             BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction) {
 
-        return concurrent(delegateCache, retryStrategy(retrySpec, errorFilterFunction));
+        return build(delegateCache, cache -> concurrent(cache, retryStrategy(retrySpec, errorFilterFunction)));
     }
 
     private static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, Retry retrySpec) {
@@ -168,5 +169,9 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
             BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction) {
 
         return errorFilterFunction.apply(retrySpec, LOCK_NOT_ACQUIRED::equals);
+    }
+
+    private static <ID, R> ConcurrentCache<ID, R> build(Cache<ID, R> delegateCache, Function<Cache<ID, R>, ConcurrentCache<ID, R>> f) {
+        return delegateCache instanceof ConcurrentCache<ID,R> c ? c : f.apply(delegateCache);
     }
 }
