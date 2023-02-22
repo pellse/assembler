@@ -1,7 +1,9 @@
 # Assembler
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-core%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core/0.6.0) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 
-[Reactive](https://www.reactivemanifesto.org), functional, type-safe and stateless Java API for efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) (similar to the Service Aggregator pattern) for querying and merging data from multiple data sources/services, with a specific focus on solving the N + 1 query problem. The Assembler Library internally leverages [Project Reactor](https://projectreactor.io) to implement end to end reactive streams pipelines (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resilient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+[Reactive](https://www.reactivemanifesto.org), functional, type-safe and stateless Java API for efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) (similar to the Service Aggregator pattern) for querying and merging data from multiple data sources/services, with a specific focus on solving the N + 1 query problem.
+
+The Assembler Library internally leverages [Project Reactor](https://projectreactor.io) to implement end to end reactive streams pipelines (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resilient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
 
 ## Use Cases
 
@@ -14,8 +16,6 @@ The Assembler library can be used in situations where an application needs to ac
 5. Legacy systems: An application may need to access data or functionality provided by a legacy system that does not have a modern API. The Assembler library can be used to create a new API that accesses the legacy system's functionality through existing interfaces or middleware. 
 6. Combining functionality from different APIs: The Assembler library can be used to create a new API that combines functionality from different existing APIs, making it easier for clients to access the functionality they need. 
 7. Creating a single point of entry: The Assembler library can be used to create a single point of entry for different systems, making it easier for clients to access the functionality they need.
-
-In summary, the Assembler library implements a useful pattern when an application needs to access data or functionality from multiple services or systems, or when it needs to encapsulate business logic or increase reusability.
 
 ## Usage Example
 Below is an example of generating transaction information from a list of customers of an online store. Assuming the following fictional data model and api to access different services:
@@ -31,7 +31,7 @@ Flux<OrderItem> getAllOrders(List<Long> customerIds); // Connects to MongoDB (Re
 ```
 If `getCustomers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `getCustomers()`, idem for `OrderItem`. Since we are working with 3 different and independent data sources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` (using *customerId* as a correlation id between all those entities) has to be done at the application level, which is what this library was implemented for.
 
-When using [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core), here is how we would aggregate multiple reactive data sources and implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html):
+When using [reactive-assembler-core](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core/0.6.0), here is how we would aggregate multiple reactive data sources and implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html):
 
 ```java
 import reactor.core.publisher.Flux;
@@ -85,19 +85,9 @@ var transactionFlux = getCustomers()
     .flatMapSequential(assembler::assemble);
 ```
 
+### Auto Cache
 
-This can be useful for aggregating dynamic data with static data or data we know doesn't change often (or on a predefined schedule e.g. data that is refreshed by a batch job once a day).
 
-The `cached()` method internally uses the list of correlation ids from the upstream as cache keys (list of customer ids in the above example) with each individual value (or entity) of the downstream being cached. Concretely, if we take the line `rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)))`, from the example above `window(3)` would generate windows of 3 `Customer` e.g.:
-
-*[C1, C2, C3]*, *[C1, C4, C7]*, *[C4, C5, C6]*, *[C2, C4, C6]*
-
-At that specific moment in time the execution would like this:
-
-1. *getBillingInfo([1, 2, 3]) = [B1, B2, B3]*
-2. *merge(getBillingInfo([4, 7]), fromCache([1])) = [B4, B7, B1]*
-3. *merge(getBillingInfo([5, 6]), fromCache([4])) = [B5, B6, B4]*
-4. *fromCache([2, 4, 6]) = [B2, B4, B6]*
 
 ### Pluggable Asynchronous Caching Strategy
 
@@ -113,6 +103,7 @@ public interface Cache<ID, R> {
     Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
     Mono<?> putAll(Map<ID, List<R>> map);
     Mono<?> removeAll(Map<ID, List<R>> map);
+    Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove);
 }
 ```
 If no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally return a `Cache` based on `ConcurrentHashMap`.
@@ -143,7 +134,7 @@ Here is a list of add-on modules that can be used to integrate third party async
 
 | Assembler add-on module | Third party cache library |
 | --- | --- |
-| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-cache-caffeine`%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core) [reactive-assembler-cache-caffeine](https://github.com/pellse/assembler/tree/master/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
+| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine/0.6.0) [reactive-assembler-cache-caffeine](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine/0.6.0) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
 
 Below is an example of using a `CacheFactory` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library through the `caffeineCache()` helper method from the caffeine add-on module: 
@@ -192,7 +183,7 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
 ```
 
 ## Kotlin Support
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22reactive-assembler-kotlin-extension%22) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-kotlin-extension.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-kotlin-extension)  [reactive-assembler-kotlin-extension](https://github.com/pellse/assembler/tree/master/reactive-assembler-kotlin-extension)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension/0.6.0) [reactive-assembler-kotlin-extension](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension/0.6.0)
 ```kotlin
 import io.github.pellse.reactive.assembler.kotlin.assembler
 import io.github.pellse.reactive.assembler.kotlin.cached
