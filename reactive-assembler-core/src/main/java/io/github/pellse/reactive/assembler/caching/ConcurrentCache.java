@@ -35,10 +35,6 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
-    static <ID, R> ConcurrentCache<ID, R> toConcurrent(Cache<ID, R> delegateCache) {
-        return build(delegateCache, ConcurrentCache::concurrent);
-    }
-
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache) {
         return build(delegateCache, cache -> concurrent(cache, indefinitely(), RetrySpec::filter));
     }
