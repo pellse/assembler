@@ -5,6 +5,6 @@ dependencies {
 
     testImplementation project(':assembler-core').sourceSets.test.output
     testImplementation 'io.projectreactor:reactor-core:3.5.3'
-    testImplementation 'io.reactivex.rxjava3:rxjava:3.1.5'
+    testImplementation 'io.reactivex.rxjava3:rxjava:3.1.6'
     testImplementation 'io.projectreactor:reactor-test:3.5.3'
 }
