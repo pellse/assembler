@@ -11,8 +11,8 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.MAX_WINDOW_SIZE;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.defaultWindowingStrategy;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 
 public interface AutoCacheFactoryBuilder {
@@ -42,7 +42,7 @@ public interface AutoCacheFactoryBuilder {
     class Builder<R, T extends CacheEvent<R>> implements WindowingStrategyBuilder<R, T> {
 
         private final Flux<T> dataSource;
-        private WindowingStrategy<T> windowingStrategy = flux -> flux.window(MAX_WINDOW_SIZE);
+        private WindowingStrategy<T> windowingStrategy = defaultWindowingStrategy();
         private ErrorHandler errorHandler = onErrorStop();
 
         private LifeCycleEventSource eventSource = LifeCycleEventListener::start;
