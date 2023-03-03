@@ -1,6 +1,7 @@
 package io.github.pellse.reactive.assembler.caching;
 
 import io.github.pellse.reactive.assembler.LifeCycleEventSource;
+import io.github.pellse.reactive.assembler.LifeCycleEventSource.LifeCycleEventListener;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheContext;
@@ -13,6 +14,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
@@ -60,6 +62,14 @@ public interface AutoCacheFactory {
 
     @FunctionalInterface
     interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
+    }
+
+    static <R>WindowingStrategy<R> defaultWindowingStrategy() {
+        return flux -> flux.window(MAX_WINDOW_SIZE);
+    }
+
+    static <ID, R, RRC> CacheTransformer<ID, R, RRC> autoCache(Flux<R> dataSource) {
+        return autoCache(dataSource.map(CacheEvent::updated), defaultWindowingStrategy(), onErrorStop(), LifeCycleEventListener::start);
     }
 
     static <ID, R, RRC, T extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
