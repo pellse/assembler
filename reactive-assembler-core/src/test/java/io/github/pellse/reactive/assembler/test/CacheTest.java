@@ -166,7 +166,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithFaultyCache() {
 
-        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache =cache(
+        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
                 (ids, computeIfAbsent) -> error(new RuntimeException("Cache.getAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
                 map -> error(new RuntimeException("Cache.removeAll failed")));
