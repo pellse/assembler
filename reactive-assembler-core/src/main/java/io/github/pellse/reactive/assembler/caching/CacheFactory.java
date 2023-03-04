@@ -208,7 +208,7 @@ public interface CacheFactory<ID, R, RRC> {
 
         return stream(delegateCacheFactories)
                 .reduce((fetchFunction, context) -> mergeStrategyAwareCache(ruleContext.idExtractor(), cacheFactory.create(fetchFunction, context)),
-                        (previousCacheFactory, delegateWrapperFunction) -> delegateWrapperFunction.apply(previousCacheFactory),
+                        (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
                         (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory);
     }
 
