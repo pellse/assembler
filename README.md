@@ -9,13 +9,11 @@ The Assembler Library internally leverages [Project Reactor](https://projectreac
 
 The Assembler library can be used in situations where an application needs to access data or functionality that is spread across multiple services. Some common use cases for this pattern include:
 
-1. Data integration: An application may need to access data from multiple sources, such as databases, third-party services, or internal systems. The Assembler library can be used to create a single API that integrates data from all of these sources, providing a single point of access for the application.
-2. Microservices architecture: In a microservices architecture, different functionality is provided by different services. The Assembler library can be used to create a single API that combines the functionality of multiple microservices, making it easier for the application to access the services it needs. 
-3. Business logic: An application may need to access multiple services to perform a specific business logic, the Assembler library can be used to create a single API that encapsulate all that business logic and make it easier for the application to access it. 
-4. Increasing Reusability: When multiple systems are being used in an organization, it is convenient to create a composition of these systems' APIs to be used by multiple internal or external applications. 
-5. Legacy systems: An application may need to access data or functionality provided by a legacy system that does not have a modern API. The Assembler library can be used to create a new API that accesses the legacy system's functionality through existing interfaces or middleware. 
-6. Combining functionality from different APIs: The Assembler library can be used to create a new API that combines functionality from different existing APIs, making it easier for clients to access the functionality they need. 
-7. Creating a single point of entry: The Assembler library can be used to create a single point of entry for different systems, making it easier for clients to access the functionality they need.
+1. CQRS/Event Sourcing: The Assembler library can be used on the read side of a CQRS and Event Sourcing architecture to efficiently build materialized views that aggregate data from multiple sources.
+2. Data integration: An application may need to access data from multiple sources, such as databases, third-party services, or internal systems. The Assembler library can be used to create a single API that integrates data from all of these sources, providing a single point of access for the application.
+3. Microservices architecture: In a microservices architecture, different functionality is provided by different services. The Assembler library can be used to create a single API that combines the functionality of multiple microservices, making it easier for the application to access the services it needs.
+4. Combining functionality from different APIs: The Assembler library can be used to create a new API that combines functionality from different existing APIs, making it easier for clients to access the functionality they need. 
+5. Creating a single point of entry: The Assembler library can be used to create a single point of entry for different systems, making it easier for clients to access the functionality they need.
 
 ## Usage Example
 Below is an example of generating transaction information from a list of customers of an online store. Assuming the following fictional data model and api to access different services:
@@ -60,11 +58,34 @@ Flux<Transaction> transactionFlux = getCustomers()
     .windowTimeout(100, ofSeconds(5))
     .flatMapSequential(assembler::assemble);
 ```
-## Asynchronous Caching
-In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `oneToMany()`), the Assembler also provides a caching/memoization mechanism of the down streams through the `cached()` wrapper method.
 
+## Integration with non-reactive sources
+A utility function `toPublisher()` is also provided to wrap non-reactive sources, useful when e.g. calling 3rd party synchronous APIs:
 ```java
 import reactor.core.publisher.Flux;
+import io.github.pellse.reactive.assembler.Assembler;
+import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.Rule.rule;
+import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
+
+List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
+List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
+
+Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+    .withCorrelationIdExtractor(Customer::customerId)
+    .withAssemblerRules(
+        rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
+        rule(OrderItem::customerId, oneToMany(OrderItem::id, toPublisher(this::getAllOrders))),
+        Transaction::new)
+    .build();
+```
+
+## Asynchronous Caching
+In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `oneToMany()`), the Assembler also provides a caching/memoization mechanism of the downstream subqueries via the `CacheFactory.cached()` wrapper function.
+
+```java
 import io.github.pellse.reactive.assembler.Assembler;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
@@ -85,13 +106,9 @@ var transactionFlux = getCustomers()
     .flatMapSequential(assembler::assemble);
 ```
 
-### Auto Cache
-
-
-
 ### Pluggable Asynchronous Caching Strategy
 
-Overloaded versions of the `cached()` method are also defined to allow plugging your own cache implementation. We can pass an additional parameter of type `CacheFactory` to customize the caching mechanism:
+
 ```java
 public interface CacheFactory<ID, R, RRC> {
     Cache<ID, R> create(
@@ -106,27 +123,26 @@ public interface Cache<ID, R> {
     Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove);
 }
 ```
-If no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally return a `Cache` based on `ConcurrentHashMap`.
+Overloaded versions of `CacheFactory.cached()` allow to plug different `Cache` implementations. We can pass an additional parameter of type `CacheFactory` to the `cached()` method to customize the caching mechanism. If no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally return a `Cache` based on `ConcurrentHashMap`.
 
 Below is an example of a few different ways we can explicitly customize the caching mechanism:
 ```java
+import io.github.pellse.reactive.assembler.Assembler;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.Cache.cache;
-import static io.github.pellse.reactive.assembler.CacheFactory.cached;
-import reactor.core.publisher.Flux;
-  
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+    
 var assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::customerId)
+    .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, new HashMap<>()))),
-        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, cache(HashMap::new)))),
+        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(HashMap::new)))),
         Transaction::new)
     .build();
 ```
-Overloaded versions of `cached()` and `cache()` are provided to wrap any implementation of `java.util.Map` since it doesn't natively implement the `CacheFactory<ID, R, RRC>` interface mentioned above.
 
 ### Third Party Asynchronous Cache Provider Integration
 
@@ -136,10 +152,10 @@ Here is a list of add-on modules that can be used to integrate third party async
 | --- | --- |
 | [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine/0.6.0) [reactive-assembler-cache-caffeine](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine/0.6.0) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
-
 Below is an example of using a `CacheFactory` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library through the `caffeineCache()` helper method from the caffeine add-on module: 
 ```java
-import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
@@ -147,39 +163,91 @@ import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
-
 import static java.time.Duration.ofMinutes;
-import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 
-var cacheBuilder = newBuilder()
-                .recordStats()
-                .expireAfterWrite(ofMinutes(10))
-                .maximumSize(1000);
+Caffeine<Object, Object> cacheBuilder = newBuilder()
+    .recordStats()
+    .expireAfterWrite(ofMinutes(10))
+    .maximumSize(1000);
 
 var assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::customerId)
+    .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()))),
-        rule(OrderItem::customerId, oneToMany(cached(this::getAllOrders, caffeineCache(cacheBuilder))))),
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
+        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(cacheBuilder)))),
         Transaction::new)
     .build();
 ```
 
-## Integration with non-reactive sources
-A utility function `toPublisher()` is also provided to wrap non-reactive sources, useful when e.g. calling 3rd party synchronous APIs:
+### Auto Cache
+TODO: Describe what is Auto Caching and explain code snippets below
+Conceptually similar to a Kafka KTable
 ```java
-import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
+import reactor.core.publisher.Flux;
+import io.github.pellse.reactive.assembler.Assembler;
+import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.Rule.rule;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory;
 
-List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
-List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
+Flux<BillingInfo> billingInfoFlux = ... // BillingInfo data coming from e.g. Kafka;
+Flux<OrderItem> orderItemFlux = ... // OrderItem data coming from e.g. Kafka;
 
-Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::customerId)
+var assembler = assemblerOf(Transaction.class)
+    .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
-        rule(OrderItem::customerId, oneToMany(toPublisher(this::getAllOrders))),
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoFlux)))),
+        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(orderItemFlux)))),
         Transaction::new)
     .build();
+    
+var transactionFlux = getCustomers()
+    .window(3)
+    .flatMapSequential(assembler::assemble);
+```
+
+It is also possible to customize the behavior of Auto Caching via `AutoCacheFactoryBuilder.autoCache()`:
+```java
+import reactor.core.publisher.Flux;
+import io.github.pellse.reactive.assembler.Assembler;
+import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.Rule.rule;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
+import static java.time.Duration.*;
+import static java.lang.System.Logger.Level.WARNING;
+import static java.lang.System.getLogger;
+
+var logger = getLogger("warning-logger");
+Consumer<Throwable> logWarning = error -> logger.log(WARNING, "Error in autoCache", error);
+
+Flux<BillingInfo> billingInfoFlux = ... // BillingInfo data coming from e.g. Kafka;
+Flux<OrderItem> orderItemFlux = ... // OrderItem data coming from e.g. Kafka;
+
+var assembler = assemblerOf(Transaction.class)
+    .withCorrelationIdExtractor(Customer::customerId)
+    .withAssemblerRules(
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
+            autoCache(billingInfoFlux)
+                .maxWindowSizeAndTime(100, ofSeconds(5))
+                .errorHandler(onErrorContinue(logWarning))
+                .build()))),
+        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders,
+            autoCache(orderItemFlux)
+                .maxWindowSize(50)
+                .errorHandler(onErrorContinue(logWarning))
+                .build()))),
+        Transaction::new)
+    .build();
+    
+var transactionFlux = getCustomers()
+    .window(3)
+    .flatMapSequential(assembler::assemble);
 ```
 
 ## Kotlin Support
