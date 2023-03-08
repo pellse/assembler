@@ -14,7 +14,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy.MULTIPLE_READERS;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy.SINGLE_READER;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.run;
 import static java.lang.Integer.MAX_VALUE;
@@ -44,7 +44,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache) {
-        return build(delegateCache, cache -> concurrent(cache, MULTIPLE_READERS));
+        return build(delegateCache, cache -> concurrent(cache, SINGLE_READER));
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
@@ -52,7 +52,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts) {
-        return build(delegateCache, cache -> concurrent(cache, maxAttempts, MULTIPLE_READERS));
+        return build(delegateCache, cache -> concurrent(cache, maxAttempts, SINGLE_READER));
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
@@ -60,7 +60,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay) {
-        return build(delegateCache, cache -> concurrent(cache, maxAttempts, delay, MULTIPLE_READERS));
+        return build(delegateCache, cache -> concurrent(cache, maxAttempts, delay, SINGLE_READER));
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay, ConcurrencyStrategy concurrencyStrategy) {
@@ -68,7 +68,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
-        return build(delegateCache, cache -> concurrent(cache, retrySpec, MULTIPLE_READERS));
+        return build(delegateCache, cache -> concurrent(cache, retrySpec, SINGLE_READER));
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
@@ -76,7 +76,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
-        return build(delegateCache, cache -> concurrent(cache, retrySpec, MULTIPLE_READERS));
+        return build(delegateCache, cache -> concurrent(cache, retrySpec, SINGLE_READER));
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
@@ -146,7 +146,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
             @Override
             public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
-                return execute(delegateCache.getAll(ids, computeIfAbsent), concurrencyStrategy.equals(MULTIPLE_READERS) ? readLock : writeLock);
+                return execute(delegateCache.getAll(ids, computeIfAbsent), concurrencyStrategy.equals(SINGLE_READER) ? readLock : writeLock);
             }
 
             @Override
@@ -197,6 +197,6 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     private static <ID, R> ConcurrentCache<ID, R> build(Cache<ID, R> delegateCache, Function<Cache<ID, R>, ConcurrentCache<ID, R>> f) {
-        return delegateCache instanceof ConcurrentCache<ID,R> c ? c : f.apply(delegateCache);
+        return delegateCache instanceof ConcurrentCache<ID, R> c ? c : f.apply(delegateCache);
     }
 }
