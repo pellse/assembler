@@ -34,7 +34,7 @@ public interface CaffeineCacheFactory {
                         computeIfAbsent
                                 ? fetchFunction.apply(keys).subscribeOn(fromExecutor(executor)).toFuture()
                                 : completedFuture(emptyMap()))),
-                toMono(map -> map.forEach((id, value) -> delegateCache.put(id, completedFuture(value)))),
+                toMono(map -> delegateCache.synchronous().putAll(map)),
                 toMono(map -> delegateCache.synchronous().invalidateAll(map.keySet()))
         );
     }
