@@ -44,7 +44,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache) {
-        return build(delegateCache, cache -> concurrent(cache, SINGLE_READER));
+        return concurrent(delegateCache, SINGLE_READER);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
@@ -52,7 +52,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts) {
-        return build(delegateCache, cache -> concurrent(cache, maxAttempts, SINGLE_READER));
+        return concurrent(delegateCache, maxAttempts, SINGLE_READER);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
@@ -60,7 +60,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay) {
-        return build(delegateCache, cache -> concurrent(cache, maxAttempts, delay, SINGLE_READER));
+        return concurrent(delegateCache, maxAttempts, delay, SINGLE_READER);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, long maxAttempts, Duration delay, ConcurrencyStrategy concurrencyStrategy) {
@@ -68,7 +68,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
-        return build(delegateCache, cache -> concurrent(cache, retrySpec, SINGLE_READER));
+        return concurrent(delegateCache, retrySpec, SINGLE_READER);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
@@ -76,7 +76,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
-        return build(delegateCache, cache -> concurrent(cache, retrySpec, SINGLE_READER));
+        return concurrent(delegateCache, retrySpec, SINGLE_READER);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrent(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
