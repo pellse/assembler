@@ -15,25 +15,42 @@ public interface LifeCycleEventSource {
 
     void addLifeCycleEventListener(LifeCycleEventListener listener);
 
-    static <T, U> LifeCycleEventListener lifeCycleEventAdapter(T eventSource, Function<T, U> start, Consumer<U> stop) {
+    static LifeCycleEventListener concurrentLifeCycleEventListener(LifeCycleEventListener listener) {
 
         return new LifeCycleEventListener() {
 
-            private U stopObj;
             private final AtomicBoolean isStarted = new AtomicBoolean();
 
             @Override
             public void start() {
                 if (isStarted.compareAndSet(false, true)) {
-                    stopObj = start.apply(eventSource);
+                    listener.start();
                 }
             }
 
             @Override
             public void stop() {
                 if (isStarted.get()) {
-                    stop.accept(stopObj);
+                    listener.stop();
                 }
+            }
+        };
+    }
+
+    static <T, U> LifeCycleEventListener lifeCycleEventAdapter(T eventSource, Function<T, U> start, Consumer<U> stop) {
+
+        return new LifeCycleEventListener() {
+
+            private U stopObj;
+
+            @Override
+            public void start() {
+                stopObj = start.apply(eventSource);
+            }
+
+            @Override
+            public void stop() {
+                stop.accept(stopObj);
             }
         };
     }

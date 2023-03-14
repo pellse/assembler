@@ -3,8 +3,8 @@ package io.github.pellse.reactive.assembler.caching;
 import io.github.pellse.reactive.assembler.LifeCycleEventSource;
 import io.github.pellse.reactive.assembler.LifeCycleEventSource.LifeCycleEventListener;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
-import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheContext;
+import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static io.github.pellse.reactive.assembler.LifeCycleEventSource.concurrentLifeCycleEventListener;
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
@@ -64,7 +65,7 @@ public interface AutoCacheFactory {
     interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
     }
 
-    static <R>WindowingStrategy<R> defaultWindowingStrategy() {
+    static <R> WindowingStrategy<R> defaultWindowingStrategy() {
         return flux -> flux.window(MAX_WINDOW_SIZE);
     }
 
@@ -86,7 +87,9 @@ public interface AutoCacheFactory {
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context)))
                     .transform(errorHandler.toFluxErrorHandler());
 
-            lifeCycleEventSource.addLifeCycleEventListener(lifeCycleEventAdapter(cacheSourceFlux, Flux::subscribe, Disposable::dispose));
+            lifeCycleEventSource.addLifeCycleEventListener(
+                    concurrentLifeCycleEventListener(
+                            lifeCycleEventAdapter(cacheSourceFlux, Flux::subscribe, Disposable::dispose)));
 
             return cache;
         };
