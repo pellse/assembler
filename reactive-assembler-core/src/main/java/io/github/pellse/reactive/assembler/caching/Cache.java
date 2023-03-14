@@ -10,6 +10,7 @@ import java.util.function.Function;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Map.of;
+import static java.util.Optional.ofNullable;
 import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.just;
 
@@ -61,8 +62,9 @@ public interface Cache<ID, R> {
 
             @Override
             public Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
-                BiFunction<Map<ID, List<R>>, Map<ID, List<R>>, Mono<?>> f = updateAll != null ? updateAll : Cache.super::updateAll;
-                return f.apply(mapToAdd, mapToRemove);
+                return ofNullable(updateAll)
+                        .orElse(Cache.super::updateAll)
+                        .apply(mapToAdd, mapToRemove);
             }
         };
     }
