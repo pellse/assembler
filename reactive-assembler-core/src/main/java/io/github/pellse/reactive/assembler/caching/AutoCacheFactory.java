@@ -3,13 +3,15 @@ package io.github.pellse.reactive.assembler.caching;
 import io.github.pellse.reactive.assembler.LifeCycleEventSource;
 import io.github.pellse.reactive.assembler.LifeCycleEventSource.LifeCycleEventListener;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
-import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheContext;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -17,6 +19,7 @@ import static io.github.pellse.reactive.assembler.LifeCycleEventSource.concurren
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
+import static io.github.pellse.util.ObjectUtils.runIf;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
 
@@ -79,13 +82,28 @@ public interface AutoCacheFactory {
             ErrorHandler errorHandler,
             LifeCycleEventSource lifeCycleEventSource) {
 
+        return autoCache(dataSource, windowingStrategy, errorHandler, lifeCycleEventSource, null);
+    }
+
+    static <ID, R, RRC, T extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
+            Flux<T> dataSource,
+            WindowingStrategy<T> windowingStrategy,
+            ErrorHandler errorHandler,
+            LifeCycleEventSource lifeCycleEventSource,
+            Scheduler scheduler) {
+
         return cacheFactory -> (fetchFunction, context) -> {
             var cache = concurrent(cacheFactory.create(fetchFunction, context));
+            var idExtractor = context.correlationIdExtractor();
 
-            var cacheSourceFlux = dataSource.transform(windowingStrategy)
+            var cacheSourceFlux = dataSource
+                    .transform(scheduleOn(scheduler, Flux::publishOn))
+                    .transform(windowingStrategy)
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
-                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), context), toMap(eventMap.get(false), context)))
-                    .transform(errorHandler.toFluxErrorHandler());
+                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idExtractor), toMap(eventMap.get(false), idExtractor)))
+                    .transform(errorHandler.toFluxErrorHandler())
+                    .doFinally(__ -> runIf(scheduler, Objects::nonNull, Scheduler::dispose))
+                    .transform(scheduleOn(scheduler, Flux::subscribeOn));
 
             lifeCycleEventSource.addLifeCycleEventListener(
                     concurrentLifeCycleEventListener(
@@ -95,9 +113,13 @@ public interface AutoCacheFactory {
         };
     }
 
-    private static <ID, R, RRC> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, CacheContext<ID, R, RRC> context) {
+    private static <ID, R> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, Function<R, ID> correlationIdExtractor) {
         return cacheEvents.stream()
                 .map(CacheEvent::value)
-                .collect(groupingBy(context.correlationIdExtractor()));
+                .collect(groupingBy(correlationIdExtractor));
+    }
+
+    private static <T> Function<Flux<T>, Flux<T>> scheduleOn(Scheduler scheduler, BiFunction<Flux<T>, Scheduler, Flux<T>> scheduleFunction) {
+        return flux -> scheduler != null ? scheduleFunction.apply(flux, scheduler) : flux;
     }
 }

@@ -6,17 +6,23 @@ import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -36,7 +42,11 @@ import static io.github.pellse.reactive.assembler.caching.ConcurrentCacheFactory
 import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
 import static io.github.pellse.util.ObjectUtils.run;
-import static java.time.Duration.*;
+import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofNanos;
+import static java.util.Optional.ofNullable;
+import static java.util.concurrent.Executors.newScheduledThreadPool;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static reactor.core.publisher.Mono.error;
@@ -135,8 +145,8 @@ public class CacheTest {
                 .expectComplete()
                 .verify();
 
-        assertEquals(1, billingInvocationCount.get());
-        assertEquals(1, ordersInvocationCount.get());
+        assertEquals(1, billingInvocationCount.get(), "BillingInfo error");
+        assertEquals(1, ordersInvocationCount.get(), "OrderItem error");
     }
 
     @Test
@@ -145,7 +155,7 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, concurrentCache(cache())), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, concurrentCache()), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), concurrentCache()))),
                         Transaction::new)
                 .build();
@@ -188,8 +198,8 @@ public class CacheTest {
                 .expectComplete()
                 .verify();
 
-        assertEquals(3, billingInvocationCount.get());
-        assertEquals(1, ordersInvocationCount.get());
+        assertEquals(3, billingInvocationCount.get(), "BillingInfo error");
+        assertEquals(1, ordersInvocationCount.get(), "OrderItem error");
     }
 
     @Test
@@ -663,11 +673,20 @@ public class CacheTest {
     }
 
     @Test
-    public void testLongRunningAutoCachingEvents() {
+    @Timeout(20)
+    public void testLongRunningAutoCachingEvents() throws InterruptedException {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
+
+        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = customerIds ->
+                Flux.just(billingInfo1, billingInfo3)
+                        .filter(billingInfo -> customerIds.contains(billingInfo.customerId()));
+
+        Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds ->
+                Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                        .filter(orderItem -> customerIds.contains(orderItem.customerId()));
 
         var customerList = List.of(customer1, customer2, customer3);
 
@@ -678,51 +697,104 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var billingInfoCount = new AtomicInteger();
-        var orderItemCount = new AtomicInteger();
+        var customerFlux = longRunningFlux(customerList, 1, Runtime.getRuntime().availableProcessors());
+        var billingInfoFlux = longRunningFlux(billingInfoList, 1, Runtime.getRuntime().availableProcessors());
+        var orderItemFlux = longRunningFlux(orderItemList, 1, Runtime.getRuntime().availableProcessors());
 
-        var customerFlux = longRunningFlux(customerList, 1);
-
-        var billingInfoFlux = longRunningFlux(billingInfoList, billingInfoCount, 1, 10_100)
-                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item));
-
-        var orderItemFlux = longRunningFlux(orderItemList, orderItemCount, 1, 10_100)
-                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item));
+        var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(autoCacheEvents(billingInfoFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
+                                autoCache(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
+                                        .maxWindowSize(3)
+                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
+                                        .scheduler(newParallel("billing-info"))
+                                        .build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
+                                autoCache(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+                                        .maxWindowSize(3)
+                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
+                                        .scheduler(newParallel("order-item"))
+                                        .build()))),
                         Transaction::new)
-                .build(boundedElastic());
+                .build();
 
         var transactionFlux = customerFlux
                 .window(3)
                 .delayElements(ofNanos(1))
                 .flatMapSequential(assembler::assemble)
                 .take(10_000)
-                .subscribeOn(boundedElastic());
+                .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
+                .doFinally(run(lifeCycleEventBroadcaster::stop));
 
-        IntStream.range(0, 500).forEach(__ -> transactionFlux.subscribe());
-        transactionFlux.blockLast(ofSeconds(30));
+        var latch = new CountDownLatch(500);
+        IntStream.range(0, 500).forEach(__ -> transactionFlux.subscribe(null, error -> latch.countDown(), latch::countDown));
+        latch.await();
     }
 
-    private <T> Flux<T> longRunningFlux(List<T> list, int nsDelay) {
-        return longRunningFlux(list, null, nsDelay, -1);
+    private static <T> Flux<T> longRunningFlux(List<T> list, int nsDelay, int threadPoolSize) {
+        return longRunningFlux(list, null, nsDelay, threadPoolSize);
     }
 
-    private <T> Flux<T> longRunningFlux(List<T> list, AtomicInteger counter, int nsDelay, int maxItems) {
-        int size = list.size();
-        return Flux.<T, Integer>generate(() -> 0, (index, sink) -> {
-                    if (counter != null && counter.incrementAndGet() == maxItems) {
+    private static <T> Flux<T> longRunningFlux(List<T> list, AtomicLong counter, int nsDelay, int threadPoolSize) {
+        return longRunningFlux(list, counter, nsDelay, -1, threadPoolSize);
+    }
+
+    private static <T> Flux<T> longRunningFlux(List<T> list, AtomicLong counter, int nsDelay, int maxItems, int threadPoolSize) {
+        return generate(
+                threadPoolSize,
+                nsDelay,
+                NANOSECONDS,
+                0,
+                i -> (i + 1) % list.size(),
+                list::get,
+                (count, state) -> count >= maxItems && maxItems != -1,
+                (count, value) -> ofNullable(counter).ifPresent(AtomicLong::incrementAndGet));
+    }
+
+    private static <T, S> Flux<T> generate(
+            int threadPoolSize,
+            long nsDelay,
+            TimeUnit unit,
+            S initialState,
+            UnaryOperator<S> stateUpdater,
+            Function<S, T> valueGenerator,
+            BiPredicate<Long, S> stopCondition,
+            BiConsumer<Long, T> onValueGenerated) {
+
+        var scheduledExecutorService = newScheduledThreadPool(threadPoolSize);
+        var subscriberCount = new AtomicInteger();
+
+        return Flux.create(sink -> {
+
+            var state = new AtomicReference<>(initialState);
+            var generatedValueCount = new AtomicLong();
+
+            var scheduledFuture = new AtomicReference<ScheduledFuture<?>>();
+            subscriberCount.incrementAndGet();
+
+            scheduledFuture.set(scheduledExecutorService.scheduleAtFixedRate(() -> {
+
+                var notCancelled = !sink.isCancelled();
+                var oldState = state.getAndUpdate(stateUpdater);
+                var count = generatedValueCount.getAndIncrement();
+
+                if (notCancelled && !stopCondition.test(count, oldState)) {
+                    var value = valueGenerator.apply(oldState);
+                    sink.next(value);
+                    onValueGenerated.accept(count, value);
+                } else {
+                    if (notCancelled) {
                         sink.complete();
                     }
-                    sink.next(list.get(index));
-                    return (index + 1) % size;
-                })
-                .delayElements(ofNanos(nsDelay))
-                .subscribeOn(boundedElastic());
+                    scheduledFuture.get().cancel(true);
+                    if (subscriberCount.decrementAndGet() == 0) {
+                        scheduledExecutorService.shutdownNow();
+                    }
+                }
+            }, 0, nsDelay, unit));
+        });
     }
 }
-

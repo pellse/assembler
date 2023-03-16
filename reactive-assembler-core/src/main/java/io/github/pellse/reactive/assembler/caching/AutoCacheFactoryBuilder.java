@@ -6,6 +6,7 @@ import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.ErrorHandler
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.WindowingStrategy;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
 import java.util.function.Function;
@@ -31,8 +32,12 @@ public interface AutoCacheFactoryBuilder {
         LifeCycleEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler);
     }
 
-    interface LifeCycleEventSourceBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
-        AutoCacheFactoryDelegateBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource);
+    interface LifeCycleEventSourceBuilder<R> extends SchedulerBuilder<R> {
+        SchedulerBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource);
+    }
+
+    interface SchedulerBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
+        AutoCacheFactoryDelegateBuilder<R> scheduler(Scheduler scheduler);
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
@@ -44,6 +49,8 @@ public interface AutoCacheFactoryBuilder {
         private final Flux<T> dataSource;
         private WindowingStrategy<T> windowingStrategy = defaultWindowingStrategy();
         private ErrorHandler errorHandler = onErrorStop();
+
+        private Scheduler scheduler;
 
         private LifeCycleEventSource eventSource = LifeCycleEventListener::start;
 
@@ -79,14 +86,20 @@ public interface AutoCacheFactoryBuilder {
         }
 
         @Override
-        public AutoCacheFactoryDelegateBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource) {
+        public SchedulerBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource) {
             this.eventSource = eventSource;
             return this;
         }
 
         @Override
+        public AutoCacheFactoryDelegateBuilder<R> scheduler(Scheduler scheduler) {
+            this.scheduler = scheduler;
+            return this;
+        }
+
+        @Override
         public <ID, RRC> CacheTransformer<ID, R, RRC> build() {
-            return AutoCacheFactory.autoCache(dataSource, windowingStrategy, errorHandler, eventSource);
+            return AutoCacheFactory.autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler);
         }
     }
 
