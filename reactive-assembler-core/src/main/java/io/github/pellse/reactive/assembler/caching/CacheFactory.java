@@ -6,9 +6,9 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -18,7 +18,6 @@ import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy.MULTIPLE_READERS;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy.SINGLE_READER;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
 import static io.github.pellse.util.ObjectUtils.*;
@@ -59,7 +58,7 @@ public interface CacheFactory<ID, R, RRC> {
     }
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache() {
-        return cache(ConcurrentHashMap::new);
+        return cache(HashMap::new);
     }
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Supplier<Map<ID, List<R>>> mapSupplier) {
