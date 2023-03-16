@@ -19,7 +19,7 @@ import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy.SINGLE_READER;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.lang.System.Logger.Level.WARNING;
@@ -67,7 +67,7 @@ public interface CacheFactory<ID, R, RRC> {
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Map<ID, List<R>> delegateMap) {
 
-        return (fetchFunction, __) -> concurrent(
+        return (fetchFunction, __) -> concurrentCache(
                 adapterCache(
                         (ids, computeIfAbsent) -> just(readAll(ids, delegateMap))
                                 .flatMap(cachedEntitiesMap -> then(intersect(ids, cachedEntitiesMap.keySet()), entityIds ->

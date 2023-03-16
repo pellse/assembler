@@ -12,7 +12,10 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +41,7 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilde
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.*;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCacheFactory.concurrentCache;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCacheFactory.concurrent;
 import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
 import static io.github.pellse.util.ObjectUtils.run;
@@ -155,8 +158,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, concurrentCache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), concurrentCache()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, concurrent()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), concurrent()))),
                         Transaction::new)
                 .build();
 
@@ -206,7 +209,8 @@ public class CacheTest {
     public void testReusableAssemblerBuilderWithFaultyQueryFunction() {
 
         Transaction defaultTransaction = new Transaction(null, null, null);
-        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = ids -> Flux.error(new IOException());
+        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = ids -> Flux.just(billingInfo1)
+               .flatMap(__ -> Flux.error(new IOException()));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
@@ -214,7 +218,7 @@ public class CacheTest {
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
                         Transaction::new)
-                .build(boundedElastic());
+                .build();
 
         StepVerifier.create(getCustomers()
                         .window(3)

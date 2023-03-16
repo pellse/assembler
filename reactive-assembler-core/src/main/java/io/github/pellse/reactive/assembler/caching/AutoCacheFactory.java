@@ -18,7 +18,7 @@ import java.util.function.Function;
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.concurrentLifeCycleEventListener;
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrent;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
 import static io.github.pellse.util.ObjectUtils.runIf;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
@@ -93,7 +93,7 @@ public interface AutoCacheFactory {
             Scheduler scheduler) {
 
         return cacheFactory -> (fetchFunction, context) -> {
-            var cache = concurrent(cacheFactory.create(fetchFunction, context));
+            var cache = concurrentCache(cacheFactory.create(fetchFunction, context));
             var idExtractor = context.correlationIdExtractor();
 
             var cacheSourceFlux = dataSource
