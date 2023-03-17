@@ -18,8 +18,6 @@ import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy.SINGLE_READER;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.lang.System.Logger.Level.WARNING;
@@ -67,17 +65,15 @@ public interface CacheFactory<ID, R, RRC> {
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Map<ID, List<R>> delegateMap) {
 
-        return (fetchFunction, __) -> concurrentCache(
-                adapterCache(
-                        (ids, computeIfAbsent) -> just(readAll(ids, delegateMap))
-                                .flatMap(cachedEntitiesMap -> then(intersect(ids, cachedEntitiesMap.keySet()), entityIds ->
-                                        !computeIfAbsent || entityIds.isEmpty() ? just(cachedEntitiesMap) :
-                                                fetchFunction.apply(entityIds)
-                                                        .doOnNext(delegateMap::putAll)
-                                                        .map(map -> mergeMaps(map, cachedEntitiesMap)))),
-                        toMono(delegateMap::putAll),
-                        toMono(map -> delegateMap.keySet().removeAll(map.keySet()))
-                ), SINGLE_READER);
+        return (fetchFunction, __) -> adapterCache(
+                (ids, computeIfAbsent) -> just(readAll(ids, delegateMap))
+                        .flatMap(cachedEntitiesMap -> then(intersect(ids, cachedEntitiesMap.keySet()), entityIds ->
+                                !computeIfAbsent || entityIds.isEmpty() ? just(cachedEntitiesMap) :
+                                        fetchFunction.apply(entityIds)
+                                                .doOnNext(delegateMap::putAll)
+                                                .map(map -> mergeMaps(map, cachedEntitiesMap)))),
+                toMono(delegateMap::putAll),
+                toMono(map -> delegateMap.keySet().removeAll(map.keySet())));
     }
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(
@@ -209,10 +205,11 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        return stream(delegateCacheFactories)
-                .reduce((fetchFunction, context) -> mergeStrategyAwareCache(ruleContext.idExtractor(), cacheFactory.create(fetchFunction, context)),
-                        (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
-                        (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory);
+        return ConcurrentCacheFactory.<ID, R, RRC>concurrent().apply(
+                stream(delegateCacheFactories)
+                        .reduce((fetchFunction, context) -> mergeStrategyAwareCache(ruleContext.idExtractor(), cacheFactory.create(fetchFunction, context)),
+                                (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
+                                (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory));
     }
 
     private static <ID, EID, IDC extends Collection<ID>, R, RRC> Map<ID, List<R>> buildCacheFragment(
