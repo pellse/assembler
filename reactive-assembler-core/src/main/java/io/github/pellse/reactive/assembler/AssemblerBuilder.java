@@ -314,11 +314,6 @@ public interface AssemblerBuilder {
                             .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
         }
 
-        @Override
-        public RC assemble(Publisher<T> topLevelEntitiesProvider) {
-            return assemblerAdapter.convertSubQueryMappers(topLevelEntitiesProvider, subQueryMapperBuilder, aggregateStreamBuilder);
-        }
-
         private static <T, ID> Stream<Publisher<? extends Map<ID, ?>>> buildSubQueryMappersFromRules(
                 Iterable<T> topLevelEntities,
                 Function<T, ID> correlationIdExtractor,
@@ -331,6 +326,11 @@ public interface AssemblerBuilder {
 
             return rules.stream()
                     .map(rule -> rule.apply(entityIDs));
+        }
+
+        @Override
+        public RC assemble(Publisher<T> topLevelEntitiesProvider) {
+            return assemblerAdapter.convertSubQueryMappers(topLevelEntitiesProvider, subQueryMapperBuilder, aggregateStreamBuilder);
         }
     }
 }

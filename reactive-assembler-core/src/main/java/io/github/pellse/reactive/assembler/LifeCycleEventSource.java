@@ -7,14 +7,6 @@ import java.util.function.Function;
 @FunctionalInterface
 public interface LifeCycleEventSource {
 
-    interface LifeCycleEventListener {
-        void start();
-
-        void stop();
-    }
-
-    void addLifeCycleEventListener(LifeCycleEventListener listener);
-
     static LifeCycleEventListener concurrentLifeCycleEventListener(LifeCycleEventListener listener) {
 
         return new LifeCycleEventListener() {
@@ -53,5 +45,13 @@ public interface LifeCycleEventSource {
                 stop.accept(stopObj);
             }
         };
+    }
+
+    void addLifeCycleEventListener(LifeCycleEventListener listener);
+
+    interface LifeCycleEventListener {
+        void start();
+
+        void stop();
     }
 }

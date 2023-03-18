@@ -6,14 +6,6 @@ import java.util.function.Predicate;
 import static java.util.function.Function.identity;
 
 public sealed interface CacheEvent<R> {
-    R value();
-
-    record Updated<R>(R value) implements CacheEvent<R> {
-    }
-
-    record Removed<R>(R value) implements CacheEvent<R> {
-    }
-
     static <R> Updated<R> updated(R value) {
         return new Updated<>(value);
     }
@@ -31,7 +23,15 @@ public sealed interface CacheEvent<R> {
     }
 
     static <R> CacheEvent<R> toCacheEvent(boolean isUpdated, R eventValue) {
-        return  isUpdated ? updated(eventValue) : removed(eventValue);
+        return isUpdated ? updated(eventValue) : removed(eventValue);
+    }
+
+    R value();
+
+    record Updated<R>(R value) implements CacheEvent<R> {
+    }
+
+    record Removed<R>(R value) implements CacheEvent<R> {
     }
 }
 

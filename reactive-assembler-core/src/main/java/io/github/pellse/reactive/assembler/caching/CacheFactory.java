@@ -32,29 +32,6 @@ import static reactor.core.publisher.Mono.just;
 @FunctionalInterface
 public interface CacheFactory<ID, R, RRC> {
 
-    Cache<ID, R> create(
-            Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction,
-            CacheContext<ID, R, RRC> context);
-
-    class QueryFunctionException extends Exception {
-        QueryFunctionException(Throwable t) {
-            super(null, t, true, false);
-        }
-    }
-
-    record CacheContext<ID, R, RRC>(
-            Function<R, ID> correlationIdExtractor,
-            Function<List<R>, RRC> fromListConverter,
-            Function<RRC, List<R>> toListConverter) {
-
-        public CacheContext(RuleMapperContext<ID, ?, ?, R, RRC> ctx) {
-            this(ctx.correlationIdExtractor(), ctx.fromListConverter(), ctx.toListConverter());
-        }
-    }
-
-    interface CacheTransformer<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
-    }
-
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache() {
         return cache(HashMap::new);
     }
@@ -220,5 +197,28 @@ public interface CacheFactory<ID, R, RRC> {
         return newMap(queryResultsMap, map ->
                 intersect(entityIds, map.keySet()).forEach(id ->
                         ifNotNull(ctx.defaultResultProvider().apply(id), value -> map.put(id, ctx.toListConverter().apply(value)))));
+    }
+
+    Cache<ID, R> create(
+            Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction,
+            CacheContext<ID, R, RRC> context);
+
+    interface CacheTransformer<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
+    }
+
+    class QueryFunctionException extends Exception {
+        QueryFunctionException(Throwable t) {
+            super(null, t, true, false);
+        }
+    }
+
+    record CacheContext<ID, R, RRC>(
+            Function<R, ID> correlationIdExtractor,
+            Function<List<R>, RRC> fromListConverter,
+            Function<RRC, List<R>> toListConverter) {
+
+        public CacheContext(RuleMapperContext<ID, ?, ?, R, RRC> ctx) {
+            this(ctx.correlationIdExtractor(), ctx.fromListConverter(), ctx.toListConverter());
+        }
     }
 }

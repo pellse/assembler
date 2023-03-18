@@ -138,7 +138,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         };
     }
 
-//    private static <ID, R> MergeStrategy<ID, R> updateStrategy() {
+    //    private static <ID, R> MergeStrategy<ID, R> updateStrategy() {
 //        return (cache, itemsToUpdateMap) -> itemsToUpdateMap;
 //    }
 //

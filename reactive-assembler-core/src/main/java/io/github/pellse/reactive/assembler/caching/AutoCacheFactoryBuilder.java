@@ -18,6 +18,25 @@ import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEven
 
 public interface AutoCacheFactoryBuilder {
 
+    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> autoCache(Flux<R> dataSource) {
+        return autoCache(dataSource, CacheEvent::updated);
+    }
+
+    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCache(
+            Flux<U> dataSource,
+            Predicate<U> isUpdated,
+            Function<U, R> cacheEventValueExtractor) {
+        return autoCacheEvents(dataSource.map(toCacheEvent(isUpdated, cacheEventValueExtractor)));
+    }
+
+    static <U, R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCache(Flux<U> dataSource, Function<U, T> mapper) {
+        return autoCacheEvents(dataSource.map(mapper));
+    }
+
+    static <R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCacheEvents(Flux<T> dataSource) {
+        return new Builder<>(dataSource);
+    }
+
     interface WindowingStrategyBuilder<R, T extends CacheEvent<R>> extends ConfigBuilder<R> {
         ConfigBuilder<R> maxWindowSize(int maxWindowSize);
 
@@ -101,24 +120,5 @@ public interface AutoCacheFactoryBuilder {
         public <ID, RRC> CacheTransformer<ID, R, RRC> build() {
             return AutoCacheFactory.autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler);
         }
-    }
-
-    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> autoCache(Flux<R> dataSource) {
-        return autoCache(dataSource, CacheEvent::updated);
-    }
-
-    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCache(
-            Flux<U> dataSource,
-            Predicate<U> isUpdated,
-            Function<U, R> cacheEventValueExtractor) {
-        return autoCacheEvents(dataSource.map(toCacheEvent(isUpdated, cacheEventValueExtractor)));
-    }
-
-    static <U, R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCache(Flux<U> dataSource, Function<U, T> mapper) {
-        return autoCacheEvents(dataSource.map(mapper));
-    }
-
-    static <R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCacheEvents(Flux<T> dataSource) {
-        return new Builder<>(dataSource);
     }
 }

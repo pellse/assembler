@@ -5,10 +5,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public interface LifeCycleEventBroadcaster extends LifeCycleEventSource {
-    void start();
-
-    void stop();
-
     static LifeCycleEventBroadcaster lifeCycleEventBroadcaster() {
 
         return new LifeCycleEventBroadcaster() {
@@ -36,4 +32,8 @@ public interface LifeCycleEventBroadcaster extends LifeCycleEventSource {
             }
         };
     }
+
+    void start();
+
+    void stop();
 }

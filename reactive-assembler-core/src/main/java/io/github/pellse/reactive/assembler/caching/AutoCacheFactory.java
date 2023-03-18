@@ -27,47 +27,6 @@ public interface AutoCacheFactory {
 
     int MAX_WINDOW_SIZE = 1;
 
-    sealed interface ErrorHandler {
-        <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler();
-    }
-
-    record OnErrorContinue(Consumer<Throwable> errorConsumer) implements ErrorHandler {
-        public static OnErrorContinue onErrorContinue(Consumer<Throwable> errorConsumer) {
-            return new OnErrorContinue(errorConsumer);
-        }
-
-        @Override
-        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
-            return flux -> flux.onErrorContinue((error, object) -> errorConsumer().accept(error));
-        }
-    }
-
-    record OnErrorMap(Function<? super Throwable, ? extends Throwable> mapper) implements ErrorHandler {
-        public static OnErrorMap onErrorMap(Function<? super Throwable, ? extends Throwable> mapper) {
-            return new OnErrorMap(mapper);
-        }
-
-        @Override
-        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
-            return flux -> flux.onErrorMap(mapper());
-        }
-    }
-
-    record OnErrorStop() implements ErrorHandler {
-        public static OnErrorStop onErrorStop() {
-            return new OnErrorStop();
-        }
-
-        @Override
-        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
-            return Flux::onErrorStop;
-        }
-    }
-
-    @FunctionalInterface
-    interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
-    }
-
     static <R> WindowingStrategy<R> defaultWindowingStrategy() {
         return flux -> flux.window(MAX_WINDOW_SIZE);
     }
@@ -121,5 +80,46 @@ public interface AutoCacheFactory {
 
     private static <T> Function<Flux<T>, Flux<T>> scheduleOn(Scheduler scheduler, BiFunction<Flux<T>, Scheduler, Flux<T>> scheduleFunction) {
         return flux -> scheduler != null ? scheduleFunction.apply(flux, scheduler) : flux;
+    }
+
+    sealed interface ErrorHandler {
+        <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler();
+    }
+
+    @FunctionalInterface
+    interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
+    }
+
+    record OnErrorContinue(Consumer<Throwable> errorConsumer) implements ErrorHandler {
+        public static OnErrorContinue onErrorContinue(Consumer<Throwable> errorConsumer) {
+            return new OnErrorContinue(errorConsumer);
+        }
+
+        @Override
+        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
+            return flux -> flux.onErrorContinue((error, object) -> errorConsumer().accept(error));
+        }
+    }
+
+    record OnErrorMap(Function<? super Throwable, ? extends Throwable> mapper) implements ErrorHandler {
+        public static OnErrorMap onErrorMap(Function<? super Throwable, ? extends Throwable> mapper) {
+            return new OnErrorMap(mapper);
+        }
+
+        @Override
+        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
+            return flux -> flux.onErrorMap(mapper());
+        }
+    }
+
+    record OnErrorStop() implements ErrorHandler {
+        public static OnErrorStop onErrorStop() {
+            return new OnErrorStop();
+        }
+
+        @Override
+        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
+            return Flux::onErrorStop;
+        }
     }
 }

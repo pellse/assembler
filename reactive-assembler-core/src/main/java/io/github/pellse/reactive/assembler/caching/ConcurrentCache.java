@@ -20,26 +20,10 @@ import static io.github.pellse.util.ObjectUtils.run;
 import static java.lang.Integer.MAX_VALUE;
 import static java.time.Duration.ofNanos;
 import static reactor.core.publisher.Mono.*;
-import static reactor.util.retry.Retry.*;
+import static reactor.util.retry.Retry.backoff;
+import static reactor.util.retry.Retry.max;
 
 public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
-
-    enum ConcurrencyStrategy {
-        SINGLE_READER,
-        MULTIPLE_READERS
-    }
-
-    class LockNotAcquiredException extends Exception {
-        LockNotAcquiredException() {
-            super(null, null, true, false);
-        }
-    }
-
-    interface Lock {
-        boolean tryAcquireLock();
-
-        void releaseLock();
-    }
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
@@ -198,5 +182,22 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
     private static <ID, R> ConcurrentCache<ID, R> build(Cache<ID, R> delegateCache, Function<Cache<ID, R>, ConcurrentCache<ID, R>> f) {
         return delegateCache instanceof ConcurrentCache<ID, R> c ? c : f.apply(delegateCache);
+    }
+
+    enum ConcurrencyStrategy {
+        SINGLE_READER,
+        MULTIPLE_READERS
+    }
+
+    interface Lock {
+        boolean tryAcquireLock();
+
+        void releaseLock();
+    }
+
+    class LockNotAcquiredException extends Exception {
+        LockNotAcquiredException() {
+            super(null, null, true, false);
+        }
     }
 }

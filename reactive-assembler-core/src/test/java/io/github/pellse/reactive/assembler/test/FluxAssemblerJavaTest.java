@@ -35,10 +35,10 @@ import java.util.stream.Stream;
 import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
-import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.QueryCache.cache;
 import static io.github.pellse.reactive.assembler.QueryCache.cached;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
+import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
@@ -196,7 +196,8 @@ public class FluxAssemblerJavaTest {
 
         StepVerifier.create(getCustomers()
                         .window(3)
-                        .flatMapSequential(customers -> assembler.assemble(customers).onErrorContinue((error, o) -> {})))
+                        .flatMapSequential(customers -> assembler.assemble(customers).onErrorContinue((error, o) -> {
+                        })))
                 .expectSubscription()
                 .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
                 .expectComplete()

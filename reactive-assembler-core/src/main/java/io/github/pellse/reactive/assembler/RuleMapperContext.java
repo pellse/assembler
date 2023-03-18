@@ -10,6 +10,24 @@ import java.util.stream.Collector;
 
 public interface RuleMapperContext<ID, EID, IDC extends Collection<ID>, R, RRC> extends RuleContext<ID, IDC, R, RRC> {
 
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> DefaultRuleMapperContext<ID, EID, IDC, R, RRC> toRuleMapperContext(
+            IdAwareRuleContext<ID, EID, IDC, R, RRC> ruleContext,
+            Function<ID, RRC> defaultResultProvider,
+            IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
+            Function<List<R>, RRC> fromListConverter,
+            Function<RRC, List<R>> toListConverter) {
+
+        return new DefaultRuleMapperContext<>(
+                ruleContext.idExtractor(),
+                ruleContext.correlationIdExtractor(),
+                ruleContext.idCollectionFactory(),
+                ruleContext.mapFactory(),
+                defaultResultProvider,
+                mapCollector,
+                fromListConverter,
+                toListConverter);
+    }
+
     Function<R, EID> idExtractor();
 
     Function<ID, RRC> defaultResultProvider();
@@ -29,23 +47,5 @@ public interface RuleMapperContext<ID, EID, IDC extends Collection<ID>, R, RRC> 
             IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
             Function<List<R>, RRC> fromListConverter,
             Function<RRC, List<R>> toListConverter) implements RuleMapperContext<ID, EID, IDC, R, RRC> {
-    }
-
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> DefaultRuleMapperContext<ID, EID, IDC, R, RRC> toRuleMapperContext(
-            IdAwareRuleContext<ID, EID, IDC, R, RRC> ruleContext,
-            Function<ID, RRC> defaultResultProvider,
-            IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
-            Function<List<R>, RRC> fromListConverter,
-            Function<RRC, List<R>> toListConverter) {
-
-        return new DefaultRuleMapperContext<>(
-                ruleContext.idExtractor(),
-                ruleContext.correlationIdExtractor(),
-                ruleContext.idCollectionFactory(),
-                ruleContext.mapFactory(),
-                defaultResultProvider,
-                mapCollector,
-                fromListConverter,
-                toListConverter);
     }
 }

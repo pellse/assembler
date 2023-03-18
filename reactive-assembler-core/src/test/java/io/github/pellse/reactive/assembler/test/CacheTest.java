@@ -76,6 +76,70 @@ public class CacheTest {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
+    private static <T> Flux<T> longRunningFlux(List<T> list, int nsDelay, int threadPoolSize) {
+        return longRunningFlux(list, null, nsDelay, threadPoolSize);
+    }
+
+    private static <T> Flux<T> longRunningFlux(List<T> list, AtomicLong counter, int nsDelay, int threadPoolSize) {
+        return longRunningFlux(list, counter, nsDelay, -1, threadPoolSize);
+    }
+
+    private static <T> Flux<T> longRunningFlux(List<T> list, AtomicLong counter, int nsDelay, int maxItems, int threadPoolSize) {
+        return generate(
+                threadPoolSize,
+                nsDelay,
+                NANOSECONDS,
+                0,
+                i -> (i + 1) % list.size(),
+                list::get,
+                (count, state) -> count >= maxItems && maxItems != -1,
+                (count, value) -> ofNullable(counter).ifPresent(AtomicLong::incrementAndGet));
+    }
+
+    private static <T, S> Flux<T> generate(
+            int threadPoolSize,
+            long nsDelay,
+            TimeUnit unit,
+            S initialState,
+            UnaryOperator<S> stateUpdater,
+            Function<S, T> valueGenerator,
+            BiPredicate<Long, S> stopCondition,
+            BiConsumer<Long, T> onValueGenerated) {
+
+        var scheduledExecutorService = newScheduledThreadPool(threadPoolSize);
+        var subscriberCount = new AtomicInteger();
+
+        return Flux.create(sink -> {
+
+            var state = new AtomicReference<>(initialState);
+            var generatedValueCount = new AtomicLong();
+
+            var scheduledFuture = new AtomicReference<ScheduledFuture<?>>();
+            subscriberCount.incrementAndGet();
+
+            scheduledFuture.set(scheduledExecutorService.scheduleAtFixedRate(() -> {
+
+                var notCancelled = !sink.isCancelled();
+                var oldState = state.getAndUpdate(stateUpdater);
+                var count = generatedValueCount.getAndIncrement();
+
+                if (notCancelled && !stopCondition.test(count, oldState)) {
+                    var value = valueGenerator.apply(oldState);
+                    sink.next(value);
+                    onValueGenerated.accept(count, value);
+                } else {
+                    if (notCancelled) {
+                        sink.complete();
+                    }
+                    scheduledFuture.get().cancel(true);
+                    if (subscriberCount.decrementAndGet() == 0) {
+                        scheduledExecutorService.shutdownNow();
+                    }
+                }
+            }, 0, nsDelay, unit));
+        });
+    }
+
     private Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
@@ -210,7 +274,7 @@ public class CacheTest {
 
         Transaction defaultTransaction = new Transaction(null, null, null);
         Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = ids -> Flux.just(billingInfo1)
-               .flatMap(__ -> Flux.error(new IOException()));
+                .flatMap(__ -> Flux.error(new IOException()));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
@@ -736,69 +800,5 @@ public class CacheTest {
         var latch = new CountDownLatch(500);
         IntStream.range(0, 500).forEach(__ -> transactionFlux.subscribe(null, error -> latch.countDown(), latch::countDown));
         latch.await();
-    }
-
-    private static <T> Flux<T> longRunningFlux(List<T> list, int nsDelay, int threadPoolSize) {
-        return longRunningFlux(list, null, nsDelay, threadPoolSize);
-    }
-
-    private static <T> Flux<T> longRunningFlux(List<T> list, AtomicLong counter, int nsDelay, int threadPoolSize) {
-        return longRunningFlux(list, counter, nsDelay, -1, threadPoolSize);
-    }
-
-    private static <T> Flux<T> longRunningFlux(List<T> list, AtomicLong counter, int nsDelay, int maxItems, int threadPoolSize) {
-        return generate(
-                threadPoolSize,
-                nsDelay,
-                NANOSECONDS,
-                0,
-                i -> (i + 1) % list.size(),
-                list::get,
-                (count, state) -> count >= maxItems && maxItems != -1,
-                (count, value) -> ofNullable(counter).ifPresent(AtomicLong::incrementAndGet));
-    }
-
-    private static <T, S> Flux<T> generate(
-            int threadPoolSize,
-            long nsDelay,
-            TimeUnit unit,
-            S initialState,
-            UnaryOperator<S> stateUpdater,
-            Function<S, T> valueGenerator,
-            BiPredicate<Long, S> stopCondition,
-            BiConsumer<Long, T> onValueGenerated) {
-
-        var scheduledExecutorService = newScheduledThreadPool(threadPoolSize);
-        var subscriberCount = new AtomicInteger();
-
-        return Flux.create(sink -> {
-
-            var state = new AtomicReference<>(initialState);
-            var generatedValueCount = new AtomicLong();
-
-            var scheduledFuture = new AtomicReference<ScheduledFuture<?>>();
-            subscriberCount.incrementAndGet();
-
-            scheduledFuture.set(scheduledExecutorService.scheduleAtFixedRate(() -> {
-
-                var notCancelled = !sink.isCancelled();
-                var oldState = state.getAndUpdate(stateUpdater);
-                var count = generatedValueCount.getAndIncrement();
-
-                if (notCancelled && !stopCondition.test(count, oldState)) {
-                    var value = valueGenerator.apply(oldState);
-                    sink.next(value);
-                    onValueGenerated.accept(count, value);
-                } else {
-                    if (notCancelled) {
-                        sink.complete();
-                    }
-                    scheduledFuture.get().cancel(true);
-                    if (subscriberCount.decrementAndGet() == 0) {
-                        scheduledExecutorService.shutdownNow();
-                    }
-                }
-            }, 0, nsDelay, unit));
-        });
     }
 }

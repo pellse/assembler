@@ -21,16 +21,6 @@ interface CacheUpdater<ID, R> {
 
 public interface Cache<ID, R> {
 
-    Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
-
-    Mono<?> putAll(Map<ID, List<R>> map);
-
-    Mono<?> removeAll(Map<ID, List<R>> map);
-
-    default Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
-        return putAll(mapToAdd).then(removeAll(mapToRemove));
-    }
-
     static <ID, R> Cache<ID, R> adapterCache(
             BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> getAll,
             Function<Map<ID, List<R>>, Mono<?>> putAll,
@@ -122,5 +112,15 @@ public interface Cache<ID, R> {
     private static <ID, R> BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> emptyOr(
             BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> mappingFunction) {
         return (ids, computeIfAbsent) -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids, computeIfAbsent);
+    }
+
+    Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent);
+
+    Mono<?> putAll(Map<ID, List<R>> map);
+
+    Mono<?> removeAll(Map<ID, List<R>> map);
+
+    default Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
+        return putAll(mapToAdd).then(removeAll(mapToRemove));
     }
 }

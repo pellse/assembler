@@ -43,23 +43,6 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
     }
 
     @NotNull
-    @Override
-    public Flux<R> convertSubQueryMappers(
-            Publisher<T> topLevelEntitiesProvider,
-            Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> subQueryMapperBuilder,
-            BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
-
-        return Flux.from(topLevelEntitiesProvider)
-                .collectList()
-                .flatMapMany(entities ->
-                        zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).collect(toList()),
-                                mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))
-                        )
-                )
-                .flatMap(Flux::fromStream);
-    }
-
-    @NotNull
     @Contract(" -> new")
     public static <T, ID, R> FluxAdapter<T, ID, R> fluxAdapter() {
         return fluxAdapter(parallel());
@@ -76,5 +59,22 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
         return Stream.of(mapperResults)
                 .map(mapResult -> (Map<ID, ?>) mapResult)
                 .collect(toList());
+    }
+
+    @NotNull
+    @Override
+    public Flux<R> convertSubQueryMappers(
+            Publisher<T> topLevelEntitiesProvider,
+            Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> subQueryMapperBuilder,
+            BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder) {
+
+        return Flux.from(topLevelEntitiesProvider)
+                .collectList()
+                .flatMapMany(entities ->
+                        zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).collect(toList()),
+                                mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))
+                        )
+                )
+                .flatMap(Flux::fromStream);
     }
 }
