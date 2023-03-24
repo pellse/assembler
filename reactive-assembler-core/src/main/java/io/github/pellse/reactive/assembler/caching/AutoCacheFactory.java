@@ -30,12 +30,15 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.concurrentLifeCycleEventListener;
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
+import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
 import static io.github.pellse.util.ObjectUtils.runIf;
+import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
 
@@ -48,7 +51,19 @@ public interface AutoCacheFactory {
     }
 
     static <ID, R, RRC> CacheTransformer<ID, R, RRC> autoCache(Flux<R> dataSource) {
-        return autoCache(dataSource.map(CacheEvent::updated), defaultWindowingStrategy(), onErrorStop(), LifeCycleEventListener::start);
+        return autoCache(dataSource, __ -> true, identity());
+    }
+
+    static <ID, R, RRC, U> CacheTransformer<ID, R, RRC> autoCache(
+            Flux<U> dataSource,
+            Predicate<U> isUpdated,
+            Function<U, R> cacheEventValueExtractor) {
+
+        return autoCache(
+                dataSource.map(toCacheEvent(isUpdated, cacheEventValueExtractor)),
+                defaultWindowingStrategy(),
+                onErrorStop(),
+                LifeCycleEventListener::start);
     }
 
     static <ID, R, RRC, T extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
