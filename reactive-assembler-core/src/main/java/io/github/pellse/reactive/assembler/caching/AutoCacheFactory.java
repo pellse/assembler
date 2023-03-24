@@ -56,11 +56,11 @@ public interface AutoCacheFactory {
 
     static <ID, R, RRC, U> CacheTransformer<ID, R, RRC> autoCache(
             Flux<U> dataSource,
-            Predicate<U> isUpdated,
+            Predicate<U> isUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
 
         return autoCache(
-                dataSource.map(toCacheEvent(isUpdated, cacheEventValueExtractor)),
+                dataSource.map(toCacheEvent(isUpdateEvent, cacheEventValueExtractor)),
                 defaultWindowingStrategy(),
                 onErrorStop(),
                 LifeCycleEventListener::start);
