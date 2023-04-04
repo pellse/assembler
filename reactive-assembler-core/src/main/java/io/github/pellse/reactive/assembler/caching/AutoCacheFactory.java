@@ -38,6 +38,8 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErr
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
 import static io.github.pellse.util.ObjectUtils.runIf;
+import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
@@ -86,16 +88,16 @@ public interface AutoCacheFactory {
             var cache = concurrentCache(cacheFactory.create(fetchFunction, context));
             var idExtractor = context.correlationIdExtractor();
 
-            var cacheSourceFlux = dataSource
+            var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
                     .transform(scheduleOn(scheduler, Flux::publishOn))
-                    .transform(windowingStrategy)
+                    .transform(requireNonNullElse(windowingStrategy, defaultWindowingStrategy()))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idExtractor), toMap(eventMap.get(false), idExtractor)))
-                    .transform(errorHandler.toFluxErrorHandler())
+                    .transform(requireNonNullElse(errorHandler, onErrorStop()).toFluxErrorHandler())
                     .doFinally(__ -> runIf(scheduler, Objects::nonNull, Scheduler::dispose))
                     .transform(scheduleOn(scheduler, Flux::subscribeOn));
 
-            lifeCycleEventSource.addLifeCycleEventListener(
+            requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start).addLifeCycleEventListener(
                     concurrentLifeCycleEventListener(
                             lifeCycleEventAdapter(cacheSourceFlux, Flux::subscribe, Disposable::dispose)));
 

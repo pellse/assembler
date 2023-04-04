@@ -17,7 +17,6 @@
 package io.github.pellse.reactive.assembler.caching;
 
 import io.github.pellse.reactive.assembler.LifeCycleEventSource;
-import io.github.pellse.reactive.assembler.LifeCycleEventSource.LifeCycleEventListener;
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.ErrorHandler;
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.WindowingStrategy;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
@@ -28,8 +27,6 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.defaultWindowingStrategy;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 
 public interface AutoCacheFactoryBuilder {
@@ -82,12 +79,10 @@ public interface AutoCacheFactoryBuilder {
     class Builder<R, T extends CacheEvent<R>> implements WindowingStrategyBuilder<R, T> {
 
         private final Flux<T> dataSource;
-        private WindowingStrategy<T> windowingStrategy = defaultWindowingStrategy();
-        private ErrorHandler errorHandler = onErrorStop();
-
+        private WindowingStrategy<T> windowingStrategy;
+        private ErrorHandler errorHandler;
         private Scheduler scheduler;
-
-        private LifeCycleEventSource eventSource = LifeCycleEventListener::start;
+        private LifeCycleEventSource eventSource;
 
         Builder(Flux<T> dataSource) {
             this.dataSource = dataSource;
