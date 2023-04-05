@@ -1,25 +1,25 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.8.10' apply false
+    id 'java-library'
 }
 
 subprojects {
     apply plugin: 'java'
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
-    apply plugin: 'kotlin'
 
     version = "0.6.1"
     group = "io.github.pellse"
 
-    kotlin {
-        jvmToolchain {
-            languageVersion.set(JavaLanguageVersion.of("17"))
-        }
-    }
-
     repositories {
         mavenCentral()
     }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
 
     dependencies {
         testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'

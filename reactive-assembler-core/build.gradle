@@ -5,7 +5,7 @@ ext {
 dependencies {
 
     implementation project(':assembler-util')
-    api "io.projectreactor:reactor-core:${reactorVersion}"
+    implementation "io.projectreactor:reactor-core:${reactorVersion}"
 
     implementation 'org.jetbrains:annotations:23.0.0'
 

@@ -1,3 +1,13 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.8.10'
+}
+
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of("17"))
+    }
+}
+
 ext {
     reactorVersion = '3.5.4'
 }
@@ -7,11 +17,12 @@ dependencies {
     implementation project(':reactive-assembler-core')
     implementation project(':assembler-util')
 
+    implementation "io.projectreactor:reactor-core:${reactorVersion}"
+
     implementation platform('org.jetbrains.kotlin:kotlin-bom')
 
     testImplementation project(':assembler-core').sourceSets.test.output
 
     testImplementation "io.projectreactor:reactor-test:${reactorVersion}"
     testImplementation project(':reactive-assembler-cache-caffeine')
-    // testImplementation("com.github.ben-manes.caffeine:caffeine:3.0.6")
 }
