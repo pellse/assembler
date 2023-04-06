@@ -26,7 +26,6 @@ import reactor.core.scheduler.Scheduler;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -37,7 +36,7 @@ import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycle
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
-import static io.github.pellse.util.ObjectUtils.runIf;
+import static io.github.pellse.util.ObjectUtils.ifNotNull;
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.function.Function.identity;
@@ -94,7 +93,7 @@ public interface AutoCacheFactory {
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idExtractor), toMap(eventMap.get(false), idExtractor)))
                     .transform(requireNonNullElse(errorHandler, onErrorStop()).toFluxErrorHandler())
-                    .doFinally(__ -> runIf(scheduler, Objects::nonNull, Scheduler::dispose))
+                    .doFinally(__ -> ifNotNull(scheduler, Scheduler::dispose))
                     .transform(scheduleOn(scheduler, Flux::subscribeOn));
 
             requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start).addLifeCycleEventListener(
