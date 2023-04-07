@@ -61,10 +61,7 @@ public interface AutoCacheFactory {
             Function<U, R> cacheEventValueExtractor) {
 
         return autoCache(
-                dataSource.map(toCacheEvent(isUpdateEvent, cacheEventValueExtractor)),
-                defaultWindowingStrategy(),
-                onErrorStop(),
-                LifeCycleEventListener::start);
+                dataSource.map(toCacheEvent(isUpdateEvent, cacheEventValueExtractor)), null, null, null);
     }
 
     static <ID, R, RRC, T extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
