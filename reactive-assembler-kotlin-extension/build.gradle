@@ -8,10 +8,6 @@ kotlin {
     }
 }
 
-ext {
-    reactorVersion = '3.5.4'
-}
-
 dependencies {
 
     implementation project(':reactive-assembler-core')

@@ -2,6 +2,10 @@ plugins {
     id 'java-library'
 }
 
+ext {
+    reactorVersion = '3.5.4'
+}
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'maven-publish'
