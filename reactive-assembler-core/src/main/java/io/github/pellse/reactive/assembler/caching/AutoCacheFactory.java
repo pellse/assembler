@@ -24,19 +24,19 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
+import java.lang.System.Logger;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.*;
 
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.concurrentLifeCycleEventListener;
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorStop.onErrorStop;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
 import static io.github.pellse.util.ObjectUtils.ifNotNull;
+import static java.lang.System.Logger.Level.WARNING;
+import static java.lang.System.getLogger;
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.function.Function.identity;
@@ -46,6 +46,8 @@ import static java.util.stream.Collectors.partitioningBy;
 public interface AutoCacheFactory {
 
     int MAX_WINDOW_SIZE = 1;
+
+    Logger logger = getLogger(CacheFactory.class.getName());
 
     static <R> WindowingStrategy<R> defaultWindowingStrategy() {
         return flux -> flux.window(MAX_WINDOW_SIZE);
@@ -89,7 +91,7 @@ public interface AutoCacheFactory {
                     .transform(requireNonNullElse(windowingStrategy, defaultWindowingStrategy()))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idExtractor), toMap(eventMap.get(false), idExtractor)))
-                    .transform(requireNonNullElse(errorHandler, onErrorStop()).toFluxErrorHandler())
+                    .transform(requireNonNullElse(errorHandler, onErrorContinue(AutoCacheFactory::logError)).toFluxErrorHandler())
                     .doFinally(__ -> ifNotNull(scheduler, Scheduler::dispose))
                     .transform(scheduleOn(scheduler, Flux::subscribeOn));
 
@@ -111,6 +113,10 @@ public interface AutoCacheFactory {
         return flux -> scheduler != null ? scheduleFunction.apply(flux, scheduler) : flux;
     }
 
+    private static void logError(Throwable t, Object object) {
+        logger.log(WARNING, "Error while updating cache in autoCache()", t);
+    }
+
     sealed interface ErrorHandler {
         <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler();
     }
@@ -119,14 +125,18 @@ public interface AutoCacheFactory {
     interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
     }
 
-    record OnErrorContinue(Consumer<Throwable> errorConsumer) implements ErrorHandler {
+    record OnErrorContinue(BiConsumer<Throwable, Object> errorConsumer) implements ErrorHandler {
         public static OnErrorContinue onErrorContinue(Consumer<Throwable> errorConsumer) {
+            return new OnErrorContinue((t, o) -> errorConsumer.accept(t));
+        }
+
+        public static OnErrorContinue onErrorContinue(BiConsumer<Throwable, Object> errorConsumer) {
             return new OnErrorContinue(errorConsumer);
         }
 
         @Override
         public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
-            return flux -> flux.onErrorContinue((error, object) -> errorConsumer().accept(error));
+            return flux -> flux.onErrorContinue(errorConsumer());
         }
     }
 
