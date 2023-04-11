@@ -27,22 +27,23 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 
 public interface AutoCacheFactoryBuilder {
 
-    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> autoCache(Flux<R> dataSource) {
-        return autoCache(dataSource, CacheEvent::updated);
+    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> autoCacheBuilder(Flux<R> dataSource) {
+        return autoCacheBuilder(dataSource, CacheEvent::updated);
     }
 
-    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCache(
+    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCacheBuilder(
             Flux<U> dataSource,
             Predicate<U> isUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
         return autoCacheEvents(dataSource.map(toCacheEvent(isUpdateEvent, cacheEventValueExtractor)));
     }
 
-    static <U, R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCache(Flux<U> dataSource, Function<U, T> mapper) {
+    static <U, R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCacheBuilder(Flux<U> dataSource, Function<U, T> mapper) {
         return autoCacheEvents(dataSource.map(mapper));
     }
 
@@ -129,7 +130,7 @@ public interface AutoCacheFactoryBuilder {
 
         @Override
         public <ID, RRC> CacheTransformer<ID, R, RRC> build() {
-            return AutoCacheFactory.autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler);
+            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler);
         }
     }
 }
