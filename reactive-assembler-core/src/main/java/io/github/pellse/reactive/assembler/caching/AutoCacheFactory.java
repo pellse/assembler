@@ -49,10 +49,6 @@ public interface AutoCacheFactory {
 
     Logger logger = getLogger(CacheFactory.class.getName());
 
-    static <R> WindowingStrategy<R> defaultWindowingStrategy() {
-        return flux -> flux.window(MAX_WINDOW_SIZE);
-    }
-
     static <ID, R, RRC> CacheTransformer<ID, R, RRC> autoCache(Flux<R> dataSource) {
         return autoCache(dataSource, __ -> true, identity());
     }
@@ -63,16 +59,11 @@ public interface AutoCacheFactory {
             Function<U, R> cacheEventValueExtractor) {
 
         return autoCache(
-                dataSource.map(toCacheEvent(isUpdateEvent, cacheEventValueExtractor)), null, null, null);
-    }
-
-    static <ID, R, RRC, T extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
-            Flux<T> dataSource,
-            WindowingStrategy<T> windowingStrategy,
-            ErrorHandler errorHandler,
-            LifeCycleEventSource lifeCycleEventSource) {
-
-        return autoCache(dataSource, windowingStrategy, errorHandler, lifeCycleEventSource, null);
+                dataSource.map(toCacheEvent(isUpdateEvent, cacheEventValueExtractor)),
+                null,
+                null,
+                null,
+                null);
     }
 
     static <ID, R, RRC, T extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
@@ -88,7 +79,7 @@ public interface AutoCacheFactory {
 
             var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
                     .transform(scheduleOn(scheduler, Flux::publishOn))
-                    .transform(requireNonNullElse(windowingStrategy, defaultWindowingStrategy()))
+                    .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idExtractor), toMap(eventMap.get(false), idExtractor)))
                     .transform(requireNonNullElse(errorHandler, onErrorContinue(AutoCacheFactory::logError)).toFluxErrorHandler())
