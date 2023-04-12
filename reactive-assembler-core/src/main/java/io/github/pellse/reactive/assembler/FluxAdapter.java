@@ -16,8 +16,6 @@
 
 package io.github.pellse.reactive.assembler;
 
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
@@ -42,14 +40,10 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
         this.scheduler = requireNonNull(scheduler);
     }
 
-    @NotNull
-    @Contract(" -> new")
     public static <T, ID, R> FluxAdapter<T, ID, R> fluxAdapter() {
         return fluxAdapter(parallel());
     }
 
-    @NotNull
-    @Contract(value = "_ -> new", pure = true)
     public static <T, ID, R> FluxAdapter<T, ID, R> fluxAdapter(Scheduler scheduler) {
         return new FluxAdapter<>(scheduler);
     }
@@ -61,7 +55,6 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
                 .collect(toList());
     }
 
-    @NotNull
     @Override
     public Flux<R> convertSubQueryMappers(
             Publisher<T> topLevelEntitiesProvider,

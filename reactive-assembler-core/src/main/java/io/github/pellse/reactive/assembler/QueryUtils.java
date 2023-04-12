@@ -17,8 +17,6 @@
 package io.github.pellse.reactive.assembler;
 
 import io.github.pellse.util.collection.CollectionUtil;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -41,7 +39,6 @@ public interface QueryUtils {
         return ids -> fromIterable(queryFunction.apply(ids));
     }
 
-    @NotNull
     static <T, R, C extends Iterable<? extends T>>
     Flux<R> safeApply(C coll, Function<C, Publisher<R>> queryFunction) {
         requireNonNull(queryFunction, "queryFunction cannot be null");
@@ -51,13 +48,11 @@ public interface QueryUtils {
                 .flatMapMany(queryFunction);
     }
 
-    @NotNull
     static <ID, IDC extends Collection<ID>, RRC>
     Map<ID, RRC> toResultMap(IDC ids, Map<ID, RRC> map, Function<ID, RRC> defaultResultProvider) {
         return isSafeEqual(map, Map::size, ids, Collection::size) ? map : initializeResultMap(ids, map, defaultResultProvider);
     }
 
-    @NotNull
     private static <ID, IDC extends Collection<ID>, RRC>
     Map<ID, RRC> initializeResultMap(IDC ids, Map<ID, RRC> resultMap, Function<ID, RRC> defaultResultProvider) {
         Function<ID, RRC> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
@@ -73,8 +68,6 @@ public interface QueryUtils {
         return resultMapCopy;
     }
 
-    @NotNull
-    @Contract(pure = true)
     static <ID, R>
     Supplier<Map<ID, R>> toSupplier(int initialCapacity, MapFactory<ID, R> mapFactory) {
         MapFactory<ID, R> actualMapFactory = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
