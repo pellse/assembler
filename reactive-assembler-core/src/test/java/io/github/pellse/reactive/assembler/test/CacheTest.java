@@ -17,6 +17,7 @@
 package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.assembler.*;
+import io.github.pellse.reactive.assembler.Assembler;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
@@ -52,6 +53,7 @@ import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.*;
@@ -71,8 +73,11 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.scheduler.Schedulers.*;
 
-interface CDC<T> {
+sealed interface CDC<T> {
     T item();
+}
+
+record MyOtherEvent<T>(T value, boolean isAddEvent) {
 }
 
 record CDCAdd<T>(T item) implements CDC<T> {
@@ -667,6 +672,46 @@ public class CacheTest {
     }
 
     @Test
+    public void testReusableAssemblerBuilderWithAutoCachingMultipleEventSources() {
+
+        var billingInfoFlux = Flux.just( // E.g. Flux coming from a CDC/Kafka source
+                new MyOtherEvent<>(billingInfo1, true), new MyOtherEvent<>(billingInfo2, true),
+                new MyOtherEvent<>(billingInfo2, false), new MyOtherEvent<>(billingInfo3, false));
+
+        var orderItemFlux = Flux.just(
+                new CDCAdd<>(orderItem11), new CDCAdd<>(orderItem12), new CDCAdd<>(orderItem13),
+                new CDCAdd<>(orderItem21), new CDCAdd<>(orderItem22),
+                new CDCAdd<>(orderItem31), new CDCAdd<>(orderItem32), new CDCAdd<>(orderItem33),
+                new CDCDelete<>(orderItem31), new CDCDelete<>(orderItem32), new CDCDelete<>(orderItem33));
+
+        CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
+                autoCache(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value);
+
+        CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
+                autoCache(orderItemFlux, CDCAdd.class::isInstance, CDC::item);
+
+        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, billingInfoAutoCache), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, orderItemAutoCache))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(1, billingInvocationCount.get());
+        assertEquals(1, ordersInvocationCount.get());
+    }
+
+    @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents2() {
 
         Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
@@ -678,8 +723,7 @@ public class CacheTest {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
 
-        Flux<Updated<BillingInfo>> billingInfoFlux = Flux.just(
-                        updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
+        Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, updatedBillingInfo2, billingInfo3)
                 .subscribeOn(parallel());
 
         var orderItemFlux = Flux.just(
@@ -695,10 +739,10 @@ public class CacheTest {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(
-                                autoCacheEvents(billingInfoFlux)
+                                autoCacheBuilder(billingInfoFlux)
                                         .maxWindowSize(3)
                                         .build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders, cache(),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .build()))),
