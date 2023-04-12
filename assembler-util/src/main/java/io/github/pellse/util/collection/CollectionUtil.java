@@ -59,13 +59,18 @@ public interface CollectionUtil {
         return also(new HashSet<>(asCollection(iter1)), set -> set.removeAll(asCollection(iter2)));
     }
 
-    static <K, V> Map<K, V> newMap(Consumer<Map<K, V>> initializer) {
-        return newMap(null, initializer);
+    @SafeVarargs
+    static <K, V> Map<K, V> newMap(Consumer<Map<K, V>>... initializers) {
+        return newMap(null, initializers);
     }
 
-    static <K, V> Map<K, V> newMap(Map<K, V> map, Consumer<Map<K, V>> initializer) {
+    @SafeVarargs
+    static <K, V> Map<K, V> newMap(Map<K, V> map, Consumer<Map<K, V>>... initializers) {
         final var copyMap = map != null ? new HashMap<>(map) : new HashMap<K, V>();
-        initializer.accept(copyMap);
+
+        for (var initializer : initializers) {
+            initializer.accept(copyMap);
+        }
         return copyMap;
     }
 
@@ -131,13 +136,9 @@ public interface CollectionUtil {
             Function<? super V, ID> idExtractor,
             Supplier<VC> collectionFactory) {
 
-        var newTargetMap = new HashMap<>(targetMap);
-
-        newTargetMap.replaceAll((id, oldList) ->
-                removeDuplicates(concat(toStream(oldList), toStream(srcMap.get(id))), idExtractor, collectionFactory));
-
-        newTargetMap.putAll(removeDuplicates(diff(srcMap, newTargetMap), idExtractor, collectionFactory, false));
-        return newTargetMap;
+        return newMap(targetMap,
+                m -> m.replaceAll((id, oldList) -> removeDuplicates(concat(toStream(oldList), toStream(srcMap.get(id))), idExtractor, collectionFactory)),
+                m -> m.putAll(removeDuplicates(diff(srcMap, m), idExtractor, collectionFactory, false)));
     }
 
     @SafeVarargs
