@@ -59,29 +59,6 @@ Flux<Transaction> transactionFlux = getCustomers()
     .flatMapSequential(assembler::assemble);
 ```
 
-## Integration with non-reactive sources
-A utility function `toPublisher()` is also provided to wrap non-reactive sources, useful when e.g. calling 3rd party synchronous APIs:
-```java
-import reactor.core.publisher.Flux;
-import io.github.pellse.reactive.assembler.Assembler;
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
-
-List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
-List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
-
-Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, toPublisher(this::getAllOrders))),
-        Transaction::new)
-    .build();
-```
-
 ## Asynchronous Caching
 In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `oneToMany()`), the Assembler also provides a caching/memoization mechanism of the downstream subqueries via the `CacheFactory.cached()` wrapper function.
 
@@ -235,7 +212,7 @@ var transactionFlux = getCustomers()
     .flatMapSequential(assembler::assemble);
 ```
 
-#### Event Based Auto Caching
+### Event Based Auto Caching
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
@@ -284,6 +261,29 @@ var transactionFlux = getCustomers()
     .flatMapSequential(assembler::assemble);
 ```
 
+## Integration with non-reactive sources
+A utility function `toPublisher()` is also provided to wrap non-reactive sources, useful when e.g. calling 3rd party synchronous APIs:
+```java
+import reactor.core.publisher.Flux;
+import io.github.pellse.reactive.assembler.Assembler;
+import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.Rule.rule;
+import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
+
+List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
+List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
+
+Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+    .withCorrelationIdExtractor(Customer::customerId)
+    .withAssemblerRules(
+        rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
+        rule(OrderItem::customerId, oneToMany(OrderItem::id, toPublisher(this::getAllOrders))),
+        Transaction::new)
+    .build();
+```
+
 ## Kotlin Support
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension) [reactive-assembler-kotlin-extension](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension)
 ```kotlin
@@ -321,7 +321,7 @@ val assembler = assembler<Transaction>()
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-core%22)
 [![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/assembler-core) 
 
-The implementations below are still available, but it is strongly recommended to switch to [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) as the new reactive support can easily integrate with any external reactive libraries:
+The implementations below are still available but not maintained anymore, it is strongly recommended to switch to [reactive-assembler-core](https://github.com/pellse/assembler/tree/master/reactive-assembler-core) as the new reactive support can easily integrate with any external reactive libraries:
 
 1. [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-core.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.pellse%22%20AND%20a:%22assembler-core%22)
 [![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/assembler-core) [CompletableFuture](https://github.com/pellse/assembler/tree/master/assembler-core)
