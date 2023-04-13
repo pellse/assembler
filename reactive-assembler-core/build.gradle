@@ -3,8 +3,6 @@ dependencies {
     implementation project(":assembler-util")
     implementation("io.projectreactor:reactor-core:${reactorVersion}")
 
-    // implementation("org.jetbrains:annotations:23.0.0")
-
     testImplementation project(":assembler-core").sourceSets.test.output
 
     testImplementation("io.projectreactor:reactor-test:${reactorVersion}")

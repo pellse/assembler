@@ -21,6 +21,8 @@ subprojects {
     }
 
     java {
+        withJavadocJar()
+        withSourcesJar()
         toolchain {
             languageVersion = JavaLanguageVersion.of(17)
         }
@@ -38,42 +40,15 @@ subprojects {
                 events("passed", "skipped", "failed")
             }
         }
-
-        // show standard out and standard error of the test JVM(s) on the console
-        // testLogging.showStandardStreams = true
-    }
-
-    tasks.register("javadocJar", Jar) {
-        getArchiveClassifier().set("javadoc")
-        from javadoc
-    }
-
-    tasks.register("sourcesJar", Jar) {
-        getArchiveClassifier().set("sources")
-        from sourceSets.main.allSource
     }
 
     publishing {
-        repositories {
-            maven {
-                name = "ossrh"
-                url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-                credentials {
-                    username = findProperty("ossrhUsername")
-                    password = findProperty("ossrhPassword")
-                }
-            }
-        }
-
         publications {
             mavenJava(MavenPublication) {
                 from components.java
-                artifact sourcesJar
-                artifact javadocJar
 
                 pom {
                     name = project.name
-                    artifactId = project.name
                     packaging = "jar"
                     description = "Small library allowing to efficiently assemble entities from querying/merging external datasources or aggregating microservices"
                     url = "https://github.com/pellse/assembler"
@@ -93,10 +68,20 @@ subprojects {
 
                     developers {
                         developer {
-                            id = "pellse"
                             name = "Sebastien Pelletier"
                         }
                     }
+                }
+            }
+        }
+
+        repositories {
+            maven {
+                name = "ossrh"
+                url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                credentials {
+                    username = findProperty("ossrhUsername")
+                    password = findProperty("ossrhPassword")
                 }
             }
         }
