@@ -1,11 +1,11 @@
 dependencies {
 
-    implementation project(':reactive-assembler-core')
-    implementation project(':assembler-util')
+    implementation project(":reactive-assembler-core")
+    implementation project(":assembler-util")
 
-    implementation "io.projectreactor:reactor-core:${reactorVersion}"
+    implementation("io.projectreactor:reactor-core:${reactorVersion}")
     implementation ("com.github.ben-manes.caffeine:caffeine:3.1.5")
 
-    testImplementation project(':assembler-core').sourceSets.test.output
-    testImplementation "io.projectreactor:reactor-test:${reactorVersion}"
+    testImplementation project(":assembler-core").sourceSets.test.output
+    testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
 }

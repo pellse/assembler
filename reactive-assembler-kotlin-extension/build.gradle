@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.8.20'
+    id "org.jetbrains.kotlin.jvm" version "1.8.20"
 }
 
 kotlin {
@@ -10,15 +10,15 @@ kotlin {
 
 dependencies {
 
-    implementation project(':reactive-assembler-core')
-    implementation project(':assembler-util')
+    implementation project(":reactive-assembler-core")
+    implementation project(":assembler-util")
 
-    implementation "io.projectreactor:reactor-core:${reactorVersion}"
+    implementation("io.projectreactor:reactor-core:${reactorVersion}")
 
-    implementation platform('org.jetbrains.kotlin:kotlin-bom')
+    implementation platform("org.jetbrains.kotlin:kotlin-bom")
 
-    testImplementation project(':assembler-core').sourceSets.test.output
+    testImplementation project(":assembler-core").sourceSets.test.output
 
-    testImplementation "io.projectreactor:reactor-test:${reactorVersion}"
-    testImplementation project(':reactive-assembler-cache-caffeine')
+    testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
+    testImplementation project(":reactive-assembler-cache-caffeine")
 }

@@ -15,13 +15,13 @@
  */
 
 dependencies {
-    implementation project(':assembler-core')
-    implementation project(':assembler-util')
+    implementation project(":assembler-core")
+    implementation project(":assembler-util")
 
     implementation platform("com.typesafe.akka:akka-bom_2.13:2.6.17")
 
-    implementation "com.typesafe.akka:akka-stream_2.13"
-    testImplementation "com.typesafe.akka:akka-stream-testkit_2.13"
+    implementation("com.typesafe.akka:akka-stream_2.13")
+    testImplementation("com.typesafe.akka:akka-stream-testkit_2.13")
 
-    testImplementation project(':assembler-core').sourceSets.test.output
+    testImplementation project(":assembler-core").sourceSets.test.output
 }
