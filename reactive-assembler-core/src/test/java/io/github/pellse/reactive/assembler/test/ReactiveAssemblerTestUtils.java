@@ -16,10 +16,7 @@
 
 package io.github.pellse.reactive.assembler.test;
 
-import io.github.pellse.assembler.BillingInfo;
-import io.github.pellse.assembler.Customer;
-import io.github.pellse.assembler.OrderItem;
-import io.github.pellse.assembler.Transaction;
+import io.github.pellse.reactive.assembler.util.*;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
@@ -29,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 
 public final class ReactiveAssemblerTestUtils {
 
@@ -44,6 +42,10 @@ public final class ReactiveAssemblerTestUtils {
     public static final OrderItem orderItem21 = new OrderItem("4", 2L, "Shoes", 79.99);
     public static final OrderItem orderItem22 = new OrderItem("5", 2L, "Boots", 99.99);
 
+    public static final OrderItem orderItem31 = new OrderItem("7", 3L, "Gloves", 5.99);
+    public static final OrderItem orderItem32 = new OrderItem("8", 3L, "Dress", 45.99);
+    public static final OrderItem orderItem33 = new OrderItem("9", 3L, "Sneakers", 119.99);
+
     public static final Customer customer1 = new Customer(1L, "Clair Gabriel");
     public static final Customer customer2 = new Customer(2L, "Erick Daria");
     public static final Customer customer3 = new Customer(3L, "Brenden Jacob");
@@ -56,6 +58,12 @@ public final class ReactiveAssemblerTestUtils {
     public static final Transaction transaction2 = new Transaction(customer2, billingInfo2Unknown,
             List.of(orderItem21, orderItem22));
     public static final Transaction transaction3 = new Transaction(customer3, billingInfo3, emptyList());
+
+    public static final TransactionSet transactionSet1 = new TransactionSet(customer1, billingInfo1,
+            Set.of(orderItem11, orderItem12, orderItem13));
+    public static final TransactionSet transactionSet2 = new TransactionSet(customer2, billingInfo2Unknown,
+            Set.of(orderItem21, orderItem22));
+    public static final TransactionSet transactionSet3 = new TransactionSet(customer3, billingInfo3, emptySet());
 
     public static Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
         return Flux.just(billingInfo1, billingInfo3)

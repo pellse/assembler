@@ -16,8 +16,12 @@
 
 package io.github.pellse.reactive.assembler.test;
 
-import io.github.pellse.assembler.*;
 import io.github.pellse.reactive.assembler.Assembler;
+import io.github.pellse.reactive.assembler.util.BillingInfo;
+import io.github.pellse.reactive.assembler.util.Customer;
+import io.github.pellse.reactive.assembler.util.OrderItem;
+import io.github.pellse.reactive.assembler.util.Transaction;
+import io.github.pellse.reactive.assembler.util.TransactionSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -32,7 +36,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.reactive.assembler.QueryCache.cache;
@@ -42,6 +45,7 @@ import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
+import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;

@@ -17,7 +17,7 @@ dependencies {
 
     implementation platform("org.jetbrains.kotlin:kotlin-bom")
 
-    testImplementation project(":assembler-core").sourceSets.test.output
+    testImplementation project(":reactive-assembler-core").sourceSets.test.output
 
     testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
     testImplementation project(":reactive-assembler-cache-caffeine")

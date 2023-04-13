@@ -16,8 +16,6 @@
 
 package io.github.pellse.reactive.assembler.kotlin
 
-import io.github.pellse.assembler.*
-import io.github.pellse.assembler.AssemblerTestUtils.*
 import io.github.pellse.reactive.assembler.Rule.rule
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
@@ -27,6 +25,8 @@ import io.github.pellse.reactive.assembler.caching.CacheEvent.*
 import io.github.pellse.reactive.assembler.caching.CacheFactory.cache
 import io.github.pellse.reactive.assembler.kotlin.FluxAssemblerKotlinTest.CDC.CDCAdd
 import io.github.pellse.reactive.assembler.kotlin.FluxAssemblerKotlinTest.CDC.CDCDelete
+import io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*
+import io.github.pellse.reactive.assembler.util.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

@@ -16,12 +16,12 @@
 
 package io.github.pellse.reactive.assembler.cache.caffeine;
 
-import io.github.pellse.assembler.BillingInfo;
-import io.github.pellse.assembler.Customer;
-import io.github.pellse.assembler.OrderItem;
-import io.github.pellse.assembler.Transaction;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
+import io.github.pellse.reactive.assembler.util.BillingInfo;
+import io.github.pellse.reactive.assembler.util.Customer;
+import io.github.pellse.reactive.assembler.util.OrderItem;
+import io.github.pellse.reactive.assembler.util.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
-import static io.github.pellse.assembler.AssemblerTestUtils.*;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
@@ -47,6 +46,7 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilde
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.parallel;
