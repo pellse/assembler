@@ -7,11 +7,7 @@ pluginManagement {
 
 rootProject.name = "assembler"
 
-include "assembler-core",
-        "assembler-flux",
-        "assembler-rxjava",
-        "assembler-reactive-stream-operators",
-        "assembler-util",
+include "assembler-util",
         "reactive-assembler-core",
         "reactive-assembler-kotlin-extension",
         "reactive-assembler-cache-caffeine"
