@@ -24,9 +24,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 
@@ -62,6 +65,10 @@ public interface AutoCacheFactoryBuilder {
     }
 
     interface ConfigBuilder<R> extends LifeCycleEventSourceBuilder<R> {
+        LifeCycleEventSourceBuilder<R> errorHandler(Consumer<Throwable> errorConsumer);
+
+        LifeCycleEventSourceBuilder<R> errorHandler(BiConsumer<Throwable, Object> errorConsumer);
+
         LifeCycleEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler);
     }
 
@@ -108,6 +115,16 @@ public interface AutoCacheFactoryBuilder {
         public ConfigBuilder<R> windowingStrategy(WindowingStrategy<T> windowingStrategy) {
             this.windowingStrategy = windowingStrategy;
             return this;
+        }
+
+        @Override
+        public LifeCycleEventSourceBuilder<R> errorHandler(Consumer<Throwable> errorConsumer) {
+            return errorHandler(onErrorContinue(errorConsumer));
+        }
+
+        @Override
+        public LifeCycleEventSourceBuilder<R> errorHandler(BiConsumer<Throwable, Object> errorConsumer) {
+            return errorHandler(onErrorContinue(errorConsumer));
         }
 
         @Override

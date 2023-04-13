@@ -52,7 +52,6 @@ import static io.github.pellse.reactive.assembler.LifeCycleEventBroadcaster.life
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
@@ -599,7 +598,7 @@ public class CacheTest {
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(
                                 autoCacheBuilder(billingInfoFlux)
-                                        .errorHandler(onErrorContinue(error -> assertInstanceOf(NullPointerException.class, error)))
+                                        .errorHandler(error -> assertInstanceOf(NullPointerException.class, error))
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)

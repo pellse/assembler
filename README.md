@@ -201,14 +201,13 @@ import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorMap.onErrorMap;
 import static java.time.Duration.*;
 import static java.lang.System.Logger.Level.WARNING;
 import static java.lang.System.getLogger;
 import static reactor.core.scheduler.Schedulers.newParallel;
 
-var logger = getLogger("warning-logger");
-Consumer<Throwable> logWarning = error -> logger.log(WARNING, "Error in autoCache", error);
+var logger = getLogger("auto-cache-logger");
 
 Flux<BillingInfo> billingInfoFlux = ... // BillingInfo data coming from e.g. Kafka;
 Flux<OrderItem> orderItemFlux = ... // OrderItem data coming from e.g. Kafka;
@@ -219,13 +218,13 @@ var assembler = assemblerOf(Transaction.class)
         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
             autoCache(billingInfoFlux)
                 .maxWindowSizeAndTime(100, ofSeconds(5))
-                .errorHandler(onErrorContinue(logWarning))
+                .errorHandler(error -> logger.log(WARNING, "Error in autoCache", error))
                 .scheduler(newParallel("billing-info"))
                 .build()))),
         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders,
             autoCache(orderItemFlux)
                 .maxWindowSize(50)
-                .errorHandler(onErrorContinue(logWarning))
+                .errorHandler(onErrorMap(MyException::new))
                 .scheduler(newParallel("order-item"))
                 .build()))),
         Transaction::new)
