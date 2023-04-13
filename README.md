@@ -107,13 +107,13 @@ var assembler = assemblerOf(Transaction.class)
 
 ### Third Party Asynchronous Cache Provider Integration
 
-Here is a list of add-on modules that can be used to integrate third party asynchronous caching libraries (more will be added in the future):
+Below is a compilation of supplementary modules that are available for integration with third-party asynchronous caching libraries. Additional modules will be incorporated in the future:
 
 | Assembler add-on module | Third party cache library |
 | --- | --- |
 | [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine) [reactive-assembler-cache-caffeine](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
-Below is an example of using a `CacheFactory` implementation for the [Caffeine](https://github.com/ben-manes/caffeine) library through the `caffeineCache()` helper method from the caffeine add-on module: 
+The following is a sample implementation of `CacheFactory` that demonstrates the use of the [Caffeine](https://github.com/ben-manes/caffeine) library via the `caffeineCache()` helper method, which is provided as part of the caffeine add-on module:
 ```java
 import com.github.benmanes.caffeine.cache.Caffeine;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
