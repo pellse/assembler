@@ -134,8 +134,8 @@ Caffeine<Object, Object> cacheBuilder = newBuilder()
 var assembler = assemblerOf(Transaction.class)
     .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()))),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(cacheBuilder)))),
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(cacheBuilder)))),
+        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
         Transaction::new)
     .build();
 ```
@@ -211,6 +211,7 @@ var transactionFlux = getCustomers()
     .window(3)
     .flatMapSequential(assembler::assemble);
 ```
+By default, the cache is updated for every element from the incoming stream of data, but it can be configured to batch the cache updates, useful when we are updating a remote cache to optimize network calls
 
 ### Event Based Auto Caching
 ```java
