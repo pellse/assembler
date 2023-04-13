@@ -251,10 +251,10 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoC
 sealed interface MyEvent<T> {
     T item();
 }
-record Add<T>(T item) implements MyEvent<T> {}
-record Delete<T>(T item) implements MyEvent<T> {}
+record ItemUpdated<T>(T item) implements MyEvent<T> {}
+record ItemDeleted<T>(T item) implements MyEvent<T> {}
 
-record MyOtherEvent<T>(T value, boolean isAddEvent) {}
+record MyOtherEvent<T>(T value, boolean isAddOrUpdateEvent) {}
 
 // E.g. Flux coming from a CDC/Kafka source
 Flux<MyOtherEvent<BillingInfo>> billingInfoFlux = Flux.just(
@@ -263,14 +263,14 @@ Flux<MyOtherEvent<BillingInfo>> billingInfoFlux = Flux.just(
 
 // E.g. Flux coming from a CDC/Kafka source
 Flux<MyEvent<OrderItem>> orderItemFlux = Flux.just(
-    new Add<>(orderItem11), new Add<>(orderItem12), new Add<>(orderItem13),
-    new Delete<>(orderItem31), new Delete<>(orderItem32), new Delete<>(orderItem33));
+    new ItemUpdated<>(orderItem11), new ItemUpdated<>(orderItem12), new ItemUpdated<>(orderItem13),
+    new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
 
 CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
-    autoCache(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value);
+    autoCache(billingInfoFlux, MyOtherEvent::isAddOrUpdateEvent, MyOtherEvent::value);
 
 CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
-    autoCache(orderItemFlux, Add.class::isInstance, MyEvent::item);
+    autoCache(orderItemFlux, ItemUpdated.class::isInstance, MyEvent::item);
 
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
     .withCorrelationIdExtractor(Customer::customerId)
