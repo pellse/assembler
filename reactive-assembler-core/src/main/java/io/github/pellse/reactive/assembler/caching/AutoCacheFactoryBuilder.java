@@ -32,6 +32,7 @@ import java.util.function.Predicate;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
 
 public interface AutoCacheFactoryBuilder {
 
@@ -76,8 +77,14 @@ public interface AutoCacheFactoryBuilder {
         SchedulerBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource);
     }
 
-    interface SchedulerBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
-        AutoCacheFactoryDelegateBuilder<R> scheduler(Scheduler scheduler);
+    interface SchedulerBuilder<R> extends ConcurrencyBuilder<R> {
+        ConcurrencyBuilder<R> scheduler(Scheduler scheduler);
+    }
+
+    interface ConcurrencyBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
+        AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts);
+
+        AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts, Duration delay);
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
@@ -91,6 +98,8 @@ public interface AutoCacheFactoryBuilder {
         private ErrorHandler errorHandler;
         private Scheduler scheduler;
         private LifeCycleEventSource eventSource;
+        private long maxAttempts;
+        private Duration delay;
 
         Builder(Flux<T> dataSource) {
             this.dataSource = dataSource;
@@ -140,14 +149,35 @@ public interface AutoCacheFactoryBuilder {
         }
 
         @Override
-        public AutoCacheFactoryDelegateBuilder<R> scheduler(Scheduler scheduler) {
+        public ConcurrencyBuilder<R> scheduler(Scheduler scheduler) {
             this.scheduler = scheduler;
             return this;
         }
 
         @Override
+        public AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts) {
+            return concurrency(maxAttempts, null);
+        }
+
+        @Override
+        public AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts, Duration delay) {
+            this.maxAttempts = maxAttempts;
+            this.delay = delay;
+            return this;
+        }
+
+        @Override
         public <ID, RRC> CacheTransformer<ID, R, RRC> build() {
-            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler);
+
+            return autoCache(
+                    dataSource,
+                    windowingStrategy,
+                    errorHandler,
+                    eventSource,
+                    scheduler,
+                    maxAttempts > 0 ?
+                            (delay != null ? cache -> concurrentCache(cache, maxAttempts, delay) : cache -> concurrentCache(cache, maxAttempts)) :
+                            null);
         }
     }
 }

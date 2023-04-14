@@ -33,7 +33,6 @@ import static io.github.pellse.reactive.assembler.LifeCycleEventSource.concurren
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
 import static io.github.pellse.util.ObjectUtils.ifNotNull;
 import static java.lang.System.Logger.Level.WARNING;
 import static java.lang.System.getLogger;
@@ -63,6 +62,7 @@ public interface AutoCacheFactory {
                 null,
                 null,
                 null,
+                null,
                 null);
     }
 
@@ -71,10 +71,11 @@ public interface AutoCacheFactory {
             WindowingStrategy<T> windowingStrategy,
             ErrorHandler errorHandler,
             LifeCycleEventSource lifeCycleEventSource,
-            Scheduler scheduler) {
+            Scheduler scheduler,
+            Function<Cache<ID, R>, ConcurrentCache<ID, R>> concurrentCacheFactory) {
 
         return cacheFactory -> (fetchFunction, context) -> {
-            var cache = concurrentCache(cacheFactory.create(fetchFunction, context));
+            var cache = requireNonNullElse(concurrentCacheFactory, ConcurrentCache::concurrentCache).apply(cacheFactory.create(fetchFunction, context));
             var idExtractor = context.correlationIdExtractor();
 
             var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")

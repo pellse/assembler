@@ -744,10 +744,12 @@ public class CacheTest {
                         rule(BillingInfo::customerId, oneToOne(cached(
                                 autoCacheBuilder(billingInfoFlux)
                                         .maxWindowSize(3)
+                                        .concurrency(20)
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
+                                        .concurrency(20, ofMillis(1))
                                         .build()))),
                         Transaction::new)
                 .build();
