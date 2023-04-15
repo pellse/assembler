@@ -16,16 +16,16 @@ The Assembler library can be used in situations where an application needs to ac
 5. Creating a single point of entry: The Assembler library can be used to create a single point of entry for different systems, making it easier for clients to access the functionality they need.
 
 ## Usage Example
-Below is an example of generating transaction information from a list of customers of an online store. Assuming the following fictional data model and api to access different services:
+Here is an example of how to use the Assembler Library to generate transaction information from a list of customers of an online store. This example assumes the following fictional data model and API to access different services:
 ```java
 public record Customer(Long customerId, String name) {}
 public record BillingInfo(Long id, Long customerId, String creditCardNumber) {}
 public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 
-Flux<Customer> getCustomers(); // Call to a REST or RSocket microservice
-Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // Connects to relational database (R2DBC)
-Flux<OrderItem> getAllOrders(List<Long> customerIds); // Connects to MongoDB (Reactive Streams Driver)
+Flux<Customer> getCustomers(); // e.g. call to a microservice, or a Flux connected to a Kafka source
+Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // e.g. connects to relational database (R2DBC)
+Flux<OrderItem> getAllOrders(List<Long> customerIds); // e.g. connects to MongoDB (Reactive Streams Driver)
 ```
 In cases where the `getCustomers()` method returns a substantial number of customers, retrieving the associated `BillingInfo` for each customer would require an additional call per `customerId`. This would result in a considerable increase in network calls, causing the N + 1 queries issue. To mitigate this, we can retrieve all the `BillingInfo` for all the customers returned by `getCustomers()` with a single additional call. The same approach can be used for retrieving OrderItem information.
 
