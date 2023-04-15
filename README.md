@@ -23,7 +23,7 @@ public record BillingInfo(Long id, Long customerId, String creditCardNumber) {}
 public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 
-Flux<Customer> getCustomers(); // e.g. call to a microservice, or a Flux connected to a Kafka source
+Flux<Customer> getCustomers(); // e.g. call to a microservice or a Flux connected to a Kafka source
 Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // e.g. connects to relational database (R2DBC)
 Flux<OrderItem> getAllOrders(List<Long> customerIds); // e.g. connects to MongoDB (Reactive Streams Driver)
 ```
@@ -87,6 +87,8 @@ var transactionFlux = getCustomers()
 ### Pluggable Asynchronous Caching Strategy
 The `CacheFactory.cached()` function includes overloaded versions that enable users to utilize different `Cache` implementations. By providing an additional parameter of type `CacheFactory` to the `cached()` method, users can customize the caching mechanism as per their requirements. In case no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally use a `Cache` based on `HashMap`.
 
+All `Cache` implementations are internally wrapped with non-blocking concurrency controls
+
 Here is an example of a few different approaches that users can use to explicitly customize the caching mechanism:
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
@@ -100,7 +102,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 var assembler = assemblerOf(Transaction.class)
     .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, new TreeMap<>()))),
+        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache(TreeMap::new)))),
         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(TreeMap::new)))),
         Transaction::new)
     .build();
@@ -142,7 +144,11 @@ var assembler = assemblerOf(Transaction.class)
 ```
 
 ### Auto Caching
+In addition to the cache mechanism provided by the `CacheFactory.cached()` function, the Assembler Library also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `AutoCacheFactory.autoCache()` function. This ensures that the cache is always up-to-date and avoids the need for `CacheFactory.cached()` to fetch data that is already available in the cache.
 
+The auto caching mechanism in the Assembler Library can be seen as being conceptually similar to `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value from its associated data stream and avoid repeatedly fetching data from the original source. However, the Assembler Library is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream, whereas `KTable` is specific to Kafka Streams.
+
+This is how `AutoCacheFactory.autoCache()` connects to a data stream and automatically and asynchronously update the cache in real-time:
 ```java
 import reactor.core.publisher.Flux;
 import io.github.pellse.reactive.assembler.Assembler;
@@ -153,8 +159,8 @@ import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory;
 
-Flux<BillingInfo> billingInfoFlux = ... // BillingInfo data coming from e.g. Kafka;
-Flux<OrderItem> orderItemFlux = ... // OrderItem data coming from e.g. Kafka;
+Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 
 var assembler = assemblerOf(Transaction.class)
     .withCorrelationIdExtractor(Customer::customerId)
@@ -180,15 +186,15 @@ import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorMap.onErrorMap;
+import static reactor.core.scheduler.Schedulers.newParallel;
 import static java.time.Duration.*;
 import static java.lang.System.Logger.Level.WARNING;
 import static java.lang.System.getLogger;
-import static reactor.core.scheduler.Schedulers.newParallel;
 
 var logger = getLogger("auto-cache-logger");
 
-Flux<BillingInfo> billingInfoFlux = ... // BillingInfo data coming from e.g. Kafka;
-Flux<OrderItem> orderItemFlux = ... // OrderItem data coming from e.g. Kafka;
+Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 
 var assembler = assemblerOf(Transaction.class)
     .withCorrelationIdExtractor(Customer::customerId)
@@ -198,12 +204,14 @@ var assembler = assemblerOf(Transaction.class)
                 .maxWindowSizeAndTime(100, ofSeconds(5))
                 .errorHandler(error -> logger.log(WARNING, "Error in autoCache", error))
                 .scheduler(newParallel("billing-info"))
+                .concurrency(50)
                 .build()))),
         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders,
             autoCache(orderItemFlux)
                 .maxWindowSize(50)
                 .errorHandler(onErrorMap(MyException::new))
                 .scheduler(newParallel("order-item"))
+                .concurrency(100, ofMillis(10))
                 .build()))),
         Transaction::new)
     .build();
