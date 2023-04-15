@@ -33,10 +33,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -360,7 +357,7 @@ public class CacheTest {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(toPublisher(this::getBillingInfoNonReactive)), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(toPublisher(this::getAllOrdersNonReactive), new HashMap<>()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(toPublisher(this::getAllOrdersNonReactive), cache(TreeMap::new)))),
                         Transaction::new)
                 .build();
 
@@ -383,8 +380,8 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, () -> new HashMap<>()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(HashMap::new)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache(TreeMap::new)), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(TreeMap::new)))),
                         Transaction::new)
                 .build();
 

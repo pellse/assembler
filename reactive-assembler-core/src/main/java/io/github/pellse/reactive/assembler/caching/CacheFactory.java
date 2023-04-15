@@ -85,20 +85,6 @@ public interface CacheFactory<ID, R, RRC> {
 
     @SafeVarargs
     static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
-            Supplier<Map<ID, List<R>>> mapSupplier,
-            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(emptyQuery(), mapSupplier, delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
-            Map<ID, List<R>> delegateMap,
-            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(emptyQuery(), delegateMap, delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
             CacheFactory<ID, R, RRC> cache,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(emptyQuery(), cache, delegateCacheFactories);
@@ -116,38 +102,6 @@ public interface CacheFactory<ID, R, RRC> {
             RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(ruleMapperSource, cache(), delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
-            Function<IDC, Publisher<R>> queryFunction,
-            Supplier<Map<ID, List<R>>> mapSupplier,
-            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(call(queryFunction), mapSupplier, delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
-            RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource,
-            Supplier<Map<ID, List<R>>> mapSupplier,
-            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(ruleMapperSource, cache(mapSupplier), delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
-            Function<IDC, Publisher<R>> queryFunction,
-            Map<ID, List<R>> delegateMap,
-            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(call(queryFunction), delegateMap, delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
-            RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource,
-            Map<ID, List<R>> delegateMap,
-            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(ruleMapperSource, cache(delegateMap), delegateCacheFactories);
     }
 
     @SafeVarargs

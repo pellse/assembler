@@ -34,11 +34,6 @@ fun <ID, EID, IDC : Collection<ID>, R, RRC> ((IDC) -> Publisher<R>).cached(
 ): RuleMapperSource<ID, EID, IDC, R, RRC> = cached(this, cache(mapFactory), *delegateCacheFactories)
 
 fun <ID, EID, IDC : Collection<ID>, R, RRC> ((IDC) -> Publisher<R>).cached(
-    map: MutableMap<ID, List<R>>,
-    vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
-): RuleMapperSource<ID, EID, IDC, R, RRC> = cached(this, map, *delegateCacheFactories)
-
-fun <ID, EID, IDC : Collection<ID>, R, RRC> ((IDC) -> Publisher<R>).cached(
     cache: CacheFactory<ID, R, RRC>,
     vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
 ): RuleMapperSource<ID, EID, IDC, R, RRC> = cached(this, cache, *delegateCacheFactories)
