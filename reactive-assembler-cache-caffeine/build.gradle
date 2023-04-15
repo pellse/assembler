@@ -4,7 +4,7 @@ dependencies {
     implementation project(":assembler-util")
 
     implementation("io.projectreactor:reactor-core:${reactorVersion}")
-    implementation ("com.github.ben-manes.caffeine:caffeine:3.1.5")
+    implementation ("com.github.ben-manes.caffeine:caffeine:3.1.6")
 
     testImplementation project(":reactive-assembler-core").sourceSets.test.output
     testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
