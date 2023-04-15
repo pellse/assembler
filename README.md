@@ -1,9 +1,9 @@
 # Assembler
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 
-[Reactive](https://www.reactivemanifesto.org), functional, type-safe and stateless Java API for efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) (similar to the Service Aggregator pattern) for querying and merging data from multiple data sources/services, with a specific focus on solving the N + 1 query problem.
+The Assembler Library provides a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless Java API designed to efficiently implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) (similar to the Service Aggregator pattern) for querying and merging data from multiple data sources/services, with a focus on solving the N + 1 query problem.
 
-The Assembler Library internally leverages [Project Reactor](https://projectreactor.io) to implement end to end reactive streams pipelines (e.g. from a REST endpoint to a RSocket based microservice to the database) and keep all reactive streams properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org) (Responsive, Resilient, Elastic, Message Driven with back-pressure, non-blocking, etc.)
+Internally, the library leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
 
 ## Use Cases
 
@@ -27,9 +27,11 @@ Flux<Customer> getCustomers(); // Call to a REST or RSocket microservice
 Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // Connects to relational database (R2DBC)
 Flux<OrderItem> getAllOrders(List<Long> customerIds); // Connects to MongoDB (Reactive Streams Driver)
 ```
-If for example `getCustomers()` returns 50 customers, instead of having to make one additional call per *customerId* to retrieve each customer's associated `BillingInfo` (which would result in 50 additional network calls, thus the N + 1 queries issue) we can only make 1 additional call to retrieve all at once all `BillingInfo` for all `Customer` returned by `getCustomers()`, idem for `OrderItem`. Since we are working with 3 different and independent data sources, joining data from `Customer`, `BillingInfo` and `OrderItem` into `Transaction` (using *customerId* as a correlation id between all those entities) has to be done at the application level, which is what this library was implemented for.
+In cases where the `getCustomers()` method returns a substantial number of customers, retrieving the associated `BillingInfo` for each customer would require an additional call per `customerId`. This would result in a considerable increase in network calls, causing the N + 1 queries issue. To mitigate this, we can retrieve all the `BillingInfo` for all the customers returned by `getCustomers()` with a single additional call. The same approach can be used for retrieving OrderItem information.
 
-When using [reactive-assembler-core](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core), here is how we would aggregate multiple reactive data sources and implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html):
+As we are working with three distinct and independent data sources, the process of joining data from `Customer`, `BillingInfo`, and `OrderItem` into a `Transaction` must be performed at the application level. This is the primary objective of this library.
+
+When utilizing [reactive-assembler-core](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core), the aggregation of multiple reactive data sources and the implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) can be accomplished as follows:
 
 ```java
 import reactor.core.publisher.Flux;
@@ -49,10 +51,10 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
 
 Flux<Transaction> transactionFlux = assembler.assemble(getCustomers());
 ```
-In the code snippet above, we first retrieve all customers, then we concurrently retrieve all billing info (in a single query) and all orders (in a single query) associated with all previously retrieved customers (as defined by the assembler rules). We finally aggregate each customer/billing info/list of order items (related by the same customer id) into a `Transaction` object. We end up with a reactive stream (`Flux`) of `Transaction` objects.
+The code snippet above demonstrates the process of first retrieving all customers, followed by the concurrent retrieval of all billing information and orders (in a single query) associated with the previously retrieved customers, as defined by the assembler rules. The final step involves aggregating each customer, their respective billing information, and list of order items (related by the same customer id) into a `Transaction` object. This results in a reactive stream (`Flux`) of `Transaction` objects.
 
 ## Infinite Stream of Data
-In the scenario where we deal with an infinite or very large stream of data e.g. 100 000+ customers, since the Assembler Library needs to completely drain the upstream from `getCustomers()` to gather all the correlation ids (*customerId*), the example above will result in resource exhaustion. The solution is to split the stream into multiple smaller streams and batch the processing of those individual streams. Most reactive libraries already support that concept, below is an example using [Project Reactor](https://projectreactor.io):
+In situations where an infinite or very large stream of data is being handled, such as dealing with 100,000+ customers, the Assembler Library needs to completely drain the upstream from `getCustomers()` to gather all correlation IDs (customerId). This can lead to resource exhaustion if not handled correctly. To mitigate this issue, the stream can be split into multiple smaller streams and processed in batches. Most reactive libraries already support this concept. Below is an example of this approach, utilizing [Project Reactor](https://projectreactor.io):
 ```java
 Flux<Transaction> transactionFlux = getCustomers()
     .windowTimeout(100, ofSeconds(5))
@@ -60,8 +62,7 @@ Flux<Transaction> transactionFlux = getCustomers()
 ```
 
 ## Asynchronous Caching
-In addition to providing helper functions to define mapping semantics (e.g. `oneToOne()`, `oneToMany()`), the Assembler also provides a caching/memoization mechanism of the downstream subqueries via the `CacheFactory.cached()` wrapper function.
-
+Apart from offering convenient helper functions to define mapping semantics (such as `oneToOne()` and `oneToMany()`), the Assembler library also includes a caching/memoization mechanism for the downstream subqueries via the `CacheFactory.cached()` wrapper function:
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
@@ -84,9 +85,9 @@ var transactionFlux = getCustomers()
 ```
 
 ### Pluggable Asynchronous Caching Strategy
-Overloaded versions of `CacheFactory.cached()` allow to plug different `Cache` implementations. We can pass an additional parameter of type `CacheFactory` to the `cached()` method to customize the caching mechanism. If no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally return a `Cache` based on `HashMap`.
+The `CacheFactory.cached()` function includes overloaded versions that enable users to utilize different `Cache` implementations. By providing an additional parameter of type `CacheFactory` to the `cached()` method, users can customize the caching mechanism as per their requirements. In case no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally use a `Cache` based on `HashMap`.
 
-Below is an example of a few different ways we can explicitly customize the caching mechanism:
+Here is an example of a few different approaches that users can use to explicitly customize the caching mechanism:
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
@@ -113,7 +114,7 @@ Below is a compilation of supplementary modules that are available for integrati
 | --- | --- |
 | [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine) [reactive-assembler-cache-caffeine](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
-The following is a sample implementation of `CacheFactory` that demonstrates the use of the [Caffeine](https://github.com/ben-manes/caffeine) library via the `caffeineCache()` helper method, which is provided as part of the caffeine add-on module:
+Here is a sample implementation of `CacheFactory` that showcases the use of the [Caffeine](https://github.com/ben-manes/caffeine) library, which can be accomplished via the `caffeineCache()` helper method. This helper method is provided as part of the caffeine add-on module:
 ```java
 import com.github.benmanes.caffeine.cache.Caffeine;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
@@ -224,7 +225,7 @@ import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 
-// Example of your custom domain events not known by the Assembler Library
+// Examples of your custom domain events not known by the Assembler Library
 sealed interface MyEvent<T> {
     T item();
 }
@@ -243,6 +244,8 @@ Flux<MyEvent<OrderItem>> orderItemFlux = Flux.just(
     new ItemUpdated<>(orderItem11), new ItemUpdated<>(orderItem12), new ItemUpdated<>(orderItem13),
     new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
 
+// Assembler Library specific code starts here:
+    
 CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
     autoCache(billingInfoFlux, MyOtherEvent::isAddOrUpdateEvent, MyOtherEvent::value);
 
