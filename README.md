@@ -1,9 +1,22 @@
 # Assembler
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=reactive-assembler-core)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 
 The Assembler Library provides a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless Java API designed to efficiently implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) (similar to the Service Aggregator pattern) for querying and merging data from multiple data sources/services, with a focus on solving the N + 1 query problem.
 
 Internally, the library leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
+
+## Table of Contents
+
+- [Use Cases](#use-cases)
+- [Usage Example](#usage-example)
+  - [Infinite Stream of Data](#infinite-stream-of-data)
+- [Asynchronous Caching](#asynchronous-caching)
+  - [Pluggable Asynchronous Caching Strategy](#pluggable-asynchronous-caching-strategy)
+  - [Third Party Asynchronous Cache Provider Integration](#third-party-asynchronous-cache-provider-integration)
+  - [Auto Caching](#auto-caching)
+    - [Event Based Auto Caching](#event-based-auto-caching)
+- [Integration with non-reactive sources](#Integration-with-non-reactive-sources)
+- [Kotlin Support](#kotlin-support)
 
 ## Use Cases
 
@@ -112,7 +125,7 @@ Below is a compilation of supplementary modules that are available for integrati
 
 | Assembler add-on module | Third party cache library |
 | --- | --- |
-| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine) [reactive-assembler-cache-caffeine](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
+| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=reactive-assembler-cache-caffeine)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
 Here is a sample implementation of `CacheFactory` that showcases the use of the [Caffeine](https://github.com/ben-manes/caffeine) library, which can be accomplished via the `caffeineCache()` helper method. This helper method is provided as part of the caffeine add-on module:
 ```java
@@ -296,7 +309,7 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
 ```
 
 ## Kotlin Support
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension) [reactive-assembler-kotlin-extension](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=reactive-assembler-kotlin-extension)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension)
 ```kotlin
 import io.github.pellse.reactive.assembler.kotlin.assembler
 import io.github.pellse.reactive.assembler.kotlin.cached
