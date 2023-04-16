@@ -7,16 +7,17 @@ Internally, the library leverages [Project Reactor](https://projectreactor.io) t
 
 ## Table of Contents
 
-- [Use Cases](#use-cases)
-- [Usage Example](#usage-example)
+- **[Use Cases](#use-cases)**
+- **[Usage Example](#usage-example)**
   - [Infinite Stream of Data](#infinite-stream-of-data)
-- [Reactive Caching](#reactive-caching)
+- **[Reactive Caching](#reactive-caching)**
   - [Pluggable Reactive Caching Strategies](#pluggable-reactive-caching-strategies)
   - [Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)
   - [Auto Caching](#auto-caching)
-    - [Event Based Auto Caching](#event-based-auto-caching)
-- [Integration with non-reactive sources](#Integration-with-non-reactive-sources)
-- [Kotlin Support](#kotlin-support)
+    - *[Event Based Auto Caching](#event-based-auto-caching)*
+- **[Integration with non-reactive sources](#integration-with-non-reactive-sources)**
+- **[Kotlin Support](#kotlin-support)**
+- **[What's Next?](#whats-next)**
 
 ## Use Cases
 
