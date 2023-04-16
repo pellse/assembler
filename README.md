@@ -155,7 +155,7 @@ var assembler = assemblerOf(Transaction.class)
 ```
 
 ### Auto Caching
-In addition to the cache mechanism provided by the `CacheFactory.cached()` function, the Assembler Library also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `AutoCacheFactory.autoCache()` function. This ensures that the cache is always up-to-date and avoids the need for `CacheFactory.cached()` to fetch data that is already available in the cache.
+In addition to the cache mechanism provided by the `CacheFactory.cached()` function, the Assembler Library also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `AutoCacheFactory.autoCache()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `CacheFactory.cached()` to fall back to fetch missing data.
 
 The auto caching mechanism in the Assembler Library can be seen as being conceptually similar to `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value from its associated data stream. However, the Assembler Library is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
 
