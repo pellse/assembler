@@ -28,6 +28,8 @@ The Assembler library can be used in situations where an application needs to ac
 4. Combining functionality from different APIs: The Assembler library can be used to create a new API that combines functionality from different existing APIs, making it easier for clients to access the functionality they need. 
 5. Creating a single point of entry: The Assembler library can be used to create a single point of entry for different systems, making it easier for clients to access the functionality they need.
 
+[:arrow_up:](#table-of-contents)
+
 ## Usage Example
 Here is an example of how to use the Assembler Library to generate transaction information from a list of customers of an online store. This example assumes the following fictional data model and API to access different services:
 ```java
@@ -44,7 +46,7 @@ In cases where the `getCustomers()` method returns a substantial number of custo
 
 As we are working with three distinct and independent data sources, the process of joining data from `Customer`, `BillingInfo`, and `OrderItem` into a `Transaction` must be performed at the application level. This is the primary objective of this library.
 
-When utilizing [reactive-assembler-core](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core), the aggregation of multiple reactive data sources and the implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) can be accomplished as follows:
+When utilizing the [Assembler Library](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core), the aggregation of multiple reactive data sources and the implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) can be accomplished as follows:
 
 ```java
 import reactor.core.publisher.Flux;
@@ -66,6 +68,8 @@ Flux<Transaction> transactionFlux = assembler.assemble(getCustomers());
 ```
 The code snippet above demonstrates the process of first retrieving all customers, followed by the concurrent retrieval of all billing information and orders (in a single query) associated with the previously retrieved customers, as defined by the assembler rules. The final step involves aggregating each customer, their respective billing information, and list of order items (related by the same customer id) into a `Transaction` object. This results in a reactive stream (`Flux`) of `Transaction` objects.
 
+[:arrow_up:](#table-of-contents)
+
 ## Infinite Stream of Data
 In situations where an infinite or very large stream of data is being handled, such as dealing with 100,000+ customers, the Assembler Library needs to completely drain the upstream from `getCustomers()` to gather all correlation IDs (customerId). This can lead to resource exhaustion if not handled correctly. To mitigate this issue, the stream can be split into multiple smaller streams and processed in batches. Most reactive libraries already support this concept. Below is an example of this approach, utilizing [Project Reactor](https://projectreactor.io):
 ```java
@@ -73,6 +77,7 @@ Flux<Transaction> transactionFlux = getCustomers()
     .windowTimeout(100, ofSeconds(5))
     .flatMapSequential(assembler::assemble);
 ```
+[:arrow_up:](#table-of-contents)
 
 ## Reactive Caching
 Apart from offering convenient helper functions to define mapping semantics (such as `oneToOne()` and `oneToMany()`), the Assembler library also includes a caching/memoization mechanism for the downstream subqueries via the `CacheFactory.cached()` wrapper function:
@@ -96,6 +101,7 @@ var transactionFlux = getCustomers()
     .window(3)
     .flatMapSequential(assembler::assemble);
 ```
+[:arrow_up:](#table-of-contents)
 
 ### Pluggable Reactive Caching Strategies
 The `CacheFactory.cached()` function includes overloaded versions that enable users to utilize different `Cache` implementations. By providing an additional parameter of type `CacheFactory` to the `cached()` method, users can customize the caching mechanism as per their requirements. In case no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally use a `Cache` based on `HashMap`. All `Cache` implementations are internally decorated with non-blocking concurrency controls, making them safe for concurrent access and modifications.
@@ -118,6 +124,7 @@ var assembler = assemblerOf(Transaction.class)
         Transaction::new)
     .build();
 ```
+[:arrow_up:](#table-of-contents)
 
 ### Third Party Reactive Cache Provider Integration
 
@@ -153,6 +160,7 @@ var assembler = assemblerOf(Transaction.class)
         Transaction::new)
     .build();
 ```
+[:arrow_up:](#table-of-contents)
 
 ### Auto Caching
 In addition to the cache mechanism provided by the `CacheFactory.cached()` function, the Assembler Library also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `AutoCacheFactory.autoCache()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `CacheFactory.cached()` to fall back to fetch missing data.
@@ -234,6 +242,8 @@ var transactionFlux = getCustomers()
 ```
 By default, the cache is updated for every element from the incoming stream of data, but it can be configured to batch the cache updates, useful when we are updating a remote cache to optimize network calls
 
+[:arrow_up:](#table-of-contents)
+
 ### Event Based Auto Caching
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
@@ -284,6 +294,7 @@ var transactionFlux = getCustomers()
     .window(3)
     .flatMapSequential(assembler::assemble);
 ```
+[:arrow_up:](#table-of-contents)
 
 ## Integration with non-reactive sources
 A utility function `toPublisher()` is also provided to wrap non-reactive sources, useful when e.g. calling 3rd party synchronous APIs:
@@ -307,6 +318,7 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
         Transaction::new)
     .build();
 ```
+[:arrow_up:](#table-of-contents)
 
 ## Kotlin Support
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=reactive-assembler-kotlin-extension)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension)
@@ -337,6 +349,9 @@ val assembler = assembler<Transaction>()
         ::Transaction
     ).build()
 ```
+[:arrow_up:](#table-of-contents)
 
 ## What's Next?
 See the [list of issues](https://github.com/pellse/assembler/issues) for planned improvements in a near future.
+
+[:arrow_up:](#table-of-contents)
