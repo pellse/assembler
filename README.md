@@ -173,7 +173,7 @@ var transactionFlux = getCustomers()
     .flatMapSequential(assembler::assemble);
 ```
 
-It is also possible to customize the behavior of Auto Caching via `AutoCacheFactoryBuilder.autoCache()`:
+It is also possible to customize the Auto Caching configuration via `AutoCacheFactoryBuilder.autoCacheBuilder()`:
 ```java
 import reactor.core.publisher.Flux;
 import io.github.pellse.reactive.assembler.Assembler;
@@ -182,7 +182,7 @@ import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorMap.onErrorMap;
 import static reactor.core.scheduler.Schedulers.newParallel;
 import static java.time.Duration.*;
@@ -190,6 +190,7 @@ import static java.lang.System.Logger.Level.WARNING;
 import static java.lang.System.getLogger;
 
 var logger = getLogger("auto-cache-logger");
+Consumer<Throwable> logWarning = error -> logger.log(WARNING, "Error in autoCache", error);
 
 Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
@@ -198,14 +199,14 @@ var assembler = assemblerOf(Transaction.class)
     .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
-            autoCache(billingInfoFlux)
+            autoCacheBuilder(billingInfoFlux)
                 .maxWindowSizeAndTime(100, ofSeconds(5))
                 .errorHandler(error -> logger.log(WARNING, "Error in autoCache", error))
                 .scheduler(newParallel("billing-info"))
                 .concurrency(50)
                 .build()))),
         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders,
-            autoCache(orderItemFlux)
+            autoCacheBuilder(orderItemFlux)
                 .maxWindowSize(50)
                 .errorHandler(onErrorMap(MyException::new))
                 .scheduler(newParallel("order-item"))
