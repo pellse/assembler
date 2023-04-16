@@ -10,9 +10,9 @@ Internally, the library leverages [Project Reactor](https://projectreactor.io) t
 - [Use Cases](#use-cases)
 - [Usage Example](#usage-example)
   - [Infinite Stream of Data](#infinite-stream-of-data)
-- [Asynchronous Caching](#asynchronous-caching)
-  - [Pluggable Asynchronous Caching Strategy](#pluggable-asynchronous-caching-strategy)
-  - [Third Party Asynchronous Cache Provider Integration](#third-party-asynchronous-cache-provider-integration)
+- [Reactive Caching](#reactive-caching)
+  - [Pluggable Reactive Caching Strategies](#pluggable-reactive-caching-strategies)
+  - [Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)
   - [Auto Caching](#auto-caching)
     - [Event Based Auto Caching](#event-based-auto-caching)
 - [Integration with non-reactive sources](#Integration-with-non-reactive-sources)
@@ -74,7 +74,7 @@ Flux<Transaction> transactionFlux = getCustomers()
     .flatMapSequential(assembler::assemble);
 ```
 
-## Asynchronous Caching
+## Reactive Caching
 Apart from offering convenient helper functions to define mapping semantics (such as `oneToOne()` and `oneToMany()`), the Assembler library also includes a caching/memoization mechanism for the downstream subqueries via the `CacheFactory.cached()` wrapper function:
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
@@ -97,7 +97,7 @@ var transactionFlux = getCustomers()
     .flatMapSequential(assembler::assemble);
 ```
 
-### Pluggable Asynchronous Caching Strategy
+### Pluggable Reactive Caching Strategies
 The `CacheFactory.cached()` function includes overloaded versions that enable users to utilize different `Cache` implementations. By providing an additional parameter of type `CacheFactory` to the `cached()` method, users can customize the caching mechanism as per their requirements. In case no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally use a `Cache` based on `HashMap`. All `Cache` implementations are internally decorated with non-blocking concurrency controls, making them safe for concurrent access and modifications.
 
 Here is an example of a different approach that users can use to explicitly customize the caching mechanism:
@@ -119,9 +119,9 @@ var assembler = assemblerOf(Transaction.class)
     .build();
 ```
 
-### Third Party Asynchronous Cache Provider Integration
+### Third Party Reactive Cache Provider Integration
 
-Below is a compilation of supplementary modules that are available for integration with third-party asynchronous caching libraries. Additional modules will be incorporated in the future:
+Below is a compilation of supplementary modules that are available for integration with third-party caching libraries. Additional modules will be incorporated in the future:
 
 | Assembler add-on module | Third party cache library |
 | --- | --- |
@@ -157,7 +157,7 @@ var assembler = assemblerOf(Transaction.class)
 ### Auto Caching
 In addition to the cache mechanism provided by the `CacheFactory.cached()` function, the Assembler Library also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `AutoCacheFactory.autoCache()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `CacheFactory.cached()` to fall back to fetch missing data.
 
-The auto caching mechanism in the Assembler Library can be seen as being conceptually similar to `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value from its associated data stream. However, the Assembler Library is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
+The auto caching mechanism in the Assembler Library can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value from its associated data stream. However, the Assembler Library is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
 
 This is how `AutoCacheFactory.autoCache()` connects to a data stream and automatically and asynchronously update the cache in real-time:
 ```java
