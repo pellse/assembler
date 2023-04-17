@@ -9,6 +9,7 @@ Internally, the library leverages [Project Reactor](https://projectreactor.io) t
 
 - **[Use Cases](#use-cases)**
 - **[Basic Usage](#basic-usage)**
+  - [Default values for missing data](#default-values-for-missing-data)
   - [Infinite Stream of Data](#infinite-stream-of-data)
 - **[Reactive Caching](#reactive-caching)**
   - [Pluggable Reactive Caching Strategies](#pluggable-reactive-caching-strategies)
@@ -79,10 +80,19 @@ Flux<Transaction> transactionFlux = assembler.assemble(getCustomers());
 ```
 The code snippet above demonstrates the process of first retrieving all customers, followed by the concurrent retrieval of all billing information and orders (in a single query) associated with the previously retrieved customers, as defined by the assembler rules. The final step involves aggregating each customer, their respective billing information, and list of order items (related by the same customer id) into a `Transaction` object. This results in a reactive stream (`Flux`) of `Transaction` objects.
 
+[:arrow_up:](#table-of-contents)
+
+## Default values for missing data
 To provide a default value in case some values are missing from the API call, a factory function can also be supplied to the `oneToOne()` function. For example, when `getCustomers()` returns `[C1, C2, C3]`, and `getBillingInfo([1, 2, 3])` returns only `[B1, B2]`, the missing value `B3` can be generated as a default value. By doing so, a `null` `BillingInfo` is never passed to the `Transaction` constructor:
+```java
+rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, customerId -> new BillingInfo(customerId)))
+``` 
+or more concisely:
 ```java
 rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new))
 ```
+Unlike the `oneToOne()` function, `oneToMany()` will always default to generating an empty collection. Therefore, providing a default factory function is not needed. In the example above, an empty `List<OrderItem>` is passed to the `Transaction` constructor when `getAllOrders([1, 2, 3])` returns `null`.
+
 [:arrow_up:](#table-of-contents)
 
 ## Infinite Stream of Data
