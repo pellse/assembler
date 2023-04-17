@@ -34,11 +34,21 @@ The Assembler library can be used in situations where an application needs to ac
 ## Basic Usage
 Here is an example of how to use the Assembler Library to generate transaction information from a list of customers of an online store. This example assumes the following fictional data model and API to access different services:
 ```java
+// Data Model
 public record Customer(Long customerId, String name) {}
-public record BillingInfo(Long id, Long customerId, String creditCardNumber) {}
-public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
-public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 
+public record BillingInfo(Long id, Long customerId, String creditCardNumber) {
+    
+    public BillingInfo(Long customerId) {
+        this(null, customerId, "0000 0000 0000 0000");
+    }
+}
+
+public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
+
+public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
+  
+// API  
 Flux<Customer> getCustomers(); // e.g. call to a microservice or a Flux connected to a Kafka source
 Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // e.g. connects to relational database (R2DBC)
 Flux<OrderItem> getAllOrders(List<Long> customerIds); // e.g. connects to MongoDB (Reactive Streams Driver)
@@ -69,6 +79,10 @@ Flux<Transaction> transactionFlux = assembler.assemble(getCustomers());
 ```
 The code snippet above demonstrates the process of first retrieving all customers, followed by the concurrent retrieval of all billing information and orders (in a single query) associated with the previously retrieved customers, as defined by the assembler rules. The final step involves aggregating each customer, their respective billing information, and list of order items (related by the same customer id) into a `Transaction` object. This results in a reactive stream (`Flux`) of `Transaction` objects.
 
+To provide a default value in case some values are missing from the API call, a factory function can also be supplied to the `oneToOne()` function. For example, when `getCustomers()` returns `[C1, C2, C3]`, and `getBillingInfo([1, 2, 3])` returns only `[B1, B2]`, the missing value `B3` can be generated as a default value. By doing so, a `null` `BillingInfo` is never passed to the `Transaction` constructor:
+```java
+rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new))
+```
 [:arrow_up:](#table-of-contents)
 
 ## Infinite Stream of Data
