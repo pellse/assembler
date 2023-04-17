@@ -10,7 +10,7 @@ Internally, the library leverages [Project Reactor](https://projectreactor.io) t
 - **[Use Cases](#use-cases)**
 - **[Basic Usage](#basic-usage)**
   - [Default values for missing data](#default-values-for-missing-data)
-  - [Infinite Stream of Data](#infinite-stream-of-data)
+- **[Infinite Stream of Data](#infinite-stream-of-data)**
 - **[Reactive Caching](#reactive-caching)**
   - [Pluggable Reactive Caching Strategies](#pluggable-reactive-caching-strategies)
     - *[Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)*
@@ -82,7 +82,7 @@ The code snippet above demonstrates the process of first retrieving all customer
 
 [:arrow_up:](#table-of-contents)
 
-## Default values for missing data
+### Default values for missing data
 To provide a default value in case some values are missing from the API call, a factory function can also be supplied to the `oneToOne()` function. For example, when `getCustomers()` returns `[C1, C2, C3]`, and `getBillingInfo([1, 2, 3])` returns only `[B1, B2]`, the missing value `B3` can be generated as a default value. By doing so, a `null` `BillingInfo` is never passed to the `Transaction` constructor:
 ```java
 rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, customerId -> new BillingInfo(customerId)))
