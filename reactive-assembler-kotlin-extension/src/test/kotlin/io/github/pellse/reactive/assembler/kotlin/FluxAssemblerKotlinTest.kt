@@ -198,7 +198,7 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withCorrelationIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(), ::BillingInfo)),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(::sortedMapOf), ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached())),
                 ::Transaction
             ).build()
@@ -223,7 +223,7 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withCorrelationIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache()), ::BillingInfo)),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache(::sortedMapOf)), ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached(caffeineCache()))),
                 ::Transaction
             ).build()
