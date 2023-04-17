@@ -12,7 +12,7 @@ Internally, the library leverages [Project Reactor](https://projectreactor.io) t
   - [Infinite Stream of Data](#infinite-stream-of-data)
 - **[Reactive Caching](#reactive-caching)**
   - [Pluggable Reactive Caching Strategies](#pluggable-reactive-caching-strategies)
-  - [Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)
+    - *[Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)*
   - [Auto Caching](#auto-caching)
     - *[Event Based Auto Caching](#event-based-auto-caching)*
 - **[Integration with non-reactive sources](#integration-with-non-reactive-sources)**
@@ -166,7 +166,7 @@ var assembler = assemblerOf(Transaction.class)
 ### Auto Caching
 In addition to the cache mechanism provided by the `CacheFactory.cached()` function, the Assembler Library also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `AutoCacheFactory.autoCache()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `CacheFactory.cached()` to fall back to fetch missing data.
 
-The auto caching mechanism in the Assembler Library can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value from its associated data stream. However, the Assembler Library is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
+The auto caching mechanism in the Assembler Library can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value per key from its associated data stream. However, the Assembler Library is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
 
 This is how `AutoCacheFactory.autoCache()` connects to a data stream and automatically and asynchronously update the cache in real-time:
 ```java
@@ -265,12 +265,12 @@ record ItemDeleted<T>(T item) implements MyEvent<T> {}
 
 record MyOtherEvent<T>(T value, boolean isAddOrUpdateEvent) {}
 
-// E.g. Flux coming from a CDC/Kafka source
+// E.g. Flux coming from a Change Data Capture/Kafka source
 Flux<MyOtherEvent<BillingInfo>> billingInfoFlux = Flux.just(
     new MyOtherEvent<>(billingInfo1, true), new MyOtherEvent<>(billingInfo2, true),
     new MyOtherEvent<>(billingInfo2, false), new MyOtherEvent<>(billingInfo3, false));
 
-// E.g. Flux coming from a CDC/Kafka source
+// E.g. Flux coming from a Change Data Capture/Kafka source
 Flux<MyEvent<OrderItem>> orderItemFlux = Flux.just(
     new ItemUpdated<>(orderItem11), new ItemUpdated<>(orderItem12), new ItemUpdated<>(orderItem13),
     new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
@@ -337,7 +337,7 @@ val assembler = assembler<Transaction>()
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
         rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached())),
-        rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(::hashMapOf))),
+        rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(::sortedMapOf))),
         ::Transaction
     ).build()
             
@@ -345,7 +345,7 @@ val assembler = assembler<Transaction>()
 val assembler = assembler<Transaction>()
     .withIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache()))),
+        rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache(::sortedMapOf)))),
         rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(caffeineCache()))),
         ::Transaction
     ).build()
