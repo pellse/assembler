@@ -8,7 +8,7 @@ Internally, the library leverages [Project Reactor](https://projectreactor.io) t
 ## Table of Contents
 
 - **[Use Cases](#use-cases)**
-- **[Usage Example](#usage-example)**
+- **[Basic Usage](#basic-usage)**
   - [Infinite Stream of Data](#infinite-stream-of-data)
 - **[Reactive Caching](#reactive-caching)**
   - [Pluggable Reactive Caching Strategies](#pluggable-reactive-caching-strategies)
@@ -31,7 +31,7 @@ The Assembler library can be used in situations where an application needs to ac
 
 [:arrow_up:](#table-of-contents)
 
-## Usage Example
+## Basic Usage
 Here is an example of how to use the Assembler Library to generate transaction information from a list of customers of an online store. This example assumes the following fictional data model and API to access different services:
 ```java
 public record Customer(Long customerId, String name) {}
