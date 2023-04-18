@@ -236,7 +236,6 @@ import static java.lang.System.Logger.Level.WARNING;
 import static java.lang.System.getLogger;
 
 var logger = getLogger("auto-cache-logger");
-Consumer<Throwable> logWarning = error -> logger.log(WARNING, "Error in autoCache", error);
 
 Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
@@ -372,8 +371,8 @@ val assembler = assembler<Transaction>()
     .withAssemblerRules(
         rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache(::sortedMapOf)))),
         rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(caffeineCache()))),
-        ::Transaction
-    ).build()
+        ::Transaction)
+    .build()
 ```
 [:arrow_up:](#table-of-contents)
 
