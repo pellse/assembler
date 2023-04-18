@@ -91,7 +91,7 @@ or more concisely:
 ```java
 rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new))
 ```
-Unlike the `oneToOne()` function, `oneToMany()` will always default to generating an empty collection. Therefore, providing a default factory function is not needed. In the example above, an empty `List<OrderItem>` is passed to the `Transaction` constructor when `getAllOrders([1, 2, 3])` returns `null`.
+Unlike the `oneToOne()` function, `oneToMany()` will always default to generating an empty collection. Therefore, providing a default factory function is not needed. In the example above, an empty `List<OrderItem>` is passed to the `Transaction` constructor if `getAllOrders([1, 2, 3])` returns `null`.
 
 [:arrow_up:](#table-of-contents)
 
@@ -105,7 +105,7 @@ Flux<Transaction> transactionFlux = getCustomers()
 [:arrow_up:](#table-of-contents)
 
 ## Reactive Caching
-Apart from offering convenient helper functions to define mapping semantics (such as `oneToOne()` and `oneToMany()`), the Assembler library also includes a caching/memoization mechanism for the downstream subqueries via the `CacheFactory.cached()` wrapper function:
+Apart from offering convenient helper functions to define mapping semantics such as `oneToOne()` and `oneToMany()`, the Assembler library also includes a caching/memoization mechanism for the downstream subqueries via the `cached()` wrapper function:
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
@@ -129,7 +129,7 @@ var transactionFlux = getCustomers()
 [:arrow_up:](#table-of-contents)
 
 ### Pluggable Reactive Caching Strategies
-The `CacheFactory.cached()` function includes overloaded versions that enable users to utilize different `Cache` implementations. By providing an additional parameter of type `CacheFactory` to the `cached()` method, users can customize the caching mechanism as per their requirements. In case no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally use a `Cache` based on `HashMap`. All `Cache` implementations are internally decorated with non-blocking concurrency controls, making them safe for concurrent access and modifications.
+The `cached()` function includes overloaded versions that enable users to utilize different `Cache` implementations. By providing an additional parameter of type `CacheFactory` to the `cached()` method, users can customize the caching mechanism as per their requirements. In case no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally use a `Cache` based on `HashMap`. All `Cache` implementations are internally decorated with non-blocking concurrency controls, making them safe for concurrent access and modifications.
 
 Here is an example of a different approach that users can use to explicitly customize the caching mechanism:
 ```java
@@ -188,11 +188,11 @@ var assembler = assemblerOf(Transaction.class)
 [:arrow_up:](#table-of-contents)
 
 ### Auto Caching
-In addition to the cache mechanism provided by the `CacheFactory.cached()` function, the Assembler Library also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `AutoCacheFactory.autoCache()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `CacheFactory.cached()` to fall back to fetch missing data.
+In addition to the cache mechanism provided by the `cached()` function, the Assembler Library also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `autoCache()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `cached()` to fall back to fetch missing data.
 
 The auto caching mechanism in the Assembler Library can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value per key from its associated data stream. However, the Assembler Library is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
 
-This is how `AutoCacheFactory.autoCache()` connects to a data stream and automatically and asynchronously update the cache in real-time:
+This is how `autoCache()` connects to a data stream and automatically and asynchronously update the cache in real-time:
 ```java
 import reactor.core.publisher.Flux;
 import io.github.pellse.reactive.assembler.Assembler;
@@ -219,7 +219,7 @@ var transactionFlux = getCustomers()
     .flatMapSequential(assembler::assemble);
 ```
 
-It is also possible to customize the Auto Caching configuration via `AutoCacheFactoryBuilder.autoCacheBuilder()`:
+It is also possible to customize the Auto Caching configuration via `autoCacheBuilder()`:
 ```java
 import reactor.core.publisher.Flux;
 import io.github.pellse.reactive.assembler.Assembler;
@@ -281,6 +281,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 
 // Examples of your custom domain events not known by the Assembler Library
+
 sealed interface MyEvent<T> {
     T item();
 }
