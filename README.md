@@ -35,7 +35,6 @@ The Assembler library can be used in situations where an application needs to ac
 ## Basic Usage
 Here is an example of how to use the Assembler Library to generate transaction information from a list of customers of an online store. This example assumes the following fictional data model and API to access different services:
 ```java
-// Data Model
 public record Customer(Long customerId, String name) {}
 
 public record BillingInfo(Long id, Long customerId, String creditCardNumber) {
@@ -48,8 +47,9 @@ public record BillingInfo(Long id, Long customerId, String creditCardNumber) {
 public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
 
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
-  
-// API  
+```
+
+```java
 Flux<Customer> getCustomers(); // e.g. call to a microservice or a Flux connected to a Kafka source
 Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // e.g. connects to relational database (R2DBC)
 Flux<OrderItem> getAllOrders(List<Long> customerIds); // e.g. connects to MongoDB (Reactive Streams Driver)
@@ -269,18 +269,8 @@ By default, the cache is updated for every element from the incoming stream of d
 [:arrow_up:](#table-of-contents)
 
 ### Event Based Auto Caching
+Assuming the following custom domain events not known by the Assembler Library:
 ```java
-import io.github.pellse.reactive.assembler.Assembler;
-import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
-
-// Examples of your custom domain events not known by the Assembler Library
-
 sealed interface MyEvent<T> {
     T item();
 }
@@ -298,8 +288,17 @@ Flux<MyOtherEvent<BillingInfo>> billingInfoFlux = Flux.just(
 Flux<MyEvent<OrderItem>> orderItemFlux = Flux.just(
     new ItemUpdated<>(orderItem11), new ItemUpdated<>(orderItem12), new ItemUpdated<>(orderItem13),
     new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
-
-// Assembler Library specific code starts here:
+```
+Here is how `autoCache()` can be used to map to those custom domain events to update the cache in real-time:
+```java
+import io.github.pellse.reactive.assembler.Assembler;
+import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
+import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.Rule.rule;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
     
 CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
     autoCache(billingInfoFlux, MyOtherEvent::isAddOrUpdateEvent, MyOtherEvent::value);
@@ -362,8 +361,8 @@ val assembler = assembler<Transaction>()
     .withAssemblerRules(
         rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached())),
         rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(::sortedMapOf))),
-        ::Transaction
-    ).build()
+        ::Transaction)
+    .build()
             
 // Example 2:
 val assembler = assembler<Transaction>()
