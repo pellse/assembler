@@ -289,7 +289,7 @@ Flux<MyEvent<OrderItem>> orderItemFlux = Flux.just(
     new ItemUpdated<>(orderItem11), new ItemUpdated<>(orderItem12), new ItemUpdated<>(orderItem13),
     new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
 ```
-Here is how `autoCache()` can be used to map to those custom domain events to update the cache in real-time:
+Here is how `autoCache()` can be used to connect those custom domain events and update the cache in real-time:
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
