@@ -23,7 +23,7 @@ import java.util.function.Function;
 @FunctionalInterface
 public interface LifeCycleEventSource {
 
-    static LifeCycleEventListener concurrentLifeCycleEventListener(LifeCycleEventListener listener) {
+    static  LifeCycleEventListener concurrentLifeCycleEventListener(LifeCycleEventListener listener) {
 
         return new LifeCycleEventListener() {
 
@@ -64,10 +64,4 @@ public interface LifeCycleEventSource {
     }
 
     void addLifeCycleEventListener(LifeCycleEventListener listener);
-
-    interface LifeCycleEventListener {
-        void start();
-
-        void stop();
-    }
 }

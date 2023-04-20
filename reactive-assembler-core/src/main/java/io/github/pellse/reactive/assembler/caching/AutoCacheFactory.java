@@ -16,8 +16,8 @@
 
 package io.github.pellse.reactive.assembler.caching;
 
+import io.github.pellse.reactive.assembler.LifeCycleEventListener;
 import io.github.pellse.reactive.assembler.LifeCycleEventSource;
-import io.github.pellse.reactive.assembler.LifeCycleEventSource.LifeCycleEventListener;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
