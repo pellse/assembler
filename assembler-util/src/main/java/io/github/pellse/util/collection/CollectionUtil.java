@@ -95,7 +95,7 @@ public interface CollectionUtil {
             Function<? super V, K> keyExtractor,
             Supplier<VC> collectionFactory) {
 
-        var noDuplicateColl = stream
+        final var noDuplicateColl = stream
                 .collect(toMap(keyExtractor, identity(), (o, o2) -> o2, LinkedHashMap::new))
                 .values();
 
@@ -116,7 +116,7 @@ public interface CollectionUtil {
             Supplier<VC> collectionFactory,
             boolean copyMap) {
 
-        var newMap = copyMap ? new HashMap<>(map) : map;
+        final var newMap = copyMap ? new HashMap<>(map) : map;
 
         newMap.replaceAll((id, coll) -> removeDuplicates(coll, idExtractor, collectionFactory));
         return newMap;
@@ -164,15 +164,15 @@ public interface CollectionUtil {
 
         return srcMap.entrySet().stream()
                 .map(entry -> {
-                    var itemsToSubtract = mapToSubtract.get(entry.getKey());
+                    final var itemsToSubtract = mapToSubtract.get(entry.getKey());
                     if (itemsToSubtract == null)
                         return entry;
 
-                    var idsToSubtract = itemsToSubtract.stream()
+                    final var idsToSubtract = itemsToSubtract.stream()
                             .map(idExtractor)
                             .collect(toSet());
 
-                    var newColl = toStream(entry.getValue())
+                    final var newColl = toStream(entry.getValue())
                             .filter(element -> !idsToSubtract.contains((idExtractor.apply(element))))
                             .collect(toCollection(collectionFactory));
 

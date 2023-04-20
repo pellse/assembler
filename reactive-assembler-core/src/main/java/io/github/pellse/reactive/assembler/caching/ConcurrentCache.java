@@ -167,10 +167,10 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
             private <T> Mono<T> execute(Mono<T> mono, Lock lock) {
 
                 return defer(() -> {
-                    var lockAlreadyReleased = new AtomicBoolean();
-                    var lockAcquired = new AtomicBoolean();
+                    final var lockAlreadyReleased = new AtomicBoolean();
+                    final var lockAcquired = new AtomicBoolean();
 
-                    Runnable releaseLock = () -> {
+                    final Runnable releaseLock = () -> {
                         if (lockAcquired.get() && lockAlreadyReleased.compareAndSet(false, true)) {
                             lock.releaseLock();
                         }

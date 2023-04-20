@@ -79,7 +79,7 @@ public interface Cache<ID, R> {
             Function<R, EID> idExtractor,
             Cache<ID, R> delegateCache) {
 
-        var optimizedCache = adapterCache(
+        final var optimizedCache = adapterCache(
                 emptyOr(delegateCache::getAll),
                 emptyOr(delegateCache::putAll),
                 emptyOr(delegateCache::removeAll)

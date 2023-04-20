@@ -319,7 +319,7 @@ public interface AssemblerBuilder {
                 Function<T, ID> correlationIdExtractor,
                 List<Rule<ID, ?>> rules) {
 
-            List<ID> entityIDs = toStream(topLevelEntities)
+            final var entityIDs = toStream(topLevelEntities)
                     .filter(Objects::nonNull)
                     .map(correlationIdExtractor)
                     .toList();

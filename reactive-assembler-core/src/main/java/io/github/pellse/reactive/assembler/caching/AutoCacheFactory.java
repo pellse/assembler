@@ -75,10 +75,10 @@ public interface AutoCacheFactory {
             Function<Cache<ID, R>, ConcurrentCache<ID, R>> concurrentCacheFactory) {
 
         return cacheFactory -> (fetchFunction, context) -> {
-            var cache = requireNonNullElse(concurrentCacheFactory, ConcurrentCache::concurrentCache).apply(cacheFactory.create(fetchFunction, context));
-            var idExtractor = context.correlationIdExtractor();
+            final var cache = requireNonNullElse(concurrentCacheFactory, ConcurrentCache::concurrentCache).apply(cacheFactory.create(fetchFunction, context));
+            final var idExtractor = context.correlationIdExtractor();
 
-            var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
+            final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
                     .transform(scheduleOn(scheduler, Flux::publishOn))
                     .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))

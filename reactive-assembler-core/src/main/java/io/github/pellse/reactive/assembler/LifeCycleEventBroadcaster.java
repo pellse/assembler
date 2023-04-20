@@ -22,7 +22,7 @@ public interface LifeCycleEventBroadcaster extends LifeCycleEventSource, LifeCyc
 
     static LifeCycleEventBroadcaster lifeCycleEventBroadcaster() {
 
-        var listeners = new ArrayList<LifeCycleEventListener>();
+        final var listeners = new ArrayList<LifeCycleEventListener>();
 
         return new LifeCycleEventBroadcaster() {
 

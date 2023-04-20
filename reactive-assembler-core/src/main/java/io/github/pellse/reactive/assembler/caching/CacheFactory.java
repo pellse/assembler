@@ -118,20 +118,20 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        var isCacheError = not(QueryFunctionException.class::isInstance);
-        var logger = getLogger(CacheFactory.class.getName());
-        Consumer<Throwable> logError = e -> logger.log(WARNING, "Recoverable error in cache, fall back to bypass cache and directly invoke fetchFunction:", e);
+        final var isCacheError = not(QueryFunctionException.class::isInstance);
+        final var logger = getLogger(CacheFactory.class.getName());
+        final Consumer<Throwable> logError = e -> logger.log(WARNING, "Recoverable error in cache, fall back to bypass cache and directly invoke fetchFunction:", e);
 
         return ruleContext -> {
-            var queryFunction = ruleMapperSource.apply(ruleContext);
-            Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction =
+            final var queryFunction = ruleMapperSource.apply(ruleContext);
+            final Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction =
                     entityIds -> then(translate(entityIds, ruleContext.idCollectionFactory()), ids ->
                             from(queryFunction.apply(ids))
                                     .collect(groupingBy(ruleContext.correlationIdExtractor()))
                                     .map(queryResultsMap -> buildCacheFragment(entityIds, queryResultsMap, ruleContext))
                                     .onErrorMap(QueryFunctionException::new));
 
-            var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
+            final var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
                     .create(fetchFunction, new CacheContext<>(ruleContext));
 
             return ids -> cache.getAll(ids, true)

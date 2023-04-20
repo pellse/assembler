@@ -55,9 +55,9 @@ public interface QueryUtils {
 
     private static <ID, IDC extends Collection<ID>, RRC>
     Map<ID, RRC> initializeResultMap(IDC ids, Map<ID, RRC> resultMap, Function<ID, RRC> defaultResultProvider) {
-        Function<ID, RRC> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
-        Set<ID> idsFromQueryResult = resultMap.keySet();
-        Map<ID, RRC> resultMapCopy = new HashMap<>(resultMap);
+        final Function<ID, RRC> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
+        final Set<ID> idsFromQueryResult = resultMap.keySet();
+        final Map<ID, RRC> resultMapCopy = new HashMap<>(resultMap);
 
         // defaultResultProvider can provide a null value, so we cannot use a Collector here
         // as it would throw a NullPointerException
@@ -70,7 +70,7 @@ public interface QueryUtils {
 
     static <ID, R>
     Supplier<Map<ID, R>> toSupplier(int initialCapacity, MapFactory<ID, R> mapFactory) {
-        MapFactory<ID, R> actualMapFactory = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
+        final MapFactory<ID, R> actualMapFactory = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
         return () -> actualMapFactory.apply(initialCapacity);
     }
 }

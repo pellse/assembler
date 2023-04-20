@@ -137,14 +137,14 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
             Function<RRC, List<R>> toListConverter) {
 
         return ruleContext -> {
-            var ruleMapperContext = toRuleMapperContext(
+            final var ruleMapperContext = toRuleMapperContext(
                     ruleContextConverter.apply(ruleContext),
                     defaultResultProvider,
                     mapCollector.apply(ruleContext),
                     fromListConverter,
                     toListConverter);
 
-            var queryFunction = ruleMapperSource.apply(ruleMapperContext);
+            final var queryFunction = ruleMapperSource.apply(ruleMapperContext);
 
             return entityIds ->
                     then(translate(entityIds, ruleMapperContext.idCollectionFactory()), ids ->
@@ -178,15 +178,15 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
 
         return (cacheQueryResults, itemsToRemoveMap) -> cacheQueryResults.entrySet().stream()
                 .map(entry -> {
-                    var itemsToRemove = itemsToRemoveMap.get(entry.getKey());
+                    final var itemsToRemove = itemsToRemoveMap.get(entry.getKey());
                     if (itemsToRemove == null)
                         return entry;
 
-                    var idsToRemove = itemsToRemove.stream()
+                    final var idsToRemove = itemsToRemove.stream()
                             .map(idExtractor)
                             .collect(toSet());
 
-                    var newColl = toStream(entry.getValue())
+                    final var newColl = toStream(entry.getValue())
                             .filter(element -> !idsToRemove.contains(idExtractor.apply(element)))
                             .toList();
 
