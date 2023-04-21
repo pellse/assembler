@@ -83,7 +83,7 @@ The code snippet above demonstrates the process of first retrieving all customer
 [:arrow_up:](#table-of-contents)
 
 ### Default values for missing data
-To provide a default value in case some values are missing from the API call, a factory function can also be supplied to the `oneToOne()` function. For example, when `getCustomers()` returns `[C1, C2, C3]`, and `getBillingInfo([1, 2, 3])` returns only `[B1, B2]`, the missing value `B3` can be generated as a default value. By doing so, a `null` `BillingInfo` is never passed to the `Transaction` constructor:
+To provide a default value for each missing values from the result of the API call, a factory function can also be supplied as a 2nd parameter to the `oneToOne()` function. For example, when `getCustomers()` returns 3 `Customer` *[C1, C2, C3]*, and `getBillingInfo([ID1, ID2, ID3])` returns only 2 associated `BillingInfo` *[B1, B2]*, the missing value *B3* can be generated as a default value. By doing so, a `null` `BillingInfo` is never passed to the `Transaction` constructor:
 ```java
 rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, customerId -> new BillingInfo(customerId)))
 ``` 
