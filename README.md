@@ -131,7 +131,7 @@ var transactionFlux = getCustomers()
 ### Pluggable Reactive Caching Strategies
 The `cached()` function includes overloaded versions that enable users to utilize different `Cache` implementations. By providing an additional parameter of type `CacheFactory` to the `cached()` method, users can customize the caching mechanism as per their requirements. In case no `CacheFactory` parameter is passed to `cached()`, the default implementation will internally use a `Cache` based on `HashMap`. All `Cache` implementations are internally decorated with non-blocking concurrency controls, making them safe for concurrent access and modifications.
 
-Here is an example of a different approach that users can use to explicitly customize the caching mechanism:
+Here is an example of a different approach that users can use to explicitly customize the caching mechanism e.g. storing cache entries in a `TreeMap`:
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
@@ -209,8 +209,10 @@ Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 var assembler = assemblerOf(Transaction.class)
     .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoFlux)))),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(orderItemFlux)))),
+        rule(BillingInfo::customerId,
+            oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoFlux)))),
+        rule(OrderItem::customerId,
+            oneToMany(OrderItem::id, cached(this::getAllOrders,autoCache(orderItemFlux)))),
         Transaction::new)
     .build();
     
