@@ -54,11 +54,11 @@ public interface AutoCacheFactory {
 
     static <ID, R, RRC, U> CacheTransformer<ID, R, RRC> autoCache(
             Flux<U> dataSource,
-            Predicate<U> isUpdateEvent,
+            Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
 
         return autoCache(
-                dataSource.map(toCacheEvent(isUpdateEvent, cacheEventValueExtractor)),
+                dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)),
                 null,
                 null,
                 null,

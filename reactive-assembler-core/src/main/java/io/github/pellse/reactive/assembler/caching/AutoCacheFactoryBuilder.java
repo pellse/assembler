@@ -42,9 +42,9 @@ public interface AutoCacheFactoryBuilder {
 
     static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCacheBuilder(
             Flux<U> dataSource,
-            Predicate<U> isUpdateEvent,
+            Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
-        return autoCacheEvents(dataSource.map(toCacheEvent(isUpdateEvent, cacheEventValueExtractor)));
+        return autoCacheEvents(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)));
     }
 
     static <U, R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCacheBuilder(Flux<U> dataSource, Function<U, T> mapper) {

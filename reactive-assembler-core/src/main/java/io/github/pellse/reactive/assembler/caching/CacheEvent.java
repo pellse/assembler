@@ -30,16 +30,16 @@ public sealed interface CacheEvent<R> {
         return new Removed<>(value);
     }
 
-    static <T> Function<T, CacheEvent<T>> toCacheEvent(Predicate<T> isUpdateEvent) {
-        return toCacheEvent(isUpdateEvent, identity());
+    static <T> Function<T, CacheEvent<T>> toCacheEvent(Predicate<T> isAddOrUpdateEvent) {
+        return toCacheEvent(isAddOrUpdateEvent, identity());
     }
 
-    static <T, R> Function<T, CacheEvent<R>> toCacheEvent(Predicate<T> isUpdateEvent, Function<T, R> cacheEventValueExtractor) {
-        return source -> toCacheEvent(isUpdateEvent.test(source), cacheEventValueExtractor.apply(source));
+    static <T, R> Function<T, CacheEvent<R>> toCacheEvent(Predicate<T> isAddOrUpdateEvent, Function<T, R> cacheEventValueExtractor) {
+        return source -> toCacheEvent(isAddOrUpdateEvent.test(source), cacheEventValueExtractor.apply(source));
     }
 
-    static <R> CacheEvent<R> toCacheEvent(boolean isUpdateEvent, R eventValue) {
-        return isUpdateEvent ? updated(eventValue) : removed(eventValue);
+    static <R> CacheEvent<R> toCacheEvent(boolean isAddOrUpdateEvent, R eventValue) {
+        return isAddOrUpdateEvent ? updated(eventValue) : removed(eventValue);
     }
 
     R value();
