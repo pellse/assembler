@@ -39,9 +39,9 @@ public record Customer(Long customerId, String name) {}
 
 public record BillingInfo(Long id, Long customerId, String creditCardNumber) {
     
-    public BillingInfo(Long customerId) {
-        this(null, customerId, "0000 0000 0000 0000");
-    }
+  public BillingInfo(Long customerId) {
+    this(null, customerId, "0000 0000 0000 0000");
+  }
 }
 
 public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
@@ -69,12 +69,12 @@ import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.Rule.rule;
     
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(this::getBillingInfo)),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
-        Transaction::new)
-    .build();
+  .withCorrelationIdExtractor(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId, oneToOne(this::getBillingInfo)),
+    rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
+    Transaction::new)
+  .build();
 
 Flux<Transaction> transactionFlux = assembler.assemble(getCustomers());
 ```
@@ -99,8 +99,8 @@ Unlike the `oneToOne()` function, `oneToMany()` will always default to generatin
 In situations where an infinite or very large stream of data is being handled, such as dealing with 100,000+ customers, the Assembler Library needs to completely drain the upstream from `getCustomers()` to gather all correlation IDs (customerId). This can lead to resource exhaustion if not handled correctly. To mitigate this issue, the stream can be split into multiple smaller streams and processed in batches. Most reactive libraries already support this concept. Below is an example of this approach, utilizing [Project Reactor](https://projectreactor.io):
 ```java
 Flux<Transaction> transactionFlux = getCustomers()
-    .windowTimeout(100, ofSeconds(5))
-    .flatMapSequential(assembler::assemble);
+  .windowTimeout(100, ofSeconds(5))
+  .flatMapSequential(assembler::assemble);
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -115,16 +115,16 @@ import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
     
 var assembler = assemblerOf(Transaction.class)
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo))),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
-        Transaction::new)
-    .build();
+  .withCorrelationIdExtractor(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo))),
+    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
+    Transaction::new)
+  .build();
     
 var transactionFlux = getCustomers()
-    .window(3)
-    .flatMapSequential(assembler::assemble);
+  .window(3)
+  .flatMapSequential(assembler::assemble);
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -142,12 +142,12 @@ import static io.github.pellse.reactive.assembler.Cache.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
     
 var assembler = assemblerOf(Transaction.class)
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache(TreeMap::new)))),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(TreeMap::new)))),
-        Transaction::new)
-    .build();
+  .withCorrelationIdExtractor(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache(TreeMap::new)))),
+    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(TreeMap::new)))),
+    Transaction::new)
+  .build();
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -173,17 +173,17 @@ import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFa
 import static java.time.Duration.ofMinutes;
 
 Caffeine<Object, Object> cacheBuilder = newBuilder()
-    .recordStats()
-    .expireAfterWrite(ofMinutes(10))
-    .maximumSize(1000);
+  .recordStats()
+  .expireAfterWrite(ofMinutes(10))
+  .maximumSize(1000);
 
 var assembler = assemblerOf(Transaction.class)
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(cacheBuilder)))),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
-        Transaction::new)
-    .build();
+  .withCorrelationIdExtractor(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(cacheBuilder)))),
+    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
+    Transaction::new)
+  .build();
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -207,18 +207,18 @@ Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, e
 Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 
 var assembler = assemblerOf(Transaction.class)
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId,
-            oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoFlux)))),
-        rule(OrderItem::customerId,
-            oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(orderItemFlux)))),
-        Transaction::new)
-    .build();
+  .withCorrelationIdExtractor(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,
+      oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoFlux)))),
+    rule(OrderItem::customerId,
+      oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(orderItemFlux)))),
+    Transaction::new)
+  .build();
     
 var transactionFlux = getCustomers()
-    .window(3)
-    .flatMapSequential(assembler::assemble);
+  .window(3)
+  .flatMapSequential(assembler::assemble);
 ```
 
 It is also possible to customize the Auto Caching configuration via `autoCacheBuilder()`:
@@ -243,28 +243,28 @@ Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, e
 Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 
 var assembler = assemblerOf(Transaction.class)
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
-            autoCacheBuilder(billingInfoFlux)
-                .maxWindowSizeAndTime(100, ofSeconds(5))
-                .errorHandler(error -> logger.log(WARNING, "Error in autoCache", error))
-                .scheduler(newParallel("billing-info"))
-                .concurrency(50)
-                .build()))),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders,
-            autoCacheBuilder(orderItemFlux)
-                .maxWindowSize(50)
-                .errorHandler(onErrorMap(MyException::new))
-                .scheduler(newParallel("order-item"))
-                .concurrency(100, ofMillis(10))
-                .build()))),
-        Transaction::new)
-    .build();
+  .withCorrelationIdExtractor(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
+      autoCacheBuilder(billingInfoFlux)
+        .maxWindowSizeAndTime(100, ofSeconds(5))
+        .errorHandler(error -> logger.log(WARNING, "Error in autoCache", error))
+        .scheduler(newParallel("billing-info"))
+        .concurrency(50)
+        .build()))),
+    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders,
+      autoCacheBuilder(orderItemFlux)
+        .maxWindowSize(50)
+        .errorHandler(onErrorMap(MyException::new))
+        .scheduler(newParallel("order-item"))
+        .concurrency(100, ofMillis(10))
+        .build()))),
+    Transaction::new)
+  .build();
     
 var transactionFlux = getCustomers()
-    .window(3)
-    .flatMapSequential(assembler::assemble);
+  .window(3)
+  .flatMapSequential(assembler::assemble);
 ```
 By default, the cache is updated for every element from the incoming stream of data, but it can be configured to batch the cache updates, useful when we are updating a remote cache to optimize network calls
 
@@ -274,7 +274,7 @@ By default, the cache is updated for every element from the incoming stream of d
 Assuming the following custom domain events not known by the Assembler Library:
 ```java
 sealed interface MyEvent<T> {
-    T item();
+  T item();
 }
 record ItemUpdated<T>(T item) implements MyEvent<T> {}
 record ItemDeleted<T>(T item) implements MyEvent<T> {}
@@ -283,13 +283,13 @@ record MyOtherEvent<T>(T value, boolean isAddOrUpdateEvent) {}
 
 // E.g. Flux coming from a Change Data Capture/Kafka source
 Flux<MyOtherEvent<BillingInfo>> billingInfoFlux = Flux.just(
-    new MyOtherEvent<>(billingInfo1, true), new MyOtherEvent<>(billingInfo2, true),
-    new MyOtherEvent<>(billingInfo2, false), new MyOtherEvent<>(billingInfo3, false));
+  new MyOtherEvent<>(billingInfo1, true), new MyOtherEvent<>(billingInfo2, true),
+  new MyOtherEvent<>(billingInfo2, false), new MyOtherEvent<>(billingInfo3, false));
 
 // E.g. Flux coming from a Change Data Capture/Kafka source
 Flux<MyEvent<OrderItem>> orderItemFlux = Flux.just(
-    new ItemUpdated<>(orderItem11), new ItemUpdated<>(orderItem12), new ItemUpdated<>(orderItem13),
-    new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
+  new ItemUpdated<>(orderItem11), new ItemUpdated<>(orderItem12), new ItemUpdated<>(orderItem13),
+  new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
 ```
 Here is how `autoCache()` can be used to adapt those custom domain events to add, update or delete entries from the cache in real-time:
 ```java
@@ -303,22 +303,22 @@ import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
     
 CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
-    autoCache(billingInfoFlux, MyOtherEvent::isAddOrUpdateEvent, MyOtherEvent::value);
+  autoCache(billingInfoFlux, MyOtherEvent::isAddOrUpdateEvent, MyOtherEvent::value);
 
 CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
-    autoCache(orderItemFlux, ItemUpdated.class::isInstance, MyEvent::item);
+  autoCache(orderItemFlux, ItemUpdated.class::isInstance, MyEvent::item);
 
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, billingInfoAutoCache))),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, orderItemAutoCache))),
-        Transaction::new)
-    .build();
+  .withCorrelationIdExtractor(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, billingInfoAutoCache))),
+    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, orderItemAutoCache))),
+    Transaction::new)
+  .build();
 
 var transactionFlux = getCustomers()
-    .window(3)
-    .flatMapSequential(assembler::assemble);
+  .window(3)
+  .flatMapSequential(assembler::assemble);
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -337,12 +337,12 @@ List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
 List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
 
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
-        rule(OrderItem::customerId, oneToMany(OrderItem::id, toPublisher(this::getAllOrders))),
-        Transaction::new)
-    .build();
+  .withCorrelationIdExtractor(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
+    rule(OrderItem::customerId, oneToMany(OrderItem::id, toPublisher(this::getAllOrders))),
+    Transaction::new)
+  .build();
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -350,7 +350,7 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=reactive-assembler-kotlin-extension)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension)
 ```kotlin
 sealed interface MyEvent<T> {
-    val item: T
+  val item: T
 }
 
 data class ItemUpdated<T>(override val item: T) : MyEvent<T>
@@ -358,13 +358,13 @@ data class ItemDeleted<T>(override val item: T) : MyEvent<T>
 
 // E.g. Flux coming from a Change Data Capture/Kafka source
 val billingInfoFlux: Flux<MyEvent<BillingInfo>> = Flux.just(
-    ItemUpdated(billingInfo1), ItemUpdated(billingInfo2),
-    ItemUpdated(billingInfo3), ItemDeleted(billingInfo3))
+  ItemUpdated(billingInfo1), ItemUpdated(billingInfo2),
+  ItemUpdated(billingInfo3), ItemDeleted(billingInfo3))
 
 // E.g. Flux coming from a Change Data Capture/Kafka source
 val orderItemFlux: Flux<MyEvent<OrderItem>> = Flux.just(
-    ItemUpdated(orderItem31), ItemUpdated(orderItem32), ItemUpdated(orderItem33),
-    ItemDeleted(orderItem31), ItemDeleted(orderItem32), ItemDeleted(orderItem33))
+  ItemUpdated(orderItem31), ItemUpdated(orderItem32), ItemUpdated(orderItem33),
+  ItemDeleted(orderItem31), ItemDeleted(orderItem32), ItemDeleted(orderItem33))
 ```
 ```kotlin
 import io.github.pellse.reactive.assembler.kotlin.assembler
@@ -376,19 +376,19 @@ import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder
 
 val assembler = assembler<Transaction>()
-    .withCorrelationIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId,
-            oneToOne(
-                ::getBillingInfo.cached(autoCache(billingInfoFlux, ItemUpdated::class::isInstance) { it.item }))),
-        rule(OrderItem::customerId,
-            oneToMany(OrderItem::id,
-                ::getAllOrders.cached(
-                    autoCacheBuilder(orderItemFlux, ItemUpdated::class::isInstance, MyEvent<OrderItem>::item)
-                        .maxWindowSize(3)
-                        .build()))), 
-        ::Transaction)
-    .build()
+  .withCorrelationIdExtractor(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,
+      oneToOne(
+        ::getBillingInfo.cached(autoCache(billingInfoFlux, ItemUpdated::class::isInstance) { it.item }))),
+    rule(OrderItem::customerId,
+      oneToMany(OrderItem::id,
+        ::getAllOrders.cached(
+          autoCacheBuilder(orderItemFlux, ItemUpdated::class::isInstance, MyEvent<OrderItem>::item)
+            .maxWindowSize(3)
+            .build()))), 
+    ::Transaction)
+  .build()
 ```
 [:arrow_up:](#table-of-contents)
 
