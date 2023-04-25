@@ -52,7 +52,7 @@ public record Transaction(Customer customer, BillingInfo billingInfo, List<Order
 ```java
 Flux<Customer> getCustomers(); // e.g. call to a microservice or a Flux connected to a Kafka source
 Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // e.g. connects to relational database (R2DBC)
-Flux<OrderItem> getAllOrders(List<Long> customerIds); // e.g. connects to MongoDB (Reactive Streams Driver)
+Flux<OrderItem> getAllOrders(List<Long> customerIds); // e.g. connects to MongoDB
 ```
 In cases where the `getCustomers()` method returns a substantial number of customers, retrieving the associated `BillingInfo` for each customer would require an additional call per `customerId`. This would result in a considerable increase in network calls, causing the N + 1 queries issue. To mitigate this, we can retrieve all the `BillingInfo` for all the customers returned by `getCustomers()` with a single additional call. The same approach can be used for retrieving OrderItem information.
 
@@ -138,7 +138,7 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.Cache.cache;
+import static io.github.pellse.reactive.assembler.caching.CacheFactory.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
     
 var assembler = assemblerOf(Transaction.class)
@@ -276,6 +276,7 @@ Assuming the following custom domain events not known by the Assembler Library:
 sealed interface MyEvent<T> {
   T item();
 }
+
 record ItemUpdated<T>(T item) implements MyEvent<T> {}
 record ItemDeleted<T>(T item) implements MyEvent<T> {}
 
