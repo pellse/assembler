@@ -212,7 +212,7 @@ var assembler = assemblerOf(Transaction.class)
         rule(BillingInfo::customerId,
             oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoFlux)))),
         rule(OrderItem::customerId,
-            oneToMany(OrderItem::id, cached(this::getAllOrders,autoCache(orderItemFlux)))),
+            oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(orderItemFlux)))),
         Transaction::new)
     .build();
     
@@ -291,7 +291,7 @@ Flux<MyEvent<OrderItem>> orderItemFlux = Flux.just(
     new ItemUpdated<>(orderItem11), new ItemUpdated<>(orderItem12), new ItemUpdated<>(orderItem13),
     new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
 ```
-Here is how `autoCache()` can be used to connect those custom domain events and update the cache in real-time:
+Here is how `autoCache()` can be used to adapt those custom domain events to add, update or delete entries from the cache in real-time:
 ```java
 import io.github.pellse.reactive.assembler.Assembler;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
@@ -349,29 +349,44 @@ Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class
 ## Kotlin Support
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=reactive-assembler-kotlin-extension)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension)
 ```kotlin
+sealed interface MyEvent<T> {
+    val item: T
+}
+
+data class ItemUpdated<T>(override val item: T) : MyEvent<T>
+data class ItemDeleted<T>(override val item: T) : MyEvent<T>
+
+// E.g. Flux coming from a Change Data Capture/Kafka source
+val billingInfoFlux: Flux<MyEvent<BillingInfo>> = Flux.just(
+    ItemUpdated(billingInfo1), ItemUpdated(billingInfo2),
+    ItemUpdated(billingInfo3), ItemDeleted(billingInfo3))
+
+// E.g. Flux coming from a Change Data Capture/Kafka source
+val orderItemFlux: Flux<MyEvent<OrderItem>> = Flux.just(
+    ItemUpdated(orderItem31), ItemUpdated(orderItem32), ItemUpdated(orderItem33),
+    ItemDeleted(orderItem31), ItemDeleted(orderItem32), ItemDeleted(orderItem33))
+```
+```kotlin
 import io.github.pellse.reactive.assembler.kotlin.assembler
 import io.github.pellse.reactive.assembler.kotlin.cached
-import io.github.pellse.reactive.assembler.Cache.cache
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
 import io.github.pellse.reactive.assembler.Rule.rule
-import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache
+import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache
+import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder
 
-// Example 1:
 val assembler = assembler<Transaction>()
-    .withIdExtractor(Customer::customerId)
+    .withCorrelationIdExtractor(Customer::customerId)
     .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached())),
-        rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(::sortedMapOf))),
-        ::Transaction)
-    .build()
-            
-// Example 2:
-val assembler = assembler<Transaction>()
-    .withIdExtractor(Customer::customerId)
-    .withAssemblerRules(
-        rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache(::sortedMapOf)))),
-        rule(OrderItem::customerId, oneToMany(::getAllOrders.cached(caffeineCache()))),
+        rule(BillingInfo::customerId,
+            oneToOne(
+                ::getBillingInfo.cached(autoCache(billingInfoFlux, ItemUpdated::class::isInstance) { it.item }))),
+        rule(OrderItem::customerId,
+            oneToMany(OrderItem::id,
+                ::getAllOrders.cached(
+                    autoCacheBuilder(orderItemFlux, ItemUpdated::class::isInstance, MyEvent<OrderItem>::item)
+                        .maxWindowSize(3)
+                        .build()))), 
         ::Transaction)
     .build()
 ```
