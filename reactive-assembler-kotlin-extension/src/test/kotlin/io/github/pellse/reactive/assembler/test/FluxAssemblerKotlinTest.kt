@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package io.github.pellse.reactive.assembler.kotlin
+package io.github.pellse.reactive.assembler.test
 
 import io.github.pellse.reactive.assembler.Rule.rule
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
 import io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache
+import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache
+import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents
 import io.github.pellse.reactive.assembler.caching.CacheEvent.*
 import io.github.pellse.reactive.assembler.caching.CacheFactory.cache
-import io.github.pellse.reactive.assembler.kotlin.FluxAssemblerKotlinTest.CDC.CDCAdd
-import io.github.pellse.reactive.assembler.kotlin.FluxAssemblerKotlinTest.CDC.CDCDelete
+import io.github.pellse.reactive.assembler.kotlin.*
 import io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*
 import io.github.pellse.reactive.assembler.util.*
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -67,7 +68,17 @@ class FluxAssemblerKotlinTest {
     }
 
     private fun getCustomers(): Flux<Customer> {
-        return Flux.just(customer1, customer2, customer3, customer1, customer2, customer3, customer1, customer2, customer3)
+        return Flux.just(
+            customer1,
+            customer2,
+            customer3,
+            customer1,
+            customer2,
+            customer3,
+            customer1,
+            customer2,
+            customer3
+        )
     }
 
     private fun getBillingInfoNonReactive(customerIds: List<Long>): List<BillingInfo> {
@@ -110,7 +121,17 @@ class FluxAssemblerKotlinTest {
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
-            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectNext(
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3
+            )
             .expectComplete()
             .verify()
 
@@ -135,7 +156,17 @@ class FluxAssemblerKotlinTest {
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
-            .expectNext(transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3)
+            .expectNext(
+                transactionSet1,
+                transactionSet2,
+                transactionSet3,
+                transactionSet1,
+                transactionSet2,
+                transactionSet3,
+                transactionSet1,
+                transactionSet2,
+                transactionSet3
+            )
             .expectComplete()
             .verify()
 
@@ -160,7 +191,17 @@ class FluxAssemblerKotlinTest {
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
-            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectNext(
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3
+            )
             .expectComplete()
             .verify()
 
@@ -174,7 +215,10 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withCorrelationIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfoNonReactive.toPublisher().cached(), ::BillingInfo)),
+                rule(
+                    BillingInfo::customerId,
+                    oneToOne(::getBillingInfoNonReactive.toPublisher().cached(), ::BillingInfo)
+                ),
                 rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrdersNonReactive.toPublisher().cached())),
                 ::Transaction
             ).build()
@@ -185,7 +229,17 @@ class FluxAssemblerKotlinTest {
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
-            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectNext(
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3
+            )
             .expectComplete()
             .verify()
 
@@ -210,7 +264,17 @@ class FluxAssemblerKotlinTest {
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
-            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectNext(
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3
+            )
             .expectComplete()
             .verify()
 
@@ -235,7 +299,17 @@ class FluxAssemblerKotlinTest {
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
-            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectNext(
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3
+            )
             .expectComplete()
             .verify()
 
@@ -243,10 +317,12 @@ class FluxAssemblerKotlinTest {
         assertEquals(2, ordersInvocationCount.get())
     }
 
-    sealed interface CDC {
-        data class CDCAdd(val item: OrderItem) : CDC
-        data class CDCDelete(val item: OrderItem) : CDC
+    sealed interface CDC<T> {
+        val item: T
     }
+
+    data class CDCAdd<T>(override val item: T) : CDC<T>
+    data class CDCDelete<T>(override val item: T) : CDC<T>
 
     @Test
     fun testReusableAssemblerBuilderWithAutoCachingEvents2() {
@@ -260,8 +336,9 @@ class FluxAssemblerKotlinTest {
 
         val updatedBillingInfo2 = BillingInfo(2L, 2L, "4540111111111111")
 
-        val billingInfoFlux = Flux.just(updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
-            .subscribeOn(parallel())
+        val billingInfoFlux =
+            Flux.just(updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
+                .subscribeOn(parallel())
 
         val orderItemFlux = Flux.just(
             CDCAdd(orderItem11), CDCAdd(orderItem12), CDCAdd(orderItem13),
@@ -282,8 +359,17 @@ class FluxAssemblerKotlinTest {
         val assembler = assembler<Transaction>()
             .withCorrelationIdExtractor(Customer::customerId)
             .withAssemblerRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(autoCacheEvents(billingInfoFlux).maxWindowSize(3).build()))),
-                rule(OrderItem::customerId, oneToMany(OrderItem::id, getAllOrders.cached(cache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
+                rule(
+                    BillingInfo::customerId,
+                    oneToOne(::getBillingInfo.cached(autoCacheEvents(billingInfoFlux).maxWindowSize(3).build()))
+                ),
+                rule(
+                    OrderItem::customerId,
+                    oneToMany(
+                        OrderItem::id,
+                        getAllOrders.cached(cache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build())
+                    )
+                ),
                 ::Transaction
             )
             .build()
@@ -295,11 +381,48 @@ class FluxAssemblerKotlinTest {
                 .flatMapSequential(assembler::assemble)
         )
             .expectSubscription()
-            .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+            .expectNext(
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction3
+            )
             .expectComplete()
             .verify()
 
         assertEquals(0, billingInvocationCount.get())
         assertEquals(1, ordersInvocationCount.get())
+    }
+
+    @Test
+    fun testReusableAssemblerBuilderWithAutoCachingEvents3() {
+
+        val billingInfoFlux: Flux<CDC<BillingInfo>> =
+            Flux.just(CDCAdd(billingInfo1), CDCAdd(billingInfo2), CDCAdd(billingInfo3), CDCDelete(billingInfo3))
+
+        val orderItemFlux: Flux<CDC<OrderItem>> = Flux.just(
+            CDCAdd(orderItem31), CDCAdd(orderItem32), CDCAdd(orderItem33),
+            CDCDelete(orderItem31), CDCDelete(orderItem32), CDCDelete(orderItem33)
+        )
+
+        val assembler = assembler<Transaction>()
+            .withCorrelationIdExtractor(Customer::customerId)
+            .withAssemblerRules(
+                rule(BillingInfo::customerId,
+                    oneToOne(
+                        ::getBillingInfo.cached(autoCache(billingInfoFlux, CDCAdd::class::isInstance) { it.item }))),
+                rule(OrderItem::customerId,
+                    oneToMany(OrderItem::id,
+                        ::getAllOrders.cached(
+                            autoCacheBuilder(orderItemFlux, CDCAdd::class::isInstance, CDC<OrderItem>::item)
+                                .maxWindowSize(3)
+                                .build()))),
+                ::Transaction)
+            .build()
     }
 }
