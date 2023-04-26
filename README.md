@@ -22,13 +22,13 @@ Internally, the library leverages [Project Reactor](https://projectreactor.io) t
 
 ## Use Cases
 
-The Assembler library can be used in situations where an application needs to access data or functionality that is spread across multiple services. Some common use cases for this pattern include:
+The Assembler library can be used in situations where an application needs to access data or functionality that is spread across multiple services. Some common use cases include:
 
 1. CQRS/Event Sourcing: The Assembler library can be used on the read side of a CQRS and Event Sourcing architecture to efficiently build materialized views that aggregate data from multiple sources.
-2. Data integration: An application may need to access data from multiple sources, such as databases, third-party services, or internal systems. The Assembler library can be used to create a single API that integrates data from all of these sources, providing a single point of access for the application.
-3. Microservices architecture: In a microservices architecture, different functionality is provided by different services. The Assembler library can be used to create a single API that combines the functionality of multiple microservices, making it easier for the application to access the services it needs.
-4. Combining functionality from different APIs: The Assembler library can be used to create a new API that combines functionality from different existing APIs, making it easier for clients to access the functionality they need. 
-5. Creating a single point of entry: The Assembler library can be used to create a single point of entry for different systems, making it easier for clients to access the functionality they need.
+2. API Gateway: The Assembler library can be used in conjunction with an API Gateway, which acts as a single entry point for all client requests. The API Gateway can combine multiple APIs into a single, unified API, simplifying the client's interactions with the APIs and providing a unified interface for the client to use.
+3. Backends for Frontends: The Assembler library can also be used in conjunction with Backends for Frontends (BFFs). A BFF is a dedicated backend service that provides a simplified and optimized API specifically tailored for a particular client or group of clients. The BFF can combine multiple APIs into a single, unified API, simplifying the client's interactions with the APIs and providing an optimized interface that is tailored to the client's needs.
+4. Reduce network overhead: By combining multiple APIs into a single API, the Assembler library can reduce the amount of network traffic required for a client to complete a task. This can improve the performance of the client application and reduce the load on the server.
+5. Solve the N + 1 Query Problem:  The Assembler library can solve the N + 1 query problem by allowing a client to make a single request to a unified API that includes all the necessary data. This approach reduces the number of requests required and database queries, further optimizing the application's performance.
 
 [:arrow_up:](#table-of-contents)
 
