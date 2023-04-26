@@ -379,15 +379,12 @@ import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoC
 val assembler = assembler<Transaction>()
   .withCorrelationIdExtractor(Customer::customerId)
   .withAssemblerRules(
-    rule(BillingInfo::customerId,
-      oneToOne(
-        ::getBillingInfo.cached(autoCache(billingInfoFlux, ItemUpdated::class::isInstance) { it.item }))),
-    rule(OrderItem::customerId,
-      oneToMany(OrderItem::id,
-        ::getAllOrders.cached(
-          autoCacheBuilder(orderItemFlux, ItemUpdated::class::isInstance, MyEvent<OrderItem>::item)
-            .maxWindowSize(3)
-            .build()))), 
+    rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(
+        autoCache(billingInfoFlux, ItemUpdated::class::isInstance) { it.item }))),
+    rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached(
+        autoCacheBuilder(orderItemFlux, ItemUpdated::class::isInstance, MyEvent<OrderItem>::item)
+          .maxWindowSize(3)
+          .build()))), 
     ::Transaction)
   .build()
 ```
