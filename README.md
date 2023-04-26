@@ -375,13 +375,14 @@ import io.github.pellse.reactive.assembler.kotlin.cached
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
 import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
 import io.github.pellse.reactive.assembler.Rule.rule
+import io.github.pellse.reactive.assembler.caching.CacheFactory.cache
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder
 
 val assembler = assembler<Transaction>()
   .withCorrelationIdExtractor(Customer::customerId)
   .withAssemblerRules(
-    rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(
+    rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache(::sortedMapOf),
       autoCache(billingInfoFlux, ItemUpdated::class::isInstance) { it.item }))),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached(
       autoCacheBuilder(orderItemFlux, ItemUpdated::class::isInstance, MyEvent<OrderItem>::item)
