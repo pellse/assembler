@@ -76,7 +76,7 @@ public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
 
         private RuleMapperSource<ID, ?, IDC, R, ?> source;
 
-        public Builder(RuleMapperSource<ID, ?, IDC, R, ?> source) {
+        private Builder(RuleMapperSource<ID, ?, IDC, R, ?> source) {
             this.source = source;
         }
 

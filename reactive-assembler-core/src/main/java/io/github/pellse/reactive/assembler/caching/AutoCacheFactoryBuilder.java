@@ -101,7 +101,7 @@ public interface AutoCacheFactoryBuilder {
         private long maxAttempts;
         private Duration delay;
 
-        Builder(Flux<T> dataSource) {
+        private Builder(Flux<T> dataSource) {
             this.dataSource = dataSource;
         }
 
