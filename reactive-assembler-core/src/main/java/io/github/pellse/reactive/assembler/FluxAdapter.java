@@ -65,9 +65,7 @@ public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, F
                 .collectList()
                 .flatMapMany(entities ->
                         zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).collect(toList()),
-                                mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))
-                        )
-                )
+                                mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))))
                 .flatMap(Flux::fromStream);
     }
 }
