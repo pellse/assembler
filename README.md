@@ -1,7 +1,7 @@
 # Assembler
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=reactive-assembler-core)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 
-The Assembler Library provides a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless Java API designed to efficiently implement the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) (similar to the Service Aggregator pattern) for querying and merging data from multiple data sources/services, with a focus on solving the N + 1 query problem.
+The Assembler Library is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless Java API that enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying and merging data from multiple data sources/services. This library is also designed to solve the N + 1 query problem and is architecture-agnostic, allowing it to be used as part of a monolithic or microservice architecture.
 
 Internally, the library leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
 
