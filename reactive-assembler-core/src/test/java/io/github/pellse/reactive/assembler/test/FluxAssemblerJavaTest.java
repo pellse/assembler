@@ -21,28 +21,22 @@ import io.github.pellse.reactive.assembler.util.BillingInfo;
 import io.github.pellse.reactive.assembler.util.Customer;
 import io.github.pellse.reactive.assembler.util.OrderItem;
 import io.github.pellse.reactive.assembler.util.Transaction;
-import io.github.pellse.reactive.assembler.util.TransactionSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.FluxAdapter.fluxAdapter;
-import static io.github.pellse.reactive.assembler.QueryCache.cache;
-import static io.github.pellse.reactive.assembler.QueryCache.cached;
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.RuleMapper.*;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*;
@@ -256,55 +250,5 @@ public class FluxAssemblerJavaTest {
 
         assertEquals(2, billingInvocationCount.get());
         assertEquals(2, ordersInvocationCount.get());
-    }
-
-    @Test
-    public void testReusableAssemblerBuilderWithCaching() {
-
-        var billingInfoCache = new HashMap<Iterable<Long>, Mono<Map<Long, BillingInfo>>>();
-
-        var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
-                .withAssemblerRules(
-                        cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)), billingInfoCache::computeIfAbsent),
-                        cached(rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)), cache(HashMap::new)),
-                        Transaction::new)
-                .build(Schedulers.immediate());
-
-        StepVerifier.create(getCustomers()
-                        .window(3)
-                        .flatMapSequential(assembler::assemble))
-                .expectSubscription()
-                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
-                .expectComplete()
-                .verify();
-
-        assertEquals(1, billingInvocationCount.get());
-        assertEquals(1, ordersInvocationCount.get());
-    }
-
-    @Test
-    public void testReusableAssemblerBuilderWithCachingSet() {
-
-        var billingInfoCache = new HashMap<Iterable<Long>, Mono<Map<Long, BillingInfo>>>();
-
-        var assembler = assemblerOf(TransactionSet.class)
-                .withCorrelationIdExtractor(Customer::customerId)
-                .withAssemblerRules(
-                        cached(rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)), billingInfoCache::computeIfAbsent),
-                        cached(rule(OrderItem::customerId, oneToManyAsSet(OrderItem::id, this::getAllOrders)), cache(HashMap::new)),
-                        TransactionSet::new)
-                .build(Schedulers.immediate());
-
-        StepVerifier.create(getCustomers()
-                        .window(3)
-                        .flatMapSequential(assembler::assemble))
-                .expectSubscription()
-                .expectNext(transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3)
-                .expectComplete()
-                .verify();
-
-        assertEquals(1, billingInvocationCount.get());
-        assertEquals(1, ordersInvocationCount.get());
     }
 }
