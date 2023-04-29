@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.function.Function;
 
 import static java.util.Arrays.stream;
+import static java.util.Objects.requireNonNullElse;
 
 /**
  * @param <ID>  Correlation Id type
@@ -33,6 +34,8 @@ import static java.util.Arrays.stream;
 @FunctionalInterface
 public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
         extends Function<RuleMapperContext<ID, EID, IDC, R, RRC>, Function<IDC, Publisher<R>>> {
+
+    RuleMapperSource<?, ?, ? extends Collection<Object>, ?, ?> EMPTY_QUERY = ruleContext -> ids -> Mono.empty();
 
     static <ID, IDC extends Collection<ID>, R> RuleMapperBuilder<ID, IDC, R> from(Function<IDC, Publisher<R>> queryFunction) {
         return from(call(queryFunction));
@@ -46,8 +49,17 @@ public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
         return ruleContext -> queryFunction;
     }
 
+    @SuppressWarnings("unchecked")
     static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> emptyQuery() {
-        return ruleContext -> ids -> Mono.empty();
+        return (RuleMapperSource<ID, EID, IDC, R, RRC>) EMPTY_QUERY;
+    }
+
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> Function<IDC, Publisher<R>> toQueryFunction(
+            RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource,
+            RuleMapperContext<ID, EID, IDC, R, RRC> ruleMapperContext) {
+
+        return requireNonNullElse(ruleMapperSource, RuleMapperSource.<ID, EID, IDC, R, RRC>emptyQuery())
+                .apply(ruleMapperContext);
     }
 
     @SafeVarargs

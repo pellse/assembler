@@ -38,7 +38,6 @@ import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
 import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -215,8 +214,8 @@ public class FluxAssemblerJavaTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(emptyQuery())),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, emptyQuery())),
+                        rule(BillingInfo::customerId, oneToOne()),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id)),
                         Transaction::new)
                 .build();
 

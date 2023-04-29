@@ -31,7 +31,7 @@ import java.util.stream.Collector;
 import static io.github.pellse.reactive.assembler.IdAwareRuleContext.toIdAwareRuleContext;
 import static io.github.pellse.reactive.assembler.QueryUtils.*;
 import static io.github.pellse.reactive.assembler.RuleMapperContext.toRuleMapperContext;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.*;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtil.*;
 import static java.util.Map.entry;
@@ -47,6 +47,10 @@ import static java.util.stream.Collectors.*;
 @FunctionalInterface
 public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         extends Function<RuleContext<ID, IDC, R, RRC>, Function<Iterable<ID>, Mono<Map<ID, RRC>>>> {
+
+    static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne() {
+        return oneToOne(emptyQuery(), id -> null);
+    }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
             Function<IDC, Publisher<R>> queryFunction) {
@@ -76,6 +80,11 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                         toMap(ctx.correlationIdExtractor(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
                 CollectionUtil::first,
                 Collections::singletonList);
+    }
+
+    static <ID, EID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
+            Function<R, EID> idExtractor) {
+        return oneToMany(idExtractor, emptyQuery(), ArrayList::new);
     }
 
     static <ID, EID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
@@ -144,7 +153,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                     fromListConverter,
                     toListConverter);
 
-            final var queryFunction = ruleMapperSource.apply(ruleMapperContext);
+            final var queryFunction = toQueryFunction(ruleMapperSource, ruleMapperContext);
 
             return entityIds ->
                     then(translate(entityIds, ruleMapperContext.idCollectionFactory()), ids ->

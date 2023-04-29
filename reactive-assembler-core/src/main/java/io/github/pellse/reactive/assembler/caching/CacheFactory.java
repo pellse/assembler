@@ -30,8 +30,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.emptyQuery;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.*;
 import static io.github.pellse.reactive.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
 import static io.github.pellse.util.ObjectUtils.*;
@@ -123,7 +122,8 @@ public interface CacheFactory<ID, R, RRC> {
         final Consumer<Throwable> logError = e -> logger.log(WARNING, "Recoverable error in cache, fall back to bypass cache and directly invoke fetchFunction:", e);
 
         return ruleContext -> {
-            final var queryFunction = ruleMapperSource.apply(ruleContext);
+            final var queryFunction = toQueryFunction(ruleMapperSource, ruleContext);
+
             final Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction =
                     entityIds -> then(translate(entityIds, ruleContext.idCollectionFactory()), ids ->
                             from(queryFunction.apply(ids))
