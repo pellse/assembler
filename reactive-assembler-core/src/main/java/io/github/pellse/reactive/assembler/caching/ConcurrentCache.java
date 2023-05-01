@@ -100,7 +100,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
             private final AtomicLong readCount = new AtomicLong();
 
-            private final Lock readLock = new Lock() {
+            private final Lock multipleReadersLock = new Lock() {
 
                 @Override
                 public boolean tryAcquireLock() {
@@ -125,7 +125,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
                 }
             };
 
-            private final Lock writeLock = new Lock() {
+            private final Lock singleReaderLock = new Lock() {
 
                 @Override
                 public boolean tryAcquireLock() {
@@ -146,22 +146,22 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
             @Override
             public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
-                return execute(delegateCache.getAll(ids, computeIfAbsent), concurrencyStrategy.equals(SINGLE_READER) ? readLock : writeLock);
+                return execute(delegateCache.getAll(ids, computeIfAbsent), concurrencyStrategy.equals(SINGLE_READER) ? singleReaderLock : multipleReadersLock);
             }
 
             @Override
             public Mono<?> putAll(Map<ID, List<R>> map) {
-                return execute(delegateCache.putAll(map), writeLock);
+                return execute(delegateCache.putAll(map), singleReaderLock);
             }
 
             @Override
             public Mono<?> removeAll(Map<ID, List<R>> map) {
-                return execute(delegateCache.removeAll(map), writeLock);
+                return execute(delegateCache.removeAll(map), singleReaderLock);
             }
 
             @Override
             public Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
-                return execute(delegateCache.updateAll(mapToAdd, mapToRemove), writeLock);
+                return execute(delegateCache.updateAll(mapToAdd, mapToRemove), singleReaderLock);
             }
 
             private <T> Mono<T> execute(Mono<T> mono, Lock lock) {
