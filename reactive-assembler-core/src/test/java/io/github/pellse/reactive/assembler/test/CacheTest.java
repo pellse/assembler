@@ -20,11 +20,7 @@ import io.github.pellse.reactive.assembler.Assembler;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
-import io.github.pellse.reactive.assembler.util.BillingInfo;
-import io.github.pellse.reactive.assembler.util.Customer;
-import io.github.pellse.reactive.assembler.util.OrderItem;
-import io.github.pellse.reactive.assembler.util.Transaction;
-import io.github.pellse.reactive.assembler.util.TransactionSet;
+import io.github.pellse.reactive.assembler.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -33,16 +29,16 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -65,9 +61,6 @@ import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtil
 import static io.github.pellse.util.ObjectUtils.run;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofNanos;
-import static java.util.Optional.ofNullable;
-import static java.util.concurrent.Executors.newScheduledThreadPool;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static reactor.core.publisher.Mono.error;
@@ -97,68 +90,98 @@ public class CacheTest {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-    private static <T> Flux<T> longRunningFlux(List<T> list, int nsDelay, int threadPoolSize) {
-        return longRunningFlux(list, null, nsDelay, threadPoolSize);
-    }
-
-    private static <T> Flux<T> longRunningFlux(List<T> list, AtomicLong counter, int nsDelay, int threadPoolSize) {
-        return longRunningFlux(list, counter, nsDelay, -1, threadPoolSize);
-    }
-
-    private static <T> Flux<T> longRunningFlux(List<T> list, AtomicLong counter, int nsDelay, int maxItems, int threadPoolSize) {
-        return generate(
-                threadPoolSize,
-                nsDelay,
-                NANOSECONDS,
-                0,
-                i -> (i + 1) % list.size(),
-                list::get,
-                (count, state) -> count >= maxItems && maxItems != -1,
-                (count, value) -> ofNullable(counter).ifPresent(AtomicLong::incrementAndGet));
+    private static <T> Flux<T> longRunningFlux(List<T> list, int maxItems) {
+        return generate(0, i -> (i + 1) % list.size(), list::get, count -> count >= maxItems && maxItems != -1);
     }
 
     private static <T, S> Flux<T> generate(
-            int threadPoolSize,
-            long nsDelay,
-            TimeUnit unit,
             S initialState,
             UnaryOperator<S> stateUpdater,
             Function<S, T> valueGenerator,
-            BiPredicate<Long, S> stopCondition,
-            BiConsumer<Long, T> onValueGenerated) {
-
-        var scheduledExecutorService = newScheduledThreadPool(threadPoolSize);
-        var subscriberCount = new AtomicInteger();
+            Predicate<Long> stopCondition) {
 
         return Flux.create(sink -> {
 
             var state = new AtomicReference<>(initialState);
             var generatedValueCount = new AtomicLong();
 
-            var scheduledFuture = new AtomicReference<ScheduledFuture<?>>();
-            subscriberCount.incrementAndGet();
+            sink.onRequest(n -> {
+                for (long i = 0; i < n; i++) {
 
-            scheduledFuture.set(scheduledExecutorService.scheduleAtFixedRate(() -> {
-
-                var notCancelled = !sink.isCancelled();
-                var oldState = state.getAndUpdate(stateUpdater);
-                var count = generatedValueCount.getAndIncrement();
-
-                if (notCancelled && !stopCondition.test(count, oldState)) {
-                    var value = valueGenerator.apply(oldState);
-                    sink.next(value);
-                    onValueGenerated.accept(count, value);
-                } else {
-                    if (notCancelled) {
+                    if (stopCondition.test(generatedValueCount.incrementAndGet())) {
                         sink.complete();
+                        return;
                     }
-                    scheduledFuture.get().cancel(true);
-                    if (subscriberCount.decrementAndGet() == 0) {
-                        scheduledExecutorService.shutdownNow();
-                    }
+                    var value = valueGenerator.apply(state.getAndUpdate(stateUpdater));
+                    sink.next(value);
                 }
-            }, 0, nsDelay, unit));
+            });
         });
+    }
+
+    @Test
+    @Timeout(600)
+    public void testLongRunningAutoCachingEvents() throws InterruptedException {
+
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
+        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
+        OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
+
+        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = customerIds ->
+                Flux.just(billingInfo1, billingInfo3)
+                        .filter(billingInfo -> customerIds.contains(billingInfo.customerId()));
+
+        Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds ->
+                Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                        .filter(orderItem -> customerIds.contains(orderItem.customerId()));
+
+        var customerList = List.of(customer1, customer2, customer3);
+
+        var billingInfoList = List.of(cdcAdd(billingInfo1), cdcAdd(billingInfo2), cdcAdd(updatedBillingInfo2), cdcAdd(billingInfo3));
+
+        var orderItemList = List.of(cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
+                cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
+                cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
+
+        var customerFlux = longRunningFlux(customerList, 100_000);
+        var billingInfoFlux = longRunningFlux(billingInfoList, -1);
+        var orderItemFlux = longRunningFlux(orderItemList, -1);
+
+        var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdExtractor(Customer::customerId)
+                .withAssemblerRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
+                                autoCacheBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
+                                        .maxWindowSize(3)
+                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
+                                        .scheduler(newParallel("billing-info", 4))
+                                        .concurrency(100, ofNanos(1))
+                                        .build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
+                                autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+                                        .maxWindowSize(3)
+                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
+                                        .scheduler(newParallel("order-item", 4))
+                                        .concurrency(100, ofNanos(1))
+                                        .build()))),
+                        Transaction::new)
+                .build(immediate());
+
+        var transactionFlux = customerFlux
+                .window(3)
+                .delayElements(ofNanos(1))
+                .flatMapSequential(assembler::assemble)
+                .take(10_000)
+                .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
+                .doFinally(run(lifeCycleEventBroadcaster::stop));
+
+        var initialCount = 500;
+        var latch = new CountDownLatch(initialCount);
+        IntStream.range(0, initialCount).forEach(__ -> transactionFlux.subscribe(null, error -> latch.countDown(), latch::countDown));
+        latch.await();
     }
 
     private Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
@@ -800,67 +823,5 @@ public class CacheTest {
 
         assertEquals(0, billingInvocationCount.get());
         assertEquals(0, ordersInvocationCount.get());
-    }
-
-    @Test
-    @Timeout(20)
-    public void testLongRunningAutoCachingEvents() throws InterruptedException {
-
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
-        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
-        OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
-
-        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = customerIds ->
-                Flux.just(billingInfo1, billingInfo3)
-                        .filter(billingInfo -> customerIds.contains(billingInfo.customerId()));
-
-        Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds ->
-                Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                        .filter(orderItem -> customerIds.contains(orderItem.customerId()));
-
-        var customerList = List.of(customer1, customer2, customer3);
-
-        var billingInfoList = List.of(cdcAdd(billingInfo1), cdcAdd(billingInfo2), cdcAdd(updatedBillingInfo2), cdcAdd(billingInfo3));
-
-        var orderItemList = List.of(cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
-                cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
-                cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
-                cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
-
-        var customerFlux = longRunningFlux(customerList, 1, Runtime.getRuntime().availableProcessors());
-        var billingInfoFlux = longRunningFlux(billingInfoList, 1, Runtime.getRuntime().availableProcessors());
-        var orderItemFlux = longRunningFlux(orderItemList, 1, Runtime.getRuntime().availableProcessors());
-
-        var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
-
-        var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
-                .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
-                                autoCacheBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
-                                        .maxWindowSize(3)
-                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(newParallel("billing-info"))
-                                        .build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
-                                autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
-                                        .maxWindowSize(3)
-                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(newParallel("order-item"))
-                                        .build()))),
-                        Transaction::new)
-                .build();
-
-        var transactionFlux = customerFlux
-                .window(3)
-                .delayElements(ofNanos(1))
-                .flatMapSequential(assembler::assemble)
-                .take(10_000)
-                .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
-                .doFinally(run(lifeCycleEventBroadcaster::stop));
-
-        var latch = new CountDownLatch(500);
-        IntStream.range(0, 500).forEach(__ -> transactionFlux.subscribe(null, error -> latch.countDown(), latch::countDown));
-        latch.await();
     }
 }

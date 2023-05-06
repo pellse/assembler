@@ -35,7 +35,7 @@ import static java.util.Objects.requireNonNullElse;
 public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
         extends Function<RuleMapperContext<ID, EID, IDC, R, RRC>, Function<IDC, Publisher<R>>> {
 
-    RuleMapperSource<?, ?, ? extends Collection<Object>, ?, ?> EMPTY_QUERY = ruleContext -> ids -> Mono.empty();
+    RuleMapperSource<?, ?, ? extends Collection<Object>, ?, ?> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
 
     static <ID, IDC extends Collection<ID>, R> RuleMapperBuilder<ID, IDC, R> from(Function<IDC, Publisher<R>> queryFunction) {
         return from(call(queryFunction));
@@ -50,16 +50,17 @@ public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
     }
 
     @SuppressWarnings("unchecked")
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> emptyQuery() {
-        return (RuleMapperSource<ID, EID, IDC, R, RRC>) EMPTY_QUERY;
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> emptySource() {
+        return (RuleMapperSource<ID, EID, IDC, R, RRC>) EMPTY_SOURCE;
     }
 
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> Function<IDC, Publisher<R>> toQueryFunction(
-            RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource,
-            RuleMapperContext<ID, EID, IDC, R, RRC> ruleMapperContext) {
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> boolean isEmptySource(RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource) {
+        return emptySource().equals(nullToEmptySource(ruleMapperSource));
+    }
 
-        return requireNonNullElse(ruleMapperSource, RuleMapperSource.<ID, EID, IDC, R, RRC>emptyQuery())
-                .apply(ruleMapperContext);
+    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> nullToEmptySource(
+            RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource) {
+        return requireNonNullElse(ruleMapperSource, RuleMapperSource.<ID, EID, IDC, R, RRC>emptySource());
     }
 
     @SafeVarargs

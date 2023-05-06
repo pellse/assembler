@@ -18,6 +18,8 @@ package io.github.pellse.reactive.assembler.caching;
 
 import io.github.pellse.reactive.assembler.RuleMapperContext;
 import io.github.pellse.reactive.assembler.RuleMapperSource;
+import io.github.pellse.reactive.assembler.caching.CacheFactory.FetchFunction.EmptyFetchFunction;
+import io.github.pellse.reactive.assembler.caching.CacheFactory.FetchFunction.NonEmptyFetchFunction;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -86,7 +88,7 @@ public interface CacheFactory<ID, R, RRC> {
     static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
             CacheFactory<ID, R, RRC> cache,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(emptyQuery(), cache, delegateCacheFactories);
+        return cached(emptySource(), cache, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -122,17 +124,19 @@ public interface CacheFactory<ID, R, RRC> {
         final Consumer<Throwable> logError = e -> logger.log(WARNING, "Recoverable error in cache, fall back to bypass cache and directly invoke fetchFunction:", e);
 
         return ruleContext -> {
-            final var queryFunction = toQueryFunction(ruleMapperSource, ruleContext);
+            final var queryFunction =  nullToEmptySource(ruleMapperSource).apply(ruleContext);
 
-            final Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction =
+            final NonEmptyFetchFunction<ID, R> fetchFunction =
                     entityIds -> then(translate(entityIds, ruleContext.idCollectionFactory()), ids ->
                             from(queryFunction.apply(ids))
                                     .collect(groupingBy(ruleContext.correlationIdExtractor()))
                                     .map(queryResultsMap -> buildCacheFragment(entityIds, queryResultsMap, ruleContext))
                                     .onErrorMap(QueryFunctionException::new));
 
+            final EmptyFetchFunction<ID, R> emptyFetchFunction = ids -> Mono.empty();
+
             final var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
-                    .create(fetchFunction, new CacheContext<>(ruleContext));
+                    .create(isEmptySource(ruleMapperSource) ? emptyFetchFunction : fetchFunction, new CacheContext<>(ruleContext));
 
             return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)))
@@ -156,7 +160,8 @@ public interface CacheFactory<ID, R, RRC> {
                 stream(delegateCacheFactories)
                         .reduce((fetchFunction, context) -> mergeStrategyAwareCache(ruleContext.idExtractor(), cacheFactory.create(fetchFunction, context)),
                                 (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
-                                (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory));
+                                (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory)
+        );
     }
 
     private static <ID, EID, IDC extends Collection<ID>, R, RRC> Map<ID, List<R>> buildCacheFragment(
@@ -169,11 +174,14 @@ public interface CacheFactory<ID, R, RRC> {
                         ifNotNull(ctx.defaultResultProvider().apply(id), value -> map.put(id, ctx.toListConverter().apply(value)))));
     }
 
-    Cache<ID, R> create(
-            Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> fetchFunction,
-            CacheContext<ID, R, RRC> context);
+    Cache<ID, R> create(FetchFunction<ID, R> fetchFunction,  CacheContext<ID, R, RRC> context);
 
     interface CacheTransformer<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
+    }
+
+    sealed interface FetchFunction<ID, R> extends Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> {
+        non-sealed interface EmptyFetchFunction<ID, R> extends FetchFunction<ID, R> {}
+        non-sealed interface NonEmptyFetchFunction<ID, R> extends FetchFunction<ID, R> {}
     }
 
     class QueryFunctionException extends Exception {

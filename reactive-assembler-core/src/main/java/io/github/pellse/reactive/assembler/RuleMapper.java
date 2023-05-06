@@ -49,7 +49,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
         extends Function<RuleContext<ID, IDC, R, RRC>, Function<Iterable<ID>, Mono<Map<ID, RRC>>>> {
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne() {
-        return oneToOne(emptyQuery(), id -> null);
+        return oneToOne(emptySource(), id -> null);
     }
 
     static <ID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, R> oneToOne(
@@ -84,7 +84,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
 
     static <ID, EID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
             Function<R, EID> idExtractor) {
-        return oneToMany(idExtractor, emptyQuery(), ArrayList::new);
+        return oneToMany(idExtractor, emptySource(), ArrayList::new);
     }
 
     static <ID, EID, IDC extends Collection<ID>, R> RuleMapper<ID, IDC, R, List<R>> oneToMany(
@@ -153,7 +153,7 @@ public interface RuleMapper<ID, IDC extends Collection<ID>, R, RRC>
                     fromListConverter,
                     toListConverter);
 
-            final var queryFunction = toQueryFunction(ruleMapperSource, ruleMapperContext);
+            final var queryFunction =  nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
 
             return entityIds ->
                     then(translate(entityIds, ruleMapperContext.idCollectionFactory()), ids ->

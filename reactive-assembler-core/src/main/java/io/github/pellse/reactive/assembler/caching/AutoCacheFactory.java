@@ -72,10 +72,13 @@ public interface AutoCacheFactory {
             ErrorHandler errorHandler,
             LifeCycleEventSource lifeCycleEventSource,
             Scheduler scheduler,
-            Function<Cache<ID, R>, ConcurrentCache<ID, R>> concurrentCacheFactory) {
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> concurrentCacheTransformer) {
 
         return cacheFactory -> (fetchFunction, context) -> {
-            final var cache = requireNonNullElse(concurrentCacheFactory, ConcurrentCache::concurrentCache).apply(cacheFactory.create(fetchFunction, context));
+            final var cache = requireNonNullElse(concurrentCacheTransformer, ConcurrentCacheFactory::concurrent)
+                    .apply(cacheFactory)
+                    .create(fetchFunction, context);
+
             final var idExtractor = context.correlationIdExtractor();
 
             final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")

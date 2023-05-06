@@ -17,12 +17,16 @@
 package io.github.pellse.reactive.assembler.caching;
 
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.reactive.assembler.caching.CacheFactory.FetchFunction;
+import io.github.pellse.reactive.assembler.caching.CacheFactory.FetchFunction.NonEmptyFetchFunction;
 import io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy;
 import reactor.util.retry.RetryBackoffSpec;
 import reactor.util.retry.RetrySpec;
 
 import java.time.Duration;
 
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy.MULTIPLE_READERS;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy.SINGLE_READER;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
 
 public interface ConcurrentCacheFactory {
@@ -67,43 +71,47 @@ public interface ConcurrentCacheFactory {
         return cacheFactory -> concurrent(cacheFactory, retrySpec, concurrencyStrategy);
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory) {
-        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context));
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory) {
+        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), concurrencyStrategy(fetchFunction));
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, ConcurrencyStrategy concurrencyStrategy) {
         return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), concurrencyStrategy);
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, long maxAttempts) {
-        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), maxAttempts);
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, long maxAttempts) {
+        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), maxAttempts, concurrencyStrategy(fetchFunction));
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
         return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), maxAttempts, concurrencyStrategy);
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, long maxAttempts, Duration delay) {
-        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), maxAttempts, delay);
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, long maxAttempts, Duration delay) {
+        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), maxAttempts, delay, concurrencyStrategy(fetchFunction));
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, long maxAttempts, Duration delay, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, long maxAttempts, Duration delay, ConcurrencyStrategy concurrencyStrategy) {
         return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), maxAttempts, delay, concurrencyStrategy);
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, RetrySpec retrySpec) {
-        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), retrySpec);
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, RetrySpec retrySpec) {
+        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), retrySpec, concurrencyStrategy(fetchFunction));
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
         return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), retrySpec, concurrencyStrategy);
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, RetryBackoffSpec retrySpec) {
-        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), retrySpec);
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, RetryBackoffSpec retrySpec) {
+        return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), retrySpec, concurrencyStrategy(fetchFunction));
     }
 
-    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
         return (fetchFunction, context) -> concurrentCache(delegateCacheFactory.create(fetchFunction, context), retrySpec, concurrencyStrategy);
+    }
+
+    private static <ID, R> ConcurrencyStrategy concurrencyStrategy(FetchFunction<ID, R> fetchFunction) {
+        return fetchFunction instanceof NonEmptyFetchFunction<ID, R> ? SINGLE_READER : MULTIPLE_READERS;
     }
 }

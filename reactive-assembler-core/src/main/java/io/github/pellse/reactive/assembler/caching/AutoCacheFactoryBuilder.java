@@ -32,7 +32,7 @@ import java.util.function.Predicate;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
-import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.concurrentCache;
+import static io.github.pellse.reactive.assembler.caching.ConcurrentCacheFactory.concurrent;
 
 public interface AutoCacheFactoryBuilder {
 
@@ -176,7 +176,7 @@ public interface AutoCacheFactoryBuilder {
                     eventSource,
                     scheduler,
                     maxAttempts > 0 ?
-                            (delay != null ? cache -> concurrentCache(cache, maxAttempts, delay) : cache -> concurrentCache(cache, maxAttempts)) :
+                            (delay != null ? cache -> concurrent(cache, maxAttempts, delay) : cache -> concurrent(cache, maxAttempts)) :
                             null);
         }
     }
