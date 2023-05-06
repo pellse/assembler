@@ -33,11 +33,8 @@ import java.util.function.Predicate;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCache.ConcurrencyStrategy.SINGLE_READER;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.run;
-import static java.lang.Integer.MAX_VALUE;
-import static java.time.Duration.ofNanos;
 import static reactor.core.publisher.Mono.*;
-import static reactor.util.retry.Retry.backoff;
-import static reactor.util.retry.Retry.max;
+import static reactor.util.retry.Retry.*;
 
 public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
@@ -48,7 +45,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
-        return build(delegateCache, cache -> concurrentCache(cache, MAX_VALUE, ofNanos(1), concurrencyStrategy));
+        return concurrentCache(delegateCache, indefinitely(), concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts) {
@@ -56,7 +53,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
-        return build(delegateCache, cache -> concurrentCache(cache, max(maxAttempts), RetrySpec::filter, concurrencyStrategy));
+        return concurrentCache(delegateCache, max(maxAttempts), RetrySpec::filter, concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration delay) {
@@ -64,7 +61,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration delay, ConcurrencyStrategy concurrencyStrategy) {
-        return build(delegateCache, cache -> concurrentCache(cache, backoff(maxAttempts, delay), RetryBackoffSpec::filter, concurrencyStrategy));
+        return concurrentCache(delegateCache, backoff(maxAttempts, delay).jitter(0.75), RetryBackoffSpec::filter, concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
@@ -72,7 +69,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-        return build(delegateCache, cache -> concurrentCache(cache, retrySpec, RetrySpec::filter, concurrencyStrategy));
+        return concurrentCache(delegateCache, retrySpec, RetrySpec::filter, concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
@@ -80,7 +77,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-        return build(delegateCache, cache -> concurrentCache(cache, retrySpec, RetryBackoffSpec::filter, concurrencyStrategy));
+        return concurrentCache(delegateCache, retrySpec, RetryBackoffSpec::filter, concurrencyStrategy);
     }
 
     private static <ID, R, T extends Retry> ConcurrentCache<ID, R> concurrentCache(
