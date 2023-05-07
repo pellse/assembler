@@ -175,9 +175,7 @@ public interface AutoCacheFactoryBuilder {
                     errorHandler,
                     eventSource,
                     scheduler,
-                    maxAttempts > 0 ?
-                            (delay != null ? cache -> concurrent(cache, maxAttempts, delay) : cache -> concurrent(cache, maxAttempts)) :
-                            null);
+                    maxAttempts > 0 ? (delay != null ? concurrent(maxAttempts, delay) : concurrent(maxAttempts)) : null);
         }
     }
 }
