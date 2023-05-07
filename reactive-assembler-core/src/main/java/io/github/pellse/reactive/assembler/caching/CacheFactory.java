@@ -37,8 +37,6 @@ import static io.github.pellse.reactive.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.reactive.assembler.caching.Cache.mergeStrategyAwareCache;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtil.*;
-import static java.lang.System.Logger.Level.WARNING;
-import static java.lang.System.getLogger;
 import static java.util.Arrays.stream;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.groupingBy;
@@ -119,10 +117,6 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        final var isCacheError = not(QueryFunctionException.class::isInstance);
-        final var logger = getLogger(CacheFactory.class.getName());
-        final Consumer<Throwable> logError = e -> logger.log(WARNING, "Recoverable error in cache, fall back to bypass cache and directly invoke fetchFunction:", e);
-
         return ruleContext -> {
             final var queryFunction =  nullToEmptySource(ruleMapperSource).apply(ruleContext);
 
@@ -140,8 +134,7 @@ public interface CacheFactory<ID, R, RRC> {
 
             return ids -> cache.getAll(ids, true)
                     .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)))
-                    .doOnError(isCacheError, logError)
-                    .onErrorResume(isCacheError, __ -> queryFunction.apply(ids))
+                    .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(ids))
                     .onErrorMap(QueryFunctionException.class, Throwable::getCause);
         };
     }
