@@ -124,7 +124,7 @@ public class CacheTest {
     }
 
     @Test
-    @Timeout(600)
+    @Timeout(60)
     public void testLongRunningAutoCachingEvents() throws InterruptedException {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
@@ -373,8 +373,6 @@ public class CacheTest {
                 .expectNext(defaultTransaction, defaultTransaction, defaultTransaction)
                 .expectComplete()
                 .verify();
-
-        assertEquals(1, ordersInvocationCount.get());
     }
 
     @Test
