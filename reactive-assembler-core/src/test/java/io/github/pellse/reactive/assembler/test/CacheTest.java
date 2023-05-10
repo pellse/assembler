@@ -90,6 +90,10 @@ public class CacheTest {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
+    private static <T> Flux<T> longRunningFlux(List<T> list) {
+        return longRunningFlux(list, -1);
+    }
+
     private static <T> Flux<T> longRunningFlux(List<T> list, int maxItems) {
         return generate(0, i -> (i + 1) % list.size(), list::get, count -> count >= maxItems && maxItems != -1);
     }
@@ -144,9 +148,9 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var customerFlux = longRunningFlux(customerList, 100_000);
-        var billingInfoFlux = longRunningFlux(billingInfoList, -1);
-        var orderItemFlux = longRunningFlux(orderItemList, -1);
+        var customerFlux = longRunningFlux(customerList);
+        var billingInfoFlux = longRunningFlux(billingInfoList);
+        var orderItemFlux = longRunningFlux(orderItemList);
 
         var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
 
