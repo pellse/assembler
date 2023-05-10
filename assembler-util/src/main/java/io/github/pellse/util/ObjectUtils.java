@@ -60,6 +60,11 @@ public interface ObjectUtils {
             codeBlock.accept(value);
     }
 
+    static <T> Consumer<T> doNothing() {
+        return __ -> {
+        };
+    }
+
     static <T> Consumer<T> run(Runnable runnable) {
         return __ -> runnable.run();
     }
