@@ -33,6 +33,7 @@ import static io.github.pellse.reactive.assembler.LifeCycleEventSource.concurren
 import static io.github.pellse.reactive.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
+import static io.github.pellse.util.ObjectUtils.doNothing;
 import static io.github.pellse.util.ObjectUtils.ifNotNull;
 import static java.lang.System.Logger.Level.WARNING;
 import static java.lang.System.getLogger;
@@ -120,18 +121,29 @@ public interface AutoCacheFactory {
     interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
     }
 
-    record OnErrorContinue(BiConsumer<Throwable, Object> errorConsumer) implements ErrorHandler {
-        public static OnErrorContinue onErrorContinue(Consumer<Throwable> errorConsumer) {
-            return new OnErrorContinue((t, o) -> errorConsumer.accept(t));
+    record OnErrorContinue<E extends Throwable>(
+            Predicate<E> errorPredicate,
+            BiConsumer<Throwable, Object> errorConsumer) implements ErrorHandler {
+
+        public static OnErrorContinue<?> onErrorContinue() {
+            return onErrorContinue(doNothing());
         }
 
-        public static OnErrorContinue onErrorContinue(BiConsumer<Throwable, Object> errorConsumer) {
-            return new OnErrorContinue(errorConsumer);
+        public static OnErrorContinue<?> onErrorContinue(Consumer<Throwable> errorConsumer) {
+            return onErrorContinue((t, o) -> errorConsumer.accept(t));
+        }
+
+        public static OnErrorContinue<?> onErrorContinue(BiConsumer<Throwable, Object> errorConsumer) {
+            return onErrorContinue(e -> true, errorConsumer);
+        }
+
+        public static <E extends Throwable> OnErrorContinue<E> onErrorContinue(Predicate<E> errorPredicate, BiConsumer<Throwable, Object> errorConsumer) {
+            return new OnErrorContinue<>(errorPredicate, errorConsumer);
         }
 
         @Override
         public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
-            return flux -> flux.onErrorContinue(errorConsumer());
+            return flux -> flux.onErrorContinue(errorPredicate(), errorConsumer());
         }
     }
 
