@@ -16,6 +16,7 @@
 
 package io.github.pellse.reactive.assembler.caching;
 
+import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import reactor.util.retry.RetryBackoffSpec;
@@ -164,11 +165,10 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
             private <T> Mono<T> execute(Mono<T> mono, Lock lock) {
 
                 return defer(() -> {
-                    final var lockAlreadyReleased = new AtomicBoolean();
                     final var lockAcquired = new AtomicBoolean();
 
                     final Runnable releaseLock = () -> {
-                        if (lockAcquired.get() && lockAlreadyReleased.compareAndSet(false, true)) {
+                        if (lockAcquired.compareAndSet(true, false)) {
                             lock.releaseLock();
                         }
                     };
@@ -180,7 +180,8 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
                             .flatMap(__ -> mono)
                             .doOnError(run(releaseLock))
                             .doOnCancel(releaseLock)
-                            .doOnSuccess(run(releaseLock));
+                            .doOnSuccess(run(releaseLock))
+                            .onErrorResume(Exceptions::isRetryExhausted, e -> empty());
                 });
             }
         };
