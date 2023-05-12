@@ -148,9 +148,9 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var customerFlux = longRunningFlux(customerList);
-        var billingInfoFlux = longRunningFlux(billingInfoList);
-        var orderItemFlux = longRunningFlux(orderItemList);
+        var customerFlux = longRunningFlux(customerList).delayElements(ofNanos(1));
+        var billingInfoFlux = longRunningFlux(billingInfoList).delayElements(ofNanos(1));
+        var orderItemFlux = longRunningFlux(orderItemList).delayElements(ofNanos(1));
 
         var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
 
@@ -172,11 +172,10 @@ public class CacheTest {
                                         .concurrency(100, ofNanos(1))
                                         .build()))),
                         Transaction::new)
-                .build(immediate());
+                .build();
 
         var transactionFlux = customerFlux
                 .window(3)
-                .delayElements(ofNanos(1))
                 .flatMapSequential(assembler::assemble)
                 .take(10_000)
                 .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
