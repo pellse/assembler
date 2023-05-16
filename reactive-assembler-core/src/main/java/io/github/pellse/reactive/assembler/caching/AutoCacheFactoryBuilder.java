@@ -84,7 +84,7 @@ public interface AutoCacheFactoryBuilder {
     interface ConcurrencyBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
         AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts);
 
-        AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts, Duration delay);
+        AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts, Duration minBackoff);
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
@@ -98,8 +98,7 @@ public interface AutoCacheFactoryBuilder {
         private ErrorHandler errorHandler;
         private Scheduler scheduler;
         private LifeCycleEventSource eventSource;
-        private long maxAttempts;
-        private Duration delay;
+        private CacheTransformer<?, R, ?> cacheTransformer;
 
         private Builder(Flux<T> dataSource) {
             this.dataSource = dataSource;
@@ -156,26 +155,20 @@ public interface AutoCacheFactoryBuilder {
 
         @Override
         public AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts) {
-            return concurrency(maxAttempts, null);
-        }
-
-        @Override
-        public AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts, Duration delay) {
-            this.maxAttempts = maxAttempts;
-            this.delay = delay;
+            this.cacheTransformer = concurrent(maxAttempts);
             return this;
         }
 
         @Override
-        public <ID, RRC> CacheTransformer<ID, R, RRC> build() {
+        public AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts, Duration minBackoff) {
+            this.cacheTransformer = concurrent(maxAttempts, minBackoff);
+            return this;
+        }
 
-            return autoCache(
-                    dataSource,
-                    windowingStrategy,
-                    errorHandler,
-                    eventSource,
-                    scheduler,
-                    maxAttempts > 0 ? (delay != null ? concurrent(maxAttempts, delay) : concurrent(maxAttempts)) : null);
+        @SuppressWarnings("unchecked")
+        @Override
+        public <ID, RRC> CacheTransformer<ID, R, RRC> build() {
+            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC>) cacheTransformer);
         }
     }
 }
