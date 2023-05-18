@@ -252,14 +252,14 @@ var assembler = assemblerOf(Transaction.class)
         .maxWindowSizeAndTime(100, ofSeconds(5))
         .errorHandler(error -> logger.log(WARNING, "Error in autoCache", error))
         .scheduler(newParallel("billing-info"))
-        .concurrency(50)
+        .maxRetryStrategy(50)
         .build()))),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders,
       autoCacheBuilder(orderItemFlux)
         .maxWindowSize(50)
         .errorHandler(onErrorMap(MyException::new))
         .scheduler(newParallel("order-item"))
-        .concurrency(100, ofMillis(10))
+        .backoffRetryStrategy(100, ofMillis(10))
         .build()))),
     Transaction::new)
   .build();
