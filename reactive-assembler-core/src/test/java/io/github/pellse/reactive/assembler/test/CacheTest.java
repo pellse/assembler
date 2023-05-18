@@ -161,15 +161,15 @@ public class CacheTest {
                                 autoCacheBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(newParallel("billing-info", 4))
-                                        .concurrency(100, ofNanos(1))
+                                        .scheduler(boundedElastic())
+                                        .backoffRetryStrategy(100, ofNanos(1), ofMillis(100))
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(newParallel("order-item", 4))
-                                        .concurrency(100, ofNanos(1))
+                                        .scheduler(boundedElastic())
+                                        .backoffRetryStrategy(100, ofNanos(1), ofMillis(100))
                                         .build()))),
                         Transaction::new)
                 .build();
@@ -765,12 +765,12 @@ public class CacheTest {
                         rule(BillingInfo::customerId, oneToOne(cached(
                                 autoCacheBuilder(billingInfoFlux)
                                         .maxWindowSize(3)
-                                        .concurrency(20)
+                                        .maxRetryStrategy(20)
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
-                                        .concurrency(20, ofMillis(1))
+                                        .backoffRetryStrategy(20, ofMillis(1))
                                         .build()))),
                         Transaction::new)
                 .build();

@@ -22,6 +22,8 @@ import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.WindowingStr
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
+import reactor.util.retry.RetryBackoffSpec;
+import reactor.util.retry.RetrySpec;
 
 import java.time.Duration;
 import java.util.function.BiConsumer;
@@ -33,6 +35,7 @@ import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErr
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.reactive.assembler.caching.ConcurrentCacheFactory.concurrent;
+import static reactor.util.retry.Retry.*;
 
 public interface AutoCacheFactoryBuilder {
 
@@ -77,14 +80,22 @@ public interface AutoCacheFactoryBuilder {
         SchedulerBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource);
     }
 
-    interface SchedulerBuilder<R> extends ConcurrencyBuilder<R> {
-        ConcurrencyBuilder<R> scheduler(Scheduler scheduler);
+    interface SchedulerBuilder<R> extends RetryStrategyBuilder<R> {
+        RetryStrategyBuilder<R> scheduler(Scheduler scheduler);
     }
 
-    interface ConcurrencyBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
-        AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts);
+    interface RetryStrategyBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
+        AutoCacheFactoryDelegateBuilder<R> maxRetryStrategy(long maxAttempts);
 
-        AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts, Duration minBackoff);
+        AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff);
+
+        AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, Duration maxBackoff);
+
+        AutoCacheFactoryDelegateBuilder<R> fixedDelayRetryStrategy(long maxAttempts, Duration fixedDelay);
+
+        AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetrySpec retrySpec);
+
+        AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetryBackoffSpec retryBackoffSpec);
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
@@ -148,20 +159,40 @@ public interface AutoCacheFactoryBuilder {
         }
 
         @Override
-        public ConcurrencyBuilder<R> scheduler(Scheduler scheduler) {
+        public RetryStrategyBuilder<R> scheduler(Scheduler scheduler) {
             this.scheduler = scheduler;
             return this;
         }
 
         @Override
-        public AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts) {
-            this.cacheTransformer = concurrent(maxAttempts);
+        public AutoCacheFactoryDelegateBuilder<R> maxRetryStrategy(long maxAttempts) {
+            return retryStrategy(max(maxAttempts));
+        }
+
+        @Override
+        public AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff) {
+            return retryStrategy(backoff(maxAttempts, minBackoff));
+        }
+
+        @Override
+        public AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, Duration maxBackoff) {
+            return retryStrategy(backoff(maxAttempts, minBackoff).maxBackoff(maxBackoff));
+        }
+
+        @Override
+        public AutoCacheFactoryDelegateBuilder<R> fixedDelayRetryStrategy(long maxAttempts, Duration fixedDelay) {
+            return retryStrategy(fixedDelay(maxAttempts, fixedDelay));
+        }
+
+        @Override
+        public AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetrySpec retrySpec) {
+            this.cacheTransformer = concurrent(retrySpec);
             return this;
         }
 
         @Override
-        public AutoCacheFactoryDelegateBuilder<R> concurrency(long maxAttempts, Duration minBackoff) {
-            this.cacheTransformer = concurrent(maxAttempts, minBackoff);
+        public AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetryBackoffSpec retryBackoffSpec) {
+            this.cacheTransformer = concurrent(retryBackoffSpec, this.scheduler);
             return this;
         }
 

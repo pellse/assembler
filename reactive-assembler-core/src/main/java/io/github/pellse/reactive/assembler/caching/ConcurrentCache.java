@@ -18,6 +18,7 @@ package io.github.pellse.reactive.assembler.caching;
 
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.util.retry.Retry;
 import reactor.util.retry.RetryBackoffSpec;
 import reactor.util.retry.RetrySpec;
@@ -62,7 +63,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, backoff(maxAttempts, minBackoff).jitter(0.75), RetryBackoffSpec::filter, concurrencyStrategy);
+        return concurrentCache(delegateCache, backoff(maxAttempts, minBackoff), RetryBackoffSpec::filter, concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
@@ -78,7 +79,11 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, retrySpec, RetryBackoffSpec::filter, concurrencyStrategy);
+        return concurrentCache(delegateCache, retrySpec, concurrencyStrategy, null);
+    }
+
+    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
+        return concurrentCache(delegateCache, retrySpec.scheduler(retryScheduler), RetryBackoffSpec::filter, concurrencyStrategy);
     }
 
     private static <ID, R, T extends Retry> ConcurrentCache<ID, R> concurrentCache(

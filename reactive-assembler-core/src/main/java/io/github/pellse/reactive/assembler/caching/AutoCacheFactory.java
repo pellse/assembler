@@ -58,13 +58,7 @@ public interface AutoCacheFactory {
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
 
-        return autoCache(
-                dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)),
-                null,
-                null,
-                null,
-                null,
-                null);
+        return autoCache(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
     static <ID, R, RRC, T extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
