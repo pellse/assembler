@@ -16,7 +16,7 @@
 
 package io.github.pellse.reactive.assembler;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -27,18 +27,18 @@ public interface LifeCycleEventSource {
 
         return new LifeCycleEventListener() {
 
-            private final AtomicBoolean isStarted = new AtomicBoolean();
+            private final AtomicLong refCount = new AtomicLong();
 
             @Override
             public void start() {
-                if (isStarted.compareAndSet(false, true)) {
+                if (refCount.getAndIncrement() == 0) {
                     listener.start();
                 }
             }
 
             @Override
             public void stop() {
-                if (isStarted.get()) {
+                if (refCount.decrementAndGet() == 0) {
                     listener.stop();
                 }
             }
