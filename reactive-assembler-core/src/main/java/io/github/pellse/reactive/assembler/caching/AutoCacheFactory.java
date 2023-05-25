@@ -82,12 +82,10 @@ public interface AutoCacheFactory {
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idExtractor), toMap(eventMap.get(false), idExtractor)))
                     .transform(requireNonNullElse(errorHandler, onErrorContinue(AutoCacheFactory::logError)).toFluxErrorHandler())
-                    .doFinally(__ -> ifNotNull(scheduler, Scheduler::dispose))
-                    .transform(scheduleOn(scheduler, Flux::subscribeOn));
+                    .doFinally(__ -> ifNotNull(scheduler, Scheduler::dispose));
 
-            requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start).addLifeCycleEventListener(
-                    concurrentLifeCycleEventListener(
-                            lifeCycleEventAdapter(cacheSourceFlux, Flux::subscribe, Disposable::dispose)));
+            requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start)
+                    .addLifeCycleEventListener(concurrentLifeCycleEventListener(lifeCycleEventAdapter(cacheSourceFlux, Flux::subscribe, Disposable::dispose)));
 
             return cache;
         };
