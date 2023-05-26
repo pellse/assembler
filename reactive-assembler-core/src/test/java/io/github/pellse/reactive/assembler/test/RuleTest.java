@@ -55,19 +55,19 @@ public class RuleTest {
     }
 
     private Mono<Map<Customer, BillingInfo>> billingInfo(List<Customer> customers) {
-        return billingInfoBatchRule.toMono(customers);
+        return billingInfoBatchRule.executeToMono(customers);
     }
 
     private Mono<Map<Customer, List<OrderItem>>> orderItems(List<Customer> customers) {
-        return orderItemBatchRule.toMono(customers);
+        return orderItemBatchRule.executeToMono(customers);
     }
 
     private Flux<BillingInfo> billingInfoFlux(List<Customer> customers) {
-        return billingInfoBatchRule.toFlux(customers);
+        return billingInfoBatchRule.executeToFlux(customers);
     }
 
     private Flux<List<OrderItem>> orderItemsFlux(List<Customer> customers) {
-        return orderItemBatchRule.toFlux(customers);
+        return orderItemBatchRule.executeToFlux(customers);
     }
 
     @Test

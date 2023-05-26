@@ -114,10 +114,10 @@ public interface Rule<ID, RRC> extends Function<Iterable<ID>, Mono<Map<ID, RRC>>
     @FunctionalInterface
     interface BatchRule<T, RRC> {
 
-        Mono<Map<T, RRC>> toMono(Iterable<T> entities);
+        Mono<Map<T, RRC>> executeToMono(Iterable<T> entities);
 
-        default Flux<RRC> toFlux(Iterable<T> entities) {
-            return toMono(entities)
+        default Flux<RRC> executeToFlux(Iterable<T> entities) {
+            return executeToMono(entities)
                     .flatMapMany(resultMap -> fromIterable(resultMap.values()));
         }
     }
