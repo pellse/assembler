@@ -64,28 +64,28 @@ public interface Rule<ID, RRC> extends Function<Iterable<ID>, Mono<Map<ID, RRC>>
         return then(mapper.apply(ruleContext), queryFunction -> queryFunction::apply);
     }
 
-    static <ID, R, RRC> BatchRuleBuilder<ID, RRC> batchRuleBuilder(
+    static <ID, R, RRC> BatchRuleBuilder<ID, RRC> batchRule(
             Function<R, ID> correlationIdExtractor,
             RuleMapper<ID, List<ID>, R, RRC> mapper) {
-        return batchRuleBuilder(ruleContext(correlationIdExtractor), mapper);
+        return batchRule(ruleContext(correlationIdExtractor), mapper);
     }
 
-    static <ID, IDC extends Collection<ID>, R, RRC> BatchRuleBuilder<ID, RRC> batchRuleBuilder(
+    static <ID, IDC extends Collection<ID>, R, RRC> BatchRuleBuilder<ID, RRC> batchRule(
             Function<R, ID> correlationIdExtractor,
             Supplier<IDC> idCollectionFactory,
             RuleMapper<ID, IDC, R, RRC> mapper) {
-        return batchRuleBuilder(ruleContext(correlationIdExtractor, idCollectionFactory), mapper);
+        return batchRule(ruleContext(correlationIdExtractor, idCollectionFactory), mapper);
     }
 
-    static <ID, IDC extends Collection<ID>, R, RRC> BatchRuleBuilder<ID, RRC> batchRuleBuilder(
+    static <ID, IDC extends Collection<ID>, R, RRC> BatchRuleBuilder<ID, RRC> batchRule(
             Function<R, ID> correlationIdExtractor,
             Supplier<IDC> idCollectionFactory,
             MapFactory<ID, RRC> mapFactory,
             RuleMapper<ID, IDC, R, RRC> mapper) {
-        return batchRuleBuilder(ruleContext(correlationIdExtractor, idCollectionFactory, mapFactory), mapper);
+        return batchRule(ruleContext(correlationIdExtractor, idCollectionFactory, mapFactory), mapper);
     }
 
-    static <ID, IDC extends Collection<ID>, R, RRC> BatchRuleBuilder<ID, RRC> batchRuleBuilder(
+    static <ID, IDC extends Collection<ID>, R, RRC> BatchRuleBuilder<ID, RRC> batchRule(
             RuleContext<ID, IDC, R, RRC> ruleContext,
             RuleMapper<ID, IDC, R, RRC> mapper) {
 
