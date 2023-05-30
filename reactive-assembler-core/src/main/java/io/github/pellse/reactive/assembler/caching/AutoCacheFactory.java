@@ -49,8 +49,20 @@ public interface AutoCacheFactory {
 
     Logger logger = getLogger(CacheFactory.class.getName());
 
+    static <ID, R, RRC> CacheTransformer<ID, R, RRC> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
+        return autoCache(dataSourceSupplier.get());
+    }
+
     static <ID, R, RRC> CacheTransformer<ID, R, RRC> autoCache(Flux<R> dataSource) {
         return autoCache(dataSource, __ -> true, identity());
+    }
+
+    static <ID, R, RRC, U> CacheTransformer<ID, R, RRC> autoCache(
+            Supplier<Flux<U>> dataSourceSupplier,
+            Predicate<U> isAddOrUpdateEvent,
+            Function<U, R> cacheEventValueExtractor) {
+
+        return autoCache(dataSourceSupplier.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
     }
 
     static <ID, R, RRC, U> CacheTransformer<ID, R, RRC> autoCache(

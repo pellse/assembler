@@ -26,10 +26,7 @@ import reactor.util.retry.RetryBackoffSpec;
 import reactor.util.retry.RetrySpec;
 
 import java.time.Duration;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.*;
 
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
@@ -39,8 +36,19 @@ import static reactor.util.retry.Retry.*;
 
 public interface AutoCacheFactoryBuilder {
 
+    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> autoCacheBuilder(Supplier<Flux<R>> dataSourceSupplier) {
+        return autoCacheBuilder(dataSourceSupplier.get());
+    }
+
     static <R> WindowingStrategyBuilder<R, CacheEvent<R>> autoCacheBuilder(Flux<R> dataSource) {
         return autoCacheBuilder(dataSource, CacheEvent::updated);
+    }
+
+    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCacheBuilder(
+            Supplier<Flux<U>> dataSource,
+            Predicate<U> isAddOrUpdateEvent,
+            Function<U, R> cacheEventValueExtractor) {
+        return autoCacheBuilder(dataSource.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
     }
 
     static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCacheBuilder(
