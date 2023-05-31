@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
 
@@ -35,6 +36,20 @@ public interface CaffeineCacheFactory {
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache() {
         return caffeineCache(newBuilder());
+    }
+
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(long maxSize) {
+        return caffeineCache(newBuilder().maximumSize(maxSize));
+    }
+
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(Duration expireAfterAccessDuration) {
+        return caffeineCache(newBuilder().expireAfterAccess(expireAfterAccessDuration));
+    }
+
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(long maxSize, Duration expireAfterAccessDuration) {
+        return caffeineCache(newBuilder()
+                .maximumSize(maxSize)
+                .expireAfterAccess(expireAfterAccessDuration));
     }
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(Function<Caffeine<Object, Object>, Caffeine<Object, Object>> customizer) {
