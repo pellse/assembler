@@ -304,12 +304,16 @@ public interface AssemblerBuilder {
                     .map(rule -> rule.apply(correlationIdExtractor))
                     .toList();
 
-            this.subQueryMapperBuilder = topLevelEntities -> queryFunctions.stream()
-                    .map(queryFunction -> queryFunction
-                            .apply(toStream(topLevelEntities)
-                                    .filter(Objects::nonNull)
-                                    .map(correlationIdExtractor)
-                                    .toList()));
+            this.subQueryMapperBuilder = topLevelEntities -> {
+
+                final var entityIDs = toStream(topLevelEntities)
+                        .filter(Objects::nonNull)
+                        .map(correlationIdExtractor)
+                        .toList();
+
+                return queryFunctions.stream()
+                        .map(queryFunction -> queryFunction.apply(entityIDs));
+            };
 
             BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
                     (topLevelEntity, listOfMapperResults) -> aggregationFunction.apply(topLevelEntity,
