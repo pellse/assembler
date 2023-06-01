@@ -300,7 +300,20 @@ public interface AssemblerBuilder {
 
             this.assemblerAdapter = assemblerAdapter;
 
-            this.subQueryMapperBuilder = topLevelEntities -> buildSubQueryMappersFromRules(topLevelEntities, correlationIdExtractor, rules);
+            final var queryFunctions = rules.stream()
+                    .map(rule -> rule.apply(correlationIdExtractor))
+                    .toList();
+
+            this.subQueryMapperBuilder = topLevelEntities -> {
+
+                final var entityIDs = toStream(topLevelEntities)
+                        .filter(Objects::nonNull)
+                        .map(correlationIdExtractor)
+                        .toList();
+
+                return queryFunctions.stream()
+                        .map(queryFunction -> queryFunction.apply(entityIDs));
+            };
 
             BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
                     (topLevelEntity, listOfMapperResults) -> aggregationFunction.apply(topLevelEntity,
@@ -312,21 +325,6 @@ public interface AssemblerBuilder {
                     (topLevelEntities, mapperResults) -> toStream(topLevelEntities)
                             .filter(Objects::nonNull)
                             .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
-        }
-
-        private static <T, ID> Stream<Publisher<? extends Map<ID, ?>>> buildSubQueryMappersFromRules(
-                Iterable<T> topLevelEntities,
-                Function<T, ID> correlationIdExtractor,
-                List<Rule<T, ID, ?>> rules) {
-
-            final var entityIDs = toStream(topLevelEntities)
-                    .filter(Objects::nonNull)
-                    .map(correlationIdExtractor)
-                    .toList();
-
-            return rules.stream()
-                    .map(rule -> rule.apply(correlationIdExtractor))
-                    .map(queryFunction -> queryFunction.apply(entityIDs));
         }
 
         @Override
