@@ -27,22 +27,22 @@ import reactor.core.publisher.Flux.fromIterable
 
 inline fun <reified T> assembler(): WithCorrelationIdExtractorBuilder<T> = assemblerOf(T::class.java)
 
-fun <ID, IDC : Collection<ID>, R> ((IDC) -> Iterable<R>).toPublisher(): (IDC) -> Publisher<R> = { ids -> fromIterable(this(ids)) }
+fun <T, ID, IDC : Collection<ID>, R> ((IDC) -> Iterable<R>).toPublisher(): (IDC) -> Publisher<R> = { ids -> fromIterable(this(ids)) }
 
-fun <ID, IDC : Collection<ID>, R> ((IDC) -> Publisher<R>).oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<ID, IDC, R, R> =
+fun <T, ID, IDC : Collection<ID>, R> ((IDC) -> Publisher<R>).oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<T, ID, IDC, R, R> =
     oneToOne(this, defaultResultProvider)
 
-fun <ID, IDC : Collection<ID>, R> RuleMapperSource<ID, ID, IDC, R, R>.oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<ID, IDC, R, R> =
+fun <T, ID, IDC : Collection<ID>, R> RuleMapperSource<T, ID, ID, IDC, R, R>.oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<T, ID, IDC, R, R> =
     oneToOne(this, defaultResultProvider)
 
-fun <ID, EID, IDC : Collection<ID>, R> ((IDC) -> Publisher<R>).oneToMany(idExtractor: (R) -> EID): RuleMapper<ID, IDC, R, List<R>> =
+fun <T, ID, EID, IDC : Collection<ID>, R> ((IDC) -> Publisher<R>).oneToMany(idExtractor: (R) -> EID): RuleMapper<T, ID, IDC, R, List<R>> =
     oneToMany(idExtractor, this)
 
-fun <ID, EID, IDC : Collection<ID>, R> RuleMapperSource<ID, EID, IDC, R, List<R>>.oneToMany(idExtractor: (R) -> EID): RuleMapper<ID, IDC, R, List<R>> =
+fun <T, ID, EID, IDC : Collection<ID>, R> RuleMapperSource<T, ID, EID, IDC, R, List<R>>.oneToMany(idExtractor: (R) -> EID): RuleMapper<T, ID, IDC, R, List<R>> =
     oneToMany(idExtractor, this)
 
-fun <ID, EID, IDC : Collection<ID>, R, RC : Collection<R>> ((IDC) -> Publisher<R>).oneToMany(idExtractor: (R) -> EID, collectionFactory: () -> RC): RuleMapper<ID, IDC, R, RC> =
+fun <T, ID, EID, IDC : Collection<ID>, R, RC : Collection<R>> ((IDC) -> Publisher<R>).oneToMany(idExtractor: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, ID, IDC, R, RC> =
     oneToMany(idExtractor, this, collectionFactory)
 
-fun <ID, EID, IDC : Collection<ID>, R, RC : Collection<R>> RuleMapperSource<ID, EID, IDC, R, RC>.oneToMany(idExtractor: (R) -> EID, collectionFactory: () -> RC): RuleMapper<ID, IDC, R, RC> =
+fun <T, ID, EID, IDC : Collection<ID>, R, RC : Collection<R>> RuleMapperSource<T, ID, EID, IDC, R, RC>.oneToMany(idExtractor: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, ID, IDC, R, RC> =
     oneToMany(idExtractor, this, collectionFactory)

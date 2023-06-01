@@ -77,34 +77,34 @@ public interface CacheFactory<ID, R, RRC> {
     }
 
     @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
+    static <T, ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<T, ID, EID, IDC, R, RRC> cached(
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(cache(), delegateCacheFactories);
     }
 
     @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
+    static <T, ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<T, ID, EID, IDC, R, RRC> cached(
             CacheFactory<ID, R, RRC> cache,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(emptySource(), cache, delegateCacheFactories);
     }
 
     @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
+    static <T, ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<T, ID, EID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(call(queryFunction), delegateCacheFactories);
     }
 
     @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
-            RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource,
+    static <T, ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<T, ID, EID, IDC, R, RRC> cached(
+            RuleMapperSource<T, ID, EID, IDC, R, RRC> ruleMapperSource,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(ruleMapperSource, cache(), delegateCacheFactories);
     }
 
     @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
+    static <T, ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<T, ID, EID, IDC, R, RRC> cached(
             Function<IDC, Publisher<R>> queryFunction,
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
@@ -112,8 +112,8 @@ public interface CacheFactory<ID, R, RRC> {
     }
 
     @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> cached(
-            RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource,
+    static <T, ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<T, ID, EID, IDC, R, RRC> cached(
+            RuleMapperSource<T, ID, EID, IDC, R, RRC> ruleMapperSource,
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
@@ -144,8 +144,8 @@ public interface CacheFactory<ID, R, RRC> {
     }
 
     @SafeVarargs
-    private static <ID, EID, IDC extends Collection<ID>, R, RRC> CacheFactory<ID, R, RRC> delegate(
-            RuleMapperContext<ID, EID, IDC, R, RRC> ruleContext,
+    private static <T, ID, EID, IDC extends Collection<ID>, R, RRC> CacheFactory<ID, R, RRC> delegate(
+            RuleMapperContext<T, ID, EID, IDC, R, RRC> ruleContext,
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
@@ -157,10 +157,10 @@ public interface CacheFactory<ID, R, RRC> {
         );
     }
 
-    private static <ID, EID, IDC extends Collection<ID>, R, RRC> Map<ID, List<R>> buildCacheFragment(
+    private static <T, ID, EID, IDC extends Collection<ID>, R, RRC> Map<ID, List<R>> buildCacheFragment(
             Iterable<? extends ID> entityIds,
             Map<ID, List<R>> queryResultsMap,
-            RuleMapperContext<ID, EID, IDC, R, RRC> ctx) {
+            RuleMapperContext<T, ID, EID, IDC, R, RRC> ctx) {
 
         return newMap(queryResultsMap, map ->
                 intersect(entityIds, map.keySet()).forEach(id ->
@@ -188,7 +188,7 @@ public interface CacheFactory<ID, R, RRC> {
             Function<List<R>, RRC> fromListConverter,
             Function<RRC, List<R>> toListConverter) {
 
-        public CacheContext(RuleMapperContext<ID, ?, ?, R, RRC> ctx) {
+        public CacheContext(RuleMapperContext<?, ID, ?, ?, R, RRC> ctx) {
             this(ctx.correlationIdExtractor(), ctx.fromListConverter(), ctx.toListConverter());
         }
     }

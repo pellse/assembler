@@ -17,6 +17,7 @@
 package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.reactive.assembler.Assembler;
+import io.github.pellse.reactive.assembler.Rule;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
@@ -674,8 +675,8 @@ public class CacheTest {
                         .maxWindowSize(3)
                         .build();
 
-        var billingInfoRule = rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache)));
-        var orderItemRule = rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache)));
+        var billingInfoRule = Rule.<Customer, Long, BillingInfo, BillingInfo>rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache)));
+        var orderItemRule = Rule.<Customer, Long, OrderItem, List<OrderItem>>rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache)));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)

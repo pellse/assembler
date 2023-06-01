@@ -16,6 +16,7 @@
 
 package io.github.pellse.reactive.assembler.cache.caffeine;
 
+import io.github.pellse.reactive.assembler.RuleMapperSource;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import io.github.pellse.reactive.assembler.util.BillingInfo;
@@ -38,8 +39,6 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.from;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.pipe;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
@@ -157,14 +156,14 @@ public class TestAssemblerCaffeineCache {
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(
-                                pipe(
+                                RuleMapperSource.pipe(
                                         cached(this::getBillingInfo, caffeineCache()),
                                         CacheFactory::cached,
                                         CacheFactory::cached),
                                 BillingInfo::new)),
                         rule(OrderItem::customerId,
                                 oneToMany(OrderItem::id,
-                                        from(this::getAllOrders)
+                                        RuleMapperSource.<Customer, Long, List<Long>, OrderItem>from(this::getAllOrders)
                                                 .pipe(ruleMapperSource -> cached(ruleMapperSource, caffeineCache()))
                                                 .pipe(CacheFactory::cached)
                                                 .pipeAndGet(CacheFactory::cached)

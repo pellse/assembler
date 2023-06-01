@@ -47,7 +47,7 @@ public interface AssemblerBuilder {
 
         @SuppressWarnings("unchecked")
         default <E1> AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule,
+                Rule<T, ID, E1> rule,
                 BiFunction<T, E1, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule), (t, s) -> assemblerFunction.apply(t, (E1) s[0]));
@@ -56,8 +56,8 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
                 Function3<T, E1, E2, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2), (t, s) -> assemblerFunction.apply(t, (E1) s[0], (E2) s[1]));
@@ -66,9 +66,9 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
-                Rule<ID, E3> rule3,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
+                Rule<T, ID, E3> rule3,
                 Function4<T, E1, E2, E3, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2, rule3),
@@ -78,10 +78,10 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
-                Rule<ID, E3> rule3,
-                Rule<ID, E4> rule4,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
+                Rule<T, ID, E3> rule3,
+                Rule<T, ID, E4> rule4,
                 Function5<T, E1, E2, E3, E4, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2, rule3, rule4),
@@ -91,11 +91,11 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
-                Rule<ID, E3> rule3,
-                Rule<ID, E4> rule4,
-                Rule<ID, E5> rule5,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
+                Rule<T, ID, E3> rule3,
+                Rule<T, ID, E4> rule4,
+                Rule<T, ID, E5> rule5,
                 Function6<T, E1, E2, E3, E4, E5, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5),
@@ -105,12 +105,12 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
-                Rule<ID, E3> rule3,
-                Rule<ID, E4> rule4,
-                Rule<ID, E5> rule5,
-                Rule<ID, E6> rule6,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
+                Rule<T, ID, E3> rule3,
+                Rule<T, ID, E4> rule4,
+                Rule<T, ID, E5> rule5,
+                Rule<T, ID, E6> rule6,
                 Function7<T, E1, E2, E3, E4, E5, E6, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6),
@@ -120,13 +120,13 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
-                Rule<ID, E3> rule3,
-                Rule<ID, E4> rule4,
-                Rule<ID, E5> rule5,
-                Rule<ID, E6> rule6,
-                Rule<ID, E7> rule7,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
+                Rule<T, ID, E3> rule3,
+                Rule<T, ID, E4> rule4,
+                Rule<T, ID, E5> rule5,
+                Rule<T, ID, E6> rule6,
+                Rule<T, ID, E7> rule7,
                 Function8<T, E1, E2, E3, E4, E5, E6, E7, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7),
@@ -137,14 +137,14 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
-                Rule<ID, E3> rule3,
-                Rule<ID, E4> rule4,
-                Rule<ID, E5> rule5,
-                Rule<ID, E6> rule6,
-                Rule<ID, E7> rule7,
-                Rule<ID, E8> rule8,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
+                Rule<T, ID, E3> rule3,
+                Rule<T, ID, E4> rule4,
+                Rule<T, ID, E5> rule5,
+                Rule<T, ID, E6> rule6,
+                Rule<T, ID, E7> rule7,
+                Rule<T, ID, E8> rule8,
                 Function9<T, E1, E2, E3, E4, E5, E6, E7, E8, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8),
@@ -155,15 +155,15 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
-                Rule<ID, E3> rule3,
-                Rule<ID, E4> rule4,
-                Rule<ID, E5> rule5,
-                Rule<ID, E6> rule6,
-                Rule<ID, E7> rule7,
-                Rule<ID, E8> rule8,
-                Rule<ID, E9> rule9,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
+                Rule<T, ID, E3> rule3,
+                Rule<T, ID, E4> rule4,
+                Rule<T, ID, E5> rule5,
+                Rule<T, ID, E6> rule6,
+                Rule<T, ID, E7> rule7,
+                Rule<T, ID, E8> rule8,
+                Rule<T, ID, E9> rule9,
                 Function10<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9),
@@ -174,16 +174,16 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
-                Rule<ID, E3> rule3,
-                Rule<ID, E4> rule4,
-                Rule<ID, E5> rule5,
-                Rule<ID, E6> rule6,
-                Rule<ID, E7> rule7,
-                Rule<ID, E8> rule8,
-                Rule<ID, E9> rule9,
-                Rule<ID, E10> rule10,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
+                Rule<T, ID, E3> rule3,
+                Rule<T, ID, E4> rule4,
+                Rule<T, ID, E5> rule5,
+                Rule<T, ID, E6> rule6,
+                Rule<T, ID, E7> rule7,
+                Rule<T, ID, E8> rule8,
+                Rule<T, ID, E9> rule9,
+                Rule<T, ID, E10> rule10,
                 Function11<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10),
@@ -194,17 +194,17 @@ public interface AssemblerBuilder {
         @SuppressWarnings("unchecked")
         default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11>
         AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                Rule<ID, E1> rule1,
-                Rule<ID, E2> rule2,
-                Rule<ID, E3> rule3,
-                Rule<ID, E4> rule4,
-                Rule<ID, E5> rule5,
-                Rule<ID, E6> rule6,
-                Rule<ID, E7> rule7,
-                Rule<ID, E8> rule8,
-                Rule<ID, E9> rule9,
-                Rule<ID, E10> rule10,
-                Rule<ID, E11> rule11,
+                Rule<T, ID, E1> rule1,
+                Rule<T, ID, E2> rule2,
+                Rule<T, ID, E3> rule3,
+                Rule<T, ID, E4> rule4,
+                Rule<T, ID, E5> rule5,
+                Rule<T, ID, E6> rule6,
+                Rule<T, ID, E7> rule7,
+                Rule<T, ID, E8> rule8,
+                Rule<T, ID, E9> rule9,
+                Rule<T, ID, E10> rule10,
+                Rule<T, ID, E11> rule11,
                 Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> assemblerFunction) {
 
             return withAssemblerRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10, rule11),
@@ -212,7 +212,7 @@ public interface AssemblerBuilder {
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9], (E11) s[10]));
         }
 
-        AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Rule<ID, ?>> rules,
+        AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Rule<T, ID, ?>> rules,
                                                           BiFunction<T, Object[], R> aggregationFunction);
     }
 
@@ -246,7 +246,7 @@ public interface AssemblerBuilder {
 
         @Override
         public AssembleUsingBuilder<T, ID, R> withAssemblerRules(
-                List<Rule<ID, ?>> rules,
+                List<Rule<T, ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction) {
             return new AssembleUsingBuilderImpl<>(correlationIdExtractor, rules, aggregationFunction);
         }
@@ -256,11 +256,11 @@ public interface AssemblerBuilder {
 
         private final Function<T, ID> correlationIdExtractor;
         private final BiFunction<T, Object[], R> aggregationFunction;
-        private final List<Rule<ID, ?>> rules;
+        private final List<Rule<T, ID, ?>> rules;
 
         private AssembleUsingBuilderImpl(
                 Function<T, ID> correlationIdExtractor,
-                List<Rule<ID, ?>> rules,
+                List<Rule<T, ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction) {
 
             this.correlationIdExtractor = correlationIdExtractor;
@@ -294,7 +294,7 @@ public interface AssemblerBuilder {
 
         private AssemblerImpl(
                 Function<T, ID> correlationIdExtractor,
-                List<Rule<ID, ?>> rules,
+                List<Rule<T, ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction,
                 AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
 
@@ -317,7 +317,7 @@ public interface AssemblerBuilder {
         private static <T, ID> Stream<Publisher<? extends Map<ID, ?>>> buildSubQueryMappersFromRules(
                 Iterable<T> topLevelEntities,
                 Function<T, ID> correlationIdExtractor,
-                List<Rule<ID, ?>> rules) {
+                List<Rule<T, ID, ?>> rules) {
 
             final var entityIDs = toStream(topLevelEntities)
                     .filter(Objects::nonNull)
@@ -325,7 +325,8 @@ public interface AssemblerBuilder {
                     .toList();
 
             return rules.stream()
-                    .map(rule -> rule.apply(entityIDs));
+                    .map(rule -> rule.apply(correlationIdExtractor))
+                    .map(queryFunction -> queryFunction.apply(entityIDs));
         }
 
         @Override
