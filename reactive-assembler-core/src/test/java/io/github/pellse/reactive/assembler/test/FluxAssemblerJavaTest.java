@@ -39,6 +39,7 @@ import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*;
+import static io.github.pellse.util.collection.CollectionUtil.transform;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
@@ -48,24 +49,33 @@ public class FluxAssemblerJavaTest {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-    private Flux<BillingInfo> getBillingInfo(List<Long> customerIds) {
+    private Flux<BillingInfo> getBillingInfo(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
     }
 
-    private Flux<OrderItem> getAllOrders(List<Long> customerIds) {
+    private Flux<OrderItem> getAllOrders(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
     }
 
-    private Flux<OrderItem> getAllOrdersWithErrorOn2ndOrderItemOf1stCustomer(List<Long> customerIds) {
-        return getAllOrders(customerIds)
+    private Flux<OrderItem> getAllOrdersWithErrorOn2ndOrderItemOf1stCustomer(List<Customer> customers) {
+        return getAllOrders(customers)
                 .flatMap(orderItem -> !orderItem.equals(orderItem12) ? Flux.just(orderItem) : Flux.error(new Exception()));
     }
 
-    private List<BillingInfo> getBillingInfoNonReactive(List<Long> customerIds) {
+    private List<BillingInfo> getBillingInfoNonReactive(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         var list = Stream.of(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .toList();
@@ -74,7 +84,10 @@ public class FluxAssemblerJavaTest {
         return list;
     }
 
-    private List<OrderItem> getAllOrdersNonReactive(List<Long> customerIds) {
+    private List<OrderItem> getAllOrdersNonReactive(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         var list = Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .toList();

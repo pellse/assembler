@@ -43,25 +43,37 @@ class FluxAssemblerKotlinTest {
     private val billingInvocationCount = AtomicInteger()
     private val ordersInvocationCount = AtomicInteger()
 
-    private fun getBillingInfo(customerIds: List<Long>): Publisher<BillingInfo> {
+    private fun getBillingInfo(customers: List<Customer>): Publisher<BillingInfo> {
+        
+        val customerIds = customers.map(Customer::customerId)
+        
         return Flux.just(billingInfo1, billingInfo3)
             .filter { customerIds.contains(it.customerId) }
             .doOnComplete(billingInvocationCount::incrementAndGet)
     }
 
-    private fun getAllOrders(customerIds: List<Long>): Publisher<OrderItem> {
+    private fun getAllOrders(customers: List<Customer>): Publisher<OrderItem> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
             .filter { customerIds.contains(it.customerId) }
             .doOnComplete(ordersInvocationCount::incrementAndGet)
     }
 
-    private fun getBillingInfoWithIdSet(customerIds: Set<Long>): Publisher<BillingInfo> {
+    private fun getBillingInfoWithIdSet(customers: Set<Customer>): Publisher<BillingInfo> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         return Flux.just(billingInfo1, billingInfo3)
             .filter { customerIds.contains(it.customerId()) }
             .doOnComplete { billingInvocationCount.incrementAndGet() }
     }
 
-    private fun getAllOrdersWithIdSet(customerIds: Set<Long>): Publisher<OrderItem> {
+    private fun getAllOrdersWithIdSet(customers: Set<Customer>): Publisher<OrderItem> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
             .filter { customerIds.contains(it.customerId()) }
             .doOnComplete { ordersInvocationCount.incrementAndGet() }
@@ -81,7 +93,10 @@ class FluxAssemblerKotlinTest {
         )
     }
 
-    private fun getBillingInfoNonReactive(customerIds: List<Long>): List<BillingInfo> {
+    private fun getBillingInfoNonReactive(customers: List<Customer>): List<BillingInfo> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         val list = listOf(billingInfo1, billingInfo3)
             .filter { billingInfo: BillingInfo -> customerIds.contains(billingInfo.customerId()) }
 
@@ -89,7 +104,10 @@ class FluxAssemblerKotlinTest {
         return list
     }
 
-    private fun getAllOrdersNonReactive(customerIds: List<Long>): List<OrderItem> {
+    private fun getAllOrdersNonReactive(customers: List<Customer>): List<OrderItem> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         val list = listOf(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
             .filter { orderItem: OrderItem -> customerIds.contains(orderItem.customerId()) }
 
@@ -327,7 +345,10 @@ class FluxAssemblerKotlinTest {
     @Test
     fun testReusableAssemblerBuilderWithAutoCachingEvents2() {
 
-        val getAllOrders = { customerIds: List<Long> ->
+        val getAllOrders = { customers: List<Customer> ->
+
+            val customerIds = customers.map(Customer::customerId)
+
             assertEquals(listOf(3L), customerIds)
             Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter { orderItem: OrderItem -> customerIds.contains(orderItem.customerId()) }

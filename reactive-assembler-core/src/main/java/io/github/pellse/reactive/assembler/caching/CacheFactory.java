@@ -18,15 +18,11 @@ package io.github.pellse.reactive.assembler.caching;
 
 import io.github.pellse.reactive.assembler.RuleMapperContext;
 import io.github.pellse.reactive.assembler.RuleMapperSource;
-import io.github.pellse.reactive.assembler.caching.CacheFactory.FetchFunction.EmptyFetchFunction;
-import io.github.pellse.reactive.assembler.caching.CacheFactory.FetchFunction.NonEmptyFetchFunction;
+import io.github.pellse.reactive.assembler.caching.Cache.FetchFunction;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -57,11 +53,11 @@ public interface CacheFactory<T, ID, R, RRC> {
 
     static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> cache(Map<ID, List<R>> delegateMap) {
 
-        return (fetchFunction, __) -> adapterCache(
-                (ids, computeIfAbsent) -> just(readAll(ids, delegateMap))
-                        .flatMap(cachedEntitiesMap -> then(intersect(ids, cachedEntitiesMap.keySet()), entityIds ->
-                                !computeIfAbsent || entityIds.isEmpty() ? just(cachedEntitiesMap) :
-                                        fetchFunction.apply(entityIds)
+        return __ -> adapterCache(
+                (ids, fetchFunction) -> just(readAll(ids, delegateMap))
+                        .flatMap(cachedEntitiesMap -> then(intersect(ids, cachedEntitiesMap.keySet()),
+                                entityIds ->
+                                        fetchFunction == null || entityIds.isEmpty() ? just(cachedEntitiesMap) : fetchFunction.apply(entityIds)
                                                 .doOnNext(delegateMap::putAll)
                                                 .map(map -> mergeMaps(map, cachedEntitiesMap)))),
                 toMono(delegateMap::putAll),
@@ -69,11 +65,11 @@ public interface CacheFactory<T, ID, R, RRC> {
     }
 
     static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> cache(
-            BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> getAll,
+            BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> getAll,
             Function<Map<ID, List<R>>, Mono<?>> putAll,
             Function<Map<ID, List<R>>, Mono<?>> removeAll) {
 
-        return (fetchFunction, __) -> adapterCache(getAll, putAll, removeAll);
+        return __ -> adapterCache(getAll, putAll, removeAll);
     }
 
     @SafeVarargs
@@ -117,22 +113,17 @@ public interface CacheFactory<T, ID, R, RRC> {
             CacheFactory<T, ID, R, RRC> cacheFactory,
             Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>... delegateCacheFactories) {
 
+        var isEmptySource = isEmptySource(ruleMapperSource);
+
         return ruleContext -> {
-            final var queryFunction =  nullToEmptySource(ruleMapperSource).apply(ruleContext);
-
-            final NonEmptyFetchFunction<T, ID, R> fetchFunction =
-                    entityIds -> then(translate(entityIds, ruleContext.topLevelCollectionFactory()), ids ->
-                            from(queryFunction.apply(ids))
-                                    .collect(groupingBy(ruleContext.correlationIdExtractor()))
-                                    .map(queryResultsMap -> buildCacheFragment(entityIds, queryResultsMap, ruleContext))
-                                    .onErrorMap(QueryFunctionException::new));
-
-            final EmptyFetchFunction<T, ID, R> emptyFetchFunction = ids -> Mono.empty();
+            final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleContext);
 
             final var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
-                    .create(isEmptySource(ruleMapperSource) ? emptyFetchFunction : fetchFunction, new CacheContext<>(ruleContext));
+                    .create(new CacheContext<>(isEmptySource, ruleContext));
 
-            return entities -> cache.getAll(transform(entities, ruleContext.topLevelIdExtractor()), true)
+            return entities -> cache.getAll(
+                            ids(entities, ruleContext),
+                            isEmptySource ? ids -> Mono.empty() : buildFetchFunction(entities, ruleContext, queryFunction))
                     .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)))
                     .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))
                     .onErrorMap(QueryFunctionException.class, Throwable::getCause);
@@ -143,6 +134,30 @@ public interface CacheFactory<T, ID, R, RRC> {
         return map -> just(also(map, consumer));
     }
 
+    private static <T, TC extends Collection<T>, ID, EID, R, RRC> List<ID> ids(TC entities, RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext) {
+        return transform(entities, ruleContext.topLevelIdExtractor());
+    }
+
+    private static <T, TC extends Collection<T>, ID, EID, R, RRC> FetchFunction<ID, R> buildFetchFunction(
+            TC entities,
+            RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext,
+            Function<TC, Publisher<R>> queryFunction) {
+
+        return ids -> {
+
+            final Set<ID> idSet = new HashSet<>(asCollection(ids));
+
+            final var entitiesToQuery = toStream(entities)
+                    .filter(e -> idSet.contains(ruleContext.topLevelIdExtractor().apply(e)))
+                    .toList();
+
+            return from(queryFunction.apply(translate(entitiesToQuery, ruleContext.topLevelCollectionFactory())))
+                    .collect(groupingBy(ruleContext.correlationIdExtractor()))
+                    .map(queryResultsMap -> buildCacheFragment(ids, queryResultsMap, ruleContext))
+                    .onErrorMap(QueryFunctionException::new);
+        };
+    }
+
     @SafeVarargs
     private static <T, TC extends Collection<T>, ID, EID, R, RRC> CacheFactory<T, ID, R, RRC> delegate(
             RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext,
@@ -151,30 +166,25 @@ public interface CacheFactory<T, ID, R, RRC> {
 
         return ConcurrentCacheFactory.<T, ID, R, RRC>concurrent().apply(
                 stream(delegateCacheFactories)
-                        .reduce((fetchFunction, context) -> mergeStrategyAwareCache(ruleContext.idExtractor(), cacheFactory.create(fetchFunction, context)),
+                        .reduce(context -> mergeStrategyAwareCache(ruleContext.idExtractor(), cacheFactory.create(context)),
                                 (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
                                 (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory)
         );
     }
 
     private static <T, TC extends Collection<T>, ID, EID, R, RRC> Map<ID, List<R>> buildCacheFragment(
-            Iterable<? extends ID> entityIds,
+            Iterable<? extends ID> ids,
             Map<ID, List<R>> queryResultsMap,
             RuleMapperContext<T, TC, ID, EID, R, RRC> ctx) {
 
         return newMap(queryResultsMap, map ->
-                intersect(entityIds, map.keySet()).forEach(id ->
+                intersect(ids, map.keySet()).forEach(id ->
                         ifNotNull(ctx.defaultResultProvider().apply(id), value -> map.put(id, ctx.toListConverter().apply(value)))));
     }
 
-    Cache<T, ID, R> create(FetchFunction<T, ID, R> fetchFunction,  CacheContext<ID, R, RRC> context);
+    Cache<ID, R> create(CacheContext<ID, R, RRC> context);
 
     interface CacheTransformer<T, ID, R, RRC> extends Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>> {
-    }
-
-    sealed interface FetchFunction<T, ID, R> extends Function<Iterable<? extends T>, Mono<Map<ID, List<R>>>> {
-        non-sealed interface EmptyFetchFunction<T, ID, R> extends FetchFunction<T, ID, R> {}
-        non-sealed interface NonEmptyFetchFunction<T, ID, R> extends FetchFunction<T, ID, R> {}
     }
 
     class QueryFunctionException extends Exception {
@@ -184,12 +194,13 @@ public interface CacheFactory<T, ID, R, RRC> {
     }
 
     record CacheContext<ID, R, RRC>(
+            boolean isEmptySource,
             Function<R, ID> correlationIdExtractor,
             Function<List<R>, RRC> fromListConverter,
             Function<RRC, List<R>> toListConverter) {
 
-        public CacheContext(RuleMapperContext<?, ?, ID, ?, R, RRC> ctx) {
-            this(ctx.correlationIdExtractor(), ctx.fromListConverter(), ctx.toListConverter());
+        public CacheContext(boolean isEmptySource, RuleMapperContext<?, ?, ID, ?, R, RRC> ctx) {
+            this(isEmptySource, ctx.correlationIdExtractor(), ctx.fromListConverter(), ctx.toListConverter());
         }
     }
 }

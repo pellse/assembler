@@ -16,7 +16,6 @@
 
 package io.github.pellse.reactive.assembler.cache.caffeine;
 
-import io.github.pellse.reactive.assembler.RuleMapperSource;
 import io.github.pellse.reactive.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import io.github.pellse.reactive.assembler.util.BillingInfo;
@@ -167,14 +166,12 @@ public class TestAssemblerCaffeineCache {
                                         cached(this::getBillingInfo, caffeineCache()),
                                         CacheFactory::cached,
                                         CacheFactory::cached),
-                                customerId -> new BillingInfo(customerId))),
+                                BillingInfo::new)),
                         rule(OrderItem::customerId,
-                                oneToMany(OrderItem::id,
-                                        RuleMapperSource.<Customer, List<Customer>, Long, String, OrderItem, List<OrderItem>>from(this::getAllOrders)
-                                                .pipe(ruleMapperSource -> cached(ruleMapperSource, caffeineCache()))
-                                                .pipe(CacheFactory::cached)
-                                                .pipeAndGet(CacheFactory::cached)
-                                )),
+                                oneToMany(OrderItem::id, pipe(
+                                        cached(this::getAllOrders, caffeineCache()),
+                                        CacheFactory::cached,
+                                        CacheFactory::cached))),
                         Transaction::new)
                 .build();
 

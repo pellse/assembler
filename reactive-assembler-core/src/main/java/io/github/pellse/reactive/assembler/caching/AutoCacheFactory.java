@@ -81,10 +81,10 @@ public interface AutoCacheFactory {
             Scheduler scheduler,
             Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>> concurrentCacheTransformer) {
 
-        return cacheFactory -> (fetchFunction, context) -> {
+        return cacheFactory -> context -> {
             final var cache = requireNonNullElse(concurrentCacheTransformer, ConcurrentCacheFactory::concurrent)
                     .apply(cacheFactory)
-                    .create(fetchFunction, context);
+                    .create(context);
 
             final var idExtractor = context.correlationIdExtractor();
 

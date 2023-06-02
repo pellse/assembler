@@ -17,7 +17,6 @@
 package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.reactive.assembler.Assembler;
-import io.github.pellse.reactive.assembler.Rule;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
@@ -331,7 +330,7 @@ public class CacheTest {
     public void testReusableAssemblerBuilderWithFaultyCache() {
 
         CacheFactory<Customer, Long, BillingInfo, BillingInfo> faultyCache = cache(
-                (ids, computeIfAbsent) -> error(new RuntimeException("Cache.getAll failed")),
+                (ids, fetchFunction) -> error(new RuntimeException("Cache.getAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
                 map -> error(new RuntimeException("Cache.removeAll failed")));
 

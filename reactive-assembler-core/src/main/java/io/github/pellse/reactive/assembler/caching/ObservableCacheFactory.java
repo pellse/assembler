@@ -43,7 +43,7 @@ public interface ObservableCacheFactory {
             Consumer<Map<ID, List<R>>> removeAllCallback,
             BiConsumer<Map<ID, List<R>>, Map<ID, List<R>>> updateAllCallback) {
 
-        return (fetchFunction, context) -> then(delegateCacheFactory.create(fetchFunction, context), cache -> adapterCache(
+        return context -> then(delegateCacheFactory.create(context), cache -> adapterCache(
                 (ids, computeIfAbsent) -> then(cache.getAll(ids, computeIfAbsent),
                         mono -> getAllCallback != null ? mono.doOnNext(getAllCallback) : mono),
                 map -> then(cache.putAll(map),
