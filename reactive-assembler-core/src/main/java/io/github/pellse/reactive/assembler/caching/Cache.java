@@ -31,7 +31,7 @@ import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.just;
 
 @FunctionalInterface
-interface CacheUpdater<T, ID, R> {
+interface CacheUpdater<ID, R> {
     Mono<?> updateCache(Cache<ID, R> cache, Map<ID, List<R>> cacheQueryResults, Map<ID, List<R>> incomingChanges);
 }
 
@@ -99,7 +99,7 @@ public interface Cache<ID, R> {
         );
     }
 
-    private static <T, ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
             Cache<ID, R> delegateCache,
             MergeStrategy<ID, R> mergeStrategy,
             BiFunction<Cache<ID, R>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
@@ -110,9 +110,9 @@ public interface Cache<ID, R> {
                         cacheUpdater.apply(cache, mergeStrategy.merge(cacheQueryResults, incomingChanges)));
     }
 
-    private static <T, ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
             Cache<ID, R> delegateCache,
-            CacheUpdater<T, ID, R> cacheUpdater) {
+            CacheUpdater<ID, R> cacheUpdater) {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() ->
                 delegateCache.getAll(incomingChanges.keySet(), null)
@@ -125,7 +125,7 @@ public interface Cache<ID, R> {
         return map -> isEmpty(map) ? just(of()) : mappingFunction.apply(map);
     }
 
-    private static <T, ID, R> BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> emptyOr(
+    private static <ID, R> BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> emptyOr(
             BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> mappingFunction) {
         return (ids, fetchFunction) -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids, fetchFunction);
     }
