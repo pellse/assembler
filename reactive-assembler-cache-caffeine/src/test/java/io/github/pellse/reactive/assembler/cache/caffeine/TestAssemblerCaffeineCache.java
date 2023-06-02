@@ -39,6 +39,7 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.pipe;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
@@ -46,6 +47,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*;
+import static io.github.pellse.util.collection.CollectionUtil.transform;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.parallel;
@@ -55,13 +57,19 @@ public class TestAssemblerCaffeineCache {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-    private Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
+    private Publisher<BillingInfo> getBillingInfo(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
     }
 
-    private Publisher<OrderItem> getAllOrders(List<Long> customerIds) {
+    private Publisher<OrderItem> getAllOrders(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
@@ -155,15 +163,14 @@ public class TestAssemblerCaffeineCache {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(
-                                RuleMapperSource.pipe(
+                        rule(BillingInfo::customerId, oneToOne(pipe(
                                         cached(this::getBillingInfo, caffeineCache()),
                                         CacheFactory::cached,
                                         CacheFactory::cached),
-                                BillingInfo::new)),
+                                customerId -> new BillingInfo(customerId))),
                         rule(OrderItem::customerId,
                                 oneToMany(OrderItem::id,
-                                        RuleMapperSource.<Customer, Long, List<Long>, OrderItem>from(this::getAllOrders)
+                                        RuleMapperSource.<Customer, List<Customer>, Long, String, OrderItem, List<OrderItem>>from(this::getAllOrders)
                                                 .pipe(ruleMapperSource -> cached(ruleMapperSource, caffeineCache()))
                                                 .pipe(CacheFactory::cached)
                                                 .pipeAndGet(CacheFactory::cached)
@@ -188,7 +195,7 @@ public class TestAssemblerCaffeineCache {
     public void testReusableAssemblerBuilderWithFaultyQueryFunction() {
 
         Transaction defaultTransaction = new Transaction(null, null, null);
-        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = ids -> Flux.error(new IOException());
+        Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = entities -> Flux.error(new IOException());
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)

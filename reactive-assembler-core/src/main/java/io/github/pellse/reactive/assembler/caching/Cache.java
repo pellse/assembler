@@ -31,20 +31,20 @@ import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.just;
 
 @FunctionalInterface
-interface CacheUpdater<ID, R> {
-    Mono<?> updateCache(Cache<ID, R> cache, Map<ID, List<R>> cacheQueryResults, Map<ID, List<R>> incomingChanges);
+interface CacheUpdater<T, ID, R> {
+    Mono<?> updateCache(Cache<T, ID, R> cache, Map<ID, List<R>> cacheQueryResults, Map<ID, List<R>> incomingChanges);
 }
 
-public interface Cache<ID, R> {
+public interface Cache<T, ID, R> {
 
-    static <ID, R> Cache<ID, R> adapterCache(
+    static <T, ID, R> Cache<T, ID, R> adapterCache(
             BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> getAll,
             Function<Map<ID, List<R>>, Mono<?>> putAll,
             Function<Map<ID, List<R>>, Mono<?>> removeAll) {
         return adapterCache(getAll, putAll, removeAll, null);
     }
 
-    static <ID, R> Cache<ID, R> adapterCache(
+    static <T, ID, R> Cache<T, ID, R> adapterCache(
             BiFunction<Iterable<ID>, Boolean, Mono<Map<ID, List<R>>>> getAll,
             Function<Map<ID, List<R>>, Mono<?>> putAll,
             Function<Map<ID, List<R>>, Mono<?>> removeAll,
@@ -75,9 +75,9 @@ public interface Cache<ID, R> {
         };
     }
 
-    static <ID, EID, R> Cache<ID, R> mergeStrategyAwareCache(
+    static <T, ID, EID, R> Cache<T, ID, R> mergeStrategyAwareCache(
             Function<R, EID> idExtractor,
-            Cache<ID, R> delegateCache) {
+            Cache<T, ID, R> delegateCache) {
 
         final var optimizedCache = adapterCache(
                 emptyOr(delegateCache::getAll),
@@ -99,10 +99,10 @@ public interface Cache<ID, R> {
         );
     }
 
-    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
-            Cache<ID, R> delegateCache,
+    private static <T, ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+            Cache<T, ID, R> delegateCache,
             MergeStrategy<ID, R> mergeStrategy,
-            BiFunction<Cache<ID, R>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
+            BiFunction<Cache<T, ID, R>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
 
         return applyMergeStrategy(
                 delegateCache,
@@ -110,9 +110,9 @@ public interface Cache<ID, R> {
                         cacheUpdater.apply(cache, mergeStrategy.merge(cacheQueryResults, incomingChanges)));
     }
 
-    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
-            Cache<ID, R> delegateCache,
-            CacheUpdater<ID, R> cacheUpdater) {
+    private static <T, ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+            Cache<T, ID, R> delegateCache,
+            CacheUpdater<T, ID, R> cacheUpdater) {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() ->
                 delegateCache.getAll(incomingChanges.keySet(), false)

@@ -40,36 +40,36 @@ import static java.util.stream.Collectors.*;
 
 /**
  * @param <ID>  Correlation Id type
- * @param <IDC> Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
+ * @param <TC>  Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
  * @param <R>   Type of the publisher elements returned from {@code queryFunction}
  * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
  */
 @FunctionalInterface
-public interface RuleMapper<T, ID, IDC extends Collection<ID>, R, RRC>
-        extends Function<RuleContext<T, ID, IDC, R, RRC>, Function<Iterable<ID>, Mono<Map<ID, RRC>>>> {
+public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
+        extends Function<RuleContext<T, TC, ID, R, RRC>, Function<Iterable<T>, Mono<Map<ID, RRC>>>> {
 
-    static <T, ID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, R> oneToOne() {
+    static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne() {
         return oneToOne(emptySource(), id -> null);
     }
 
-    static <T, ID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, R> oneToOne(
-            Function<IDC, Publisher<R>> queryFunction) {
+    static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(
+            Function<TC, Publisher<R>> queryFunction) {
         return oneToOne(call(queryFunction), id -> null);
     }
 
-    static <T, ID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, R> oneToOne(
-            RuleMapperSource<T, ID, ID, IDC, R, R> ruleMapperSource) {
+    static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(
+            RuleMapperSource<T, TC, ID, ID, R, R> ruleMapperSource) {
         return oneToOne(ruleMapperSource, id -> null);
     }
 
-    static <T, ID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, R> oneToOne(
-            Function<IDC, Publisher<R>> queryFunction,
+    static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(
+            Function<TC, Publisher<R>> queryFunction,
             Function<ID, R> defaultResultProvider) {
         return oneToOne(call(queryFunction), defaultResultProvider);
     }
 
-    static <T, ID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, R> oneToOne(
-            RuleMapperSource<T, ID, ID, IDC, R, R> ruleMapperSource,
+    static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(
+            RuleMapperSource<T, TC, ID, ID, R, R> ruleMapperSource,
             Function<ID, R> defaultResultProvider) {
 
         return createRuleMapper(
@@ -82,45 +82,45 @@ public interface RuleMapper<T, ID, IDC extends Collection<ID>, R, RRC>
                 Collections::singletonList);
     }
 
-    static <T, ID, EID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, List<R>> oneToMany(
+    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
             Function<R, EID> idExtractor) {
         return oneToMany(idExtractor, emptySource(), ArrayList::new);
     }
 
-    static <T, ID, EID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, List<R>> oneToMany(
+    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
             Function<R, EID> idExtractor,
-            Function<IDC, Publisher<R>> queryFunction) {
+            Function<TC, Publisher<R>> queryFunction) {
         return oneToMany(idExtractor, call(queryFunction), ArrayList::new);
     }
 
-    static <T, ID, EID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, List<R>> oneToMany(
+    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
             Function<R, EID> idExtractor,
-            RuleMapperSource<T, ID, EID, IDC, R, List<R>> ruleMapperSource) {
+            RuleMapperSource<T, TC, ID, EID, R, List<R>> ruleMapperSource) {
         return oneToMany(idExtractor, ruleMapperSource, ArrayList::new);
     }
 
-    static <T, ID, EID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, Set<R>> oneToManyAsSet(
+    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
             Function<R, EID> idExtractor,
-            Function<IDC, Publisher<R>> queryFunction) {
+            Function<TC, Publisher<R>> queryFunction) {
         return oneToMany(idExtractor, call(queryFunction), HashSet::new);
     }
 
-    static <T, ID, EID, IDC extends Collection<ID>, R> RuleMapper<T, ID, IDC, R, Set<R>> oneToManyAsSet(
+    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
             Function<R, EID> idExtractor,
-            RuleMapperSource<T, ID, EID, IDC, R, Set<R>> ruleMapperSource) {
+            RuleMapperSource<T, TC, ID, EID, R, Set<R>> ruleMapperSource) {
         return oneToMany(idExtractor, ruleMapperSource, HashSet::new);
     }
 
-    static <T, ID, EID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<T, ID, IDC, R, RC> oneToMany(
+    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(
             Function<R, EID> idExtractor,
-            Function<IDC, Publisher<R>> queryFunction,
+            Function<TC, Publisher<R>> queryFunction,
             Supplier<RC> collectionFactory) {
         return oneToMany(idExtractor, call(queryFunction), collectionFactory);
     }
 
-    static <T, ID, EID, IDC extends Collection<ID>, R, RC extends Collection<R>> RuleMapper<T, ID, IDC, R, RC> oneToMany(
+    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(
             Function<R, EID> idExtractor,
-            RuleMapperSource<T, ID, EID, IDC, R, RC> ruleMapperSource,
+            RuleMapperSource<T, TC, ID, EID, R, RC> ruleMapperSource,
             Supplier<RC> collectionFactory) {
 
         return createRuleMapper(
@@ -137,11 +137,11 @@ public interface RuleMapper<T, ID, IDC extends Collection<ID>, R, RRC>
                 List::copyOf);
     }
 
-    private static <T, ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapper<T, ID, IDC, R, RRC> createRuleMapper(
-            RuleMapperSource<T, ID, EID, IDC, R, RRC> ruleMapperSource,
-            Function<RuleContext<T, ID, IDC, R, RRC>, IdAwareRuleContext<T, ID, EID, IDC, R, RRC>> ruleContextConverter,
+    private static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapper<T, TC, ID, R, RRC> createRuleMapper(
+            RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource,
+            Function<RuleContext<T, TC, ID, R, RRC>, IdAwareRuleContext<T, TC, ID, EID, R, RRC>> ruleContextConverter,
             Function<ID, RRC> defaultResultProvider,
-            Function<RuleContext<T, ID, IDC, R, RRC>, IntFunction<Collector<R, ?, Map<ID, RRC>>>> mapCollector,
+            Function<RuleContext<T, TC, ID, R, RRC>, IntFunction<Collector<R, ?, Map<ID, RRC>>>> mapCollector,
             Function<List<R>, RRC> fromListConverter,
             Function<RRC, List<R>> toListConverter) {
 
@@ -153,13 +153,13 @@ public interface RuleMapper<T, ID, IDC extends Collection<ID>, R, RRC>
                     fromListConverter,
                     toListConverter);
 
-            final var queryFunction =  nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
+            final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
 
-            return entityIds ->
-                    then(translate(entityIds, ruleMapperContext.idCollectionFactory()), ids ->
-                            safeApply(ids, queryFunction)
-                                    .collect(ruleMapperContext.mapCollector().apply(ids.size()))
-                                    .map(map -> toResultMap(ids, map, ruleMapperContext.defaultResultProvider())));
+            return entityList ->
+                    then(translate(entityList, ruleMapperContext.topLevelCollectionFactory()), entities ->
+                            safeApply(entities, queryFunction)
+                                    .collect(ruleMapperContext.mapCollector().apply(entities.size()))
+                                    .map(map -> toResultMap(entities, map, ruleMapperContext.topLevelIdExtractor(), ruleMapperContext.defaultResultProvider())));
         };
     }
 

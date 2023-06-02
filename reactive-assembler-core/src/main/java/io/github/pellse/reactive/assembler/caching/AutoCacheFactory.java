@@ -49,15 +49,15 @@ public interface AutoCacheFactory {
 
     Logger logger = getLogger(CacheFactory.class.getName());
 
-    static <ID, R, RRC> CacheTransformer<ID, R, RRC> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
+    static <T, ID, R, RRC> CacheTransformer<T, ID, R, RRC> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
         return autoCache(dataSourceSupplier.get());
     }
 
-    static <ID, R, RRC> CacheTransformer<ID, R, RRC> autoCache(Flux<R> dataSource) {
+    static <T, ID, R, RRC> CacheTransformer<T, ID, R, RRC> autoCache(Flux<R> dataSource) {
         return autoCache(dataSource, __ -> true, identity());
     }
 
-    static <ID, R, RRC, U> CacheTransformer<ID, R, RRC> autoCache(
+    static <T, ID, R, RRC, U> CacheTransformer<T, ID, R, RRC> autoCache(
             Supplier<Flux<U>> dataSourceSupplier,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
@@ -65,7 +65,7 @@ public interface AutoCacheFactory {
         return autoCache(dataSourceSupplier.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
     }
 
-    static <ID, R, RRC, U> CacheTransformer<ID, R, RRC> autoCache(
+    static <T, ID, R, RRC, U> CacheTransformer<T, ID, R, RRC> autoCache(
             Flux<U> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
@@ -73,13 +73,13 @@ public interface AutoCacheFactory {
         return autoCache(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
-    static <ID, R, RRC, T extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
-            Flux<T> dataSource,
-            WindowingStrategy<T> windowingStrategy,
+    static <T, ID, R, RRC, U extends CacheEvent<R>> CacheTransformer<T, ID, R, RRC> autoCache(
+            Flux<U> dataSource,
+            WindowingStrategy<U> windowingStrategy,
             ErrorHandler errorHandler,
             LifeCycleEventSource lifeCycleEventSource,
             Scheduler scheduler,
-            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> concurrentCacheTransformer) {
+            Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>> concurrentCacheTransformer) {
 
         return cacheFactory -> (fetchFunction, context) -> {
             final var cache = requireNonNullElse(concurrentCacheTransformer, ConcurrentCacheFactory::concurrent)

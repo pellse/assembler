@@ -62,18 +62,18 @@ public interface AutoCacheFactoryBuilder {
         return autoCacheEvents(dataSource.map(mapper));
     }
 
-    static <R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCacheEvents(Flux<T> dataSource) {
+    static <R, U extends CacheEvent<R>> WindowingStrategyBuilder<R, U> autoCacheEvents(Flux<U> dataSource) {
         return new Builder<>(dataSource);
     }
 
-    interface WindowingStrategyBuilder<R, T extends CacheEvent<R>> extends ConfigBuilder<R> {
+    interface WindowingStrategyBuilder<R, U extends CacheEvent<R>> extends ConfigBuilder<R> {
         ConfigBuilder<R> maxWindowSize(int maxWindowSize);
 
         ConfigBuilder<R> maxWindowTime(Duration maxWindowTime);
 
         ConfigBuilder<R> maxWindowSizeAndTime(int maxWindowSize, Duration maxWindowTime);
 
-        ConfigBuilder<R> windowingStrategy(WindowingStrategy<T> windowingStrategy);
+        ConfigBuilder<R> windowingStrategy(WindowingStrategy<U> windowingStrategy);
     }
 
     interface ConfigBuilder<R> extends LifeCycleEventSourceBuilder<R> {
@@ -93,6 +93,7 @@ public interface AutoCacheFactoryBuilder {
     }
 
     interface RetryStrategyBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
+
         AutoCacheFactoryDelegateBuilder<R> maxRetryStrategy(long maxAttempts);
 
         AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff);
@@ -107,19 +108,19 @@ public interface AutoCacheFactoryBuilder {
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
-        <ID, RRC> CacheTransformer<ID, R, RRC> build();
+        <T, ID, RRC> CacheTransformer<T, ID, R, RRC> build();
     }
 
-    class Builder<R, T extends CacheEvent<R>> implements WindowingStrategyBuilder<R, T> {
+    class Builder<R, U extends CacheEvent<R>> implements WindowingStrategyBuilder<R, U> {
 
-        private final Flux<T> dataSource;
-        private WindowingStrategy<T> windowingStrategy;
+        private final Flux<U> dataSource;
+        private WindowingStrategy<U> windowingStrategy;
         private ErrorHandler errorHandler;
         private Scheduler scheduler;
         private LifeCycleEventSource eventSource;
-        private CacheTransformer<?, R, ?> cacheTransformer;
+        private CacheTransformer<?, ?, R, ?> cacheTransformer;
 
-        private Builder(Flux<T> dataSource) {
+        private Builder(Flux<U> dataSource) {
             this.dataSource = dataSource;
         }
 
@@ -139,7 +140,7 @@ public interface AutoCacheFactoryBuilder {
         }
 
         @Override
-        public ConfigBuilder<R> windowingStrategy(WindowingStrategy<T> windowingStrategy) {
+        public ConfigBuilder<R> windowingStrategy(WindowingStrategy<U> windowingStrategy) {
             this.windowingStrategy = windowingStrategy;
             return this;
         }
@@ -206,8 +207,8 @@ public interface AutoCacheFactoryBuilder {
 
         @SuppressWarnings("unchecked")
         @Override
-        public <ID, RRC> CacheTransformer<ID, R, RRC> build() {
-            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC>) cacheTransformer);
+        public <T, ID, RRC> CacheTransformer<T, ID, R, RRC> build() {
+            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<T, ID, R, RRC>) cacheTransformer);
         }
     }
 }

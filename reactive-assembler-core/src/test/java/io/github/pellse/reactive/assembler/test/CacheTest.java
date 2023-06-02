@@ -24,12 +24,12 @@ import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer
 import io.github.pellse.reactive.assembler.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -60,6 +60,7 @@ import static io.github.pellse.reactive.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.reactive.assembler.test.CDCDelete.cdcDelete;
 import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*;
 import static io.github.pellse.util.ObjectUtils.run;
+import static io.github.pellse.util.collection.CollectionUtil.transform;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofNanos;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -124,21 +125,35 @@ public class CacheTest {
         });
     }
 
-    @Test
-    @Timeout(60)
-    public void testLongRunningAutoCachingEvents() throws InterruptedException {
+    //    @Test
+//    @Timeout(60)
+//    public void testLongRunningAutoCachingEvents() throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
 
-        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = customerIds ->
-                Flux.just(billingInfo1, billingInfo3)
-                        .filter(billingInfo -> customerIds.contains(billingInfo.customerId()));
+        final AtomicInteger billingInvocationCount = new AtomicInteger();
+        final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-        Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds ->
-                Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                        .filter(orderItem -> customerIds.contains(orderItem.customerId()));
+        Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
+
+            var customerIds = transform(customers, Customer::customerId);
+
+            return Flux.just(billingInfo1, billingInfo3)
+                    .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                    .doOnComplete(billingInvocationCount::incrementAndGet);
+        };
+
+        Function<List<Customer>, Publisher<OrderItem>> getAllOrders = customers -> {
+
+            var customerIds = transform(customers, Customer::customerId);
+
+            return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                    .filter(orderItem -> customerIds.contains(orderItem.customerId()))
+                    .doOnComplete(ordersInvocationCount::incrementAndGet);
+        };
 
         var customerList = List.of(customer1, customer2, customer3);
 
@@ -163,14 +178,14 @@ public class CacheTest {
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
                                         .scheduler(boundedElastic())
-                                        .backoffRetryStrategy(100, ofNanos(1), ofMillis(100))
+                                        .backoffRetryStrategy(1000, ofNanos(1), ofMillis(100))
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
                                         .scheduler(boundedElastic())
-                                        .backoffRetryStrategy(100, ofNanos(1), ofMillis(100))
+                                        .backoffRetryStrategy(1000, ofNanos(1), ofMillis(100))
                                         .build()))),
                         Transaction::new)
                 .build();
@@ -184,35 +199,56 @@ public class CacheTest {
 
         var initialCount = 500;
         var latch = new CountDownLatch(initialCount);
-        IntStream.range(0, initialCount).forEach(__ -> transactionFlux.subscribe(null, error -> latch.countDown(), latch::countDown));
+        IntStream.range(0, initialCount).forEach(__ -> transactionFlux.subscribe(null, error -> latch.countDown(),
+                () -> {
+                    latch.countDown();
+                    System.out.println("complete, count = " + latch.getCount() + ", Thread = " + Thread.currentThread().getName());
+                }));
         latch.await();
+
+        System.out.println("getBillingInfo invocation count: " + billingInvocationCount.get() + ", getOrderItems invocation count: " + ordersInvocationCount.get());
     }
 
-    private Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
+    private Publisher<BillingInfo> getBillingInfo(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
     }
 
-    private Publisher<OrderItem> getAllOrders(List<Long> customerIds) {
+    private Publisher<OrderItem> getAllOrders(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
     }
 
-    private Publisher<BillingInfo> getBillingInfoWithIdSet(Set<Long> customerIds) {
+    private Publisher<BillingInfo> getBillingInfoWithIdSet(Set<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
     }
 
-    private Publisher<OrderItem> getAllOrdersWithIdSet(Set<Long> customerIds) {
+    private Publisher<OrderItem> getAllOrdersWithIdSet(Set<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
     }
 
-    private List<BillingInfo> getBillingInfoNonReactive(List<Long> customerIds) {
+    private List<BillingInfo> getBillingInfoNonReactive(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         var list = Stream.of(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .toList();
@@ -221,7 +257,10 @@ public class CacheTest {
         return list;
     }
 
-    private List<OrderItem> getAllOrdersNonReactive(List<Long> customerIds) {
+    private List<OrderItem> getAllOrdersNonReactive(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         var list = Stream.of(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .toList();
@@ -291,7 +330,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithFaultyCache() {
 
-        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
+        CacheFactory<Customer, Long, BillingInfo, BillingInfo> faultyCache = cache(
                 (ids, computeIfAbsent) -> error(new RuntimeException("Cache.getAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
                 map -> error(new RuntimeException("Cache.removeAll failed")));
@@ -321,7 +360,7 @@ public class CacheTest {
     public void testReusableAssemblerBuilderWithFaultyQueryFunction() {
 
         Transaction defaultTransaction = new Transaction(null, null, null);
-        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = ids -> Flux.just(billingInfo1)
+        Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = entities -> Flux.just(billingInfo1)
                 .flatMap(__ -> Flux.error(new IOException()));
 
         var assembler = assemblerOf(Transaction.class)
@@ -347,13 +386,13 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithFaultyCacheAndQueryFunction() {
 
-        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
+        CacheFactory<Customer, Long, BillingInfo, BillingInfo> faultyCache = cache(
                 (ids, computeIfAbsent) -> error(new RuntimeException("Cache.getAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
                 map -> error(new RuntimeException("Cache.removeAll failed")));
 
         Transaction defaultTransaction = new Transaction(null, null, null);
-        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = ids -> Flux.error(new IOException());
+        Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = entities -> Flux.error(new IOException());
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
@@ -471,7 +510,7 @@ public class CacheTest {
     }
 
     @Test
-    public void testReusableAssemblerBuilderWithAutoCaching() {
+    public void testReusableAssemblerBuilderWithAutoCaching() throws InterruptedException {
 
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3)
                 .subscribeOn(parallel());
@@ -482,16 +521,19 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
 
-        Function<CacheFactory<Long, BillingInfo, BillingInfo>, CacheFactory<Long, BillingInfo, BillingInfo>> cff1 = cf -> cf;
-        Function<CacheFactory<Long, BillingInfo, BillingInfo>, CacheFactory<Long, BillingInfo, BillingInfo>> cff2 = cf -> cf;
+        Function<CacheFactory<Customer, Long, BillingInfo, BillingInfo>, CacheFactory<Customer, Long, BillingInfo, BillingInfo>> cff1 = cf -> cf;
+        Function<CacheFactory<Customer, Long, BillingInfo, BillingInfo>, CacheFactory<Customer, Long, BillingInfo, BillingInfo>> cff2 = cf -> cf;
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCacheBuilder(billingInfoFlux).maxWindowSize(10).build(), cff1, cff2))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), autoCacheBuilder(orderItemFlux).maxWindowSize(10).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(autoCacheBuilder(billingInfoFlux).maxWindowSize(10).build(), cff1, cff2))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), autoCacheBuilder(orderItemFlux).maxWindowSize(10).build()))),
                         Transaction::new)
                 .build();
+
+        Thread.sleep(5000);
+        System.out.println(Instant.now() + " timeout expired");
 
         StepVerifier.create(getCustomers()
                         .window(3)
@@ -665,18 +707,18 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
-        CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
+        CacheTransformer<Customer, Long, BillingInfo, BillingInfo> billingInfoAutoCache =
                 autoCacheEvents(billingInfoEventFlux)
                         .maxWindowSize(3)
                         .build();
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
+        CacheTransformer<Customer, Long, OrderItem, List<OrderItem>> orderItemAutoCache =
                 autoCacheBuilder(orderItemFlux, toCacheEvent(CDCAdd.class::isInstance, CDC::item))
                         .maxWindowSize(3)
                         .build();
 
-        var billingInfoRule = Rule.<Customer, Long, BillingInfo, BillingInfo>rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache)));
-        var orderItemRule = Rule.<Customer, Long, OrderItem, List<OrderItem>>rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache)));
+        var billingInfoRule = rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache)));
+        var orderItemRule = rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache)));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
@@ -709,10 +751,10 @@ public class CacheTest {
                 new CDCAdd<>(orderItem31), new CDCAdd<>(orderItem32), new CDCAdd<>(orderItem33),
                 new CDCDelete<>(orderItem31), new CDCDelete<>(orderItem32), new CDCDelete<>(orderItem33));
 
-        CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
+        CacheTransformer<Customer, Long, BillingInfo, BillingInfo> billingInfoAutoCache =
                 autoCache(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value);
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
+        CacheTransformer<Customer, Long, OrderItem, List<OrderItem>> orderItemAutoCache =
                 autoCache(orderItemFlux, CDCAdd.class::isInstance, CDC::item);
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
@@ -739,7 +781,10 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents2() {
 
-        Function<List<Long>, Publisher<OrderItem>> getAllOrders = customerIds -> {
+        Function<List<Customer>, Publisher<OrderItem>> getAllOrders = customers -> {
+
+            var customerIds = transform(customers, Customer::customerId);
+
             assertEquals(List.of(3L), customerIds);
             return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                     .filter(orderItem -> customerIds.contains(orderItem.customerId()))

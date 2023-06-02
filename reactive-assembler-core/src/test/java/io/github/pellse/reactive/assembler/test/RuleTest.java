@@ -50,11 +50,11 @@ public class RuleTest {
 
     List<Customer> customers = List.of(customer1, customer2, customer3);
 
-    private Flux<BillingInfo> getBillingInfo(List<Long> customerIds) {
+    private Flux<BillingInfo> getBillingInfo(List<Customer> customers) {
         return Flux.just(billingInfo1, billingInfo2, billingInfo3);
     }
 
-    private Flux<OrderItem> getAllOrders(List<Long> customerIds) {
+    private Flux<OrderItem> getAllOrders(List<Customer> customers) {
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33);
     }
 

@@ -24,10 +24,10 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-public interface RuleMapperContext<T, ID, EID, IDC extends Collection<ID>, R, RRC> extends RuleContext<T, ID, IDC, R, RRC> {
+public interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, R, RRC> extends RuleContext<T, TC, ID, R, RRC> {
 
-    static <T, ID, EID, IDC extends Collection<ID>, R, RRC> DefaultRuleMapperContext<T, ID, EID, IDC, R, RRC> toRuleMapperContext(
-            IdAwareRuleContext<T, ID, EID, IDC, R, RRC> ruleContext,
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> DefaultRuleMapperContext<T, TC, ID, EID, R, RRC> toRuleMapperContext(
+            IdAwareRuleContext<T, TC, ID, EID, R, RRC> ruleContext,
             Function<ID, RRC> defaultResultProvider,
             IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
             Function<List<R>, RRC> fromListConverter,
@@ -37,7 +37,7 @@ public interface RuleMapperContext<T, ID, EID, IDC extends Collection<ID>, R, RR
                 ruleContext.idExtractor(),
                 ruleContext.topLevelIdExtractor(),
                 ruleContext.correlationIdExtractor(),
-                ruleContext.idCollectionFactory(),
+                ruleContext.topLevelCollectionFactory(),
                 ruleContext.mapFactory(),
                 defaultResultProvider,
                 mapCollector,
@@ -55,15 +55,15 @@ public interface RuleMapperContext<T, ID, EID, IDC extends Collection<ID>, R, RR
 
     Function<RRC, List<R>> toListConverter();
 
-    record DefaultRuleMapperContext<T, ID, EID, IDC extends Collection<ID>, R, RRC>(
+    record DefaultRuleMapperContext<T, TC extends Collection<T>, ID, EID, R, RRC>(
             Function<R, EID> idExtractor,
             Function<T, ID> topLevelIdExtractor,
             Function<R, ID> correlationIdExtractor,
-            Supplier<IDC> idCollectionFactory,
+            Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RRC> mapFactory,
             Function<ID, RRC> defaultResultProvider,
             IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector,
             Function<List<R>, RRC> fromListConverter,
-            Function<RRC, List<R>> toListConverter) implements RuleMapperContext<T, ID, EID, IDC, R, RRC> {
+            Function<RRC, List<R>> toListConverter) implements RuleMapperContext<T, TC, ID, EID, R, RRC> {
     }
 }

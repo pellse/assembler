@@ -29,14 +29,15 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.util.ObjectUtils.isSafeEqual;
+import static io.github.pellse.util.collection.CollectionUtil.transform;
 import static java.util.Objects.*;
 import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Flux.fromIterable;
 
 public interface QueryUtils {
 
-    static <ID, IDC extends Collection<ID>, R> Function<IDC, Publisher<R>> toPublisher(Function<IDC, Iterable<R>> queryFunction) {
-        return ids -> fromIterable(queryFunction.apply(ids));
+    static <T, TC extends Collection<T>, R> Function<TC, Publisher<R>> toPublisher(Function<TC, Iterable<R>> queryFunction) {
+        return entities -> fromIterable(queryFunction.apply(entities));
     }
 
     static <T, R, C extends Iterable<? extends T>>
@@ -48,13 +49,18 @@ public interface QueryUtils {
                 .flatMapMany(queryFunction);
     }
 
-    static <ID, IDC extends Collection<ID>, RRC>
-    Map<ID, RRC> toResultMap(IDC ids, Map<ID, RRC> map, Function<ID, RRC> defaultResultProvider) {
-        return isSafeEqual(map, Map::size, ids, Collection::size) ? map : initializeResultMap(ids, map, defaultResultProvider);
+    static <T, ID, RRC> Map<ID, RRC> toResultMap(
+            Collection<T> entities,
+            Map<ID, RRC> map,
+            Function<T, ID> topLevelIdExtractor,
+            Function<ID, RRC> defaultResultProvider) {
+
+        return isSafeEqual(map, Map::size, entities, Collection::size)
+                ? map
+                : initializeResultMap(transform(entities, topLevelIdExtractor), map, defaultResultProvider);
     }
 
-    private static <ID, IDC extends Collection<ID>, RRC>
-    Map<ID, RRC> initializeResultMap(IDC ids, Map<ID, RRC> resultMap, Function<ID, RRC> defaultResultProvider) {
+    static <ID, RRC> Map<ID, RRC> initializeResultMap(Collection<ID> ids, Map<ID, RRC> resultMap, Function<ID, RRC> defaultResultProvider) {
         final Function<ID, RRC> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
         final Set<ID> idsFromQueryResult = resultMap.keySet();
         final Map<ID, RRC> resultMapCopy = new HashMap<>(resultMap);
@@ -68,8 +74,7 @@ public interface QueryUtils {
         return resultMapCopy;
     }
 
-    static <ID, R>
-    Supplier<Map<ID, R>> toSupplier(int initialCapacity, MapFactory<ID, R> mapFactory) {
+    static <ID, R> Supplier<Map<ID, R>> toSupplier(int initialCapacity, MapFactory<ID, R> mapFactory) {
         final MapFactory<ID, R> actualMapFactory = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
         return () -> actualMapFactory.apply(initialCapacity);
     }

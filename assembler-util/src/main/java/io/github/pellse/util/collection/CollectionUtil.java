@@ -43,6 +43,10 @@ public interface CollectionUtil {
         return !isEmpty(map);
     }
 
+    static <T, R> List<R>  transform(Iterable<? extends T> from, Function<T, R> mappingFunction) {
+        return toStream(from).map(mappingFunction).toList();
+    }
+
     static <E> Collection<E> asCollection(Iterable<E> iter) {
         return iter instanceof Collection<E> coll ? coll : stream(iter.spliterator(), false).toList();
     }

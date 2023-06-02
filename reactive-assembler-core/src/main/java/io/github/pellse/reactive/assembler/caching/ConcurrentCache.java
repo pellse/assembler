@@ -38,64 +38,64 @@ import static io.github.pellse.util.ObjectUtils.run;
 import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.*;
 
-public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
+public interface ConcurrentCache<T, ID, R> extends Cache<T, ID, R> {
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache) {
         return concurrentCache(delegateCache, SINGLE_READER);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, indefinitely(), concurrencyStrategy);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, long maxAttempts) {
         return concurrentCache(delegateCache, maxAttempts, SINGLE_READER);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, max(maxAttempts), RetrySpec::filter, concurrencyStrategy);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, long maxAttempts, Duration minBackoff) {
         return concurrentCache(delegateCache, maxAttempts, minBackoff, SINGLE_READER);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, backoff(maxAttempts, minBackoff), RetryBackoffSpec::filter, concurrencyStrategy);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, RetrySpec retrySpec) {
         return concurrentCache(delegateCache, retrySpec, SINGLE_READER);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, retrySpec, RetrySpec::filter, concurrencyStrategy);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, RetryBackoffSpec retrySpec) {
         return concurrentCache(delegateCache, retrySpec, SINGLE_READER);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, retrySpec, concurrencyStrategy, null);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
+    static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
         return concurrentCache(delegateCache, retrySpec.scheduler(retryScheduler), RetryBackoffSpec::filter, concurrencyStrategy);
     }
 
-    private static <ID, R, T extends Retry> ConcurrentCache<ID, R> concurrentCache(
-            Cache<ID, R> delegateCache,
-            T retrySpec,
-            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction,
+    private static <T, ID, R, RETRY extends Retry> ConcurrentCache<T, ID, R> concurrentCache(
+            Cache<T, ID, R> delegateCache,
+            RETRY retrySpec,
+            BiFunction<RETRY, Predicate<? super Throwable>, RETRY> errorFilterFunction,
             ConcurrencyStrategy concurrencyStrategy) {
 
         return build(delegateCache, cache -> concurrentCache(cache, retryStrategy(retrySpec, errorFilterFunction), concurrencyStrategy));
     }
 
-    private static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, Retry retrySpec, ConcurrencyStrategy concurrencyStrategy) {
+    private static <T, ID, R> ConcurrentCache<T, ID, R> concurrentCache(Cache<T, ID, R> delegateCache, Retry retrySpec, ConcurrencyStrategy concurrencyStrategy) {
 
         return new ConcurrentCache<>() {
 
@@ -167,7 +167,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
                 return execute(delegateCache.updateAll(mapToAdd, mapToRemove), singleReaderLock);
             }
 
-            private <T> Mono<T> execute(Mono<T> mono, Lock lock) {
+            private <U> Mono<U> execute(Mono<U> mono, Lock lock) {
 
                 return defer(() -> {
                     final var lockAcquired = new AtomicBoolean();
@@ -199,8 +199,8 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
         return errorFilterFunction.apply(retrySpec, LOCK_NOT_ACQUIRED::equals);
     }
 
-    private static <ID, R> ConcurrentCache<ID, R> build(Cache<ID, R> delegateCache, Function<Cache<ID, R>, ConcurrentCache<ID, R>> f) {
-        return delegateCache instanceof ConcurrentCache<ID, R> c ? c : f.apply(delegateCache);
+    private static <T, ID, R> ConcurrentCache<T, ID, R> build(Cache<T, ID, R> delegateCache, Function<Cache<T, ID, R>, ConcurrentCache<T, ID, R>> f) {
+        return delegateCache instanceof ConcurrentCache<T, ID, R> c ? c : f.apply(delegateCache);
     }
 
     enum ConcurrencyStrategy {
