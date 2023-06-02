@@ -33,15 +33,15 @@ import static reactor.core.scheduler.Schedulers.fromExecutor;
 
 public interface CaffeineCacheFactory {
 
-    static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> caffeineCache() {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache() {
         return caffeineCache(newBuilder());
     }
 
-    static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> caffeineCache(Function<Caffeine<Object, Object>, Caffeine<Object, Object>> customizer) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(Function<Caffeine<Object, Object>, Caffeine<Object, Object>> customizer) {
         return caffeineCache(customizer.apply(newBuilder()));
     }
 
-    static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> caffeineCache(Caffeine<Object, Object> caffeine) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(Caffeine<Object, Object> caffeine) {
 
         final AsyncCache<ID, List<R>> delegateCache = caffeine.buildAsync();
 

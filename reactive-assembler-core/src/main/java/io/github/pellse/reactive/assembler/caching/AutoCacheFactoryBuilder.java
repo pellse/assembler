@@ -108,7 +108,7 @@ public interface AutoCacheFactoryBuilder {
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
-        <T, ID, RRC> CacheTransformer<T, ID, R, RRC> build();
+        <ID, RRC> CacheTransformer<ID, R, RRC> build();
     }
 
     class Builder<R, U extends CacheEvent<R>> implements WindowingStrategyBuilder<R, U> {
@@ -118,7 +118,7 @@ public interface AutoCacheFactoryBuilder {
         private ErrorHandler errorHandler;
         private Scheduler scheduler;
         private LifeCycleEventSource eventSource;
-        private CacheTransformer<?, ?, R, ?> cacheTransformer;
+        private CacheTransformer<?, R, ?> cacheTransformer;
 
         private Builder(Flux<U> dataSource) {
             this.dataSource = dataSource;
@@ -207,8 +207,8 @@ public interface AutoCacheFactoryBuilder {
 
         @SuppressWarnings("unchecked")
         @Override
-        public <T, ID, RRC> CacheTransformer<T, ID, R, RRC> build() {
-            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<T, ID, R, RRC>) cacheTransformer);
+        public <ID, RRC> CacheTransformer<ID, R, RRC> build() {
+            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC>) cacheTransformer);
         }
     }
 }

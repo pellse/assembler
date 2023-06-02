@@ -27,7 +27,7 @@ import static io.github.pellse.util.ObjectUtils.then;
 
 public interface ObservableCacheFactory {
 
-    static <T, ID, R, RRC> Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>> observableCache(
+    static <ID, R, RRC> Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> observableCache(
             Consumer<Map<ID, List<R>>> getAllCallback,
             Consumer<Map<ID, List<R>>> putAllCallback,
             Consumer<Map<ID, List<R>>> removeAllCallback,
@@ -36,8 +36,8 @@ public interface ObservableCacheFactory {
         return cacheFactory -> observableCache(cacheFactory, getAllCallback, putAllCallback, removeAllCallback, updateAllCallback);
     }
 
-    static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> observableCache(
-            CacheFactory<T, ID, R, RRC> delegateCacheFactory,
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> observableCache(
+            CacheFactory<ID, R, RRC> delegateCacheFactory,
             Consumer<Map<ID, List<R>>> getAllCallback,
             Consumer<Map<ID, List<R>>> putAllCallback,
             Consumer<Map<ID, List<R>>> removeAllCallback,

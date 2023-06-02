@@ -41,17 +41,17 @@ import static reactor.core.publisher.Flux.fromStream;
 import static reactor.core.publisher.Mono.just;
 
 @FunctionalInterface
-public interface CacheFactory<T, ID, R, RRC> {
+public interface CacheFactory<ID, R, RRC> {
 
-    static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> cache() {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache() {
         return cache(HashMap::new);
     }
 
-    static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> cache(Supplier<Map<ID, List<R>>> mapSupplier) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Supplier<Map<ID, List<R>>> mapSupplier) {
         return cache(mapSupplier.get());
     }
 
-    static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> cache(Map<ID, List<R>> delegateMap) {
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Map<ID, List<R>> delegateMap) {
 
         return __ -> adapterCache(
                 (ids, fetchFunction) -> just(readAll(ids, delegateMap))
@@ -64,7 +64,7 @@ public interface CacheFactory<T, ID, R, RRC> {
                 toMono(map -> delegateMap.keySet().removeAll(map.keySet())));
     }
 
-    static <T, ID, R, RRC> CacheFactory<T, ID, R, RRC> cache(
+    static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(
             BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> getAll,
             Function<Map<ID, List<R>>, Mono<?>> putAll,
             Function<Map<ID, List<R>>, Mono<?>> removeAll) {
@@ -74,44 +74,44 @@ public interface CacheFactory<T, ID, R, RRC> {
 
     @SafeVarargs
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
-            Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>... delegateCacheFactories) {
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(cache(), delegateCacheFactories);
     }
 
     @SafeVarargs
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
-            CacheFactory<T, ID, R, RRC> cache,
-            Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>... delegateCacheFactories) {
+            CacheFactory<ID, R, RRC> cache,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(emptySource(), cache, delegateCacheFactories);
     }
 
     @SafeVarargs
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
             Function<TC, Publisher<R>> queryFunction,
-            Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>... delegateCacheFactories) {
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(call(queryFunction), delegateCacheFactories);
     }
 
     @SafeVarargs
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
             RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource,
-            Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>... delegateCacheFactories) {
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(ruleMapperSource, cache(), delegateCacheFactories);
     }
 
     @SafeVarargs
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
             Function<TC, Publisher<R>> queryFunction,
-            CacheFactory<T, ID, R, RRC> cacheFactory,
-            Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>... delegateCacheFactories) {
+            CacheFactory<ID, R, RRC> cacheFactory,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
         return cached(call(queryFunction), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
             RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource,
-            CacheFactory<T, ID, R, RRC> cacheFactory,
-            Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>... delegateCacheFactories) {
+            CacheFactory<ID, R, RRC> cacheFactory,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
         var isEmptySource = isEmptySource(ruleMapperSource);
 
@@ -159,12 +159,12 @@ public interface CacheFactory<T, ID, R, RRC> {
     }
 
     @SafeVarargs
-    private static <T, TC extends Collection<T>, ID, EID, R, RRC> CacheFactory<T, ID, R, RRC> delegate(
+    private static <T, TC extends Collection<T>, ID, EID, R, RRC> CacheFactory<ID, R, RRC> delegate(
             RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext,
-            CacheFactory<T, ID, R, RRC> cacheFactory,
-            Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>... delegateCacheFactories) {
+            CacheFactory<ID, R, RRC> cacheFactory,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        return ConcurrentCacheFactory.<T, ID, R, RRC>concurrent().apply(
+        return ConcurrentCacheFactory.<ID, R, RRC>concurrent().apply(
                 stream(delegateCacheFactories)
                         .reduce(context -> mergeStrategyAwareCache(ruleContext.idExtractor(), cacheFactory.create(context)),
                                 (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
@@ -184,7 +184,7 @@ public interface CacheFactory<T, ID, R, RRC> {
 
     Cache<ID, R> create(CacheContext<ID, R, RRC> context);
 
-    interface CacheTransformer<T, ID, R, RRC> extends Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>> {
+    interface CacheTransformer<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
     }
 
     class QueryFunctionException extends Exception {

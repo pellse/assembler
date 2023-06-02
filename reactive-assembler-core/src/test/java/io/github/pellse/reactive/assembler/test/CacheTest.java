@@ -17,6 +17,7 @@
 package io.github.pellse.reactive.assembler.test;
 
 import io.github.pellse.reactive.assembler.Assembler;
+import io.github.pellse.reactive.assembler.Rule;
 import io.github.pellse.reactive.assembler.caching.CacheEvent;
 import io.github.pellse.reactive.assembler.caching.CacheFactory;
 import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
@@ -329,7 +330,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithFaultyCache() {
 
-        CacheFactory<Customer, Long, BillingInfo, BillingInfo> faultyCache = cache(
+        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
                 (ids, fetchFunction) -> error(new RuntimeException("Cache.getAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
                 map -> error(new RuntimeException("Cache.removeAll failed")));
@@ -385,7 +386,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithFaultyCacheAndQueryFunction() {
 
-        CacheFactory<Customer, Long, BillingInfo, BillingInfo> faultyCache = cache(
+        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
                 (ids, computeIfAbsent) -> error(new RuntimeException("Cache.getAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
                 map -> error(new RuntimeException("Cache.removeAll failed")));
@@ -520,8 +521,8 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
 
-        Function<CacheFactory<Customer, Long, BillingInfo, BillingInfo>, CacheFactory<Customer, Long, BillingInfo, BillingInfo>> cff1 = cf -> cf;
-        Function<CacheFactory<Customer, Long, BillingInfo, BillingInfo>, CacheFactory<Customer, Long, BillingInfo, BillingInfo>> cff2 = cf -> cf;
+        Function<CacheFactory<Long, BillingInfo, BillingInfo>, CacheFactory<Long, BillingInfo, BillingInfo>> cff1 = cf -> cf;
+        Function<CacheFactory<Long, BillingInfo, BillingInfo>, CacheFactory<Long, BillingInfo, BillingInfo>> cff2 = cf -> cf;
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
@@ -706,18 +707,18 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
-        CacheTransformer<Customer, Long, BillingInfo, BillingInfo> billingInfoAutoCache =
+        CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
                 autoCacheEvents(billingInfoEventFlux)
                         .maxWindowSize(3)
                         .build();
 
-        CacheTransformer<Customer, Long, OrderItem, List<OrderItem>> orderItemAutoCache =
+        CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
                 autoCacheBuilder(orderItemFlux, toCacheEvent(CDCAdd.class::isInstance, CDC::item))
                         .maxWindowSize(3)
                         .build();
 
-        var billingInfoRule = rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache)));
-        var orderItemRule = rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache)));
+        var billingInfoRule = Rule.<Customer, Long, BillingInfo, BillingInfo>rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache)));
+        var orderItemRule = Rule.<Customer, Long, OrderItem, List<OrderItem>>rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache)));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdExtractor(Customer::customerId)
@@ -750,10 +751,10 @@ public class CacheTest {
                 new CDCAdd<>(orderItem31), new CDCAdd<>(orderItem32), new CDCAdd<>(orderItem33),
                 new CDCDelete<>(orderItem31), new CDCDelete<>(orderItem32), new CDCDelete<>(orderItem33));
 
-        CacheTransformer<Customer, Long, BillingInfo, BillingInfo> billingInfoAutoCache =
+        CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
                 autoCache(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value);
 
-        CacheTransformer<Customer, Long, OrderItem, List<OrderItem>> orderItemAutoCache =
+        CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
                 autoCache(orderItemFlux, CDCAdd.class::isInstance, CDC::item);
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)

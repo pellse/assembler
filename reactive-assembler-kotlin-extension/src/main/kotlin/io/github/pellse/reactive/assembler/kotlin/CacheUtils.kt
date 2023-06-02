@@ -25,15 +25,15 @@ import org.reactivestreams.Publisher
 import java.util.function.Function
 
 fun <T, TC : Collection<T>, ID, EID, R, RRC> ((TC) -> Publisher<R>).cached(
-    vararg delegateCacheFactories: Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>
+    vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
 ): RuleMapperSource<T, TC, ID, EID, R, RRC> = cached(this, *delegateCacheFactories)
 
 fun <T, TC : Collection<T>, ID, EID, R, RRC> ((TC) -> Publisher<R>).cached(
     mapFactory: () -> MutableMap<ID, List<R>>,
-    vararg delegateCacheFactories: Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>
+    vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
 ): RuleMapperSource<T, TC, ID, EID, R, RRC> = cached(this, cache(mapFactory), *delegateCacheFactories)
 
 fun <T, TC : Collection<T>, ID, EID, R, RRC> ((TC) -> Publisher<R>).cached(
-    cache: CacheFactory<T, ID, R, RRC>,
-    vararg delegateCacheFactories: Function<CacheFactory<T, ID, R, RRC>, CacheFactory<T, ID, R, RRC>>
+    cache: CacheFactory<ID, R, RRC>,
+    vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
 ): RuleMapperSource<T, TC, ID, EID, R, RRC> = cached(this, cache, *delegateCacheFactories)
