@@ -58,7 +58,7 @@ public class AkkaFlowAssemblerTest {
         Flow<List<Customer>, Transaction, NotUsed> transactionFlow = Flow.<List<Customer>>create()
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::customerId)
+                                .withIdResolver(Customer::customerId)
                                 .withAssemblerRules(
                                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -85,7 +85,7 @@ public class AkkaFlowAssemblerTest {
                 .grouped(3)
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::customerId)
+                                .withIdResolver(Customer::customerId)
                                 .withAssemblerRules(
                                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -107,7 +107,7 @@ public class AkkaFlowAssemblerTest {
         TestKit probe = new TestKit(system);
 
         Assembler<Customer, Source<Transaction, ?>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),

@@ -13,7 +13,7 @@ import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.stream.StreamAdapter.streamAdapter;
 
 List<Transaction> transactions = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // Default BillingInfo for null values
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -25,7 +25,7 @@ List<Transaction> transactions = assemblerOf(Transaction.class)
 To switch to a parallel Java 8 Stream implementation and asynchronous aggregation, just set the `parallel` flag to `true` on the supplied `StreamAdapter` :
 ```java
 List<Transaction> transactions = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new), // Default BillingInfo for null values
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -39,7 +39,7 @@ For `CompletableFuture` implementation:
 import static io.github.pellse.assembler.future.CompletableFutureAdapter.completableFutureAdapter;
 
 CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),

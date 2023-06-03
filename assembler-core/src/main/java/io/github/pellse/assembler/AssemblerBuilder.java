@@ -27,14 +27,14 @@ import java.util.function.Function;
 
 public interface AssemblerBuilder {
 
-    static <R> WithIdExtractorBuilder<R> assemblerOf(Class<R> outputClass) {
-        return new WithIdExtractorBuilderImpl<>();
+    static <R> withIdResolverBuilder<R> assemblerOf(Class<R> outputClass) {
+        return new withIdResolverBuilderImpl<>();
     }
 
     @FunctionalInterface
-    interface WithIdExtractorBuilder<R> {
+    interface withIdResolverBuilder<R> {
 
-        <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdExtractor(Function<T, ID> idExtractor);
+        <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdResolver(Function<T, ID> idResolver);
     }
 
     @FunctionalInterface
@@ -218,46 +218,46 @@ public interface AssemblerBuilder {
         <RC> Assembler<T, RC> using(AssemblerAdapter<T, ID, R, RC> adapter);
     }
 
-    class WithIdExtractorBuilderImpl<R> implements WithIdExtractorBuilder<R> {
+    class withIdResolverBuilderImpl<R> implements withIdResolverBuilder<R> {
 
-        private WithIdExtractorBuilderImpl() {
+        private withIdResolverBuilderImpl() {
         }
 
         @Override
-        public <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdExtractor(Function<T, ID> idExtractor) {
-            return new WithAssemblerRulesBuilderImpl<>(idExtractor);
+        public <T, ID> WithAssemblerRulesBuilder<T, ID, R> withIdResolver(Function<T, ID> idResolver) {
+            return new WithAssemblerRulesBuilderImpl<>(idResolver);
         }
     }
 
     class WithAssemblerRulesBuilderImpl<T, ID, R> implements WithAssemblerRulesBuilder<T, ID, R> {
 
-        private final Function<T, ID> idExtractor;
+        private final Function<T, ID> idResolver;
 
-        private WithAssemblerRulesBuilderImpl(Function<T, ID> idExtractor) {
+        private WithAssemblerRulesBuilderImpl(Function<T, ID> idResolver) {
 
-            this.idExtractor = idExtractor;
+            this.idResolver = idResolver;
         }
 
         @Override
         public AssembleUsingBuilder<T, ID, R> withAssemblerRules(List<Mapper<ID, ?, ?>> mappers,
                                                                  BiFunction<T, Object[], R> aggregationFunction) {
-            return new AssembleUsingBuilderImpl<>(idExtractor, mappers, aggregationFunction);
+            return new AssembleUsingBuilderImpl<>(idResolver, mappers, aggregationFunction);
         }
     }
 
     class AssembleUsingBuilderImpl<T, ID, R> implements AssembleUsingBuilder<T, ID, R> {
 
-        private final Function<T, ID> idExtractor;
+        private final Function<T, ID> idResolver;
         private final BiFunction<T, Object[], R> aggregationFunction;
         private final List<Mapper<ID, ?, ?>> mappers;
 
         private Function<Throwable, RuntimeException> errorConverter = UncheckedException::new;
 
-        private AssembleUsingBuilderImpl(Function<T, ID> idExtractor,
+        private AssembleUsingBuilderImpl(Function<T, ID> idResolver,
                                          List<Mapper<ID, ?, ?>> mappers,
                                          BiFunction<T, Object[], R> aggregationFunction) {
 
-            this.idExtractor = idExtractor;
+            this.idResolver = idResolver;
 
             this.aggregationFunction = aggregationFunction;
             this.mappers = mappers;
@@ -272,25 +272,25 @@ public interface AssemblerBuilder {
         @Override
         public <RC> Assembler<T, RC> using(AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
 
-            return new AssemblerImpl<>(idExtractor, mappers, aggregationFunction, errorConverter, assemblerAdapter);
+            return new AssemblerImpl<>(idResolver, mappers, aggregationFunction, errorConverter, assemblerAdapter);
         }
     }
 
     class AssemblerImpl<T, ID, R, RC> implements Assembler<T, RC> {
 
-        private final Function<T, ID> idExtractor;
+        private final Function<T, ID> idResolver;
         private final List<Mapper<ID, ?, ?>> mappers;
         private final BiFunction<T, Object[], R> aggregationFunction;
 
         private final Function<Throwable, RuntimeException> errorConverter;
         private final AssemblerAdapter<T, ID, R, RC> assemblerAdapter;
 
-        private AssemblerImpl(Function<T, ID> idExtractor,
+        private AssemblerImpl(Function<T, ID> idResolver,
                               List<Mapper<ID, ?, ?>> mappers,
                               BiFunction<T, Object[], R> aggregationFunction,
                               Function<Throwable, RuntimeException> errorConverter,
                               AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
-            this.idExtractor = idExtractor;
+            this.idResolver = idResolver;
             this.aggregationFunction = aggregationFunction;
             this.mappers = mappers;
             this.errorConverter = errorConverter;
@@ -299,7 +299,7 @@ public interface AssemblerBuilder {
 
         @Override
         public RC assembleFromSupplier(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider) {
-            return Assembler.assembleFromSupplier(topLevelEntitiesProvider, idExtractor, mappers, aggregationFunction, assemblerAdapter, errorConverter);
+            return Assembler.assembleFromSupplier(topLevelEntitiesProvider, idResolver, mappers, aggregationFunction, assemblerAdapter, errorConverter);
         }
     }
 }

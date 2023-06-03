@@ -115,7 +115,7 @@ public class FluxAssemblerJavaTest {
 
         StepVerifier.create(
                         assemblerOf(Transaction.class)
-                                .withCorrelationIdExtractor(Customer::customerId)
+                                .withCorrelationIdResolver(Customer::customerId)
                                 .withAssemblerRules(
                                         rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
                                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
@@ -134,7 +134,7 @@ public class FluxAssemblerJavaTest {
 
         StepVerifier.create(
                         assemblerOf(Transaction.class)
-                                .withCorrelationIdExtractor(Customer::customerId)
+                                .withCorrelationIdResolver(Customer::customerId)
                                 .withAssemblerRules(
                                         rule(BillingInfo::customerId, oneToOne(ReactiveAssemblerTestUtils::errorBillingInfos, BillingInfo::new)),
                                         rule(OrderItem::customerId, oneToMany(OrderItem::id, ReactiveAssemblerTestUtils::errorOrderItems)),
@@ -154,7 +154,7 @@ public class FluxAssemblerJavaTest {
                         getCustomers()
                                 .window(3)
                                 .flatMapSequential(customers -> assemblerOf(Transaction.class)
-                                        .withCorrelationIdExtractor(Customer::customerId)
+                                        .withCorrelationIdResolver(Customer::customerId)
                                         .withAssemblerRules(
                                                 rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
                                                 rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
@@ -172,7 +172,7 @@ public class FluxAssemblerJavaTest {
     public void testReusableAssemblerBuilderWithFluxWithBuffering() {
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
@@ -197,7 +197,7 @@ public class FluxAssemblerJavaTest {
         Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(orderItem11, orderItem13));
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrdersWithErrorOn2ndOrderItemOf1stCustomer)),
@@ -225,7 +225,7 @@ public class FluxAssemblerJavaTest {
         Transaction transaction3 = new Transaction(customer3, null, emptyList());
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne()),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id)),
@@ -245,7 +245,7 @@ public class FluxAssemblerJavaTest {
     public void testReusableAssemblerBuilderWithFluxWithLists() {
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfoNonReactive), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, toPublisher(this::getAllOrdersNonReactive))),

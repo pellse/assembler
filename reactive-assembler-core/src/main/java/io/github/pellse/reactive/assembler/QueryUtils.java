@@ -52,12 +52,12 @@ public interface QueryUtils {
     static <T, ID, RRC> Map<ID, RRC> toResultMap(
             Collection<T> entities,
             Map<ID, RRC> map,
-            Function<T, ID> topLevelIdExtractor,
+            Function<T, ID> topLevelIdResolver,
             Function<ID, RRC> defaultResultProvider) {
 
         return isSafeEqual(map, Map::size, entities, Collection::size)
                 ? map
-                : initializeResultMap(transform(entities, topLevelIdExtractor), map, defaultResultProvider);
+                : initializeResultMap(transform(entities, topLevelIdResolver), map, defaultResultProvider);
     }
 
     static <ID, RRC> Map<ID, RRC> initializeResultMap(Collection<ID> ids, Map<ID, RRC> resultMap, Function<ID, RRC> defaultResultProvider) {

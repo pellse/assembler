@@ -33,13 +33,13 @@ import static io.github.pellse.util.collection.CollectionUtil.toStream;
 
 public interface AssemblerBuilder {
 
-    static <R> WithCorrelationIdExtractorBuilder<R> assemblerOf(@SuppressWarnings("unused") Class<R> outputClass) {
-        return new WithCorrelationIdExtractorBuilderImpl<>();
+    static <R> WithCorrelationIdResolverBuilder<R> assemblerOf(@SuppressWarnings("unused") Class<R> outputClass) {
+        return new WithCorrelationIdResolverBuilderImpl<>();
     }
 
     @FunctionalInterface
-    interface WithCorrelationIdExtractorBuilder<R> {
-        <T, ID> WithAssemblerRulesBuilder<T, ID, R> withCorrelationIdExtractor(Function<T, ID> correlationIdExtractor);
+    interface WithCorrelationIdResolverBuilder<R> {
+        <T, ID> WithAssemblerRulesBuilder<T, ID, R> withCorrelationIdResolver(Function<T, ID> correlationIdResolver);
     }
 
     @FunctionalInterface
@@ -225,45 +225,45 @@ public interface AssemblerBuilder {
         <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> adapter);
     }
 
-    class WithCorrelationIdExtractorBuilderImpl<R> implements WithCorrelationIdExtractorBuilder<R> {
+    class WithCorrelationIdResolverBuilderImpl<R> implements WithCorrelationIdResolverBuilder<R> {
 
-        private WithCorrelationIdExtractorBuilderImpl() {
+        private WithCorrelationIdResolverBuilderImpl() {
         }
 
         @Override
-        public <T, ID> WithAssemblerRulesBuilder<T, ID, R> withCorrelationIdExtractor(Function<T, ID> correlationIdExtractor) {
-            return new WithAssemblerRulesBuilderImpl<>(correlationIdExtractor);
+        public <T, ID> WithAssemblerRulesBuilder<T, ID, R> withCorrelationIdResolver(Function<T, ID> correlationIdResolver) {
+            return new WithAssemblerRulesBuilderImpl<>(correlationIdResolver);
         }
     }
 
     class WithAssemblerRulesBuilderImpl<T, ID, R> implements WithAssemblerRulesBuilder<T, ID, R> {
 
-        private final Function<T, ID> correlationIdExtractor;
+        private final Function<T, ID> correlationIdResolver;
 
-        private WithAssemblerRulesBuilderImpl(Function<T, ID> correlationIdExtractor) {
-            this.correlationIdExtractor = correlationIdExtractor;
+        private WithAssemblerRulesBuilderImpl(Function<T, ID> correlationIdResolver) {
+            this.correlationIdResolver = correlationIdResolver;
         }
 
         @Override
         public AssembleUsingBuilder<T, ID, R> withAssemblerRules(
                 List<Rule<T, ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction) {
-            return new AssembleUsingBuilderImpl<>(correlationIdExtractor, rules, aggregationFunction);
+            return new AssembleUsingBuilderImpl<>(correlationIdResolver, rules, aggregationFunction);
         }
     }
 
     class AssembleUsingBuilderImpl<T, ID, R> implements AssembleUsingBuilder<T, ID, R> {
 
-        private final Function<T, ID> correlationIdExtractor;
+        private final Function<T, ID> correlationIdResolver;
         private final BiFunction<T, Object[], R> aggregationFunction;
         private final List<Rule<T, ID, ?>> rules;
 
         private AssembleUsingBuilderImpl(
-                Function<T, ID> correlationIdExtractor,
+                Function<T, ID> correlationIdResolver,
                 List<Rule<T, ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction) {
 
-            this.correlationIdExtractor = correlationIdExtractor;
+            this.correlationIdResolver = correlationIdResolver;
 
             this.aggregationFunction = aggregationFunction;
             this.rules = rules;
@@ -282,7 +282,7 @@ public interface AssemblerBuilder {
 
         @Override
         public <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
-            return new AssemblerImpl<>(correlationIdExtractor, rules, aggregationFunction, assemblerAdapter);
+            return new AssemblerImpl<>(correlationIdResolver, rules, aggregationFunction, assemblerAdapter);
         }
     }
 
@@ -293,7 +293,7 @@ public interface AssemblerBuilder {
         private final BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder;
 
         private AssemblerImpl(
-                Function<T, ID> correlationIdExtractor,
+                Function<T, ID> correlationIdResolver,
                 List<Rule<T, ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction,
                 AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
@@ -301,7 +301,7 @@ public interface AssemblerBuilder {
             this.assemblerAdapter = assemblerAdapter;
 
             final var queryFunctions = rules.stream()
-                    .map(rule -> rule.apply(correlationIdExtractor))
+                    .map(rule -> rule.apply(correlationIdResolver))
                     .toList();
 
             this.subQueryMapperBuilder = topLevelEntities -> queryFunctions.stream()
@@ -310,7 +310,7 @@ public interface AssemblerBuilder {
             BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
                     (topLevelEntity, listOfMapperResults) -> aggregationFunction.apply(topLevelEntity,
                             listOfMapperResults.stream()
-                                    .map(mapperResult -> mapperResult.get(correlationIdExtractor.apply(topLevelEntity)))
+                                    .map(mapperResult -> mapperResult.get(correlationIdResolver.apply(topLevelEntity)))
                                     .toArray());
 
             this.aggregateStreamBuilder =

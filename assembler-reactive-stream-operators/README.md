@@ -13,7 +13,7 @@ import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static io.github.pellse.assembler.microprofile.PublisherBuilderAdapter.publisherBuilderAdapter;
 
 Assembler<Customer, PublisherBuilder<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfo, BillingInfo::getCustomerId, BillingInfo::new),
         oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),
@@ -37,7 +37,7 @@ import static io.github.pellse.util.query.MapperUtils.oneToOne;
 import static io.github.pellse.assembler.microprofile.PublisherBuilderAdapter.publisherAdapter;
 
 Assembler<Customer, Publisher<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfo, BillingInfo::getCustomerId, BillingInfo::new),
         oneToManyAsList(this::getAllOrders, OrderItem::getCustomerId),

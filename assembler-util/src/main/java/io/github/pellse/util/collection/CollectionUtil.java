@@ -108,41 +108,41 @@ public interface CollectionUtil {
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> removeDuplicates(
             Map<K, VC> map,
-            Function<? super V, ID> idExtractor,
+            Function<? super V, ID> idResolver,
             Supplier<VC> collectionFactory) {
 
-        return removeDuplicates(map, idExtractor, collectionFactory, true);
+        return removeDuplicates(map, idResolver, collectionFactory, true);
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> removeDuplicates(
             Map<K, VC> map,
-            Function<? super V, ID> idExtractor,
+            Function<? super V, ID> idResolver,
             Supplier<VC> collectionFactory,
             boolean copyMap) {
 
         final var newMap = copyMap ? new HashMap<>(map) : map;
 
-        newMap.replaceAll((id, coll) -> removeDuplicates(coll, idExtractor, collectionFactory));
+        newMap.replaceAll((id, coll) -> removeDuplicates(coll, idResolver, collectionFactory));
         return newMap;
     }
 
     static <K, V, ID> Map<K, List<V>> mergeMaps(
             Map<K, List<V>> srcMap,
             Map<K, List<V>> targetMap,
-            Function<? super V, ID> idExtractor) {
+            Function<? super V, ID> idResolver) {
 
-        return mergeMaps(srcMap, targetMap, idExtractor, ArrayList::new);
+        return mergeMaps(srcMap, targetMap, idResolver, ArrayList::new);
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> mergeMaps(
             Map<K, VC> srcMap,
             Map<K, VC> targetMap,
-            Function<? super V, ID> idExtractor,
+            Function<? super V, ID> idResolver,
             Supplier<VC> collectionFactory) {
 
         return newMap(targetMap,
-                m -> m.replaceAll((id, oldList) -> removeDuplicates(concat(toStream(oldList), toStream(srcMap.get(id))), idExtractor, collectionFactory)),
-                m -> m.putAll(removeDuplicates(diff(srcMap, m), idExtractor, collectionFactory, false)));
+                m -> m.replaceAll((id, oldList) -> removeDuplicates(concat(toStream(oldList), toStream(srcMap.get(id))), idResolver, collectionFactory)),
+                m -> m.putAll(removeDuplicates(diff(srcMap, m), idResolver, collectionFactory, false)));
     }
 
     @SafeVarargs
@@ -155,15 +155,15 @@ public interface CollectionUtil {
     static <K, V, ID> Map<K, List<V>> subtractFromMap(
             Map<K, List<V>> mapToSubtract,
             Map<K, List<V>> srcMap,
-            Function<? super V, ID> idExtractor) {
+            Function<? super V, ID> idResolver) {
 
-        return subtractFromMap(mapToSubtract, srcMap, idExtractor, ArrayList::new);
+        return subtractFromMap(mapToSubtract, srcMap, idResolver, ArrayList::new);
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> subtractFromMap(
             Map<K, VC> mapToSubtract,
             Map<K, VC> srcMap,
-            Function<? super V, ID> idExtractor,
+            Function<? super V, ID> idResolver,
             Supplier<VC> collectionFactory) {
 
         return srcMap.entrySet().stream()
@@ -173,11 +173,11 @@ public interface CollectionUtil {
                         return entry;
 
                     final var idsToSubtract = itemsToSubtract.stream()
-                            .map(idExtractor)
+                            .map(idResolver)
                             .collect(toSet());
 
                     final var newColl = toStream(entry.getValue())
-                            .filter(element -> !idsToSubtract.contains((idExtractor.apply(element))))
+                            .filter(element -> !idsToSubtract.contains((idResolver.apply(element))))
                             .collect(toCollection(collectionFactory));
 
                     return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;

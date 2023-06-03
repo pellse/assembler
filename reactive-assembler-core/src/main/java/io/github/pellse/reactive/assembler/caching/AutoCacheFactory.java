@@ -86,13 +86,13 @@ public interface AutoCacheFactory {
                     .apply(cacheFactory)
                     .create(context);
 
-            final var idExtractor = context.correlationIdExtractor();
+            final var idResolver = context.correlationIdResolver();
 
             final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
                     .transform(scheduleOn(scheduler, Flux::publishOn))
                     .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
-                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idExtractor), toMap(eventMap.get(false), idExtractor)))
+                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idResolver), toMap(eventMap.get(false), idResolver)))
                     .transform(requireNonNullElse(errorHandler, onErrorContinue(AutoCacheFactory::logError)).toFluxErrorHandler())
                     .doFinally(__ -> ifNotNull(scheduler, Scheduler::dispose));
 
@@ -103,10 +103,10 @@ public interface AutoCacheFactory {
         };
     }
 
-    private static <ID, R> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, Function<R, ID> correlationIdExtractor) {
+    private static <ID, R> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, Function<R, ID> correlationIdResolver) {
         return cacheEvents.stream()
                 .map(CacheEvent::value)
-                .collect(groupingBy(correlationIdExtractor));
+                .collect(groupingBy(correlationIdResolver));
     }
 
     private static <T> Function<Flux<T>, Flux<T>> scheduleOn(Scheduler scheduler, BiFunction<Flux<T>, Scheduler, Flux<T>> scheduleFunction) {

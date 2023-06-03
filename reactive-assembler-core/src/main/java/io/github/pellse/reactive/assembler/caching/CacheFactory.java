@@ -135,7 +135,7 @@ public interface CacheFactory<ID, R, RRC> {
     }
 
     private static <T, TC extends Collection<T>, ID, EID, R, RRC> List<ID> ids(TC entities, RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext) {
-        return transform(entities, ruleContext.topLevelIdExtractor());
+        return transform(entities, ruleContext.topLevelIdResolver());
     }
 
     private static <T, TC extends Collection<T>, ID, EID, R, RRC> FetchFunction<ID, R> buildFetchFunction(
@@ -148,11 +148,11 @@ public interface CacheFactory<ID, R, RRC> {
             final Set<ID> idSet = new HashSet<>(asCollection(ids));
 
             final var entitiesToQuery = toStream(entities)
-                    .filter(e -> idSet.contains(ruleContext.topLevelIdExtractor().apply(e)))
+                    .filter(e -> idSet.contains(ruleContext.topLevelIdResolver().apply(e)))
                     .toList();
 
             return from(queryFunction.apply(translate(entitiesToQuery, ruleContext.topLevelCollectionFactory())))
-                    .collect(groupingBy(ruleContext.correlationIdExtractor()))
+                    .collect(groupingBy(ruleContext.correlationIdResolver()))
                     .map(queryResultsMap -> buildCacheFragment(ids, queryResultsMap, ruleContext))
                     .onErrorMap(QueryFunctionException::new);
         };
@@ -166,7 +166,7 @@ public interface CacheFactory<ID, R, RRC> {
 
         return ConcurrentCacheFactory.<ID, R, RRC>concurrent().apply(
                 stream(delegateCacheFactories)
-                        .reduce(context -> mergeStrategyAwareCache(ruleContext.idExtractor(), cacheFactory.create(context)),
+                        .reduce(context -> mergeStrategyAwareCache(ruleContext.idResolver(), cacheFactory.create(context)),
                                 (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
                                 (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory)
         );
@@ -195,12 +195,12 @@ public interface CacheFactory<ID, R, RRC> {
 
     record CacheContext<ID, R, RRC>(
             boolean isEmptySource,
-            Function<R, ID> correlationIdExtractor,
+            Function<R, ID> correlationIdResolver,
             Function<List<R>, RRC> fromListConverter,
             Function<RRC, List<R>> toListConverter) {
 
         public CacheContext(boolean isEmptySource, RuleMapperContext<?, ?, ID, ?, R, RRC> ctx) {
-            this(isEmptySource, ctx.correlationIdExtractor(), ctx.fromListConverter(), ctx.toListConverter());
+            this(isEmptySource, ctx.correlationIdResolver(), ctx.fromListConverter(), ctx.toListConverter());
         }
     }
 }

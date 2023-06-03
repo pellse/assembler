@@ -74,62 +74,62 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> toIdAwareRuleContext(ctx.correlationIdExtractor(), ctx),
+                ctx -> toIdAwareRuleContext(ctx.correlationIdResolver(), ctx),
                 defaultResultProvider,
                 ctx -> initialMapCapacity ->
-                        toMap(ctx.correlationIdExtractor(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
+                        toMap(ctx.correlationIdResolver(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
                 CollectionUtil::first,
                 Collections::singletonList);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
-            Function<R, EID> idExtractor) {
-        return oneToMany(idExtractor, emptySource(), ArrayList::new);
+            Function<R, EID> idResolver) {
+        return oneToMany(idResolver, emptySource(), ArrayList::new);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
-            Function<R, EID> idExtractor,
+            Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction) {
-        return oneToMany(idExtractor, call(queryFunction), ArrayList::new);
+        return oneToMany(idResolver, call(queryFunction), ArrayList::new);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
-            Function<R, EID> idExtractor,
+            Function<R, EID> idResolver,
             RuleMapperSource<T, TC, ID, EID, R, List<R>> ruleMapperSource) {
-        return oneToMany(idExtractor, ruleMapperSource, ArrayList::new);
+        return oneToMany(idResolver, ruleMapperSource, ArrayList::new);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
-            Function<R, EID> idExtractor,
+            Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction) {
-        return oneToMany(idExtractor, call(queryFunction), HashSet::new);
+        return oneToMany(idResolver, call(queryFunction), HashSet::new);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
-            Function<R, EID> idExtractor,
+            Function<R, EID> idResolver,
             RuleMapperSource<T, TC, ID, EID, R, Set<R>> ruleMapperSource) {
-        return oneToMany(idExtractor, ruleMapperSource, HashSet::new);
+        return oneToMany(idResolver, ruleMapperSource, HashSet::new);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(
-            Function<R, EID> idExtractor,
+            Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction,
             Supplier<RC> collectionFactory) {
-        return oneToMany(idExtractor, call(queryFunction), collectionFactory);
+        return oneToMany(idResolver, call(queryFunction), collectionFactory);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(
-            Function<R, EID> idExtractor,
+            Function<R, EID> idResolver,
             RuleMapperSource<T, TC, ID, EID, R, RC> ruleMapperSource,
             Supplier<RC> collectionFactory) {
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> toIdAwareRuleContext(idExtractor, ctx),
+                ctx -> toIdAwareRuleContext(idResolver, ctx),
                 id -> collectionFactory.get(),
                 ctx -> initialMapCapacity ->
                         groupingBy(
-                                ctx.correlationIdExtractor(),
+                                ctx.correlationIdResolver(),
                                 toSupplier(validate(initialMapCapacity), ctx.mapFactory()),
                                 toCollection(collectionFactory)),
                 list -> toStream(list)
@@ -159,7 +159,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
                     then(translate(entityList, ruleMapperContext.topLevelCollectionFactory()), entities ->
                             safeApply(entities, queryFunction)
                                     .collect(ruleMapperContext.mapCollector().apply(entities.size()))
-                                    .map(map -> toResultMap(entities, map, ruleMapperContext.topLevelIdExtractor(), ruleMapperContext.defaultResultProvider())));
+                                    .map(map -> toResultMap(entities, map, ruleMapperContext.topLevelIdResolver(), ruleMapperContext.defaultResultProvider())));
         };
     }
 
@@ -168,13 +168,13 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 //    }
 //
 //    private static <T, ID, EID, R, RC extends Collection<R>> MergeStrategy<ID, RC> updateMultiStrategy(
-//            Function<R, EID> idExtractor,
+//            Function<R, EID> idResolver,
 //            Supplier<RC> collectionFactory) {
 //
 //        return (cacheQueryResults, itemsToUpdateMap) ->
 //                concat(toStream(cacheQueryResults.entrySet()), toStream(itemsToUpdateMap.entrySet()))
 //                        .flatMap(entry -> entry.getValue().stream()
-//                                .map(e -> new Wrapper<>(entry.getKey(), idExtractor.apply(e), e)))
+//                                .map(e -> new Wrapper<>(entry.getKey(), idResolver.apply(e), e)))
 //                        .distinct()
 //                        .collect(groupingBy(Wrapper::correlationId, mapping(Wrapper::payload, toCollection(collectionFactory))));
 //    }
@@ -183,7 +183,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 //        return (cacheQueryResults, itemsToRemoveMap) -> also(cacheQueryResults, c -> c.keySet().removeAll(itemsToRemoveMap.keySet()));
 //    }
 //
-    private static <T, ID, EID, R> MergeStrategy<ID, R> removeMultiStrategy(Function<R, EID> idExtractor) {
+    private static <T, ID, EID, R> MergeStrategy<ID, R> removeMultiStrategy(Function<R, EID> idResolver) {
 
         return (cacheQueryResults, itemsToRemoveMap) -> cacheQueryResults.entrySet().stream()
                 .map(entry -> {
@@ -192,11 +192,11 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
                         return entry;
 
                     final var idsToRemove = itemsToRemove.stream()
-                            .map(idExtractor)
+                            .map(idResolver)
                             .collect(toSet());
 
                     final var newColl = toStream(entry.getValue())
-                            .filter(element -> !idsToRemove.contains(idExtractor.apply(element)))
+                            .filter(element -> !idsToRemove.contains(idResolver.apply(element)))
                             .toList();
 
                     return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;

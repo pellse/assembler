@@ -50,7 +50,7 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilder() throws InterruptedException, ExecutionException {
 
         CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -65,7 +65,7 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilderWithException() {
         assertThrows(UncheckedException.class, () -> {
             CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                    .withIdExtractor(Customer::customerId)
+                    .withIdResolver(Customer::customerId)
                     .withAssemblerRules(
                             oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
                             oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
@@ -85,7 +85,7 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilderWithCustomExecutor() throws InterruptedException, ExecutionException {
 
         CompletableFuture<List<Transaction>> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -100,7 +100,7 @@ public class CompletableFutureAssemblerTest {
     public void testAssembleBuilderAsSet() throws InterruptedException, ExecutionException {
 
         CompletableFuture<? extends Set<Transaction>> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),

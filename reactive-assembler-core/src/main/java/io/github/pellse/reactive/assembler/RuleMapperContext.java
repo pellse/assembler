@@ -34,9 +34,9 @@ public interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, R, RRC>
             Function<RRC, List<R>> toListConverter) {
 
         return new DefaultRuleMapperContext<>(
-                ruleContext.idExtractor(),
-                ruleContext.topLevelIdExtractor(),
-                ruleContext.correlationIdExtractor(),
+                ruleContext.idResolver(),
+                ruleContext.topLevelIdResolver(),
+                ruleContext.correlationIdResolver(),
                 ruleContext.topLevelCollectionFactory(),
                 ruleContext.mapFactory(),
                 defaultResultProvider,
@@ -45,7 +45,7 @@ public interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, R, RRC>
                 toListConverter);
     }
 
-    Function<R, EID> idExtractor();
+    Function<R, EID> idResolver();
 
     Function<ID, RRC> defaultResultProvider();
 
@@ -56,9 +56,9 @@ public interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, R, RRC>
     Function<RRC, List<R>> toListConverter();
 
     record DefaultRuleMapperContext<T, TC extends Collection<T>, ID, EID, R, RRC>(
-            Function<R, EID> idExtractor,
-            Function<T, ID> topLevelIdExtractor,
-            Function<R, ID> correlationIdExtractor,
+            Function<R, EID> idResolver,
+            Function<T, ID> topLevelIdResolver,
+            Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RRC> mapFactory,
             Function<ID, RRC> defaultResultProvider,
