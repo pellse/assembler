@@ -20,6 +20,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.stream;
@@ -39,6 +40,10 @@ public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC>
 
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> toQueryFunction(Function<TC, Publisher<R>> queryFunction) {
         return ruleContext -> queryFunction;
+    }
+
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> call(Function<List<ID>, Publisher<R>> queryFunction) {
+        return ruleContext -> entities -> queryFunction.apply(entities.stream().map(ruleContext.topLevelIdResolver()).toList());
     }
 
     @SuppressWarnings("unchecked")

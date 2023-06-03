@@ -49,6 +49,7 @@ import static io.github.pellse.reactive.assembler.LifeCycleEventBroadcaster.life
 import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.*;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
@@ -282,10 +283,15 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithCaching() {
 
+        Function<List<Long>,  Publisher<BillingInfo>> getBillingInfo = customerIds ->
+             Flux.just(billingInfo1, billingInfo3)
+                    .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                    .doOnComplete(billingInvocationCount::incrementAndGet);
+
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(cached(call(getBillingInfo)), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
                         Transaction::new)
                 .build();
