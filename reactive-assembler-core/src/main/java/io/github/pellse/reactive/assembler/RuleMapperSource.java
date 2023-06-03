@@ -37,7 +37,7 @@ public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC>
 
     RuleMapperSource<?, ? extends Collection<Object>, ?, ?, ?, ?> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> call(Function<TC, Publisher<R>> queryFunction) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> toQueryFunction(Function<TC, Publisher<R>> queryFunction) {
         return ruleContext -> queryFunction;
     }
 

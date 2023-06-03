@@ -89,7 +89,7 @@ public interface CacheFactory<ID, R, RRC> {
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
             Function<TC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(call(queryFunction), delegateCacheFactories);
+        return cached(toQueryFunction(queryFunction), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -104,7 +104,7 @@ public interface CacheFactory<ID, R, RRC> {
             Function<TC, Publisher<R>> queryFunction,
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
-        return cached(call(queryFunction), cacheFactory, delegateCacheFactories);
+        return cached(toQueryFunction(queryFunction), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs

@@ -37,7 +37,7 @@ import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.call;
+import static io.github.pellse.reactive.assembler.RuleMapperSource.toQueryFunction;
 import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*;
 import static io.github.pellse.util.collection.CollectionUtil.transform;
 import static java.util.Collections.emptyList;
@@ -174,7 +174,7 @@ public class FluxAssemblerJavaTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(toQueryFunction(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
                 .build();
@@ -199,7 +199,7 @@ public class FluxAssemblerJavaTest {
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(toQueryFunction(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrdersWithErrorOn2ndOrderItemOf1stCustomer)),
                         Transaction::new)
                 .build();
