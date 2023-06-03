@@ -49,7 +49,7 @@ public class StreamAssemblerTest {
     public void testAssembleBuilder() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -65,7 +65,7 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithCustomMapFactory() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new, defaultMapFactory()),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId, size -> new LinkedHashMap<>(size * 2, 0.5f)),
@@ -81,7 +81,7 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNullTopLevelEntityList() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(ids -> null, BillingInfo::customerId),
                         oneToManyAsList(ids -> null, OrderItem::customerId),
@@ -97,7 +97,7 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNullTopLevelEntities() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(ids -> null, BillingInfo::customerId),
                         oneToManyAsList(ids -> null, OrderItem::customerId),
@@ -113,7 +113,7 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNullEntityIds() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(ids -> null, BillingInfo::customerId),
                         oneToManyAsList(ids -> null, OrderItem::customerId),
@@ -132,7 +132,7 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithUncheckedException() {
 
         assertThrows(UncheckedException.class, () -> assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
@@ -145,7 +145,7 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithCustomException() {
 
         assertThrows(UserDefinedRuntimeException.class, () -> assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
@@ -159,7 +159,7 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNonListIds() {
 
         List<TransactionSet> transactions = assemblerOf(TransactionSet.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoWithSetIds, BillingInfo::customerId, BillingInfo::new, HashSet::new),
                         oneToManyAsSet(AssemblerTestUtils::getAllOrdersWithLinkedListIds, OrderItem::customerId, LinkedList::new),
@@ -175,7 +175,7 @@ public class StreamAssemblerTest {
     public void testAssembleBuilderWithNullBillingInfo() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -194,7 +194,7 @@ public class StreamAssemblerTest {
         Mapper<Long, List<OrderItem>, SQLException> allOrdersMapper = oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId);
 
         Assembler<Customer, Stream<Transaction>> transactionAssembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(billingInfoMapper, allOrdersMapper, Transaction::new)
                 .using(streamAdapter());
 

@@ -26,34 +26,34 @@ import static io.github.pellse.reactive.assembler.MapFactory.defaultMapFactory;
 
 public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
 
-    static <T, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, List<T>, ID, R, RRC>> ruleContext(Function<R, ID> correlationIdExtractor) {
-        return ruleContext(correlationIdExtractor, ArrayList::new);
+    static <T, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, List<T>, ID, R, RRC>> ruleContext(Function<R, ID> correlationIdResolver) {
+        return ruleContext(correlationIdResolver, ArrayList::new);
     }
 
     static <T, TC extends Collection<T>, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, TC, ID, R, RRC>> ruleContext(
-            Function<R, ID> correlationIdExtractor,
+            Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory) {
-        return ruleContext(correlationIdExtractor, topLevelCollectionFactory, defaultMapFactory());
+        return ruleContext(correlationIdResolver, topLevelCollectionFactory, defaultMapFactory());
     }
 
     static <T, TC extends Collection<T>, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, TC, ID, R, RRC>> ruleContext(
-            Function<R, ID> correlationIdExtractor,
+            Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RRC> mapFactory) {
-        return topLevelIdExtractor -> new DefaultRuleContext<>(topLevelIdExtractor, correlationIdExtractor, topLevelCollectionFactory, mapFactory);
+        return topLevelIdResolver -> new DefaultRuleContext<>(topLevelIdResolver, correlationIdResolver, topLevelCollectionFactory, mapFactory);
     }
 
-    Function<T, ID> topLevelIdExtractor();
+    Function<T, ID> topLevelIdResolver();
 
-    Function<R, ID> correlationIdExtractor();
+    Function<R, ID> correlationIdResolver();
 
     Supplier<TC> topLevelCollectionFactory();
 
     MapFactory<ID, RRC> mapFactory();
 
     record DefaultRuleContext<T, TC extends Collection<T>, ID, R, RRC>(
-            Function<T, ID> topLevelIdExtractor,
-            Function<R, ID> correlationIdExtractor,
+            Function<T, ID> topLevelIdResolver,
+            Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RRC> mapFactory) implements RuleContext<T, TC, ID, R, RRC> {
     }
@@ -62,24 +62,24 @@ public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
 interface IdAwareRuleContext<T, TC extends Collection<T>, ID, EID, R, RRC> extends RuleContext<T, TC, ID, R, RRC> {
 
     static <T, TC extends Collection<T>, ID, EID, R, RRC> IdAwareRuleContext<T, TC, ID, EID, R, RRC> toIdAwareRuleContext(
-            Function<R, EID> idExtractor,
+            Function<R, EID> idResolver,
             RuleContext<T, TC, ID, R, RRC> ruleContext) {
 
         return new IdAwareRuleContext<>() {
 
             @Override
-            public Function<T, ID> topLevelIdExtractor() {
-                return ruleContext.topLevelIdExtractor();
+            public Function<T, ID> topLevelIdResolver() {
+                return ruleContext.topLevelIdResolver();
             }
 
             @Override
-            public Function<R, EID> idExtractor() {
-                return idExtractor;
+            public Function<R, EID> idResolver() {
+                return idResolver;
             }
 
             @Override
-            public Function<R, ID> correlationIdExtractor() {
-                return ruleContext.correlationIdExtractor();
+            public Function<R, ID> correlationIdResolver() {
+                return ruleContext.correlationIdResolver();
             }
 
             @Override
@@ -94,5 +94,5 @@ interface IdAwareRuleContext<T, TC extends Collection<T>, ID, EID, R, RRC> exten
         };
     }
 
-    Function<R, EID> idExtractor();
+    Function<R, EID> idResolver();
 }

@@ -13,7 +13,7 @@ import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.rxjava.ObservableAdapter.observableAdapter;
 
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
          oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
          oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -24,7 +24,7 @@ Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
 or
 ```java
 Assembler<Customer, Observable<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -44,7 +44,7 @@ import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.rxjava.FlowableAdapter.flowableAdapter;
 
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -55,7 +55,7 @@ Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)
 or
 ```java
 Assembler<Customer, Flowable<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(AssemblerTestUtils::getBillingInfoForCustomers, BillingInfo::getCustomerId, BillingInfo::new),
         oneToManyAsList(AssemblerTestUtils::getAllOrdersForCustomers, OrderItem::getCustomerId),

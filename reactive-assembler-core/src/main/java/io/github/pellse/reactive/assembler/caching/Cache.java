@@ -76,7 +76,7 @@ public interface Cache<ID, R> {
     }
 
     static <ID, EID, R> Cache<ID, R> mergeStrategyAwareCache(
-            Function<R, EID> idExtractor,
+            Function<R, EID> idResolver,
             Cache<ID, R> delegateCache) {
 
         final var optimizedCache = adapterCache(
@@ -89,12 +89,12 @@ public interface Cache<ID, R> {
                 optimizedCache::getAll,
                 applyMergeStrategy(
                         optimizedCache,
-                        (cacheQueryResults, incomingChanges) -> mergeMaps(incomingChanges, cacheQueryResults, idExtractor),
+                        (cacheQueryResults, incomingChanges) -> mergeMaps(incomingChanges, cacheQueryResults, idResolver),
                         Cache::putAll),
                 applyMergeStrategy(
                         optimizedCache,
                         (cache, cacheQueryResults, incomingChanges) ->
-                                then(subtractFromMap(incomingChanges, cacheQueryResults, idExtractor),
+                                then(subtractFromMap(incomingChanges, cacheQueryResults, idResolver),
                                         updatedMap -> cache.updateAll(updatedMap, diff(cacheQueryResults, updatedMap))))
         );
     }

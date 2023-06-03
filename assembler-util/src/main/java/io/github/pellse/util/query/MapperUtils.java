@@ -26,158 +26,158 @@ public interface MapperUtils {
 
 //    static <T, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, R, EX> oneToOne(
 //            CheckedFunction1<List<T>, RC, EX> queryFunction,
-//            Function<R, ID> idExtractor) {
+//            Function<R, ID> idResolver) {
 //
-//        return oneToOne(queryFunction, idExtractor, id -> null, ArrayList::new, null);
+//        return oneToOne(queryFunction, idResolver, id -> null, ArrayList::new, null);
 //    }
 //
 ////    static <T, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, R, EX> oneToOne(
 ////            CheckedFunction1<List<ID>, RC, EX> queryFunction,
-////            Function<R, ID> idExtractor,
+////            Function<R, ID> idResolver,
 ////            MapFactory<ID, R> mapFactory) {
 ////
-////        return oneToOne(queryFunction, idExtractor, id -> null, ArrayList::new, mapFactory);
+////        return oneToOne(queryFunction, idResolver, id -> null, ArrayList::new, mapFactory);
 ////    }
 //
 //    static <T, TC extends Collection<T>, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, R, EX> oneToOne(
 //            CheckedFunction1<TC, RC, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Supplier<TC> topLevelCollectionFactory) {
 //
-//        return oneToOne(queryFunction, idExtractor, id -> null, topLevelCollectionFactory);
+//        return oneToOne(queryFunction, idResolver, id -> null, topLevelCollectionFactory);
 //    }
 //
 //    static <T, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, R, EX> oneToOne(
 //            CheckedFunction1<List<T>, RC, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Function<ID, R> defaultResultProvider) {
 //
-//        return oneToOne(queryFunction, idExtractor, defaultResultProvider, ArrayList::new, null);
+//        return oneToOne(queryFunction, idResolver, defaultResultProvider, ArrayList::new, null);
 //    }
 //
 //    static <T, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, R, EX> oneToOne(
 //            CheckedFunction1<List<T>, RC, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Function<ID, R> defaultResultProvider,
 //            MapFactory<ID, R> mapFactory) {
 //
-//        return oneToOne(queryFunction, idExtractor, defaultResultProvider, ArrayList::new, mapFactory);
+//        return oneToOne(queryFunction, idResolver, defaultResultProvider, ArrayList::new, mapFactory);
 //    }
 //
 //    static <T, TC extends Collection<T>, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, R, EX> oneToOne(
 //            CheckedFunction1<TC, RC, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Function<ID, R> defaultResultProvider,
 //            Supplier<TC> topLevelCollectionFactory) {
 //
-//        return oneToOne(queryFunction, idExtractor, defaultResultProvider, topLevelCollectionFactory, null);
+//        return oneToOne(queryFunction, idResolver, defaultResultProvider, topLevelCollectionFactory, null);
 //    }
 //
 //    @SuppressWarnings("unchecked")
 //    static <T, TC extends Collection<T>, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, R, EX> oneToOne(
 //            CheckedFunction1<TC, RC, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Function<ID, R> defaultResultProvider,
 //            Supplier<TC> topLevelCollectionFactory,
 //            MapFactory<ID, R> mapFactory) {
 //
 //        return convertIdTypeMapperDelegate(entities ->
-//                queryOneToOne((TC) entities, queryFunction, idExtractor, defaultResultProvider, mapFactory), topLevelCollectionFactory);
+//                queryOneToOne((TC) entities, queryFunction, idResolver, defaultResultProvider, mapFactory), topLevelCollectionFactory);
 //    }
 //
 //    static <T, ID, R, EX extends Throwable> Mapper<T, ID, List<R>, EX> oneToManyAsList(
 //            CheckedFunction1<List<T>, List<R>, EX> queryFunction,
-//            Function<R, ID> idExtractor) {
+//            Function<R, ID> idResolver) {
 //
-//        return oneToManyAsList(queryFunction, idExtractor, ArrayList::new, null);
+//        return oneToManyAsList(queryFunction, idResolver, ArrayList::new, null);
 //    }
 //
 //    static <T, ID, R, EX extends Throwable> Mapper<T, ID, List<R>, EX> oneToManyAsList(
 //            CheckedFunction1<List<T>, List<R>, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            MapFactory<ID, List<R>> mapFactory) {
 //
-//        return oneToManyAsList(queryFunction, idExtractor, ArrayList::new, mapFactory);
+//        return oneToManyAsList(queryFunction, idResolver, ArrayList::new, mapFactory);
 //    }
 //
 //    static <T, TC extends Collection<T>, ID, R, EX extends Throwable> Mapper<T, ID, List<R>, EX> oneToManyAsList(
 //            CheckedFunction1<TC, List<R>, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Supplier<TC> topLevelCollectionFactory) {
 //
-//        return oneToMany(queryFunction, idExtractor, ArrayList::new, topLevelCollectionFactory);
+//        return oneToMany(queryFunction, idResolver, ArrayList::new, topLevelCollectionFactory);
 //    }
 //
 //    static <T, TC extends Collection<T>, ID, R, EX extends Throwable> Mapper<T, ID, List<R>, EX> oneToManyAsList(
 //            CheckedFunction1<TC, List<R>, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Supplier<TC> topLevelCollectionFactory,
 //            MapFactory<ID, List<R>> mapFactory) {
 //
-//        return oneToMany(queryFunction, idExtractor, ArrayList::new, topLevelCollectionFactory, mapFactory);
+//        return oneToMany(queryFunction, idResolver, ArrayList::new, topLevelCollectionFactory, mapFactory);
 //    }
 //
 //    static <T, ID, R, EX extends Throwable> Mapper<T, ID, Set<R>, EX> oneToManyAsSet(
 //            CheckedFunction1<Set<T>, Set<R>, EX> queryFunction,
-//            Function<R, ID> idExtractor) {
+//            Function<R, ID> idResolver) {
 //
-//        return oneToManyAsSet(queryFunction, idExtractor, HashSet::new, null);
+//        return oneToManyAsSet(queryFunction, idResolver, HashSet::new, null);
 //    }
 //
 //    static <T, ID, R, EX extends Throwable> Mapper<T, ID, Set<R>, EX> oneToManyAsSet(
 //            CheckedFunction1<Set<T>, Set<R>, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            MapFactory<ID, Set<R>> mapFactory) {
 //
-//        return oneToManyAsSet(queryFunction, idExtractor, HashSet::new, mapFactory);
+//        return oneToManyAsSet(queryFunction, idResolver, HashSet::new, mapFactory);
 //    }
 //
 //    static <T, TC extends Collection<T>, ID, R, EX extends Throwable> Mapper<T, ID, Set<R>, EX> oneToManyAsSet(
 //            CheckedFunction1<TC, Set<R>, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Supplier<TC> topLevelCollectionFactory) {
 //
-//        return oneToMany(queryFunction, idExtractor, HashSet::new, topLevelCollectionFactory);
+//        return oneToMany(queryFunction, idResolver, HashSet::new, topLevelCollectionFactory);
 //    }
 //
 //    static <T, TC extends Collection<T>, ID, R, EX extends Throwable> Mapper<T, ID, Set<R>, EX> oneToManyAsSet(
 //            CheckedFunction1<TC, Set<R>, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Supplier<TC> topLevelCollectionFactory,
 //            MapFactory<ID, Set<R>> mapFactory) {
 //
-//        return oneToMany(queryFunction, idExtractor, HashSet::new, topLevelCollectionFactory, mapFactory);
+//        return oneToMany(queryFunction, idResolver, HashSet::new, topLevelCollectionFactory, mapFactory);
 //    }
 //
 //    static <T, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, RC, EX>
 //    oneToMany(
 //            CheckedFunction1<List<T>, RC, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Supplier<RC> collectionFactory) {
 //
-//        return oneToMany(queryFunction, idExtractor, collectionFactory, ArrayList::new);
+//        return oneToMany(queryFunction, idResolver, collectionFactory, ArrayList::new);
 //    }
 //
 //    static <T, TC extends Collection<T>, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, RC, EX>
 //    oneToMany(
 //            CheckedFunction1<TC, RC, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Supplier<RC> collectionFactory,
 //            Supplier<TC> topLevelCollectionFactory) {
 //
-//        return oneToMany(queryFunction, idExtractor, collectionFactory, topLevelCollectionFactory, null);
+//        return oneToMany(queryFunction, idResolver, collectionFactory, topLevelCollectionFactory, null);
 //    }
 //
 //    @SuppressWarnings("unchecked")
 //    static <T, TC extends Collection<T>, ID, R, RC extends Collection<R>, EX extends Throwable> Mapper<T, ID, RC, EX> oneToMany(
 //            CheckedFunction1<TC, RC, EX> queryFunction,
-//            Function<R, ID> idExtractor,
+//            Function<R, ID> idResolver,
 //            Supplier<RC> collectionFactory,
 //            Supplier<TC> topLevelCollectionFactory,
 //            MapFactory<ID, RC> mapFactory) {
 //
 //        return convertIdTypeMapperDelegate(entities ->
-//                queryOneToMany((TC) entities, queryFunction, idExtractor, collectionFactory, mapFactory), topLevelCollectionFactory);
+//                queryOneToMany((TC) entities, queryFunction, idResolver, collectionFactory, mapFactory), topLevelCollectionFactory);
 //    }
 
     private static <T, TC extends Collection<T>, ID, R, EX extends Throwable> Mapper<T, ID, R, EX> convertIdTypeMapperDelegate(

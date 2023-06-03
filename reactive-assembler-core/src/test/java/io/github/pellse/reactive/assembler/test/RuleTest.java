@@ -40,13 +40,13 @@ public class RuleTest {
             .createRule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)));
 
 //            batchRule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)))
-//                    .withIdExtractor(Customer::customerId);
+//                    .withIdResolver(Customer::customerId);
 
     private final BatchRule<Customer, List<OrderItem>> orderItemBatchRule = withIdResolver(Customer::customerId)
             .createRule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders)));
 
 //            batchRule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders)))
-//                    .withIdExtractor(Customer::customerId);
+//                    .withIdResolver(Customer::customerId);
 
     List<Customer> customers = List.of(customer1, customer2, customer3);
 

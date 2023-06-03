@@ -43,7 +43,7 @@ public class ObservableAssemblerTest {
     public void testAssemblerBuilderWithObservable() {
 
         Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -60,7 +60,7 @@ public class ObservableAssemblerTest {
 
         assertThrows(UserDefinedRuntimeException.class, () -> {
             Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
-                    .withIdExtractor(Customer::customerId)
+                    .withIdResolver(Customer::customerId)
                     .withAssemblerRules(
                             oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
                             oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
@@ -79,7 +79,7 @@ public class ObservableAssemblerTest {
         Observable<Transaction> transactionObservable = Observable.fromIterable(getCustomers())
                 .buffer(3)
                 .concatMap(customers -> assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::customerId)
+                        .withIdResolver(Customer::customerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -95,7 +95,7 @@ public class ObservableAssemblerTest {
     public void testReusableAssemblerBuilderWithObservableWithBuffering() {
 
         Assembler<Customer, Observable<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),

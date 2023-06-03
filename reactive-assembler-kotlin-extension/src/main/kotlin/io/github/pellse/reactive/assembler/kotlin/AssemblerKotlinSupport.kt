@@ -16,7 +16,7 @@
 
 package io.github.pellse.reactive.assembler.kotlin
 
-import io.github.pellse.reactive.assembler.AssemblerBuilder.WithCorrelationIdExtractorBuilder
+import io.github.pellse.reactive.assembler.AssemblerBuilder.WithCorrelationIdResolverBuilder
 import io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf
 import io.github.pellse.reactive.assembler.RuleMapper
 import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
@@ -25,7 +25,7 @@ import io.github.pellse.reactive.assembler.RuleMapperSource
 import org.reactivestreams.Publisher
 import reactor.core.publisher.Flux.fromIterable
 
-inline fun <reified T> assembler(): WithCorrelationIdExtractorBuilder<T> = assemblerOf(T::class.java)
+inline fun <reified T> assembler(): WithCorrelationIdResolverBuilder<T> = assemblerOf(T::class.java)
 
 fun <T, TC : Collection<T>, R> ((TC) -> Iterable<R>).toPublisher(): (TC) -> Publisher<R> = { ids -> fromIterable(this(ids)) }
 
@@ -35,14 +35,14 @@ fun <T, TC: Collection<T>, ID, R> ((TC) -> Publisher<R>).oneToOne(defaultResultP
 fun <T, TC: Collection<T>, ID, R> RuleMapperSource<T, TC, ID, ID, R, R>.oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<T, TC, ID, R, R> =
     oneToOne(this, defaultResultProvider)
 
-fun <T, TC : Collection<T>, ID, EID, R> ((TC) -> Publisher<R>).oneToMany(idExtractor: (R) -> EID): RuleMapper<T, TC, ID, R, List<R>> =
-    oneToMany(idExtractor, this)
+fun <T, TC : Collection<T>, ID, EID, R> ((TC) -> Publisher<R>).oneToMany(idResolver: (R) -> EID): RuleMapper<T, TC, ID, R, List<R>> =
+    oneToMany(idResolver, this)
 
-fun <T, TC : Collection<T>, ID, EID, R> RuleMapperSource<T, TC, ID, EID, R, List<R>>.oneToMany(idExtractor: (R) -> EID): RuleMapper<T, TC, ID, R, List<R>> =
-    oneToMany(idExtractor, this)
+fun <T, TC : Collection<T>, ID, EID, R> RuleMapperSource<T, TC, ID, EID, R, List<R>>.oneToMany(idResolver: (R) -> EID): RuleMapper<T, TC, ID, R, List<R>> =
+    oneToMany(idResolver, this)
 
-fun <T, TC : Collection<T>, ID, EID, R, RC : Collection<R>> ((TC) -> Publisher<R>).oneToMany(idExtractor: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, TC, ID, R, RC> =
-    oneToMany(idExtractor, this, collectionFactory)
+fun <T, TC : Collection<T>, ID, EID, R, RC : Collection<R>> ((TC) -> Publisher<R>).oneToMany(idResolver: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, TC, ID, R, RC> =
+    oneToMany(idResolver, this, collectionFactory)
 
-fun <T, TC : Collection<T>, ID, EID, R, RC : Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC>.oneToMany(idExtractor: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, TC, ID, R, RC> =
-    oneToMany(idExtractor, this, collectionFactory)
+fun <T, TC : Collection<T>, ID, EID, R, RC : Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC>.oneToMany(idResolver: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, TC, ID, R, RC> =
+    oneToMany(idResolver, this, collectionFactory)
