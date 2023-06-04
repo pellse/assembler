@@ -10,14 +10,14 @@ kotlin {
 
 dependencies {
 
-    implementation project(":reactive-assembler-core")
+    implementation project(":cohereflux-core")
 
     implementation("io.projectreactor:reactor-core:${reactorVersion}")
 
     implementation platform("org.jetbrains.kotlin:kotlin-bom")
 
-    testImplementation project(":reactive-assembler-core").sourceSets.test.output
+    testImplementation project(":cohereflux-core").sourceSets.test.output
 
     testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
-    testImplementation project(":reactive-assembler-cache-caffeine")
+    testImplementation project(":cohereflux-cache-caffeine")
 }

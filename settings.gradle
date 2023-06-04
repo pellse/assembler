@@ -7,6 +7,6 @@ pluginManagement {
 
 rootProject.name = "assembler"
 
-include "reactive-assembler-core",
-        "reactive-assembler-kotlin-extension",
-        "reactive-assembler-cache-caffeine"
+include "cohereflux-core",
+        "cohereflux-kotlin-extension",
+        "cohereflux-cache-caffeine"

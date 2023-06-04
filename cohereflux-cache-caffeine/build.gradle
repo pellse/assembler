@@ -1,10 +1,10 @@
 dependencies {
 
-    implementation project(":reactive-assembler-core")
+    implementation project(":cohereflux-core")
 
     implementation("io.projectreactor:reactor-core:${reactorVersion}")
     implementation ("com.github.ben-manes.caffeine:caffeine:3.1.6")
 
-    testImplementation project(":reactive-assembler-core").sourceSets.test.output
+    testImplementation project(":cohereflux-core").sourceSets.test.output
     testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
 }
