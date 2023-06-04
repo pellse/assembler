@@ -23,12 +23,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
+import static io.github.pellse.util.collection.CollectionUtil.toStream;
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNullElse;
 
 /**
  * @param <ID>  Correlation Id type
- * @param <TC> Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
+ * @param <TC>  Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
  * @param <R>   Type of the publisher elements returned from {@code queryFunction}
  * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
  */
@@ -43,7 +44,13 @@ public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC>
     }
 
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> call(Function<List<ID>, Publisher<R>> queryFunction) {
-        return ruleContext -> entities -> queryFunction.apply(entities.stream().map(ruleContext.topLevelIdResolver()).toList());
+        return ruleContext -> RuleMapperSource.<T, TC, ID, EID, R, RRC, ID>call(ruleContext.topLevelIdResolver(), queryFunction).apply(ruleContext);
+    }
+
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, K> RuleMapperSource<T, TC, ID, EID, R, RRC> call(
+            Function<T, K> idResolver,
+            Function<List<K>, Publisher<R>> queryFunction) {
+        return ruleContext -> entities -> queryFunction.apply(toStream(entities).map(idResolver).toList());
     }
 
     @SuppressWarnings("unchecked")
@@ -64,6 +71,7 @@ public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC>
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> pipe(
             RuleMapperSource<T, TC, ID, EID, R, RRC> mapper,
             Function<? super RuleMapperSource<T, TC, ID, EID, R, RRC>, ? extends RuleMapperSource<T, TC, ID, EID, R, RRC>>... mappingFunctions) {
+
         return stream(mappingFunctions)
                 .reduce(mapper,
                         (ruleMapperSource, mappingFunction) -> mappingFunction.apply(ruleMapperSource),
