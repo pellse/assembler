@@ -1,5 +1,5 @@
 # CohereFlux (formally Assembler)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/cohereflux-core.svg?label=cohereflux-core)](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/cohereflux-core.svg)](http://javadoc.io/doc/io.github.pellse/cohereflux-core)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/cohereflux-core.svg?label=cohereflux-core)](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/cohereflux-core.svg)](http://javadoc.io/doc/io.github.pellse/cohereflux-core) [![Project Dashboard](https://sourcespy.com/shield.svg)](https://sourcespy.com/github/pellseassembler/)
 [![Twitter Follow](https://img.shields.io/twitter/follow/sebastien_pel?label=Follow%20@sebastien_pel&style=social)](https://twitter.com/sebastien_pel)
 
 ***6/4/2023: Please visit https://github.com/pellse/assembler-example for a comprehensive Spring GraphQL demo app that showcases the integrated usage of the latest CohereFlux API as the documentation below might not reflect the recent breaking changes to the API, but it will be updated soon.***
