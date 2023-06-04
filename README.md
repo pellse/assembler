@@ -2,6 +2,8 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/cohereflux-core.svg?label=cohereflux-core)](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/cohereflux-core.svg)](http://javadoc.io/doc/io.github.pellse/cohereflux-core)
 [![Twitter Follow](https://img.shields.io/twitter/follow/sebastien_pel?label=Follow%20@sebastien_pel&style=social)](https://twitter.com/sebastien_pel)
 
+***6/4/2023: Please visit https://github.com/pellse/assembler-example for a comprehensive Spring GraphQL demo app that showcases the integrated usage of the latest CohereFlux API as the documentation below might not reflect the recent breaking changes to the API, but it will be updated soon.***
+
 The Assembler Library is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless Java API that enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying and merging data from multiple data sources/services. This library is also designed to solve the N + 1 query problem and is architecture-agnostic, allowing it to be used as part of a monolithic or microservice architecture.
 
 Internally, the library leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
