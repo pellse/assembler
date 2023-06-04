@@ -7,8 +7,8 @@
 
 ```java
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
-import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToManyAsList;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToOne;
 
 import static io.github.pellse.assembler.microprofile.PublisherBuilderAdapter.publisherBuilderAdapter;
 
@@ -31,8 +31,8 @@ In the above example we create an `Assembler` that returns an Eclipse MicroProfi
 When no further reactive stream manipulation is required from the `PublisherBuilder` returned from the `Assembler`, we can directly return a `Publisher` from the `Assembler` by using the `publishAdapter()` static factory method instead of `publisherBuilderAdapter()` (the example below also demonstrates the interoperability with RxJava `Flowable` type):
 ```java
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
-import static io.github.pellse.util.query.MapperUtils.oneToOne;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToManyAsList;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToOne;
 
 import static io.github.pellse.assembler.microprofile.PublisherBuilderAdapter.publisherAdapter;
 

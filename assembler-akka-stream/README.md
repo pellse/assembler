@@ -8,8 +8,8 @@
 By using an `AkkaSourceAdapter` we can support the [Akka Stream](https://akka.io/) framework by creating instances of Akka `Source`:
 ```java
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.util.query.MapperUtils.oneToOne;
-import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToOne;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.akkastream.AkkaSourceAdapter.akkaSourceAdapter;
 
 ActorSystem system = ActorSystem.create();

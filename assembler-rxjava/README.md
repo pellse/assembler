@@ -8,8 +8,8 @@
 When using RxJava `Observable`:
 ```java
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.util.query.MapperUtils.oneToOne;
-import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToOne;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.rxjava.ObservableAdapter.observableAdapter;
 
 Observable<Transaction> transactionObservable = assemblerOf(Transaction.class)
@@ -39,8 +39,8 @@ Observable<Transaction> transactionObservable = Observable.fromIterable(getCusto
 When using RxJava `Flowable`:
 ```java
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.util.query.MapperUtils.oneToOne;
-import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToOne;
+import static io.github.pellse.query.io.github.pellse.util.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.rxjava.FlowableAdapter.flowableAdapter;
 
 Flowable<Transaction> transactionFlowable = assemblerOf(Transaction.class)

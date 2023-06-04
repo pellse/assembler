@@ -1,7 +1,6 @@
 dependencies {
 
     implementation project(":reactive-assembler-core")
-    implementation project(":assembler-util")
 
     implementation("io.projectreactor:reactor-core:${reactorVersion}")
     implementation ("com.github.ben-manes.caffeine:caffeine:3.1.6")
