@@ -1,9 +1,0 @@
-dependencies {
-    implementation project(":assembler-core")
-    implementation project(":assembler-util")
-
-    testImplementation project(":assembler-core").sourceSets.test.output
-    testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
-
-    implementation("io.projectreactor:reactor-core:${reactorVersion}")
-}
