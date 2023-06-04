@@ -17,12 +17,9 @@
 package io.github.pellse.reactive.assembler;
 
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 
-/**
- * @param <T>  Type for Top Level Entity e.g. {@code Customer}
- * @param <RC> Output Type e.g. {@code Stream<Transaction>} or {@code Flux<Transaction>}
- */
 @FunctionalInterface
-public interface Assembler<T, RC> {
-    RC assemble(Publisher<T> topLevelEntities);
+public interface Assembler<T, R> {
+    Flux<R> assemble(Publisher<T> topLevelEntities);
 }

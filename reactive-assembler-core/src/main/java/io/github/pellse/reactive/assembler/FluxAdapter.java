@@ -32,7 +32,7 @@ import static reactor.core.publisher.Flux.zip;
 import static reactor.core.publisher.Mono.from;
 import static reactor.core.scheduler.Schedulers.parallel;
 
-public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R, Flux<R>> {
+public final class FluxAdapter<T, ID, R> implements AssemblerAdapter<T, ID, R> {
 
     private final Scheduler scheduler;
 

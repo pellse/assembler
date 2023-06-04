@@ -171,7 +171,7 @@ public class FluxAssemblerJavaTest {
     @Test
     public void testReusableAssemblerBuilderWithFluxWithBuffering() {
 
-        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(toQueryFunction(this::getBillingInfo), BillingInfo::new)),
@@ -196,7 +196,7 @@ public class FluxAssemblerJavaTest {
 
         Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(orderItem11, orderItem13));
 
-        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(toQueryFunction(this::getBillingInfo), BillingInfo::new)),
@@ -224,7 +224,7 @@ public class FluxAssemblerJavaTest {
         Transaction transaction2 = new Transaction(customer2, null, emptyList());
         Transaction transaction3 = new Transaction(customer3, null, emptyList());
 
-        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne()),
@@ -244,7 +244,7 @@ public class FluxAssemblerJavaTest {
     @Test
     public void testReusableAssemblerBuilderWithFluxWithLists() {
 
-        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfoNonReactive), BillingInfo::new)),

@@ -17,6 +17,7 @@
 package io.github.pellse.reactive.assembler;
 
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
@@ -25,9 +26,9 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 @FunctionalInterface
-public interface AssemblerAdapter<T, ID, R, RC> {
+public interface AssemblerAdapter<T, ID, R> {
 
-    RC convertSubQueryMappers(
+    Flux<R> convertSubQueryMappers(
             Publisher<T> topLevelEntitiesProvider,
             Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> subQueryMapperBuilder,
             BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder);

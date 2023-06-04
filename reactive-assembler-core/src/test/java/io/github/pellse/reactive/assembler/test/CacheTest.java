@@ -763,7 +763,7 @@ public class CacheTest {
         CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
                 autoCache(orderItemFlux, CDCAdd.class::isInstance, CDC::item);
 
-        Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
+        Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, billingInfoAutoCache), BillingInfo::new)),

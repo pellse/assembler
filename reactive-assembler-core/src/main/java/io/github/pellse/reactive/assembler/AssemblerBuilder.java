@@ -218,11 +218,15 @@ public interface AssemblerBuilder {
 
     interface AssembleUsingBuilder<T, ID, R> {
 
-        Assembler<T, Flux<R>> build();
+        default Assembler<T, R> build() {
+            return build(fluxAdapter());
+        }
 
-        Assembler<T, Flux<R>> build(Scheduler scheduler);
+        default Assembler<T, R> build(Scheduler scheduler) {
+            return build(fluxAdapter(scheduler));
+        }
 
-        <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> adapter);
+        Assembler<T, R> build(AssemblerAdapter<T, ID, R> adapter);
     }
 
     class WithCorrelationIdResolverBuilderImpl<R> implements WithCorrelationIdResolverBuilder<R> {
@@ -270,25 +274,14 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public Assembler<T, Flux<R>> build() {
-            return build(fluxAdapter());
-        }
-
-        @Override
-        public Assembler<T, Flux<R>> build(Scheduler scheduler) {
-            return build(fluxAdapter(scheduler));
-        }
-
-
-        @Override
-        public <RC> Assembler<T, RC> build(AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
+        public Assembler<T, R> build(AssemblerAdapter<T, ID, R> assemblerAdapter) {
             return new AssemblerImpl<>(correlationIdResolver, rules, aggregationFunction, assemblerAdapter);
         }
     }
 
-    class AssemblerImpl<T, ID, R, RC> implements Assembler<T, RC> {
+    class AssemblerImpl<T, ID, R> implements Assembler<T, R> {
 
-        private final AssemblerAdapter<T, ID, R, RC> assemblerAdapter;
+        private final AssemblerAdapter<T, ID, R> assemblerAdapter;
         private final Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> subQueryMapperBuilder;
         private final BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder;
 
@@ -296,7 +289,7 @@ public interface AssemblerBuilder {
                 Function<T, ID> correlationIdResolver,
                 List<Rule<T, ID, ?>> rules,
                 BiFunction<T, Object[], R> aggregationFunction,
-                AssemblerAdapter<T, ID, R, RC> assemblerAdapter) {
+                AssemblerAdapter<T, ID, R> assemblerAdapter) {
 
             this.assemblerAdapter = assemblerAdapter;
 
@@ -320,7 +313,7 @@ public interface AssemblerBuilder {
         }
 
         @Override
-        public RC assemble(Publisher<T> topLevelEntitiesProvider) {
+        public Flux<R> assemble(Publisher<T> topLevelEntitiesProvider) {
             return assemblerAdapter.convertSubQueryMappers(topLevelEntitiesProvider, subQueryMapperBuilder, aggregateStreamBuilder);
         }
     }
