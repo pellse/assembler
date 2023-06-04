@@ -43,25 +43,37 @@ class FluxAssemblerKotlinTest {
     private val billingInvocationCount = AtomicInteger()
     private val ordersInvocationCount = AtomicInteger()
 
-    private fun getBillingInfo(customerIds: List<Long>): Publisher<BillingInfo> {
+    private fun getBillingInfo(customers: List<Customer>): Publisher<BillingInfo> {
+        
+        val customerIds = customers.map(Customer::customerId)
+        
         return Flux.just(billingInfo1, billingInfo3)
             .filter { customerIds.contains(it.customerId) }
             .doOnComplete(billingInvocationCount::incrementAndGet)
     }
 
-    private fun getAllOrders(customerIds: List<Long>): Publisher<OrderItem> {
+    private fun getAllOrders(customers: List<Customer>): Publisher<OrderItem> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
             .filter { customerIds.contains(it.customerId) }
             .doOnComplete(ordersInvocationCount::incrementAndGet)
     }
 
-    private fun getBillingInfoWithIdSet(customerIds: Set<Long>): Publisher<BillingInfo> {
+    private fun getBillingInfoWithIdSet(customers: Set<Customer>): Publisher<BillingInfo> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         return Flux.just(billingInfo1, billingInfo3)
             .filter { customerIds.contains(it.customerId()) }
             .doOnComplete { billingInvocationCount.incrementAndGet() }
     }
 
-    private fun getAllOrdersWithIdSet(customerIds: Set<Long>): Publisher<OrderItem> {
+    private fun getAllOrdersWithIdSet(customers: Set<Customer>): Publisher<OrderItem> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
             .filter { customerIds.contains(it.customerId()) }
             .doOnComplete { ordersInvocationCount.incrementAndGet() }
@@ -81,7 +93,10 @@ class FluxAssemblerKotlinTest {
         )
     }
 
-    private fun getBillingInfoNonReactive(customerIds: List<Long>): List<BillingInfo> {
+    private fun getBillingInfoNonReactive(customers: List<Customer>): List<BillingInfo> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         val list = listOf(billingInfo1, billingInfo3)
             .filter { billingInfo: BillingInfo -> customerIds.contains(billingInfo.customerId()) }
 
@@ -89,7 +104,10 @@ class FluxAssemblerKotlinTest {
         return list
     }
 
-    private fun getAllOrdersNonReactive(customerIds: List<Long>): List<OrderItem> {
+    private fun getAllOrdersNonReactive(customers: List<Customer>): List<OrderItem> {
+
+        val customerIds = customers.map(Customer::customerId)
+        
         val list = listOf(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
             .filter { orderItem: OrderItem -> customerIds.contains(orderItem.customerId()) }
 
@@ -108,7 +126,7 @@ class FluxAssemblerKotlinTest {
     fun testReusableAssemblerBuilderWithFluxWithBuffering() {
 
         val assembler = assembler<Transaction>()
-            .withCorrelationIdExtractor(Customer::customerId)
+            .withCorrelationIdResolver(Customer::customerId)
             .withAssemblerRules(
                 rule(BillingInfo::customerId, ::getBillingInfo.oneToOne(::BillingInfo)),
                 rule(OrderItem::customerId, ::getAllOrders.oneToMany(OrderItem::id)),
@@ -143,7 +161,7 @@ class FluxAssemblerKotlinTest {
     fun testReusableAssemblerBuilderTransactionSet() {
 
         val assembler = assembler<TransactionSet>()
-            .withCorrelationIdExtractor(Customer::customerId)
+            .withCorrelationIdResolver(Customer::customerId)
             .withAssemblerRules(
                 rule(BillingInfo::customerId, ::hashSetOf, ::getBillingInfoWithIdSet.oneToOne(::BillingInfo)),
                 rule(OrderItem::customerId, ::hashSetOf, ::getAllOrdersWithIdSet.oneToMany(OrderItem::id, ::hashSetOf)),
@@ -178,7 +196,7 @@ class FluxAssemblerKotlinTest {
     fun testReusableAssemblerBuilderWithNonReactiveDatasources() {
 
         val assembler = assembler<Transaction>()
-            .withCorrelationIdExtractor(Customer::customerId)
+            .withCorrelationIdResolver(Customer::customerId)
             .withAssemblerRules(
                 rule(BillingInfo::customerId, oneToOne(::getBillingInfoNonReactive.toPublisher(), ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrdersNonReactive.toPublisher())),
@@ -213,7 +231,7 @@ class FluxAssemblerKotlinTest {
     fun testReusableAssemblerBuilderWithNonReactiveCachedDatasources() {
 
         val assembler = assembler<Transaction>()
-            .withCorrelationIdExtractor(Customer::customerId)
+            .withCorrelationIdResolver(Customer::customerId)
             .withAssemblerRules(
                 rule(
                     BillingInfo::customerId,
@@ -250,7 +268,7 @@ class FluxAssemblerKotlinTest {
     @Test
     fun testReusableAssemblerBuilderWithCacheWindow3() {
         val assembler = assembler<Transaction>()
-            .withCorrelationIdExtractor(Customer::customerId)
+            .withCorrelationIdResolver(Customer::customerId)
             .withAssemblerRules(
                 rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(::sortedMapOf), ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached())),
@@ -285,7 +303,7 @@ class FluxAssemblerKotlinTest {
     @Test
     fun testReusableAssemblerBuilderWithCacheWindow2() {
         val assembler = assembler<Transaction>()
-            .withCorrelationIdExtractor(Customer::customerId)
+            .withCorrelationIdResolver(Customer::customerId)
             .withAssemblerRules(
                 rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache(::sortedMapOf)), ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached(caffeineCache()))),
@@ -327,7 +345,10 @@ class FluxAssemblerKotlinTest {
     @Test
     fun testReusableAssemblerBuilderWithAutoCachingEvents2() {
 
-        val getAllOrders = { customerIds: List<Long> ->
+        val getAllOrders = { customers: List<Customer> ->
+
+            val customerIds = customers.map(Customer::customerId)
+
             assertEquals(listOf(3L), customerIds)
             Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter { orderItem: OrderItem -> customerIds.contains(orderItem.customerId()) }
@@ -357,7 +378,7 @@ class FluxAssemblerKotlinTest {
         val transaction2 = Transaction(customer2, updatedBillingInfo2, listOf(orderItem21, orderItem22))
 
         val assembler = assembler<Transaction>()
-            .withCorrelationIdExtractor(Customer::customerId)
+            .withCorrelationIdResolver(Customer::customerId)
             .withAssemblerRules(
                 rule(
                     BillingInfo::customerId,
@@ -411,7 +432,7 @@ class FluxAssemblerKotlinTest {
         )
 
         val assembler = assembler<Transaction>()
-            .withCorrelationIdExtractor(Customer::customerId)
+            .withCorrelationIdResolver(Customer::customerId)
             .withAssemblerRules(
                 rule(BillingInfo::customerId,
                     oneToOne(

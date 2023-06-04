@@ -57,7 +57,7 @@ public class AkkaSourceAssemblerTest {
         TestKit probe = new TestKit(system);
 
         Source<Transaction, ?> transactionSource = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -78,7 +78,7 @@ public class AkkaSourceAssemblerTest {
 
         assertThrows(UncheckedException.class, () -> {
             Source<Transaction, ?> transactionSource = assemblerOf(Transaction.class)
-                    .withIdExtractor(Customer::customerId)
+                    .withIdResolver(Customer::customerId)
                     .withAssemblerRules(
                             oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
                             oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
@@ -102,7 +102,7 @@ public class AkkaSourceAssemblerTest {
         TestKit probe = new TestKit(system);
 
         Source<Transaction, ?> transactionSource = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -127,7 +127,7 @@ public class AkkaSourceAssemblerTest {
                 .groupedWithin(3, ofSeconds(5))
                 .flatMapConcat(customerList ->
                         assemblerOf(Transaction.class)
-                                .withIdExtractor(Customer::customerId)
+                                .withIdResolver(Customer::customerId)
                                 .withAssemblerRules(
                                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -149,7 +149,7 @@ public class AkkaSourceAssemblerTest {
         TestKit probe = new TestKit(system);
 
         Assembler<Customer, Source<Transaction, ?>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),

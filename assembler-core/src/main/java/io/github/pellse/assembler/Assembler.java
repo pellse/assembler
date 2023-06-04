@@ -45,7 +45,7 @@ public interface Assembler<T, RC> {
 
     /**
      * @param topLevelEntitiesProvider e.g. {@code () -> List<Customer>}
-     * @param idExtractor              e.g. {@code Customer::getCustomerId}
+     * @param idResolver              e.g. {@code Customer::getCustomerId}
      * @param subQueryMappers          e.g. {@code [ Mapper<Long, BillingInfo>, Mapper<Long, List<OrderItem>> ]}
      * @param aggregationFunction      e.g. {@code buildTransaction(customer, [ billingInfo, orderItemList ])}
      * @param assemblerAdapter         Pluggable execution engine for invoking top and sub queries (e.g. Project Reactor, RxJava)
@@ -59,14 +59,14 @@ public interface Assembler<T, RC> {
      */
     static <T, ID, R, RC>
     RC assembleFromSupplier(CheckedSupplier<Iterable<T>, Throwable> topLevelEntitiesProvider,
-                            Function<T, ID> idExtractor,
+                            Function<T, ID> idResolver,
                             List<Mapper<ID, ?, ?>> subQueryMappers,
                             BiFunction<T, Object[], R> aggregationFunction,
                             AssemblerAdapter<T, ID, R, RC> assemblerAdapter,
                             Function<Throwable, RuntimeException> errorConverter) {
 
         Function<Iterable<T>, Stream<Supplier<Map<ID, ?>>>> mapperSourcesBuilder = topLevelEntities ->
-                buildSubQueryMapperSources(topLevelEntities, idExtractor, subQueryMappers, errorConverter);
+                buildSubQueryMapperSources(topLevelEntities, idResolver, subQueryMappers, errorConverter);
 
         // We create a function that takes 2 arguments:
         // 1- a topLevelEntity from our main query
@@ -78,7 +78,7 @@ public interface Assembler<T, RC> {
         BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
                 (topLevelEntity, listOfMapperResults) -> aggregationFunction.apply(topLevelEntity,
                         listOfMapperResults.stream()
-                                .map(mapperResult -> mapperResult.get(idExtractor.apply(topLevelEntity)))
+                                .map(mapperResult -> mapperResult.get(idResolver.apply(topLevelEntity)))
                                 .toArray());
 
         // We create another function that takes a list of Map returned from our sub queries
@@ -99,7 +99,7 @@ public interface Assembler<T, RC> {
     }
 
     static <T, ID> Stream<Supplier<Map<ID, ?>>> buildSubQueryMapperSources(Iterable<T> topLevelEntities,
-                                                                                  Function<T, ID> idExtractor,
+                                                                                  Function<T, ID> idResolver,
                                                                                   List<Mapper<ID, ?, ?>> subQueryMappers,
                                                                                   Function<Throwable, RuntimeException> errorConverter) {
         // Conversion from Mapper to java.util.function.Supplier<java.util.Map>,
@@ -114,7 +114,7 @@ public interface Assembler<T, RC> {
         // We extract the IDs from the collection of top level entities e.g. from List<Customer> to List<Long>
         List<ID> entityIDs = toStream(topLevelEntities)
                 .filter(Objects::nonNull)
-                .map(idExtractor)
+                .map(idResolver)
                 .collect(toList());
 
         return subQueryMappers.stream()

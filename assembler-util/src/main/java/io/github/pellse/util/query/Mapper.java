@@ -19,7 +19,7 @@ package io.github.pellse.util.query;
 import java.util.Map;
 
 @FunctionalInterface
-public interface Mapper<ID, R, EX extends Throwable> {
+public interface Mapper<T, ID, R, EX extends Throwable> {
 
-    Map<ID, R> apply(Iterable<ID> entityIds) throws EX;
+    Map<ID, R> apply(Iterable<T> entities) throws EX;
 }

@@ -62,7 +62,7 @@ class PublisherBuilderAssemblerTest {
         };
 
         PublisherBuilder<Transaction> transactionPublisherBuilder = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -94,7 +94,7 @@ class PublisherBuilderAssemblerTest {
         };
 
         PublisherBuilder<Transaction> transactionPublisherBuilder = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -122,7 +122,7 @@ class PublisherBuilderAssemblerTest {
 
         assertThrows(UserDefinedRuntimeException.class, () -> {
             PublisherBuilder<Transaction> transactionPublisherBuilder = assemblerOf(Transaction.class)
-                    .withIdExtractor(Customer::customerId)
+                    .withIdResolver(Customer::customerId)
                     .withAssemblerRules(
                             oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
                             oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
@@ -145,7 +145,7 @@ class PublisherBuilderAssemblerTest {
         StepVerifier.create(Flux.fromIterable(getCustomers())
                 .buffer(3)
                 .concatMap(customers -> assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::customerId)
+                        .withIdResolver(Customer::customerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -162,7 +162,7 @@ class PublisherBuilderAssemblerTest {
     void testReusableAssemblerBuilderWithPublisherBuilderWithBufferingFlux() {
 
         Assembler<Customer, PublisherBuilder<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -186,7 +186,7 @@ class PublisherBuilderAssemblerTest {
         final Flowable<Transaction> transactionFlowable = Flowable.fromIterable(getCustomers())
                 .buffer(3)
                 .concatMap(customers -> assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::customerId)
+                        .withIdResolver(Customer::customerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -203,7 +203,7 @@ class PublisherBuilderAssemblerTest {
     void testReusableAssemblerWithPublisherBuilderWithBufferingRxJava() {
 
         Assembler<Customer, Publisher<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),

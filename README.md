@@ -72,7 +72,7 @@ import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.Rule.rule;
     
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdExtractor(Customer::customerId)
+  .withCorrelationIdResolver(Customer::customerId)
   .withAssemblerRules(
     rule(BillingInfo::customerId, oneToOne(this::getBillingInfo)),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
@@ -118,7 +118,7 @@ import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
     
 var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdExtractor(Customer::customerId)
+  .withCorrelationIdResolver(Customer::customerId)
   .withAssemblerRules(
     rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo))),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
@@ -148,7 +148,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheFactory.cache;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
     
 var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdExtractor(Customer::customerId)
+  .withCorrelationIdResolver(Customer::customerId)
   .withAssemblerRules(
     rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache(TreeMap::new)))),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(TreeMap::new)))),
@@ -184,7 +184,7 @@ Caffeine<Object, Object> cacheBuilder = newBuilder()
   .maximumSize(1000);
 
 var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdExtractor(Customer::customerId)
+  .withCorrelationIdResolver(Customer::customerId)
   .withAssemblerRules(
     rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(cacheBuilder)))),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
@@ -213,7 +213,7 @@ Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, e
 Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 
 var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdExtractor(Customer::customerId)
+  .withCorrelationIdResolver(Customer::customerId)
   .withAssemblerRules(
     rule(BillingInfo::customerId,
       oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoFlux)))),
@@ -249,7 +249,7 @@ Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, e
 Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 
 var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdExtractor(Customer::customerId)
+  .withCorrelationIdResolver(Customer::customerId)
   .withAssemblerRules(
     rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
       autoCacheBuilder(billingInfoFlux)
@@ -316,7 +316,7 @@ CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
   autoCache(orderItemFlux, ItemUpdated.class::isInstance, MyEvent::item);
 
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdExtractor(Customer::customerId)
+  .withCorrelationIdResolver(Customer::customerId)
   .withAssemblerRules(
     rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, billingInfoAutoCache))),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, orderItemAutoCache))),
@@ -344,7 +344,7 @@ List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
 List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
 
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdExtractor(Customer::customerId)
+  .withCorrelationIdResolver(Customer::customerId)
   .withAssemblerRules(
     rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, toPublisher(this::getAllOrders))),
@@ -384,7 +384,7 @@ import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache
 import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder
 
 val assembler = assembler<Transaction>()
-  .withCorrelationIdExtractor(Customer::customerId)
+  .withCorrelationIdResolver(Customer::customerId)
   .withAssemblerRules(
     rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache(::sortedMapOf),
       autoCache(billingInfoFlux, ItemUpdated::class::isInstance) { it.item }))),

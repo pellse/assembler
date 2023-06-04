@@ -47,7 +47,7 @@ public class ParallelStreamAssemblerTest {
     public void testAssembleBuilder() {
 
         List<Transaction> transactions = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -63,7 +63,7 @@ public class ParallelStreamAssemblerTest {
     public void testAssembleBuilderWithException() {
 
         assertThrows(UncheckedException.class, () -> assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
@@ -76,7 +76,7 @@ public class ParallelStreamAssemblerTest {
     public void testAssembleBuilderWithLinkedListIds() {
 
         List<TransactionSet> transactions = assemblerOf(TransactionSet.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfoWithSetIds, BillingInfo::customerId, BillingInfo::new, HashSet::new),
                         oneToManyAsSet(AssemblerTestUtils::getAllOrdersWithLinkedListIds, OrderItem::customerId, LinkedList::new),

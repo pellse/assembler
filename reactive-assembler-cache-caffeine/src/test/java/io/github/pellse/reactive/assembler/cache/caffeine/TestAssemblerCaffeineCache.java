@@ -38,7 +38,6 @@ import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.reactive.assembler.Rule.rule;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.RuleMapperSource.from;
 import static io.github.pellse.reactive.assembler.RuleMapperSource.pipe;
 import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
@@ -47,6 +46,7 @@ import static io.github.pellse.reactive.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.reactive.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtils.*;
+import static io.github.pellse.util.collection.CollectionUtil.transform;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.parallel;
@@ -56,13 +56,19 @@ public class TestAssemblerCaffeineCache {
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-    private Publisher<BillingInfo> getBillingInfo(List<Long> customerIds) {
+    private Publisher<BillingInfo> getBillingInfo(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(billingInfo1, billingInfo3)
                 .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                 .doOnComplete(billingInvocationCount::incrementAndGet);
     }
 
-    private Publisher<OrderItem> getAllOrders(List<Long> customerIds) {
+    private Publisher<OrderItem> getAllOrders(List<Customer> customers) {
+
+        var customerIds = transform(customers, Customer::customerId);
+
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                 .doOnComplete(ordersInvocationCount::incrementAndGet);
@@ -82,7 +88,7 @@ public class TestAssemblerCaffeineCache {
     public void testReusableAssemblerBuilderWithCaffeineCache() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
@@ -106,7 +112,7 @@ public class TestAssemblerCaffeineCache {
     public void testReusableAssemblerBuilderWithCaffeineCache2() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
@@ -130,7 +136,7 @@ public class TestAssemblerCaffeineCache {
     public void testReusableAssemblerBuilderWithDoubleCaching() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cached(this::getAllOrders, caffeineCache())))),
@@ -154,21 +160,18 @@ public class TestAssemblerCaffeineCache {
     public void testReusableAssemblerBuilderWithTripleCaching() {
 
         var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
-                        rule(BillingInfo::customerId, oneToOne(
-                                pipe(
+                        rule(BillingInfo::customerId, oneToOne(pipe(
                                         cached(this::getBillingInfo, caffeineCache()),
                                         CacheFactory::cached,
                                         CacheFactory::cached),
                                 BillingInfo::new)),
                         rule(OrderItem::customerId,
-                                oneToMany(OrderItem::id,
-                                        from(this::getAllOrders)
-                                                .pipe(ruleMapperSource -> cached(ruleMapperSource, caffeineCache()))
-                                                .pipe(CacheFactory::cached)
-                                                .pipeAndGet(CacheFactory::cached)
-                                )),
+                                oneToMany(OrderItem::id, pipe(
+                                        cached(this::getAllOrders, caffeineCache()),
+                                        CacheFactory::cached,
+                                        CacheFactory::cached))),
                         Transaction::new)
                 .build();
 
@@ -189,10 +192,10 @@ public class TestAssemblerCaffeineCache {
     public void testReusableAssemblerBuilderWithFaultyQueryFunction() {
 
         Transaction defaultTransaction = new Transaction(null, null, null);
-        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = ids -> Flux.error(new IOException());
+        Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = entities -> Flux.error(new IOException());
 
         var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, caffeineCache()), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
@@ -224,7 +227,7 @@ public class TestAssemblerCaffeineCache {
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
 
         var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(dataSource1)))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCache(dataSource2)))),
@@ -275,7 +278,7 @@ public class TestAssemblerCaffeineCache {
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
         var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdExtractor(Customer::customerId)
+                .withCorrelationIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(caffeineCache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),

@@ -24,16 +24,16 @@ import io.github.pellse.reactive.assembler.caching.CacheFactory.cache
 import org.reactivestreams.Publisher
 import java.util.function.Function
 
-fun <ID, EID, IDC : Collection<ID>, R, RRC> ((IDC) -> Publisher<R>).cached(
+fun <T, TC : Collection<T>, ID, EID, R, RRC> ((TC) -> Publisher<R>).cached(
     vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
-): RuleMapperSource<ID, EID, IDC, R, RRC> = cached(this, *delegateCacheFactories)
+): RuleMapperSource<T, TC, ID, EID, R, RRC> = cached(this, *delegateCacheFactories)
 
-fun <ID, EID, IDC : Collection<ID>, R, RRC> ((IDC) -> Publisher<R>).cached(
+fun <T, TC : Collection<T>, ID, EID, R, RRC> ((TC) -> Publisher<R>).cached(
     mapFactory: () -> MutableMap<ID, List<R>>,
     vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
-): RuleMapperSource<ID, EID, IDC, R, RRC> = cached(this, cache(mapFactory), *delegateCacheFactories)
+): RuleMapperSource<T, TC, ID, EID, R, RRC> = cached(this, cache(mapFactory), *delegateCacheFactories)
 
-fun <ID, EID, IDC : Collection<ID>, R, RRC> ((IDC) -> Publisher<R>).cached(
+fun <T, TC : Collection<T>, ID, EID, R, RRC> ((TC) -> Publisher<R>).cached(
     cache: CacheFactory<ID, R, RRC>,
     vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
-): RuleMapperSource<ID, EID, IDC, R, RRC> = cached(this, cache, *delegateCacheFactories)
+): RuleMapperSource<T, TC, ID, EID, R, RRC> = cached(this, cache, *delegateCacheFactories)

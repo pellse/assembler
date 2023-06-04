@@ -42,7 +42,7 @@ public class FluxAssemblerTest {
 
         StepVerifier.create(
                 assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::customerId)
+                        .withIdResolver(Customer::customerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -60,7 +60,7 @@ public class FluxAssemblerTest {
 
         StepVerifier.create(
                 assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::customerId)
+                        .withIdResolver(Customer::customerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::throwSQLException, BillingInfo::customerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::throwSQLException, OrderItem::customerId),
@@ -78,7 +78,7 @@ public class FluxAssemblerTest {
         StepVerifier.create(Flux.fromIterable(getCustomers())
                 .buffer(3)
                 .concatMap(customers -> assemblerOf(Transaction.class)
-                        .withIdExtractor(Customer::customerId)
+                        .withIdResolver(Customer::customerId)
                         .withAssemblerRules(
                                 oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                                 oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),
@@ -95,7 +95,7 @@ public class FluxAssemblerTest {
     public void testReusableAssemblerBuilderWithFluxWithBuffering() {
 
         Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-                .withIdExtractor(Customer::customerId)
+                .withIdResolver(Customer::customerId)
                 .withAssemblerRules(
                         oneToOne(AssemblerTestUtils::getBillingInfo, BillingInfo::customerId, BillingInfo::new),
                         oneToManyAsList(AssemblerTestUtils::getAllOrders, OrderItem::customerId),

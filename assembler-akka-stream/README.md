@@ -16,7 +16,7 @@ ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
 Source<Transaction, NotUsed> transactionSource = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -33,7 +33,7 @@ ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
 Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -53,7 +53,7 @@ ActorSystem system = ActorSystem.create();
 Materializer mat = ActorMaterializer.create(system);
 
 Assembler<Customer, Source<Transaction, NotUsed>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
