@@ -1,5 +1,5 @@
 # CohereFlux
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=reactive-assembler-core)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/cohereflux-core.svg?label=cohereflux-core)](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/cohereflux-core.svg)](http://javadoc.io/doc/io.github.pellse/cohereflux-core)
 [![Twitter Follow](https://img.shields.io/twitter/follow/sebastien_pel?label=Follow%20@sebastien_pel&style=social)](https://twitter.com/sebastien_pel)
 
 The Assembler Library is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless Java API that enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying and merging data from multiple data sources/services. This library is also designed to solve the N + 1 query problem and is architecture-agnostic, allowing it to be used as part of a monolithic or microservice architecture.
@@ -61,7 +61,7 @@ In cases where the `getCustomers()` method returns a substantial number of custo
 
 As we are working with three distinct and independent data sources, the process of joining data from `Customer`, `BillingInfo`, and `OrderItem` into a `Transaction` must be performed at the application level. This is the primary objective of this library.
 
-When utilizing the [Assembler Library](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core), the aggregation of multiple reactive data sources and the implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) can be accomplished as follows:
+When utilizing the [Assembler Library](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-core), the aggregation of multiple reactive data sources and the implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) can be accomplished as follows:
 
 ```java
 import reactor.core.publisher.Flux;
@@ -168,7 +168,7 @@ Below is a compilation of supplementary modules that are available for integrati
 
 | Assembler add-on module | Third party cache library |
 | --- | --- |
-| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=reactive-assembler-cache-caffeine)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
+| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/cohereflux-cache-caffeine.svg?label=cohereflux-cache-caffeine)](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
 Here is a sample implementation of `CacheFactory` that showcases the use of the [Caffeine](https://github.com/ben-manes/caffeine) library, which can be accomplished via the `caffeineCache()` helper method. This helper method is provided as part of the caffeine add-on module:
 
@@ -366,7 +366,7 @@ List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
 [:arrow_up:](#table-of-contents)
 
 ## Kotlin Support
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-kotlin-extension.svg?label=reactive-assembler-kotlin-extension)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-kotlin-extension)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/cohereflux-kotlin-extension.svg?label=cohereflux-kotlin-extension)](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-kotlin-extension)
 ```kotlin
 sealed interface MyEvent<T> {
   val item: T
