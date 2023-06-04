@@ -1,4 +1,4 @@
-# Assembler
+# CohereFlux
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-core.svg?label=reactive-assembler-core)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/reactive-assembler-core.svg)](http://javadoc.io/doc/io.github.pellse/reactive-assembler-core)
 [![Twitter Follow](https://img.shields.io/twitter/follow/sebastien_pel?label=Follow%20@sebastien_pel&style=social)](https://twitter.com/sebastien_pel)
 
