@@ -2,6 +2,12 @@
 /build/
 !gradle/wrapper/gradle-wrapper.jar
 
+/assembler-akka-stream/
+/assembler-core/
+/assembler-flux/
+/assembler-reactive-stream-operators/
+/assembler-rxjava/
+
 ### STS ###
 .apt_generated
 .classpath
