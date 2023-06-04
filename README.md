@@ -65,21 +65,22 @@ When utilizing the [Assembler Library](https://central.sonatype.com/artifact/io.
 
 ```java
 import reactor.core.publisher.Flux;
-import io.github.pellse.reactive.assembler.Assembler;
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-    
-Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdResolver(Customer::customerId)
-  .withAssemblerRules(
-    rule(BillingInfo::customerId, oneToOne(this::getBillingInfo)),
-    rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
-    Transaction::new)
-  .build();
+import io.github.pellse.cohereflux.CohereFlux;
 
-Flux<Transaction> transactionFlux = assembler.assemble(getCustomers());
+import static io.github.pellse.cohereflux.CohereFluxBuilder.assemblerOf;
+import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
+import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.Rule.rule;
+    
+Assembler<Customer, Flux<Transaction>>assembler=assemblerOf(Transaction.class)
+        .withCorrelationIdResolver(Customer::customerId)
+        .withAssemblerRules(
+        rule(BillingInfo::customerId,oneToOne(this::getBillingInfo)),
+        rule(OrderItem::customerId,oneToMany(OrderItem::id,this::getAllOrders)),
+        Transaction::new)
+        .build();
+
+        Flux<Transaction> transactionFlux=assembler.assemble(getCustomers());
 ```
 The code snippet above demonstrates the process of first retrieving all customers, followed by the concurrent retrieval of all billing information and orders (in a single query) associated with the previously retrieved customers, as defined by the assembler rules. The final step involves aggregating each customer, their respective billing information, and list of order items (related by the same customer id) into a `Transaction` object. This results in a reactive stream (`Flux`) of `Transaction` objects.
 
@@ -109,25 +110,27 @@ Flux<Transaction> transactionFlux = getCustomers()
 
 ## Reactive Caching
 Apart from offering convenient helper functions to define mapping semantics such as `oneToOne()` and `oneToMany()`, the Assembler library also includes a caching/memoization mechanism for the downstream subqueries via the `cached()` wrapper function:
+
 ```java
-import io.github.pellse.reactive.assembler.Assembler;
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+import io.github.pellse.cohereflux.CohereFlux;
+
+import static io.github.pellse.cohereflux.CohereFluxBuilder.assemblerOf;
+import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
+import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.Rule.rule;
+import static caching.io.github.pellse.cohereflux.CacheFactory.cached;
     
-var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdResolver(Customer::customerId)
-  .withAssemblerRules(
-    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo))),
-    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
-    Transaction::new)
-  .build();
-    
-var transactionFlux = getCustomers()
-  .window(3)
-  .flatMapSequential(assembler::assemble);
+var assembler=assemblerOf(Transaction.class)
+        .withCorrelationIdResolver(Customer::customerId)
+        .withAssemblerRules(
+        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo))),
+        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders))),
+        Transaction::new)
+        .build();
+
+        var transactionFlux=getCustomers()
+        .window(3)
+        .flatMapSequential(assembler::assemble);
 ```
 
 [:arrow_up:](#table-of-contents)
@@ -138,22 +141,24 @@ The `cached()` function includes overloaded versions that enable users to utiliz
 ***All `Cache` implementations are internally decorated with non-blocking concurrency controls, making them safe for concurrent access and modifications.***
 
 Here is an example of a different approach that users can use to explicitly customize the caching mechanism e.g. storing cache entries in a `TreeMap`:
+
 ```java
-import io.github.pellse.reactive.assembler.Assembler;
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.caching.CacheFactory.cache;
-import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
+import io.github.pellse.cohereflux.CohereFlux;
+
+import static io.github.pellse.cohereflux.CohereFluxBuilder.assemblerOf;
+import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
+import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.Rule.rule;
+import static caching.io.github.pellse.cohereflux.CacheFactory.cache;
+import static caching.io.github.pellse.cohereflux.CacheFactory.cached;
     
-var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdResolver(Customer::customerId)
-  .withAssemblerRules(
-    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache(TreeMap::new)))),
-    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(TreeMap::new)))),
-    Transaction::new)
-  .build();
+var assembler=assemblerOf(Transaction.class)
+        .withCorrelationIdResolver(Customer::customerId)
+        .withAssemblerRules(
+        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,cache(TreeMap::new)))),
+        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,cache(TreeMap::new)))),
+        Transaction::new)
+        .build();
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -166,30 +171,31 @@ Below is a compilation of supplementary modules that are available for integrati
 | [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/reactive-assembler-cache-caffeine.svg?label=reactive-assembler-cache-caffeine)](https://central.sonatype.com/artifact/io.github.pellse/reactive-assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
 Here is a sample implementation of `CacheFactory` that showcases the use of the [Caffeine](https://github.com/ben-manes/caffeine) library, which can be accomplished via the `caffeineCache()` helper method. This helper method is provided as part of the caffeine add-on module:
+
 ```java
 import com.github.benmanes.caffeine.cache.Caffeine;
+
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.CacheFactory.cached;
-import static io.github.pellse.reactive.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
-import static java.time.Duration.ofMinutes;
+import static io.github.pellse.cohereflux.CohereFluxBuilder.assemblerOf;
+import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
+import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.Rule.rule;
+import static io.github.pellse.reactive.cohereflux.CacheFactory.cached;
+import static caffeine.cache.io.github.pellse.cohereflux.CaffeineCacheFactory.caffeineCache;
 
-Caffeine<Object, Object> cacheBuilder = newBuilder()
-  .recordStats()
-  .expireAfterWrite(ofMinutes(10))
-  .maximumSize(1000);
+Caffeine<Object, Object> cacheBuilder=newBuilder()
+        .recordStats()
+        .expireAfterWrite(ofMinutes(10))
+        .maximumSize(1000);
 
-var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdResolver(Customer::customerId)
-  .withAssemblerRules(
-    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(cacheBuilder)))),
-    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
-    Transaction::new)
-  .build();
+        var assembler=assemblerOf(Transaction.class)
+        .withCorrelationIdResolver(Customer::customerId)
+        .withAssemblerRules(
+        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,caffeineCache(cacheBuilder)))),
+        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,caffeineCache()))),
+        Transaction::new)
+        .build();
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -199,78 +205,80 @@ In addition to the cache mechanism provided by the `cached()` function, the Asse
 The auto caching mechanism in the Assembler Library can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value per key from its associated data stream. However, the Assembler Library is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
 
 This is how `autoCache()` connects to a data stream and automatically and asynchronously update the cache in real-time:
+
 ```java
 import reactor.core.publisher.Flux;
-import io.github.pellse.reactive.assembler.Assembler;
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory;
+import io.github.pellse.cohereflux.CohereFlux;
 
-Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
-Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+import static io.github.pellse.cohereflux.CohereFluxBuilder.assemblerOf;
+import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
+import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.Rule.rule;
+import static caching.io.github.pellse.cohereflux.CacheFactory.cached;
+import static caching.io.github.pellse.cohereflux.AutoCacheFactory;
 
-var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdResolver(Customer::customerId)
-  .withAssemblerRules(
-    rule(BillingInfo::customerId,
-      oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(billingInfoFlux)))),
-    rule(OrderItem::customerId,
-      oneToMany(OrderItem::id, cached(this::getAllOrders, autoCache(orderItemFlux)))),
-    Transaction::new)
-  .build();
-    
-var transactionFlux = getCustomers()
-  .window(3)
-  .flatMapSequential(assembler::assemble);
+Flux<BillingInfo> billingInfoFlux=... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+        Flux<OrderItem> orderItemFlux=... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+
+        var assembler=assemblerOf(Transaction.class)
+        .withCorrelationIdResolver(Customer::customerId)
+        .withAssemblerRules(
+        rule(BillingInfo::customerId,
+        oneToOne(cached(this::getBillingInfo,caffeineCache(),autoCache(billingInfoFlux)))),
+        rule(OrderItem::customerId,
+        oneToMany(OrderItem::id,cached(this::getAllOrders,autoCache(orderItemFlux)))),
+        Transaction::new)
+        .build();
+
+        var transactionFlux=getCustomers()
+        .window(3)
+        .flatMapSequential(assembler::assemble);
 ```
 
 It is also possible to customize the Auto Caching configuration via `autoCacheBuilder()`:
+
 ```java
 import reactor.core.publisher.Flux;
-import io.github.pellse.reactive.assembler.Assembler;
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.OnErrorMap.onErrorMap;
+import io.github.pellse.cohereflux.CohereFlux;
+
+import static io.github.pellse.cohereflux.CohereFluxBuilder.assemblerOf;
+import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
+import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.Rule.rule;
+import static caching.io.github.pellse.cohereflux.CacheFactory.cached;
+import static caching.io.github.pellse.cohereflux.AutoCacheFactoryBuilder.autoCacheBuilder;
+import static caching.io.github.pellse.cohereflux.AutoCacheFactory.OnErrorMap.onErrorMap;
 import static reactor.core.scheduler.Schedulers.newParallel;
-import static java.time.Duration.*;
-import static java.lang.System.Logger.Level.WARNING;
 import static java.lang.System.getLogger;
 
-var logger = getLogger("auto-cache-logger");
+var logger=getLogger("auto-cache-logger");
 
-Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
-Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+        Flux<BillingInfo> billingInfoFlux=... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+        Flux<OrderItem> orderItemFlux=... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 
-var assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdResolver(Customer::customerId)
-  .withAssemblerRules(
-    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
-      autoCacheBuilder(billingInfoFlux)
-        .maxWindowSizeAndTime(100, ofSeconds(5))
-        .errorHandler(error -> logger.log(WARNING, "Error in autoCache", error))
+        var assembler=assemblerOf(Transaction.class)
+        .withCorrelationIdResolver(Customer::customerId)
+        .withAssemblerRules(
+        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,
+        autoCacheBuilder(billingInfoFlux)
+        .maxWindowSizeAndTime(100,ofSeconds(5))
+        .errorHandler(error->logger.log(WARNING,"Error in autoCache",error))
         .scheduler(newParallel("billing-info"))
         .maxRetryStrategy(50)
         .build()))),
-    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders,
-      autoCacheBuilder(orderItemFlux)
+        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,
+        autoCacheBuilder(orderItemFlux)
         .maxWindowSize(50)
         .errorHandler(onErrorMap(MyException::new))
         .scheduler(newParallel("order-item"))
-        .backoffRetryStrategy(100, ofMillis(10))
+        .backoffRetryStrategy(100,ofMillis(10))
         .build()))),
-    Transaction::new)
-  .build();
-    
-var transactionFlux = getCustomers()
-  .window(3)
-  .flatMapSequential(assembler::assemble);
+        Transaction::new)
+        .build();
+
+        var transactionFlux=getCustomers()
+        .window(3)
+        .flatMapSequential(assembler::assemble);
 ```
 By default, the cache is updated for every element from the incoming stream of data, but it can be configured to batch the cache updates, useful when we are updating a remote cache to optimize network calls
 
@@ -299,57 +307,61 @@ Flux<MyEvent<OrderItem>> orderItemFlux = Flux.just(
   new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
 ```
 Here is how `autoCache()` can be used to adapt those custom domain events to add, update or delete entries from the cache in real-time:
+
 ```java
-import io.github.pellse.reactive.assembler.Assembler;
-import io.github.pellse.reactive.assembler.caching.CacheFactory.CacheTransformer;
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache;
+import io.github.pellse.cohereflux.CohereFlux;
+import caching.io.github.pellse.cohereflux.CacheFactory.CacheTransformer;
+
+import static io.github.pellse.cohereflux.CohereFluxBuilder.assemblerOf;
+import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
+import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.Rule.rule;
+import static caching.io.github.pellse.cohereflux.CacheFactory.cached;
+import static caching.io.github.pellse.cohereflux.AutoCacheFactory.autoCache;
     
-CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
-  autoCache(billingInfoFlux, MyOtherEvent::isAddOrUpdateEvent, MyOtherEvent::value);
+CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache=
+        autoCache(billingInfoFlux,MyOtherEvent::isAddOrUpdateEvent,MyOtherEvent::value);
 
-CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
-  autoCache(orderItemFlux, ItemUpdated.class::isInstance, MyEvent::item);
+        CacheTransformer<Long, OrderItem, List<OrderItem>>orderItemAutoCache=
+        autoCache(orderItemFlux,ItemUpdated.class::isInstance,MyEvent::item);
 
-Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdResolver(Customer::customerId)
-  .withAssemblerRules(
-    rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, billingInfoAutoCache))),
-    rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, orderItemAutoCache))),
-    Transaction::new)
-  .build();
+        Assembler<Customer, Flux<Transaction>>assembler=assemblerOf(Transaction.class)
+        .withCorrelationIdResolver(Customer::customerId)
+        .withAssemblerRules(
+        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,billingInfoAutoCache))),
+        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,orderItemAutoCache))),
+        Transaction::new)
+        .build();
 
-var transactionFlux = getCustomers()
-  .window(3)
-  .flatMapSequential(assembler::assemble);
+        var transactionFlux=getCustomers()
+        .window(3)
+        .flatMapSequential(assembler::assemble);
 ```
 [:arrow_up:](#table-of-contents)
 
 ## Integration with non-reactive sources
 A utility function `toPublisher()` is also provided to wrap non-reactive sources, useful when e.g. calling 3rd party synchronous APIs:
+
 ```java
 import reactor.core.publisher.Flux;
-import io.github.pellse.reactive.assembler.Assembler;
-import static io.github.pellse.reactive.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
-import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.reactive.assembler.Rule.rule;
-import static io.github.pellse.reactive.assembler.QueryUtils.toPublisher;
+import io.github.pellse.cohereflux.CohereFlux;
+
+import static io.github.pellse.cohereflux.CohereFluxBuilder.assemblerOf;
+import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
+import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.Rule.rule;
+import static io.github.pellse.cohereflux.QueryUtils.toPublisher;
 
 List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
-List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
+        List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
 
-Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-  .withCorrelationIdResolver(Customer::customerId)
-  .withAssemblerRules(
-    rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfo))),
-    rule(OrderItem::customerId, oneToMany(OrderItem::id, toPublisher(this::getAllOrders))),
-    Transaction::new)
-  .build();
+        Assembler<Customer, Flux<Transaction>>assembler=assemblerOf(Transaction.class)
+        .withCorrelationIdResolver(Customer::customerId)
+        .withAssemblerRules(
+        rule(BillingInfo::customerId,oneToOne(toPublisher(this::getBillingInfo))),
+        rule(OrderItem::customerId,oneToMany(OrderItem::id,toPublisher(this::getAllOrders))),
+        Transaction::new)
+        .build();
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -374,14 +386,14 @@ val orderItemFlux: Flux<MyEvent<OrderItem>> = Flux.just(
   ItemDeleted(orderItem31), ItemDeleted(orderItem32), ItemDeleted(orderItem33))
 ```
 ```kotlin
-import io.github.pellse.reactive.assembler.kotlin.assembler
-import io.github.pellse.reactive.assembler.kotlin.cached
-import io.github.pellse.reactive.assembler.RuleMapper.oneToMany
-import io.github.pellse.reactive.assembler.RuleMapper.oneToOne
-import io.github.pellse.reactive.assembler.Rule.rule
-import io.github.pellse.reactive.assembler.caching.CacheFactory.cache
-import io.github.pellse.reactive.assembler.caching.AutoCacheFactory.autoCache
-import io.github.pellse.reactive.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder
+import io.github.pellse.reactive.cohereflux.kotlin.assembler
+import io.github.pellse.reactive.cohereflux.kotlin.cached
+import io.github.pellse.cohereflux.RuleMapper.oneToMany
+import io.github.pellse.cohereflux.RuleMapper.oneToOne
+import io.github.pellse.cohereflux.Rule.rule
+import caching.io.github.pellse.cohereflux.CacheFactory.cache
+import caching.io.github.pellse.cohereflux.AutoCacheFactory.autoCache
+import caching.io.github.pellse.cohereflux.AutoCacheFactoryBuilder.autoCacheBuilder
 
 val assembler = assembler<Transaction>()
   .withCorrelationIdResolver(Customer::customerId)
