@@ -60,9 +60,9 @@ public interface CaffeineCacheFactory {
 
         final AsyncCache<ID, List<R>> delegateCache = caffeine.buildAsync();
 
-        return (fetchFunction, __) -> adapterCache(
-                (ids, computeIfAbsent) -> fromFuture(delegateCache.getAll(ids, (keys, executor) ->
-                        computeIfAbsent
+        return __ -> adapterCache(
+                (ids, fetchFunction) -> fromFuture(delegateCache.getAll(ids, (keys, executor) ->
+                        fetchFunction != null
                                 ? fetchFunction.apply(keys).subscribeOn(fromExecutor(executor)).toFuture()
                                 : completedFuture(emptyMap()))),
                 toMono(map -> delegateCache.synchronous().putAll(map)),

@@ -86,17 +86,17 @@ public final class ReactiveAssemblerTestUtils {
                 .filter(orderItem -> customerIds.contains(orderItem.customerId()));
     }
 
-    public static <R> Publisher<R> throwSQLException(List<Long> customerIds) {
+    public static <R> Publisher<R> throwSQLException(List<Customer> customerIds) {
         // throw new IOException("Unable to query database");
         return Flux.error(new SQLException("Unable to query database"));
     }
 
-    public static Publisher<BillingInfo> errorBillingInfos(List<Long> customerIds) {
+    public static Publisher<BillingInfo> errorBillingInfos(List<Customer> customers) {
         // throw new IOException("Unable to query database");
         return Flux.error(new SQLException("Unable to query database"));
     }
 
-    public static Publisher<OrderItem> errorOrderItems(List<Long> customerIds) {
+    public static Publisher<OrderItem> errorOrderItems(List<Customer> customerIds) {
         // throw new IOException("Unable to query database");
         return Flux.error(new SQLException("Unable to query database"));
     }

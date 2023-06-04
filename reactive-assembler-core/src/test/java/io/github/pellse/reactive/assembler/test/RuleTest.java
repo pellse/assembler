@@ -28,7 +28,7 @@ import reactor.test.StepVerifier;
 import java.util.List;
 import java.util.Map;
 
-import static io.github.pellse.reactive.assembler.Rule.batchRule;
+import static io.github.pellse.reactive.assembler.Rule.withIdResolver;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.reactive.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.reactive.assembler.caching.CacheFactory.cached;
@@ -36,21 +36,25 @@ import static io.github.pellse.reactive.assembler.test.ReactiveAssemblerTestUtil
 
 public class RuleTest {
 
-    private final BatchRule<Customer, BillingInfo> billingInfoBatchRule =
-            batchRule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)))
-                    .withIdExtractor(Customer::customerId);
+    private final BatchRule<Customer, BillingInfo> billingInfoBatchRule = withIdResolver(Customer::customerId)
+            .createRule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)));
 
-    private final BatchRule<Customer, List<OrderItem>> orderItemBatchRule =
-            batchRule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders)))
-                    .withIdExtractor(Customer::customerId);
+//            batchRule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)))
+//                    .withIdResolver(Customer::customerId);
+
+    private final BatchRule<Customer, List<OrderItem>> orderItemBatchRule = withIdResolver(Customer::customerId)
+            .createRule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders)));
+
+//            batchRule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders)))
+//                    .withIdResolver(Customer::customerId);
 
     List<Customer> customers = List.of(customer1, customer2, customer3);
 
-    private Flux<BillingInfo> getBillingInfo(List<Long> customerIds) {
+    private Flux<BillingInfo> getBillingInfo(List<Customer> customers) {
         return Flux.just(billingInfo1, billingInfo2, billingInfo3);
     }
 
-    private Flux<OrderItem> getAllOrders(List<Long> customerIds) {
+    private Flux<OrderItem> getAllOrders(List<Customer> customers) {
         return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33);
     }
 

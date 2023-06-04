@@ -35,98 +35,108 @@ import static java.util.stream.Collectors.*;
 
 public interface QueryUtils {
 
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
-    Map<ID, R> queryOneToOne(IDC ids,
-                             CheckedFunction1<IDC, RC, EX> queryFunction,
-                             Function<R, ID> idExtractorFromQueryResults) throws EX {
+    static <T, ID, R, TC extends Collection<T>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, R> queryOneToOne(TC entities,
+                             CheckedFunction1<TC, RC, EX> queryFunction,
+                             Function<T, ID> topLevelIdResolver,
+                             Function<R, ID> idResolverFromQueryResults) throws EX {
 
-        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
+        return queryOneToOne(entities, queryFunction, topLevelIdResolver, idResolverFromQueryResults, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
-    Map<ID, R> queryOneToOne(IDC ids,
-                             CheckedFunction1<IDC, RC, EX> queryFunction,
-                             Function<R, ID> idExtractorFromQueryResults,
+    static <T, ID, R, TC extends Collection<T>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, R> queryOneToOne(TC entities,
+                             CheckedFunction1<TC, RC, EX> queryFunction,
+                             Function<T, ID> topLevelIdResolver,
+                             Function<R, ID> idResolverFromQueryResults,
                              MapFactory<ID, R> mapFactory) throws EX {
 
-        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, id -> null, mapFactory);
+        return queryOneToOne(entities, queryFunction, topLevelIdResolver, idResolverFromQueryResults, id -> null, mapFactory);
     }
 
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
-    Map<ID, R> queryOneToOne(IDC ids,
-                             CheckedFunction1<IDC, RC, EX> queryFunction,
-                             Function<R, ID> idExtractorFromQueryResults,
+    static <T, ID, R, TC extends Collection<T>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, R> queryOneToOne(TC entities,
+                             CheckedFunction1<TC, RC, EX> queryFunction,
+                             Function<T, ID> topLevelIdResolver,
+                             Function<R, ID> idResolverFromQueryResults,
                              Function<ID, R> defaultResultProvider) throws EX {
 
-        return queryOneToOne(ids, queryFunction, idExtractorFromQueryResults, defaultResultProvider, defaultMapFactory());
+        return queryOneToOne(entities, queryFunction, topLevelIdResolver, idResolverFromQueryResults, defaultResultProvider, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
-    Map<ID, R> queryOneToOne(IDC ids,
-                             CheckedFunction1<IDC, RC, EX> queryFunction,
-                             Function<R, ID> idExtractorFromQueryResults,
+    static <T, ID, R, TC extends Collection<T>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, R> queryOneToOne(TC entities,
+                             CheckedFunction1<TC, RC, EX> queryFunction,
+                             Function<T, ID> topLevelIdResolver,
+                             Function<R, ID> idResolverFromQueryResults,
                              Function<ID, R> defaultResultProvider,
                              MapFactory<ID, R> mapFactory) throws EX {
 
-        return query(ids, queryFunction, defaultResultProvider, toMap(idExtractorFromQueryResults, identity(), (u1, u2) -> u1, toSupplier(ids, mapFactory)));
+        return query(entities, queryFunction, topLevelIdResolver, defaultResultProvider, toMap(idResolverFromQueryResults, identity(), (u1, u2) -> u1, toSupplier(entities, mapFactory)));
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
-    Map<ID, List<R>> queryOneToManyAsList(IDC ids,
-                                          CheckedFunction1<IDC, List<R>, EX> queryFunction,
-                                          Function<R, ID> idExtractorFromQueryResults) throws EX {
+    static <T, ID, R, TC extends Collection<T>, EX extends Throwable>
+    Map<ID, List<R>> queryOneToManyAsList(TC entities,
+                                          CheckedFunction1<TC, List<R>, EX> queryFunction,
+                                          Function<T, ID> topLevelIdResolver,
+                                          Function<R, ID> idResolverFromQueryResults) throws EX {
 
-        return queryOneToManyAsList(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
+        return queryOneToManyAsList(entities, queryFunction, topLevelIdResolver, idResolverFromQueryResults, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
-    Map<ID, List<R>> queryOneToManyAsList(IDC ids,
-                                          CheckedFunction1<IDC, List<R>, EX> queryFunction,
-                                          Function<R, ID> idExtractorFromQueryResults,
+    static <T, ID, R, TC extends Collection<T>, EX extends Throwable>
+    Map<ID, List<R>> queryOneToManyAsList(TC entities,
+                                          CheckedFunction1<TC, List<R>, EX> queryFunction,
+                                          Function<T, ID> topLevelIdResolver,
+                                          Function<R, ID> idResolverFromQueryResults,
                                           MapFactory<ID, List<R>> mapFactory) throws EX {
 
-        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, ArrayList::new, mapFactory);
+        return queryOneToMany(entities, queryFunction, topLevelIdResolver, idResolverFromQueryResults, ArrayList::new, mapFactory);
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
-    Map<ID, Set<R>> queryOneToManyAsSet(IDC ids,
-                                        CheckedFunction1<IDC, Set<R>, EX> queryFunction,
-                                        Function<R, ID> idExtractorFromQueryResults) throws EX {
+    static <T, ID, R, TC extends Collection<T>, EX extends Throwable>
+    Map<ID, Set<R>> queryOneToManyAsSet(TC entities,
+                                        CheckedFunction1<TC, Set<R>, EX> queryFunction,
+                                        Function<T, ID> topLevelIdResolver,
+                                        Function<R, ID> idResolverFromQueryResults) throws EX {
 
-        return queryOneToManyAsSet(ids, queryFunction, idExtractorFromQueryResults, defaultMapFactory());
+        return queryOneToManyAsSet(entities, queryFunction, topLevelIdResolver, idResolverFromQueryResults, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, EX extends Throwable>
-    Map<ID, Set<R>> queryOneToManyAsSet(IDC ids,
-                                        CheckedFunction1<IDC, Set<R>, EX> queryFunction,
-                                        Function<R, ID> idExtractorFromQueryResults,
+    static <T, ID, R, TC extends Collection<T>, EX extends Throwable>
+    Map<ID, Set<R>> queryOneToManyAsSet(TC entities,
+                                        CheckedFunction1<TC, Set<R>, EX> queryFunction,
+                                        Function<T, ID> topLevelIdResolver,
+                                        Function<R, ID> idResolverFromQueryResults,
                                         MapFactory<ID, Set<R>> mapFactory) throws EX {
 
-        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, HashSet::new, mapFactory);
+        return queryOneToMany(entities, queryFunction, topLevelIdResolver, idResolverFromQueryResults, HashSet::new, mapFactory);
     }
 
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
-    Map<ID, RC> queryOneToMany(IDC ids,
-                               CheckedFunction1<IDC, RC, EX> queryFunction,
-                               Function<R, ID> idExtractorFromQueryResults,
+    static <T, ID, R, TC extends Collection<T>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, RC> queryOneToMany(TC entities,
+                               CheckedFunction1<TC, RC, EX> queryFunction,
+                               Function<T, ID> topLevelIdResolver,
+                               Function<R, ID> idResolverFromQueryResults,
                                Supplier<RC> collectionFactory) throws EX {
 
-        return queryOneToMany(ids, queryFunction, idExtractorFromQueryResults, collectionFactory, defaultMapFactory());
+        return queryOneToMany(entities, queryFunction, topLevelIdResolver, idResolverFromQueryResults, collectionFactory, defaultMapFactory());
     }
 
-    static <ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
-    Map<ID, RC> queryOneToMany(IDC ids,
-                               CheckedFunction1<IDC, RC, EX> queryFunction,
-                               Function<R, ID> idExtractorFromQueryResults,
+    static <T, ID, R, TC extends Collection<T>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, RC> queryOneToMany(TC entities,
+                               CheckedFunction1<TC, RC, EX> queryFunction,
+                               Function<T, ID> topLevelIdResolver,
+                               Function<R, ID> idResolverFromQueryResults,
                                Supplier<RC> collectionFactory,
                                MapFactory<ID, RC> mapFactory) throws EX {
 
-        return query(ids, queryFunction, id -> collectionFactory.get(),
-                groupingBy(idExtractorFromQueryResults, toSupplier(ids, mapFactory), toCollection(collectionFactory)));
+        return query(entities, queryFunction, topLevelIdResolver, id -> collectionFactory.get(),
+                groupingBy(idResolverFromQueryResults, toSupplier(entities, mapFactory), toCollection(collectionFactory)));
     }
 
     /**
-     * @param ids                   The collection of ids to pass to the {@code queryFunction}
+     * @param entities              The collection of entities to pass to the {@code queryFunction}
      * @param queryFunction         The query function to call (rest call, spring data repository method call, etc.)
      * @param defaultResultProvider The default value to generate if no result for a specific id
      *                              passed to the {@code queryFunction}
@@ -139,7 +149,7 @@ public interface QueryUtils {
      *                              This is conceptually a union type {@code <R> | <RC>}
      * @param <ID>                  Type of the ids passed to {@code queryFunction} e.g. {@code Long}, {@code String}
      * @param <R>                   Type of individual results returned from the queryFunction
-     * @param <IDC>                 Type of the {@link Collection} containing the ids of type {@code <ID>}
+     * @param <TC>                  Type of the {@link Collection} containing the ids of type {@code <ID>}
      *                              e.g. {@code List<Long>}, {@code Set<String>}, etc.
      * @param <RC>                  Type of the {@link Collection} containing the results of type {@code <R>}
      *                              e.g. {@code List<Customer>}, {@code Set<Order>}, etc.
@@ -148,16 +158,18 @@ public interface QueryUtils {
      * with key = correlation ID, value = result associated with ID
      * @throws EX If {@code queryFunction} throws an exception, that exception will be propagated to the caller of this method
      */
-    static <V, ID, R, IDC extends Collection<ID>, RC extends Collection<R>, EX extends Throwable>
-    Map<ID, V> query(IDC ids,
-                     CheckedFunction1<IDC, RC, EX> queryFunction,
-                     Function<ID, V> defaultResultProvider,
-                     Collector<R, ?, Map<ID, V>> mapCollector) throws EX {
+    static <T, V, ID, R, TC extends Collection<T>, RC extends Collection<R>, EX extends Throwable>
+    Map<ID, V> query(
+            TC entities,
+            CheckedFunction1<TC, RC, EX> queryFunction,
+            Function<T, ID> topLevelIdResolver,
+            Function<ID, V> defaultResultProvider,
+            Collector<R, ?, Map<ID, V>> mapCollector) throws EX {
 
-        Map<ID, V> resultMap = safeApply(ids, queryFunction)
+        Map<ID, V> resultMap = safeApply(entities, queryFunction)
                 .collect(mapCollector);
 
-        if (isSafeEqual(resultMap, Map::size, ids, Collection::size))
+        if (isSafeEqual(resultMap, Map::size, entities, Collection::size))
             return resultMap;
 
         Function<ID, V> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
@@ -166,24 +178,14 @@ public interface QueryUtils {
 
         // defaultResultProvider can provide a null value, so we cannot use a Collector here
         // as it would throw a NullPointerException
-        ids.stream()
+        entities.stream()
+                .map(topLevelIdResolver)
                 .filter(not(idsFromQueryResult::contains))
                 .forEach(id -> resultMap.put(id, resultProvider.apply(id)));
 
         return resultMap;
     }
-
-    /**
-     * @param coll          The list of arguments to pass to the queryFunction
-     *                      e.g. {@code List<Long>} for passing a list of IDs to query a database
-     * @param queryFunction The function to apply the list of arguments
-     * @param <T>
-     * @param <R>
-     * @param <C>
-     * @param <RC>
-     * @param <EX>
-     * @return
-     */
+    
     static <T, R, C extends Collection<? extends T>, RC extends Collection<? extends R>, EX extends Throwable>
     Stream<? extends R> safeApply(C coll, CheckedFunction1<C, RC, EX> queryFunction) {
         requireNonNull(queryFunction, "queryFunction cannot be null");
@@ -197,10 +199,10 @@ public interface QueryUtils {
                 .filter(Objects::nonNull);
     }
 
-    private static <ID, R, IDC extends Collection<ID>>
-    Supplier<Map<ID, R>> toSupplier(IDC ids, MapFactory<ID, R> mapFactory) {
+    private static <T, ID, R, TC extends Collection<T>>
+    Supplier<Map<ID, R>> toSupplier(TC entities, MapFactory<ID, R> mapFactory) {
         MapFactory<ID, R> mapSupplier = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
-        return () -> mapSupplier.apply(ids != null ? ids.size() : 0);
+        return () -> mapSupplier.apply(entities != null ? entities.size() : 0);
     }
 
     @SafeVarargs

@@ -20,91 +20,61 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Function;
 
+import static io.github.pellse.util.collection.CollectionUtil.toStream;
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNullElse;
 
 /**
  * @param <ID>  Correlation Id type
- * @param <IDC> Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
+ * @param <TC>  Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
  * @param <R>   Type of the publisher elements returned from {@code queryFunction}
  * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
  */
 @FunctionalInterface
-public interface RuleMapperSource<ID, EID, IDC extends Collection<ID>, R, RRC>
-        extends Function<RuleMapperContext<ID, EID, IDC, R, RRC>, Function<IDC, Publisher<R>>> {
+public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC>
+        extends Function<RuleMapperContext<T, TC, ID, EID, R, RRC>, Function<TC, Publisher<R>>> {
 
-    RuleMapperSource<?, ?, ? extends Collection<Object>, ?, ?> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
+    RuleMapperSource<?, ? extends Collection<Object>, ?, ?, ?, ?> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
 
-    static <ID, IDC extends Collection<ID>, R> RuleMapperBuilder<ID, IDC, R> from(Function<IDC, Publisher<R>> queryFunction) {
-        return from(call(queryFunction));
-    }
-
-    static <ID, IDC extends Collection<ID>, R> RuleMapperBuilder<ID, IDC, R> from(RuleMapperSource<ID, ?, IDC, R, ?> source) {
-        return new Builder<>(source);
-    }
-
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> call(Function<IDC, Publisher<R>> queryFunction) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> toQueryFunction(Function<TC, Publisher<R>> queryFunction) {
         return ruleContext -> queryFunction;
     }
 
-    @SuppressWarnings("unchecked")
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> emptySource() {
-        return (RuleMapperSource<ID, EID, IDC, R, RRC>) EMPTY_SOURCE;
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> call(Function<List<ID>, Publisher<R>> queryFunction) {
+        return ruleContext -> RuleMapperSource.<T, TC, ID, EID, R, RRC, ID>call(ruleContext.topLevelIdResolver(), queryFunction).apply(ruleContext);
     }
 
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> boolean isEmptySource(RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, K> RuleMapperSource<T, TC, ID, EID, R, RRC> call(
+            Function<T, K> idResolver,
+            Function<List<K>, Publisher<R>> queryFunction) {
+        return ruleContext -> entities -> queryFunction.apply(toStream(entities).map(idResolver).toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> emptySource() {
+        return (RuleMapperSource<T, TC, ID, EID, R, RRC>) EMPTY_SOURCE;
+    }
+
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> boolean isEmptySource(RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource) {
         return emptySource().equals(nullToEmptySource(ruleMapperSource));
     }
 
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> nullToEmptySource(
-            RuleMapperSource<ID, EID, IDC, R, RRC> ruleMapperSource) {
-        return requireNonNullElse(ruleMapperSource, RuleMapperSource.<ID, EID, IDC, R, RRC>emptySource());
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> nullToEmptySource(
+            RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource) {
+        return requireNonNullElse(ruleMapperSource, RuleMapperSource.<T, TC, ID, EID, R, RRC>emptySource());
     }
 
     @SafeVarargs
-    static <ID, EID, IDC extends Collection<ID>, R, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> pipe(
-            RuleMapperSource<ID, EID, IDC, R, RRC> mapper,
-            Function<? super RuleMapperSource<ID, EID, IDC, R, RRC>, ? extends RuleMapperSource<ID, EID, IDC, R, RRC>>... mappingFunctions) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> pipe(
+            RuleMapperSource<T, TC, ID, EID, R, RRC> mapper,
+            Function<? super RuleMapperSource<T, TC, ID, EID, R, RRC>, ? extends RuleMapperSource<T, TC, ID, EID, R, RRC>>... mappingFunctions) {
+
         return stream(mappingFunctions)
                 .reduce(mapper,
                         (ruleMapperSource, mappingFunction) -> mappingFunction.apply(ruleMapperSource),
                         (ruleMapperSource1, ruleMapperSource2) -> ruleMapperSource2);
-    }
-
-    interface RuleMapperBuilder<ID, IDC extends Collection<ID>, R> {
-        RuleMapperBuilder<ID, IDC, R> pipe(
-                Function<? super RuleMapperSource<ID, ?, IDC, R, ?>, ? extends RuleMapperSource<ID, ?, IDC, R, ?>> mappingFunction);
-
-        <EID, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> get();
-
-        default <EID, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> pipeAndGet(
-                Function<? super RuleMapperSource<ID, ?, IDC, R, ?>, ? extends RuleMapperSource<ID, ?, IDC, R, ?>> mappingFunction) {
-            return pipe(mappingFunction).get();
-        }
-    }
-
-    class Builder<ID, IDC extends Collection<ID>, R> implements RuleMapperBuilder<ID, IDC, R> {
-
-        private RuleMapperSource<ID, ?, IDC, R, ?> source;
-
-        private Builder(RuleMapperSource<ID, ?, IDC, R, ?> source) {
-            this.source = source;
-        }
-
-        @Override
-        public RuleMapperBuilder<ID, IDC, R> pipe(
-                Function<? super RuleMapperSource<ID, ?, IDC, R, ?>, ? extends RuleMapperSource<ID, ?, IDC, R, ?>> mappingFunction) {
-
-            this.source = mappingFunction.apply(source);
-            return this;
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public <EID, RRC> RuleMapperSource<ID, EID, IDC, R, RRC> get() {
-            return (RuleMapperSource<ID, EID, IDC, R, RRC>) this.source;
-        }
     }
 }

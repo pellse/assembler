@@ -86,10 +86,10 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
         return concurrentCache(delegateCache, retrySpec.scheduler(retryScheduler), RetryBackoffSpec::filter, concurrencyStrategy);
     }
 
-    private static <ID, R, T extends Retry> ConcurrentCache<ID, R> concurrentCache(
+    private static <ID, R, RETRY extends Retry> ConcurrentCache<ID, R> concurrentCache(
             Cache<ID, R> delegateCache,
-            T retrySpec,
-            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction,
+            RETRY retrySpec,
+            BiFunction<RETRY, Predicate<? super Throwable>, RETRY> errorFilterFunction,
             ConcurrencyStrategy concurrencyStrategy) {
 
         return build(delegateCache, cache -> concurrentCache(cache, retryStrategy(retrySpec, errorFilterFunction), concurrencyStrategy));
@@ -148,8 +148,8 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
             };
 
             @Override
-            public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, boolean computeIfAbsent) {
-                return execute(delegateCache.getAll(ids, computeIfAbsent), concurrencyStrategy.equals(SINGLE_READER) ? singleReaderLock : multipleReadersLock);
+            public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction) {
+                return execute(delegateCache.getAll(ids, fetchFunction), concurrencyStrategy.equals(SINGLE_READER) ? singleReaderLock : multipleReadersLock);
             }
 
             @Override
@@ -167,7 +167,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
                 return execute(delegateCache.updateAll(mapToAdd, mapToRemove), singleReaderLock);
             }
 
-            private <T> Mono<T> execute(Mono<T> mono, Lock lock) {
+            private <U> Mono<U> execute(Mono<U> mono, Lock lock) {
 
                 return defer(() -> {
                     final var lockAcquired = new AtomicBoolean();

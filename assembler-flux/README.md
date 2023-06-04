@@ -12,7 +12,7 @@ import static io.github.pellse.util.query.MapperUtils.oneToManyAsList;
 import static io.github.pellse.assembler.flux.FluxAdapter.fluxAdapter;
 
 Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
         oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
         oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
@@ -23,7 +23,7 @@ Flux<Transaction> transactionFlux = assemblerOf(Transaction.class)
 or by reusing the same `Assembler` instance as a transformation step within a `Flux`: 
 ```java
 Assembler<Customer, Flux<Transaction>> assembler = assemblerOf(Transaction.class)
-    .withIdExtractor(Customer::getCustomerId)
+    .withIdResolver(Customer::getCustomerId)
     .withAssemblerRules(
          oneToOne(this::getBillingInfoForCustomers, BillingInfo::getCustomerId),
          oneToManyAsList(this::getAllOrdersForCustomers, OrderItem::getCustomerId),
