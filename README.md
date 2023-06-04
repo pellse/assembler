@@ -1,4 +1,4 @@
-# CohereFlux
+# CohereFlux (formally Assembler)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/cohereflux-core.svg?label=cohereflux-core)](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-core) [![Javadocs](http://javadoc.io/badge/io.github.pellse/cohereflux-core.svg)](http://javadoc.io/doc/io.github.pellse/cohereflux-core)
 [![Twitter Follow](https://img.shields.io/twitter/follow/sebastien_pel?label=Follow%20@sebastien_pel&style=social)](https://twitter.com/sebastien_pel)
 
