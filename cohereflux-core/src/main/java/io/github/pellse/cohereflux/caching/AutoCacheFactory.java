@@ -18,6 +18,7 @@ package io.github.pellse.cohereflux.caching;
 
 import io.github.pellse.cohereflux.LifeCycleEventListener;
 import io.github.pellse.cohereflux.LifeCycleEventSource;
+import io.github.pellse.cohereflux.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
@@ -44,15 +45,15 @@ public interface AutoCacheFactory {
 
     Logger logger = getLogger(CacheFactory.class.getName());
 
-    static <ID, R, RRC> CacheFactory.CacheTransformer<ID, R, RRC> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
+    static <ID, R, RRC> CacheTransformer<ID, R, RRC> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
         return autoCache(dataSourceSupplier.get());
     }
 
-    static <ID, R, RRC> CacheFactory.CacheTransformer<ID, R, RRC> autoCache(Flux<R> dataSource) {
+    static <ID, R, RRC> CacheTransformer<ID, R, RRC> autoCache(Flux<R> dataSource) {
         return autoCache(dataSource, __ -> true, identity());
     }
 
-    static <ID, R, RRC, U> CacheFactory.CacheTransformer<ID, R, RRC> autoCache(
+    static <ID, R, RRC, U> CacheTransformer<ID, R, RRC> autoCache(
             Supplier<Flux<U>> dataSourceSupplier,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
@@ -60,7 +61,7 @@ public interface AutoCacheFactory {
         return autoCache(dataSourceSupplier.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
     }
 
-    static <ID, R, RRC, U> CacheFactory.CacheTransformer<ID, R, RRC> autoCache(
+    static <ID, R, RRC, U> CacheTransformer<ID, R, RRC> autoCache(
             Flux<U> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
@@ -68,7 +69,7 @@ public interface AutoCacheFactory {
         return autoCache(dataSource.map(CacheEvent.toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
-    static <ID, R, RRC, U extends CacheEvent<R>> CacheFactory.CacheTransformer<ID, R, RRC> autoCache(
+    static <ID, R, RRC, U extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
             Flux<U> dataSource,
             WindowingStrategy<U> windowingStrategy,
             ErrorHandler errorHandler,
