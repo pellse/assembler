@@ -24,7 +24,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static io.github.pellse.util.ObjectUtils.then;
-import static io.github.pellse.util.collection.CollectionUtil.*;
+import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Map.of;
 import static java.util.Optional.ofNullable;
 import static reactor.core.publisher.Mono.defer;

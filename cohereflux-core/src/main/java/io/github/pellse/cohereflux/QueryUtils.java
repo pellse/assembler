@@ -16,7 +16,7 @@
 
 package io.github.pellse.cohereflux;
 
-import io.github.pellse.util.collection.CollectionUtil;
+import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,7 +29,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.util.ObjectUtils.isSafeEqual;
-import static io.github.pellse.util.collection.CollectionUtil.transform;
+import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.util.Objects.*;
 import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Flux.fromIterable;
@@ -45,7 +45,7 @@ public interface QueryUtils {
         requireNonNull(queryFunction, "queryFunction cannot be null");
 
         return Mono.just(coll)
-                .filter(CollectionUtil::isNotEmpty)
+                .filter(CollectionUtils::isNotEmpty)
                 .flatMapMany(queryFunction);
     }
 

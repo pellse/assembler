@@ -28,7 +28,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.util.ObjectUtils.*;
-import static io.github.pellse.util.collection.CollectionUtil.*;
+import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Arrays.stream;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.groupingBy;

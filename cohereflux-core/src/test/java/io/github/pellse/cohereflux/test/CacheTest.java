@@ -61,7 +61,7 @@ import static io.github.pellse.cohereflux.test.CDCAdd.cdcAdd;
 import static io.github.pellse.cohereflux.test.CDCDelete.cdcDelete;
 import static io.github.pellse.cohereflux.test.CohereFluxTestUtils.*;
 import static io.github.pellse.util.ObjectUtils.run;
-import static io.github.pellse.util.collection.CollectionUtil.transform;
+import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofNanos;
 import static org.junit.jupiter.api.Assertions.assertEquals;

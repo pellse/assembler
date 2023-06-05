@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
-import static io.github.pellse.util.collection.CollectionUtil.toStream;
+import static io.github.pellse.util.collection.CollectionUtils.toStream;
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNullElse;
 

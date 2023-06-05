@@ -31,7 +31,7 @@ import static java.util.stream.Collectors.*;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.StreamSupport.stream;
 
-public interface CollectionUtil {
+public interface CollectionUtils {
 
     static <T, C extends Iterable<T>> Stream<T> toStream(C iterable) {
         return iterable != null ? stream(iterable.spliterator(), false) : Stream.empty();

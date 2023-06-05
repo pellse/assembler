@@ -39,7 +39,7 @@ import static io.github.pellse.cohereflux.Rule.rule;
 import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
 import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
 import static io.github.pellse.cohereflux.test.CohereFluxTestUtils.*;
-import static io.github.pellse.util.collection.CollectionUtil.transform;
+import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;

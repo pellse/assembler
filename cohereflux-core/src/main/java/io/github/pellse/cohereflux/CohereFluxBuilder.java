@@ -28,7 +28,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static io.github.pellse.cohereflux.FluxAdapter.fluxAdapter;
-import static io.github.pellse.util.collection.CollectionUtil.toStream;
+import static io.github.pellse.util.collection.CollectionUtils.toStream;
 
 public interface CohereFluxBuilder {
 

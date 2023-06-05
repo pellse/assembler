@@ -45,7 +45,7 @@ import static io.github.pellse.cohereflux.caching.CacheEvent.removed;
 import static io.github.pellse.cohereflux.caching.CacheEvent.updated;
 import static io.github.pellse.cohereflux.caching.CacheFactory.cached;
 import static io.github.pellse.cohereflux.test.CohereFluxTestUtils.*;
-import static io.github.pellse.util.collection.CollectionUtil.transform;
+import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.time.Duration.ofMillis;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.parallel;

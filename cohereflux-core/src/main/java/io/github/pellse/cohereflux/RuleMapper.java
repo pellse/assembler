@@ -17,7 +17,7 @@
 package io.github.pellse.cohereflux;
 
 import io.github.pellse.cohereflux.caching.MergeStrategy;
-import io.github.pellse.util.collection.CollectionUtil;
+import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -30,7 +30,7 @@ import java.util.stream.Collector;
 
 import static io.github.pellse.cohereflux.QueryUtils.*;
 import static io.github.pellse.util.ObjectUtils.then;
-import static io.github.pellse.util.collection.CollectionUtil.*;
+import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Map.entry;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
@@ -75,7 +75,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
                 defaultResultProvider,
                 ctx -> initialMapCapacity ->
                         toMap(ctx.correlationIdResolver(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
-                CollectionUtil::first,
+                CollectionUtils::first,
                 Collections::singletonList);
     }
 

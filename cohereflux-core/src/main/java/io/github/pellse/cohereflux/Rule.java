@@ -28,7 +28,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.cohereflux.RuleContext.ruleContext;
-import static io.github.pellse.util.collection.CollectionUtil.toStream;
+import static io.github.pellse.util.collection.CollectionUtils.toStream;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static reactor.core.publisher.Flux.fromIterable;
