@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
+import static io.github.pellse.cohereflux.caching.CacheFactory.toMono;
 import static java.util.Collections.emptyMap;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static reactor.core.publisher.Mono.fromFuture;
@@ -64,8 +65,8 @@ public interface CaffeineCacheFactory {
                         fetchFunction != null
                                 ? fetchFunction.apply(keys).subscribeOn(fromExecutor(executor)).toFuture()
                                 : completedFuture(emptyMap()))),
-                CacheFactory.toMono(map -> delegateCache.synchronous().putAll(map)),
-                CacheFactory.toMono(map -> delegateCache.synchronous().invalidateAll(map.keySet()))
+                toMono(map -> delegateCache.synchronous().putAll(map)),
+                toMono(map -> delegateCache.synchronous().invalidateAll(map.keySet()))
         );
     }
 }
