@@ -55,10 +55,6 @@ public interface CollectionUtils {
         return map == null || map.isEmpty();
     }
 
-    static boolean isNotEmpty(Map<?, ?> map) {
-        return !isEmpty(map);
-    }
-
     static <T, R> List<R>  transform(Iterable<? extends T> from, Function<T, R> mappingFunction) {
         return toStream(from).map(mappingFunction).toList();
     }

@@ -47,14 +47,6 @@ public interface ObjectUtils {
         runIf(value, Objects::nonNull, codeBlock);
     }
 
-    static <T> Consumer<T> runIf(Predicate<T> predicate, Runnable runnable) {
-        return runIf(predicate, __ -> runnable.run());
-    }
-
-    static <T> Consumer<T> runIf(Predicate<T> predicate, Consumer<T> codeBlock) {
-        return t -> runIf(t, predicate, codeBlock);
-    }
-
     static <T> void runIf(T value, Predicate<T> predicate, Consumer<T> codeBlock) {
         if (predicate.test(value))
             codeBlock.accept(value);
@@ -71,14 +63,6 @@ public interface ObjectUtils {
 
     static <T, R> R then(T value, Function<T, R> mappingFunction) {
         return mappingFunction.apply(value);
-    }
-
-    static <T> T takeIfNotNull(T value, T defaultValue) {
-        return takeIf(value, Objects::nonNull, defaultValue);
-    }
-
-    static <T> T takeIf(T value, Predicate<T> predicate, T defaultValue) {
-        return predicate.test(value) ? value : defaultValue;
     }
 
     static <T> Predicate<T> or(Predicate<T> predicate1, Predicate<T> predicate2) {
