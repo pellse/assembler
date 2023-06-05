@@ -32,7 +32,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.github.pellse.cohereflux.caching.ConcurrentCache.ConcurrencyStrategy.SINGLE_READER;
+import static io.github.pellse.cohereflux.caching.ConcurrentCache.ConcurrencyStrategy.WRITE;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.run;
 import static reactor.core.publisher.Mono.*;
@@ -43,7 +43,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache) {
-        return concurrentCache(delegateCache, SINGLE_READER);
+        return concurrentCache(delegateCache, WRITE);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
@@ -51,7 +51,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts) {
-        return concurrentCache(delegateCache, maxAttempts, SINGLE_READER);
+        return concurrentCache(delegateCache, maxAttempts, WRITE);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
@@ -59,7 +59,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff) {
-        return concurrentCache(delegateCache, maxAttempts, minBackoff, SINGLE_READER);
+        return concurrentCache(delegateCache, maxAttempts, minBackoff, WRITE);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
@@ -67,7 +67,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
-        return concurrentCache(delegateCache, retrySpec, SINGLE_READER);
+        return concurrentCache(delegateCache, retrySpec, WRITE);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
@@ -75,7 +75,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
-        return concurrentCache(delegateCache, retrySpec, SINGLE_READER);
+        return concurrentCache(delegateCache, retrySpec, WRITE);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
@@ -103,7 +103,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
             private final AtomicLong readCount = new AtomicLong();
 
-            private final Lock multipleReadersLock = new Lock() {
+            private final Lock readLock = new Lock() {
 
                 @Override
                 public boolean tryAcquireLock() {
@@ -128,7 +128,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
                 }
             };
 
-            private final Lock singleReaderLock = new Lock() {
+            private final Lock writeLock = new Lock() {
 
                 @Override
                 public boolean tryAcquireLock() {
@@ -149,22 +149,22 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
             @Override
             public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction) {
-                return execute(delegateCache.getAll(ids, fetchFunction), concurrencyStrategy.equals(SINGLE_READER) ? singleReaderLock : multipleReadersLock);
+                return execute(delegateCache.getAll(ids, fetchFunction), concurrencyStrategy.equals(WRITE) ? writeLock : readLock);
             }
 
             @Override
             public Mono<?> putAll(Map<ID, List<R>> map) {
-                return execute(delegateCache.putAll(map), singleReaderLock);
+                return execute(delegateCache.putAll(map), writeLock);
             }
 
             @Override
             public Mono<?> removeAll(Map<ID, List<R>> map) {
-                return execute(delegateCache.removeAll(map), singleReaderLock);
+                return execute(delegateCache.removeAll(map), writeLock);
             }
 
             @Override
             public Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
-                return execute(delegateCache.updateAll(mapToAdd, mapToRemove), singleReaderLock);
+                return execute(delegateCache.updateAll(mapToAdd, mapToRemove), writeLock);
             }
 
             private <U> Mono<U> execute(Mono<U> mono, Lock lock) {
@@ -204,8 +204,8 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     enum ConcurrencyStrategy {
-        SINGLE_READER,
-        MULTIPLE_READERS
+        READ,
+        WRITE
     }
 
     interface Lock {
