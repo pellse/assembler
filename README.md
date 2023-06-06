@@ -8,8 +8,8 @@ The Assembler Library is a [reactive](https://www.reactivemanifesto.org), functi
 
 Internally, the library leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
 
-*(Example from https://github.com/pellse/assembler-example)*
 ![CohereFlux](./images/CohereFluxExample.png)
+*(Example from https://github.com/pellse/assembler-example)*
 
 ## Table of Contents
 
