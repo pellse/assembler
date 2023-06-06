@@ -31,6 +31,7 @@ import java.util.function.*;
 import static io.github.pellse.cohereflux.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.cohereflux.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.cohereflux.caching.CacheEvent.toCacheEvent;
+import static io.github.pellse.cohereflux.caching.ConcurrentCacheFactory.concurrent;
 import static reactor.util.retry.Retry.*;
 
 public interface AutoCacheFactoryBuilder {
@@ -194,13 +195,13 @@ public interface AutoCacheFactoryBuilder {
 
         @Override
         public AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetrySpec retrySpec) {
-            this.cacheTransformer = ConcurrentCacheFactory.concurrent(retrySpec);
+            this.cacheTransformer = concurrent(retrySpec);
             return this;
         }
 
         @Override
         public AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetryBackoffSpec retryBackoffSpec) {
-            this.cacheTransformer = ConcurrentCacheFactory.concurrent(retryBackoffSpec, this.scheduler);
+            this.cacheTransformer = concurrent(retryBackoffSpec, this.scheduler);
             return this;
         }
 

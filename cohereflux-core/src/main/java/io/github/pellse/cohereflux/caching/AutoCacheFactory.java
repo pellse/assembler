@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.function.*;
 
 import static io.github.pellse.cohereflux.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
+import static io.github.pellse.cohereflux.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.util.ObjectUtils.doNothing;
 import static io.github.pellse.util.ObjectUtils.ifNotNull;
 import static java.lang.System.Logger.Level.WARNING;
@@ -66,7 +67,7 @@ public interface AutoCacheFactory {
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
 
-        return autoCache(dataSource.map(CacheEvent.toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
+        return autoCache(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
     static <ID, R, RRC, U extends CacheEvent<R>> CacheTransformer<ID, R, RRC> autoCache(
