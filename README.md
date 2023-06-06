@@ -76,14 +76,14 @@ import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
 import static io.github.pellse.cohereflux.Rule.rule;
     
 Assembler<Customer, Flux<Transaction>>assembler=assemblerOf(Transaction.class)
-        .withCorrelationIdResolver(Customer::customerId)
-        .withAssemblerRules(
-        rule(BillingInfo::customerId,oneToOne(this::getBillingInfo)),
-        rule(OrderItem::customerId,oneToMany(OrderItem::id,this::getAllOrders)),
-        Transaction::new)
-        .build();
+  .withCorrelationIdResolver(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,oneToOne(this::getBillingInfo)),
+    rule(OrderItem::customerId,oneToMany(OrderItem::id,this::getAllOrders)),
+    Transaction::new)
+  .build();
 
-        Flux<Transaction> transactionFlux=assembler.assemble(getCustomers());
+Flux<Transaction> transactionFlux = assembler.assemble(getCustomers());
 ```
 The code snippet above demonstrates the process of first retrieving all customers, followed by the concurrent retrieval of all billing information and orders (in a single query) associated with the previously retrieved customers, as defined by the CohereFlux rules. The final step involves aggregating each customer, their respective billing information, and list of order items (related by the same customer id) into a `Transaction` object. This results in a reactive stream (`Flux`) of `Transaction` objects.
 
@@ -124,16 +124,16 @@ import static io.github.pellse.cohereflux.Rule.rule;
 import static caching.io.github.pellse.cohereflux.CacheFactory.cached;
     
 var assembler=assemblerOf(Transaction.class)
-        .withCorrelationIdResolver(Customer::customerId)
-        .withAssemblerRules(
-        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo))),
-        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders))),
-        Transaction::new)
-        .build();
+  .withCorrelationIdResolver(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo))),
+    rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders))),
+    Transaction::new)
+  .build();
 
-        var transactionFlux=getCustomers()
-        .window(3)
-        .flatMapSequential(assembler::assemble);
+var transactionFlux = getCustomers()
+  .window(3)
+  .flatMapSequential(assembler::assemble);
 ```
 
 [:arrow_up:](#table-of-contents)
@@ -156,12 +156,12 @@ import static caching.io.github.pellse.cohereflux.CacheFactory.cache;
 import static caching.io.github.pellse.cohereflux.CacheFactory.cached;
     
 var assembler=assemblerOf(Transaction.class)
-        .withCorrelationIdResolver(Customer::customerId)
-        .withAssemblerRules(
-        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,cache(TreeMap::new)))),
-        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,cache(TreeMap::new)))),
-        Transaction::new)
-        .build();
+  .withCorrelationIdResolver(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,cache(TreeMap::new)))),
+    rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,cache(TreeMap::new)))),
+    Transaction::new)
+  .build();
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -188,17 +188,17 @@ import static io.github.pellse.reactive.cohereflux.CacheFactory.cached;
 import static caffeine.cache.io.github.pellse.cohereflux.CaffeineCacheFactory.caffeineCache;
 
 Caffeine<Object, Object> cacheBuilder=newBuilder()
-        .recordStats()
-        .expireAfterWrite(ofMinutes(10))
-        .maximumSize(1000);
+  .recordStats()
+  .expireAfterWrite(ofMinutes(10))
+  .maximumSize(1000);
 
-        var assembler=assemblerOf(Transaction.class)
-        .withCorrelationIdResolver(Customer::customerId)
-        .withAssemblerRules(
-        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,caffeineCache(cacheBuilder)))),
-        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,caffeineCache()))),
-        Transaction::new)
-        .build();
+var assembler=assemblerOf(Transaction.class)
+  .withCorrelationIdResolver(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,caffeineCache(cacheBuilder)))),
+    rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,caffeineCache()))),
+    Transaction::new)
+  .build();
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -220,22 +220,22 @@ import static io.github.pellse.cohereflux.Rule.rule;
 import static caching.io.github.pellse.cohereflux.CacheFactory.cached;
 import static caching.io.github.pellse.cohereflux.AutoCacheFactory;
 
-Flux<BillingInfo> billingInfoFlux=... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
-        Flux<OrderItem> orderItemFlux=... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 
-        var assembler=assemblerOf(Transaction.class)
-        .withCorrelationIdResolver(Customer::customerId)
-        .withAssemblerRules(
-        rule(BillingInfo::customerId,
-        oneToOne(cached(this::getBillingInfo,caffeineCache(),autoCache(billingInfoFlux)))),
-        rule(OrderItem::customerId,
-        oneToMany(OrderItem::id,cached(this::getAllOrders,autoCache(orderItemFlux)))),
-        Transaction::new)
-        .build();
+var assembler=assemblerOf(Transaction.class)
+  .withCorrelationIdResolver(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,
+      oneToOne(cached(this::getBillingInfo,caffeineCache(),autoCache(billingInfoFlux)))),
+    rule(OrderItem::customerId,
+      oneToMany(OrderItem::id,cached(this::getAllOrders,autoCache(orderItemFlux)))),
+    Transaction::new)
+  .build();
 
-        var transactionFlux=getCustomers()
-        .window(3)
-        .flatMapSequential(assembler::assemble);
+var transactionFlux = getCustomers()
+  .window(3)
+  .flatMapSequential(assembler::assemble);
 ```
 
 It is also possible to customize the Auto Caching configuration via `autoCacheBuilder()`:
@@ -256,32 +256,32 @@ import static java.lang.System.getLogger;
 
 var logger=getLogger("auto-cache-logger");
 
-        Flux<BillingInfo> billingInfoFlux=... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
-        Flux<OrderItem> orderItemFlux=... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
+Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 
-        var assembler=assemblerOf(Transaction.class)
-        .withCorrelationIdResolver(Customer::customerId)
-        .withAssemblerRules(
-        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,
-        autoCacheBuilder(billingInfoFlux)
+var assembler=assemblerOf(Transaction.class)
+  .withCorrelationIdResolver(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,
+      autoCacheBuilder(billingInfoFlux)
         .maxWindowSizeAndTime(100,ofSeconds(5))
         .errorHandler(error->logger.log(WARNING,"Error in autoCache",error))
         .scheduler(newParallel("billing-info"))
         .maxRetryStrategy(50)
-        .build()))),
-        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,
-        autoCacheBuilder(orderItemFlux)
+      .build()))),
+    rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,
+      autoCacheBuilder(orderItemFlux)
         .maxWindowSize(50)
         .errorHandler(onErrorMap(MyException::new))
         .scheduler(newParallel("order-item"))
         .backoffRetryStrategy(100,ofMillis(10))
-        .build()))),
-        Transaction::new)
-        .build();
+      .build()))),
+    Transaction::new)
+  .build();
 
-        var transactionFlux=getCustomers()
-        .window(3)
-        .flatMapSequential(assembler::assemble);
+var transactionFlux = getCustomers()
+  .window(3)
+  .flatMapSequential(assembler::assemble);
 ```
 By default, the cache is updated for every element from the incoming stream of data, but it can be configured to batch the cache updates, useful when we are updating a remote cache to optimize network calls
 
@@ -323,22 +323,22 @@ import static caching.io.github.pellse.cohereflux.CacheFactory.cached;
 import static caching.io.github.pellse.cohereflux.AutoCacheFactory.autoCache;
     
 CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache=
-        autoCache(billingInfoFlux,MyOtherEvent::isAddOrUpdateEvent,MyOtherEvent::value);
+  autoCache(billingInfoFlux,MyOtherEvent::isAddOrUpdateEvent,MyOtherEvent::value);
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>>orderItemAutoCache=
-        autoCache(orderItemFlux,ItemUpdated.class::isInstance,MyEvent::item);
+CacheTransformer<Long, OrderItem, List<OrderItem>>orderItemAutoCache=
+  autoCache(orderItemFlux,ItemUpdated.class::isInstance,MyEvent::item);
 
-        Assembler<Customer, Flux<Transaction>>assembler=assemblerOf(Transaction.class)
-        .withCorrelationIdResolver(Customer::customerId)
-        .withAssemblerRules(
-        rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,billingInfoAutoCache))),
-        rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,orderItemAutoCache))),
-        Transaction::new)
-        .build();
+Assembler<Customer, Flux<Transaction>>assembler=assemblerOf(Transaction.class)
+  .withCorrelationIdResolver(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,oneToOne(cached(this::getBillingInfo,billingInfoAutoCache))),
+    rule(OrderItem::customerId,oneToMany(OrderItem::id,cached(this::getAllOrders,orderItemAutoCache))),
+    Transaction::new)
+  .build();
 
-        var transactionFlux=getCustomers()
-        .window(3)
-        .flatMapSequential(assembler::assemble);
+var transactionFlux = getCustomers()
+  .window(3)
+  .flatMapSequential(assembler::assemble);
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -356,15 +356,15 @@ import static io.github.pellse.cohereflux.Rule.rule;
 import static io.github.pellse.cohereflux.QueryUtils.toPublisher;
 
 List<BillingInfo> getBillingInfo(List<Long> customerIds); // non-reactive source
-        List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
+List<OrderItem> getAllOrders(List<Long> customerIds); // non-reactive source
 
-        Assembler<Customer, Flux<Transaction>>assembler=assemblerOf(Transaction.class)
-        .withCorrelationIdResolver(Customer::customerId)
-        .withAssemblerRules(
-        rule(BillingInfo::customerId,oneToOne(toPublisher(this::getBillingInfo))),
-        rule(OrderItem::customerId,oneToMany(OrderItem::id,toPublisher(this::getAllOrders))),
-        Transaction::new)
-        .build();
+Assembler<Customer, Flux<Transaction>>assembler=assemblerOf(Transaction.class)
+  .withCorrelationIdResolver(Customer::customerId)
+  .withAssemblerRules(
+    rule(BillingInfo::customerId,oneToOne(toPublisher(this::getBillingInfo))),
+    rule(OrderItem::customerId,oneToMany(OrderItem::id,toPublisher(this::getAllOrders))),
+    Transaction::new)
+  .build();
 ```
 [:arrow_up:](#table-of-contents)
 
