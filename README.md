@@ -6,8 +6,9 @@ CohereFlux is a [reactive](https://www.reactivemanifesto.org), functional, type-
 
 Internally, CohereFlux leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
 
+*See this [demo app](https://github.com/pellse/cohereflux-example) for a comprehensive project utilizing CohereFlux. The screenshot below is taken from the [demo app GitHub repository ](https://github.com/pellse/cohereflux-example):*
+
 ![CohereFlux](./images/CohereFluxExample.png)
-*(Example from https://github.com/pellse/cohereflux-example)*
 
 ## Table of Contents
 
