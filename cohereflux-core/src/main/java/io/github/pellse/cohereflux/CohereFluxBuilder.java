@@ -79,8 +79,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2>
-        Builder<T, ID, R> withRules(
+        default <E1, E2> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Function3<T, E1, E2, R> aggregationFunction) {
@@ -89,8 +88,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3>
-        Builder<T, ID, R> withRules(
+        default <E1, E2, E3> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Rule<T, ID, E3> rule3,
@@ -101,8 +99,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4>
-        Builder<T, ID, R> withRules(
+        default <E1, E2, E3, E4> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Rule<T, ID, E3> rule3,
@@ -114,8 +111,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5>
-        Builder<T, ID, R> withRules(
+        default <E1, E2, E3, E4, E5> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Rule<T, ID, E3> rule3,
@@ -128,8 +124,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6>
-        Builder<T, ID, R> withRules(
+        default <E1, E2, E3, E4, E5, E6> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Rule<T, ID, E3> rule3,
@@ -143,8 +138,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7>
-        Builder<T, ID, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Rule<T, ID, E3> rule3,
@@ -160,8 +154,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8>
-        Builder<T, ID, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7, E8> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Rule<T, ID, E3> rule3,
@@ -178,8 +171,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8, E9>
-        Builder<T, ID, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7, E8, E9> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Rule<T, ID, E3> rule3,
@@ -197,8 +189,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10>
-        Builder<T, ID, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Rule<T, ID, E3> rule3,
@@ -217,8 +208,7 @@ public interface CohereFluxBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11>
-        Builder<T, ID, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11> Builder<T, ID, R> withRules(
                 Rule<T, ID, E1> rule1,
                 Rule<T, ID, E2> rule2,
                 Rule<T, ID, E3> rule3,

@@ -17,8 +17,6 @@
 package io.github.pellse.cohereflux.test;
 
 import io.github.pellse.cohereflux.CohereFlux;
-import io.github.pellse.cohereflux.CohereFluxBuilder;
-import io.github.pellse.cohereflux.RuleMapperSource;
 import io.github.pellse.cohereflux.util.BillingInfo;
 import io.github.pellse.cohereflux.util.Customer;
 import io.github.pellse.cohereflux.util.OrderItem;
@@ -33,11 +31,13 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import static io.github.pellse.cohereflux.CohereFluxBuilder.cohereFluxOf;
 import static io.github.pellse.cohereflux.FluxAdapter.fluxAdapter;
 import static io.github.pellse.cohereflux.QueryUtils.toPublisher;
 import static io.github.pellse.cohereflux.Rule.rule;
 import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
 import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.RuleMapperSource.toQueryFunction;
 import static io.github.pellse.cohereflux.test.CohereFluxTestUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.util.Collections.emptyList;
@@ -114,7 +114,7 @@ public class CohereFluxJavaTest {
     public void testCohereFluxBuilderWithFlux() {
 
         StepVerifier.create(
-                        CohereFluxBuilder.cohereFluxOf(Transaction.class)
+                        cohereFluxOf(Transaction.class)
                                 .withCorrelationIdResolver(Customer::customerId)
                                 .withRules(
                                         rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
@@ -133,7 +133,7 @@ public class CohereFluxJavaTest {
     public void testCohereFluxBuilderWithFluxWithError() {
 
         StepVerifier.create(
-                        CohereFluxBuilder.cohereFluxOf(Transaction.class)
+                        cohereFluxOf(Transaction.class)
                                 .withCorrelationIdResolver(Customer::customerId)
                                 .withRules(
                                         rule(BillingInfo::customerId, oneToOne(CohereFluxTestUtils::errorBillingInfos, BillingInfo::new)),
@@ -153,7 +153,7 @@ public class CohereFluxJavaTest {
         StepVerifier.create(
                         getCustomers()
                                 .window(3)
-                                .flatMapSequential(customers -> CohereFluxBuilder.cohereFluxOf(Transaction.class)
+                                .flatMapSequential(customers -> cohereFluxOf(Transaction.class)
                                         .withCorrelationIdResolver(Customer::customerId)
                                         .withRules(
                                                 rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
@@ -171,10 +171,10 @@ public class CohereFluxJavaTest {
     @Test
     public void testReusableCohereFluxBuilderWithFluxWithBuffering() {
 
-        CohereFlux<Customer, Transaction> cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
+        CohereFlux<Customer, Transaction> cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(RuleMapperSource.toQueryFunction(this::getBillingInfo), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(toQueryFunction(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
                 .build();
@@ -196,10 +196,10 @@ public class CohereFluxJavaTest {
 
         Transaction transaction1 = new Transaction(customer1, billingInfo1, List.of(orderItem11, orderItem13));
 
-        CohereFlux<Customer, Transaction> cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
+        CohereFlux<Customer, Transaction> cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(RuleMapperSource.toQueryFunction(this::getBillingInfo), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(toQueryFunction(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrdersWithErrorOn2ndOrderItemOf1stCustomer)),
                         Transaction::new)
                 .build();
@@ -224,7 +224,7 @@ public class CohereFluxJavaTest {
         Transaction transaction2 = new Transaction(customer2, null, emptyList());
         Transaction transaction3 = new Transaction(customer3, null, emptyList());
 
-        CohereFlux<Customer, Transaction> cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
+        CohereFlux<Customer, Transaction> cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne()),
@@ -244,7 +244,7 @@ public class CohereFluxJavaTest {
     @Test
     public void testReusableCohereFluxBuilderWithFluxWithLists() {
 
-        CohereFlux<Customer, Transaction> cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
+        CohereFlux<Customer, Transaction> cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(toPublisher(this::getBillingInfoNonReactive), BillingInfo::new)),
