@@ -84,7 +84,7 @@ CohereFlux<Customer, Transaction> cohereFlux = cohereFluxOf(Transaction.class)
     Transaction::new)
   .build();
 
-Flux<Transaction> transactionFlux = cohereFlux.assemble(getCustomers());
+Flux<Transaction> transactionFlux = cohereFlux.process(getCustomers());
 ```
 The code snippet above demonstrates the process of first retrieving all customers, followed by the concurrent retrieval of all billing information and orders (in a single query) associated with the previously retrieved customers, as defined by the CohereFlux rules. The final step involves aggregating each customer, their respective billing information, and list of order items (related by the same customer id) into a `Transaction` object. This results in a reactive stream (`Flux`) of `Transaction` objects.
 
@@ -108,7 +108,7 @@ In situations where an infinite or very large stream of data is being handled, s
 ```java
 Flux<Transaction> transactionFlux = getCustomers()
   .windowTimeout(100, ofSeconds(5))
-  .flatMapSequential(cohereFlux::assemble);
+  .flatMapSequential(cohereFlux::process);
 ```
 [:arrow_up:](#table-of-contents)
 
@@ -135,7 +135,7 @@ var cohereFlux=cohereFluxOf(Transaction.class)
 
 var transactionFlux = getCustomers()
   .window(3)
-  .flatMapSequential(cohereFlux::assemble);
+  .flatMapSequential(cohereFlux::process);
 ```
 
 [:arrow_up:](#table-of-contents)
@@ -240,7 +240,7 @@ var cohereFlux=cohereFluxOf(Transaction.class)
 
 var transactionFlux = getCustomers()
   .window(3)
-  .flatMapSequential(cohereFlux::assemble);
+  .flatMapSequential(cohereFlux::process);
 ```
 
 It is also possible to customize the Auto Caching configuration via `autoCacheBuilder()`:
@@ -287,7 +287,7 @@ var cohereFlux=cohereFluxOf(Transaction.class)
 
 var transactionFlux = getCustomers()
   .window(3)
-  .flatMapSequential(cohereFlux::assemble);
+  .flatMapSequential(cohereFlux::process);
 ```
 By default, the cache is updated for every element from the incoming stream of data, but it can be configured to batch the cache updates, useful when we are updating a remote cache to optimize network calls
 
@@ -345,7 +345,7 @@ CohereFlux<Customer, Transaction> cohereFlux = cohereFluxOf(Transaction.class)
 
 var transactionFlux = getCustomers()
   .window(3)
-  .flatMapSequential(cohereFlux::assemble);
+  .flatMapSequential(cohereFlux::process);
 ```
 [:arrow_up:](#table-of-contents)
 
