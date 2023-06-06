@@ -4,7 +4,7 @@
 
 ***6/4/2023: Please visit https://github.com/pellse/assembler-example for a comprehensive Spring GraphQL demo app that showcases the integrated usage of the latest CohereFlux API as the documentation below might not reflect the recent breaking changes to the API, but it will be updated soon.***
 
-The Assembler Library is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless Java API that enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying and merging data from multiple data sources/services. This library is also designed to solve the N + 1 query problem and is architecture-agnostic, allowing it to be used as part of a monolithic or microservice architecture.
+CohereFlux is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless Java API that enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) for querying and merging data from multiple data sources/services. This library is also designed to solve the N + 1 query problem and is architecture-agnostic, allowing it to be used as part of a monolithic or microservice architecture.
 
 Internally, the library leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
 
@@ -28,18 +28,18 @@ Internally, the library leverages [Project Reactor](https://projectreactor.io) t
 
 ## Use Cases
 
-The Assembler library can be used in situations where an application needs to access data or functionality that is spread across multiple services. Some common use cases include:
+CohereFlux can be used in situations where an application needs to access data or functionality that is spread across multiple services. Some common use cases include:
 
-1. **CQRS/Event Sourcing**: The Assembler library can be used on the read side of a CQRS and Event Sourcing architecture to efficiently build materialized views that aggregate data from multiple sources.
-2. **API Gateway**: The Assembler library can be used in conjunction with an API Gateway, which acts as a single entry point for all client requests. The API Gateway can combine multiple APIs into a single, unified API, simplifying the client's interactions with the APIs and providing a unified interface for the client to use.
-3. **Backends for Frontends**: The Assembler library can also be used in conjunction with Backends for Frontends (BFFs). A BFF is a dedicated backend service that provides a simplified and optimized API specifically tailored for a particular client or group of clients.
-4. **Reduce network overhead**: By combining multiple APIs into a single API, the Assembler library can reduce the amount of network traffic required for a client to complete a task. This can improve the performance of the client application and reduce the load on the server.
-5. **Solve the N + 1 Query Problem**:  The Assembler library can solve the N + 1 query problem by allowing a client to make a single request to a unified API that includes all the necessary data. This approach reduces the number of requests required and database queries, further optimizing the application's performance.
+1. **CQRS/Event Sourcing**: CohereFlux can be used on the read side of a CQRS and Event Sourcing architecture to efficiently build materialized views that aggregate data from multiple sources.
+2. **API Gateway**: CohereFlux can be used in conjunction with an API Gateway, which acts as a single entry point for all client requests. The API Gateway can combine multiple APIs into a single, unified API, simplifying the client's interactions with the APIs and providing a unified interface for the client to use.
+3. **Backends for Frontends**: CohereFlux can also be used in conjunction with Backends for Frontends (BFFs). A BFF is a dedicated backend service that provides a simplified and optimized API specifically tailored for a particular client or group of clients.
+4. **Reduce network overhead**: By combining multiple APIs into a single API, CohereFlux can reduce the amount of network traffic required for a client to complete a task. This can improve the performance of the client application and reduce the load on the server.
+5. **Solve the N + 1 Query Problem**:  CohereFlux can solve the N + 1 query problem by allowing a client to make a single request to a unified API that includes all the necessary data. This approach reduces the number of requests required and database queries, further optimizing the application's performance.
 
 [:arrow_up:](#table-of-contents)
 
 ## Basic Usage
-Here is an example of how to use the Assembler Library to generate transaction information from a list of customers of an online store. This example assumes the following fictional data model and API to access different services:
+Here is an example of how to use CohereFlux to generate transaction information from a list of customers of an online store. This example assumes the following fictional data model and API to access different services:
 ```java
 public record Customer(Long customerId, String name) {}
 
@@ -64,7 +64,7 @@ In cases where the `getCustomers()` method returns a substantial number of custo
 
 As we are working with three distinct and independent data sources, the process of joining data from `Customer`, `BillingInfo`, and `OrderItem` into a `Transaction` must be performed at the application level. This is the primary objective of this library.
 
-When utilizing the [Assembler Library](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-core), the aggregation of multiple reactive data sources and the implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) can be accomplished as follows:
+When utilizing the [CohereFlux](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-core), the aggregation of multiple reactive data sources and the implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) can be accomplished as follows:
 
 ```java
 import reactor.core.publisher.Flux;
@@ -85,7 +85,7 @@ Assembler<Customer, Flux<Transaction>>assembler=assemblerOf(Transaction.class)
 
         Flux<Transaction> transactionFlux=assembler.assemble(getCustomers());
 ```
-The code snippet above demonstrates the process of first retrieving all customers, followed by the concurrent retrieval of all billing information and orders (in a single query) associated with the previously retrieved customers, as defined by the assembler rules. The final step involves aggregating each customer, their respective billing information, and list of order items (related by the same customer id) into a `Transaction` object. This results in a reactive stream (`Flux`) of `Transaction` objects.
+The code snippet above demonstrates the process of first retrieving all customers, followed by the concurrent retrieval of all billing information and orders (in a single query) associated with the previously retrieved customers, as defined by the CohereFlux rules. The final step involves aggregating each customer, their respective billing information, and list of order items (related by the same customer id) into a `Transaction` object. This results in a reactive stream (`Flux`) of `Transaction` objects.
 
 [:arrow_up:](#table-of-contents)
 
@@ -103,7 +103,7 @@ Unlike the `oneToOne()` function, `oneToMany()` will always default to generatin
 [:arrow_up:](#table-of-contents)
 
 ## Infinite Stream of Data
-In situations where an infinite or very large stream of data is being handled, such as dealing with 100,000+ customers, the Assembler Library needs to completely drain the upstream from `getCustomers()` to gather all correlation IDs (customerId). This can lead to resource exhaustion if not handled correctly. To mitigate this issue, the stream can be split into multiple smaller streams and processed in batches. Most reactive libraries already support this concept. Below is an example of this approach, utilizing [Project Reactor](https://projectreactor.io):
+In situations where an infinite or very large stream of data is being handled, such as dealing with 100,000+ customers, CohereFlux needs to completely drain the upstream from `getCustomers()` to gather all correlation IDs (customerId). This can lead to resource exhaustion if not handled correctly. To mitigate this issue, the stream can be split into multiple smaller streams and processed in batches. Most reactive libraries already support this concept. Below is an example of this approach, utilizing [Project Reactor](https://projectreactor.io):
 ```java
 Flux<Transaction> transactionFlux = getCustomers()
   .windowTimeout(100, ofSeconds(5))
@@ -112,7 +112,7 @@ Flux<Transaction> transactionFlux = getCustomers()
 [:arrow_up:](#table-of-contents)
 
 ## Reactive Caching
-Apart from offering convenient helper functions to define mapping semantics such as `oneToOne()` and `oneToMany()`, the Assembler library also includes a caching/memoization mechanism for the downstream subqueries via the `cached()` wrapper function:
+Apart from offering convenient helper functions to define mapping semantics such as `oneToOne()` and `oneToMany()`, CohereFlux also includes a caching/memoization mechanism for the downstream subqueries via the `cached()` wrapper function:
 
 ```java
 import io.github.pellse.cohereflux.CohereFlux;
@@ -169,7 +169,7 @@ var assembler=assemblerOf(Transaction.class)
 
 Below is a compilation of supplementary modules that are available for integration with third-party caching libraries. Additional modules will be incorporated in the future:
 
-| Assembler add-on module | Third party cache library |
+| CohereFlux add-on module | Third party cache library |
 | --- | --- |
 | [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/cohereflux-cache-caffeine.svg?label=cohereflux-cache-caffeine)](https://central.sonatype.com/artifact/io.github.pellse/cohereflux-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
 
@@ -203,9 +203,9 @@ Caffeine<Object, Object> cacheBuilder=newBuilder()
 [:arrow_up:](#table-of-contents)
 
 ### Auto Caching
-In addition to the cache mechanism provided by the `cached()` function, the Assembler Library also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `autoCache()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `cached()` to fall back to fetch missing data.
+In addition to the cache mechanism provided by the `cached()` function, CohereFlux also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `autoCache()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `cached()` to fall back to fetch missing data.
 
-The auto caching mechanism in the Assembler Library can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value per key from its associated data stream. However, the Assembler Library is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
+The auto caching mechanism in CohereFlux can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value per key from its associated data stream. However, CohereFlux is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
 
 This is how `autoCache()` connects to a data stream and automatically and asynchronously update the cache in real-time:
 
@@ -288,7 +288,7 @@ By default, the cache is updated for every element from the incoming stream of d
 [:arrow_up:](#table-of-contents)
 
 ### Event Based Auto Caching
-Assuming the following custom domain events not known by the Assembler Library:
+Assuming the following custom domain events not known by CohereFlux:
 ```java
 sealed interface MyEvent<T> {
   T item();
