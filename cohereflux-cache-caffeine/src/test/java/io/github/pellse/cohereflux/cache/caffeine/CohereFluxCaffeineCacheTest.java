@@ -40,6 +40,7 @@ import java.util.function.Function;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
 import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.cohereflux.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.cohereflux.caching.CacheEvent.removed;
 import static io.github.pellse.cohereflux.caching.CacheEvent.updated;
@@ -89,8 +90,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, CaffeineCacheFactory.caffeineCache()), BillingInfo::new)),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, CaffeineCacheFactory.caffeineCache(newBuilder().maximumSize(10))))),
+                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
+                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
@@ -113,8 +114,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, CaffeineCacheFactory.caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, CaffeineCacheFactory.caffeineCache(newBuilder().maximumSize(10))))),
+                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
+                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
@@ -137,8 +138,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, CaffeineCacheFactory.caffeineCache()), BillingInfo::new)),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cached(this::getAllOrders, CaffeineCacheFactory.caffeineCache())))),
+                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
+                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cached(this::getAllOrders, caffeineCache())))),
                         Transaction::new)
                 .build();
 
@@ -162,13 +163,13 @@ public class CohereFluxCaffeineCacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         Rule.rule(BillingInfo::customerId, oneToOne(RuleMapperSource.pipe(
-                                        cached(this::getBillingInfo, CaffeineCacheFactory.caffeineCache()),
+                                        cached(this::getBillingInfo, caffeineCache()),
                                         CacheFactory::cached,
                                         CacheFactory::cached),
                                 BillingInfo::new)),
                         Rule.rule(OrderItem::customerId,
                                 oneToMany(OrderItem::id, RuleMapperSource.pipe(
-                                        cached(this::getAllOrders, CaffeineCacheFactory.caffeineCache()),
+                                        cached(this::getAllOrders, caffeineCache()),
                                         CacheFactory::cached,
                                         CacheFactory::cached))),
                         Transaction::new)
@@ -196,8 +197,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, CaffeineCacheFactory.caffeineCache()), BillingInfo::new)),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, CaffeineCacheFactory.caffeineCache()))),
+                        Rule.rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, caffeineCache()), BillingInfo::new)),
+                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
                         Transaction::new)
                 .build();
 
@@ -228,8 +229,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, CaffeineCacheFactory.caffeineCache(), autoCache(dataSource1)))),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, CaffeineCacheFactory.caffeineCache(), autoCache(dataSource2)))),
+                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(dataSource1)))),
+                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCache(dataSource2)))),
                         Transaction::new)
                 .build();
 
@@ -279,8 +280,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = CohereFluxBuilder.cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, CaffeineCacheFactory.caffeineCache(), AutoCacheFactoryBuilder.autoCacheEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, CacheFactory.cached(CaffeineCacheFactory.caffeineCache(), AutoCacheFactoryBuilder.autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
+                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), AutoCacheFactoryBuilder.autoCacheEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
+                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, CacheFactory.cached(caffeineCache(), AutoCacheFactoryBuilder.autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build();
 

@@ -18,7 +18,6 @@ package io.github.pellse.cohereflux.cache.caffeine;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.github.pellse.cohereflux.caching.Cache;
 import io.github.pellse.cohereflux.caching.CacheFactory;
 
 import java.time.Duration;
@@ -26,9 +25,8 @@ import java.util.List;
 import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
+import static io.github.pellse.cohereflux.caching.Cache.adapterCache;
 import static io.github.pellse.cohereflux.caching.CacheFactory.toMono;
-import static java.util.Collections.emptyMap;
-import static java.util.concurrent.CompletableFuture.completedFuture;
 import static reactor.core.publisher.Mono.fromFuture;
 import static reactor.core.scheduler.Schedulers.fromExecutor;
 
@@ -60,11 +58,10 @@ public interface CaffeineCacheFactory {
 
         final AsyncCache<ID, List<R>> delegateCache = caffeine.buildAsync();
 
-        return __ -> Cache.adapterCache(
+        return __ -> adapterCache(
                 (ids, fetchFunction) -> fromFuture(delegateCache.getAll(ids, (keys, executor) ->
-                        fetchFunction != null
-                                ? fetchFunction.apply(keys).subscribeOn(fromExecutor(executor)).toFuture()
-                                : completedFuture(emptyMap()))),
+                        fetchFunction.apply(keys)
+                                .subscribeOn(fromExecutor(executor)).toFuture())),
                 toMono(map -> delegateCache.synchronous().putAll(map)),
                 toMono(map -> delegateCache.synchronous().invalidateAll(map.keySet()))
         );

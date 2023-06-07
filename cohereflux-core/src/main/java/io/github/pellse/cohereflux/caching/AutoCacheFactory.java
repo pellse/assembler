@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.*;
 
+import static io.github.pellse.cohereflux.LifeCycleEventSource.concurrentLifeCycleEventListener;
+import static io.github.pellse.cohereflux.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.cohereflux.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.cohereflux.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.util.ObjectUtils.doNothing;
@@ -94,7 +96,7 @@ public interface AutoCacheFactory {
                     .doFinally(__ -> ifNotNull(scheduler, Scheduler::dispose));
 
             requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start)
-                    .addLifeCycleEventListener(LifeCycleEventSource.concurrentLifeCycleEventListener(LifeCycleEventSource.lifeCycleEventAdapter(cacheSourceFlux, Flux::subscribe, Disposable::dispose)));
+                    .addLifeCycleEventListener(concurrentLifeCycleEventListener(lifeCycleEventAdapter(cacheSourceFlux, Flux::subscribe, Disposable::dispose)));
 
             return cache;
         };

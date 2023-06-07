@@ -18,6 +18,8 @@ package io.github.pellse.cohereflux.caching;
 
 import io.github.pellse.cohereflux.RuleMapperContext;
 import io.github.pellse.cohereflux.RuleMapperSource;
+import io.github.pellse.cohereflux.caching.Cache.FetchFunction;
+import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -27,9 +29,13 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.github.pellse.cohereflux.RuleMapperSource.isEmptySource;
+import static io.github.pellse.cohereflux.RuleMapperSource.nullToEmptySource;
+import static io.github.pellse.cohereflux.caching.Cache.adapterCache;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Arrays.stream;
+import static java.util.Map.of;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.groupingBy;
 import static reactor.core.publisher.Flux.from;
@@ -49,7 +55,7 @@ public interface CacheFactory<ID, R, RRC> {
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(Map<ID, List<R>> delegateMap) {
 
-        return __ -> Cache.adapterCache(
+        return __ -> adapterCache(
                 (ids, fetchFunction) -> just(readAll(ids, delegateMap))
                         .flatMap(cachedEntitiesMap -> then(intersect(ids, cachedEntitiesMap.keySet()),
                                 entityIds ->
@@ -61,11 +67,11 @@ public interface CacheFactory<ID, R, RRC> {
     }
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(
-            BiFunction<Iterable<ID>, Cache.FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> getAll,
+            BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> getAll,
             Function<Map<ID, List<R>>, Mono<?>> putAll,
             Function<Map<ID, List<R>>, Mono<?>> removeAll) {
 
-        return __ -> Cache.adapterCache(getAll, putAll, removeAll);
+        return __ -> adapterCache(getAll, putAll, removeAll);
     }
 
     @SafeVarargs
@@ -109,17 +115,16 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        var isEmptySource = RuleMapperSource.isEmptySource(ruleMapperSource);
+        var isEmptySource = isEmptySource(ruleMapperSource);
 
         return ruleContext -> {
-            final var queryFunction = RuleMapperSource.nullToEmptySource(ruleMapperSource).apply(ruleContext);
+            final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleContext);
 
             final var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
                     .create(new CacheContext<>(isEmptySource, ruleContext));
 
-            return entities -> cache.getAll(
-                            ids(entities, ruleContext),
-                            isEmptySource ? ids -> Mono.empty() : buildFetchFunction(entities, ruleContext, queryFunction))
+            return entities -> cache.getAll(ids(entities, ruleContext), isEmptySource ? ids ->  just(of()) : buildFetchFunction(entities, ruleContext, queryFunction))
+                    .filter(CollectionUtils::isNotEmpty)
                     .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)))
                     .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))
                     .onErrorMap(QueryFunctionException.class, Throwable::getCause);
@@ -134,7 +139,7 @@ public interface CacheFactory<ID, R, RRC> {
         return transform(entities, ruleContext.topLevelIdResolver());
     }
 
-    private static <T, TC extends Collection<T>, ID, EID, R, RRC> Cache.FetchFunction<ID, R> buildFetchFunction(
+    private static <T, TC extends Collection<T>, ID, EID, R, RRC> FetchFunction<ID, R> buildFetchFunction(
             TC entities,
             RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext,
             Function<TC, Publisher<R>> queryFunction) {

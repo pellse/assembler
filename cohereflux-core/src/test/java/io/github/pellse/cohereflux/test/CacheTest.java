@@ -538,9 +538,6 @@ public class CacheTest {
                         Transaction::new)
                 .build();
 
-        Thread.sleep(5000);
-        System.out.println(Instant.now() + " timeout expired");
-
         StepVerifier.create(getCustomers()
                         .window(3)
                         .delayElements(ofMillis(100))

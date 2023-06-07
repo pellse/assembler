@@ -29,6 +29,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 import static io.github.pellse.cohereflux.QueryUtils.*;
+import static io.github.pellse.cohereflux.RuleMapperContext.toRuleMapperContext;
+import static io.github.pellse.cohereflux.RuleMapperSource.nullToEmptySource;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Map.entry;
@@ -143,14 +145,14 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
             Function<RRC, List<R>> toListConverter) {
 
         return ruleContext -> {
-            final var ruleMapperContext = RuleMapperContext.toRuleMapperContext(
+            final var ruleMapperContext = toRuleMapperContext(
                     ruleContextConverter.apply(ruleContext),
                     defaultResultProvider,
                     mapCollector.apply(ruleContext),
                     fromListConverter,
                     toListConverter);
 
-            final var queryFunction = RuleMapperSource.nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
+            final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
 
             return entityList ->
                     then(translate(entityList, ruleMapperContext.topLevelCollectionFactory()), entities ->

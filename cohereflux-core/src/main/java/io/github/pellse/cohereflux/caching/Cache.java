@@ -115,7 +115,7 @@ public interface Cache<ID, R> {
             CacheUpdater<ID, R> cacheUpdater) {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() ->
-                delegateCache.getAll(incomingChanges.keySet(), null)
+                delegateCache.getAll(incomingChanges.keySet(), ids -> just(of()))
                         .flatMap(cacheQueryResults ->
                                 cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges)));
     }
@@ -127,7 +127,7 @@ public interface Cache<ID, R> {
 
     private static <ID, R> BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> emptyOr(
             BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> mappingFunction) {
-        return (ids, fetchFunction) -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids, fetchFunction);
+        return (ids, fetchFunction) -> isEmpty(ids) || fetchFunction == null ? just(of()) : mappingFunction.apply(ids, fetchFunction);
     }
 
     Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction);
