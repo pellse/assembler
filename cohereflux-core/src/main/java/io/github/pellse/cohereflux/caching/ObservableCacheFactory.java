@@ -22,6 +22,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static io.github.pellse.cohereflux.caching.Cache.adapterCache;
 import static io.github.pellse.util.ObjectUtils.then;
 
 public interface ObservableCacheFactory {
@@ -42,7 +43,7 @@ public interface ObservableCacheFactory {
             Consumer<Map<ID, List<R>>> removeAllCallback,
             BiConsumer<Map<ID, List<R>>, Map<ID, List<R>>> updateAllCallback) {
 
-        return context -> then(delegateCacheFactory.create(context), cache -> Cache.adapterCache(
+        return context -> then(delegateCacheFactory.create(context), cache -> adapterCache(
                 (ids, computeIfAbsent) -> then(cache.getAll(ids, computeIfAbsent),
                         mono -> getAllCallback != null ? mono.doOnNext(getAllCallback) : mono),
                 map -> then(cache.putAll(map),

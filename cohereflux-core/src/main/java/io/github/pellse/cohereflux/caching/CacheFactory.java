@@ -32,6 +32,7 @@ import java.util.function.Supplier;
 import static io.github.pellse.cohereflux.RuleMapperSource.isEmptySource;
 import static io.github.pellse.cohereflux.RuleMapperSource.nullToEmptySource;
 import static io.github.pellse.cohereflux.caching.Cache.adapterCache;
+import static io.github.pellse.cohereflux.caching.Cache.mergeStrategyAwareCache;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Arrays.stream;
@@ -167,7 +168,7 @@ public interface CacheFactory<ID, R, RRC> {
 
         return ConcurrentCacheFactory.<ID, R, RRC>concurrent().apply(
                 stream(delegateCacheFactories)
-                        .reduce(context -> Cache.mergeStrategyAwareCache(ruleContext.idResolver(), cacheFactory.create(context)),
+                        .reduce(context -> mergeStrategyAwareCache(ruleContext.idResolver(), cacheFactory.create(context)),
                                 (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
                                 (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory)
         );
