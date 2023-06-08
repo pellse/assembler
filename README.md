@@ -6,7 +6,13 @@ CohereFlux is a [reactive](https://www.reactivemanifesto.org), functional, type-
 
 Internally, CohereFlux leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
 
-*See the [demo app](https://github.com/pellse/cohereflux-spring-graphql-example) for a comprehensive project utilizing CohereFlux. The screenshot below is taken from the [demo app GitHub repository ](https://github.com/pellse/cohereflux-spring-graphql-example):*
+See the [demo app](https://github.com/pellse/cohereflux-spring-graphql-example) for a comprehensive project utilizing CohereFlux.
+
+*Here is an example from the [demo app GitHub repository ](https://github.com/pellse/cohereflux-spring-graphql-example) which integrates CohereFlux with Spring GraphQL to implement real-time data aggregation of multiple data sources:*
+
+https://github.com/pellse/cohereflux-example/assets/23351878/388f8a65-bffd-4344-9e10-ca720ec2f5cd
+
+*The code implementing the whole real-time data aggregation pipeline is as simple as below:*
 
 ![CohereFlux](./images/CohereFluxExample.png)
 
