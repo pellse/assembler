@@ -63,23 +63,35 @@ public interface AutoCacheFactoryBuilder {
     }
 
     static <R, U extends CacheEvent<R>> WindowingStrategyBuilder<R, U> autoCacheEvents(Flux<U> dataSource) {
-        return new Builder<>(dataSource);
+        return new Builder<>(dataSource, null, null, null, null, null);
     }
 
     interface WindowingStrategyBuilder<R, U extends CacheEvent<R>> extends ConfigBuilder<R> {
-        ConfigBuilder<R> maxWindowSize(int maxWindowSize);
 
-        ConfigBuilder<R> maxWindowTime(Duration maxWindowTime);
+        default ConfigBuilder<R> maxWindowSize(int maxWindowSize) {
+            return windowingStrategy(flux -> flux.window(maxWindowSize));
+        }
 
-        ConfigBuilder<R> maxWindowSizeAndTime(int maxWindowSize, Duration maxWindowTime);
+        default ConfigBuilder<R> maxWindowTime(Duration maxWindowTime) {
+            return windowingStrategy(flux -> flux.window(maxWindowTime));
+        }
+
+        default ConfigBuilder<R> maxWindowSizeAndTime(int maxWindowSize, Duration maxWindowTime) {
+            return windowingStrategy(flux -> flux.windowTimeout(maxWindowSize, maxWindowTime));
+        }
 
         ConfigBuilder<R> windowingStrategy(WindowingStrategy<U> windowingStrategy);
     }
 
     interface ConfigBuilder<R> extends LifeCycleEventSourceBuilder<R> {
-        LifeCycleEventSourceBuilder<R> errorHandler(Consumer<Throwable> errorConsumer);
 
-        LifeCycleEventSourceBuilder<R> errorHandler(BiConsumer<Throwable, Object> errorConsumer);
+        default LifeCycleEventSourceBuilder<R> errorHandler(Consumer<Throwable> errorConsumer) {
+            return errorHandler(onErrorContinue(errorConsumer));
+        }
+
+        default LifeCycleEventSourceBuilder<R> errorHandler(BiConsumer<Throwable, Object> errorConsumer) {
+            return errorHandler(onErrorContinue(errorConsumer));
+        }
 
         LifeCycleEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler);
     }
@@ -94,13 +106,21 @@ public interface AutoCacheFactoryBuilder {
 
     interface RetryStrategyBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
 
-        AutoCacheFactoryDelegateBuilder<R> maxRetryStrategy(long maxAttempts);
+        default AutoCacheFactoryDelegateBuilder<R> maxRetryStrategy(long maxAttempts) {
+            return retryStrategy(max(maxAttempts));
+        }
 
-        AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff);
+        default AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff) {
+            return retryStrategy(backoff(maxAttempts, minBackoff));
+        }
 
-        AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, Duration maxBackoff);
+        default AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, Duration maxBackoff) {
+            return retryStrategy(backoff(maxAttempts, minBackoff).maxBackoff(maxBackoff));
+        }
 
-        AutoCacheFactoryDelegateBuilder<R> fixedDelayRetryStrategy(long maxAttempts, Duration fixedDelay);
+        default AutoCacheFactoryDelegateBuilder<R> fixedDelayRetryStrategy(long maxAttempts, Duration fixedDelay) {
+            return retryStrategy(fixedDelay(maxAttempts, fixedDelay));
+        }
 
         AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetrySpec retrySpec);
 
@@ -111,98 +131,43 @@ public interface AutoCacheFactoryBuilder {
         <ID, RRC> CacheTransformer<ID, R, RRC> build();
     }
 
-    class Builder<R, U extends CacheEvent<R>> implements WindowingStrategyBuilder<R, U> {
-
-        private final Flux<U> dataSource;
-        private WindowingStrategy<U> windowingStrategy;
-        private ErrorHandler errorHandler;
-        private Scheduler scheduler;
-        private LifeCycleEventSource eventSource;
-        private CacheTransformer<?, R, ?> cacheTransformer;
-
-        private Builder(Flux<U> dataSource) {
-            this.dataSource = dataSource;
-        }
-
-        @Override
-        public ConfigBuilder<R> maxWindowSize(int maxWindowSize) {
-            return windowingStrategy(flux -> flux.window(maxWindowSize));
-        }
-
-        @Override
-        public ConfigBuilder<R> maxWindowTime(Duration maxWindowTime) {
-            return windowingStrategy(flux -> flux.window(maxWindowTime));
-        }
-
-        @Override
-        public ConfigBuilder<R> maxWindowSizeAndTime(int maxWindowSize, Duration maxWindowTime) {
-            return windowingStrategy(flux -> flux.windowTimeout(maxWindowSize, maxWindowTime));
-        }
+    record Builder<R, U extends CacheEvent<R>>(
+            Flux<U> dataSource,
+            WindowingStrategy<U> windowingStrategy,
+            ErrorHandler errorHandler,
+            Scheduler scheduler,
+            LifeCycleEventSource eventSource,
+            CacheTransformer<?, R, ?> cacheTransformer
+    ) implements WindowingStrategyBuilder<R, U> {
 
         @Override
         public ConfigBuilder<R> windowingStrategy(WindowingStrategy<U> windowingStrategy) {
-            this.windowingStrategy = windowingStrategy;
-            return this;
-        }
-
-        @Override
-        public LifeCycleEventSourceBuilder<R> errorHandler(Consumer<Throwable> errorConsumer) {
-            return errorHandler(onErrorContinue(errorConsumer));
-        }
-
-        @Override
-        public LifeCycleEventSourceBuilder<R> errorHandler(BiConsumer<Throwable, Object> errorConsumer) {
-            return errorHandler(onErrorContinue(errorConsumer));
+            return new Builder<>(dataSource, windowingStrategy, null, null, null, null);
         }
 
         @Override
         public LifeCycleEventSourceBuilder<R> errorHandler(ErrorHandler errorHandler) {
-            this.errorHandler = errorHandler;
-            return this;
+            return new Builder<>(dataSource, windowingStrategy, errorHandler, null, null, null);
         }
 
         @Override
         public SchedulerBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource) {
-            this.eventSource = eventSource;
-            return this;
+            return new Builder<>(dataSource, windowingStrategy, errorHandler, null, eventSource, null);
         }
 
         @Override
         public RetryStrategyBuilder<R> scheduler(Scheduler scheduler) {
-            this.scheduler = scheduler;
-            return this;
-        }
-
-        @Override
-        public AutoCacheFactoryDelegateBuilder<R> maxRetryStrategy(long maxAttempts) {
-            return retryStrategy(max(maxAttempts));
-        }
-
-        @Override
-        public AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff) {
-            return retryStrategy(backoff(maxAttempts, minBackoff));
-        }
-
-        @Override
-        public AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, Duration maxBackoff) {
-            return retryStrategy(backoff(maxAttempts, minBackoff).maxBackoff(maxBackoff));
-        }
-
-        @Override
-        public AutoCacheFactoryDelegateBuilder<R> fixedDelayRetryStrategy(long maxAttempts, Duration fixedDelay) {
-            return retryStrategy(fixedDelay(maxAttempts, fixedDelay));
+            return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, null);
         }
 
         @Override
         public AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetrySpec retrySpec) {
-            this.cacheTransformer = concurrent(retrySpec);
-            return this;
+            return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, concurrent(retrySpec));
         }
 
         @Override
         public AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetryBackoffSpec retryBackoffSpec) {
-            this.cacheTransformer = concurrent(retryBackoffSpec, this.scheduler);
-            return this;
+            return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, concurrent(retryBackoffSpec, this.scheduler));
         }
 
         @SuppressWarnings("unchecked")
