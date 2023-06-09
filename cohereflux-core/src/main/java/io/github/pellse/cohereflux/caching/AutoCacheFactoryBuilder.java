@@ -167,7 +167,7 @@ public interface AutoCacheFactoryBuilder {
 
         @Override
         public AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetryBackoffSpec retryBackoffSpec) {
-            return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, concurrent(retryBackoffSpec, this.scheduler));
+            return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, concurrent(retryBackoffSpec, scheduler));
         }
 
         @SuppressWarnings("unchecked")
