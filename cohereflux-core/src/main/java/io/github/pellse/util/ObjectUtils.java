@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public interface ObjectUtils {
 
@@ -59,6 +60,14 @@ public interface ObjectUtils {
 
     static <T> Consumer<T> run(Runnable runnable) {
         return __ -> runnable.run();
+    }
+
+    static <T, R> Function<T, R> get(R value) {
+        return __ -> value;
+    }
+
+    static <T, R> Function<T, R> get(Supplier<R> supplier) {
+        return __ -> supplier.get();
     }
 
     static <T, R> R then(T value, Function<T, R> mappingFunction) {

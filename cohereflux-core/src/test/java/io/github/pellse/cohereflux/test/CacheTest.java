@@ -179,14 +179,14 @@ public class CacheTest {
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
                                         .scheduler(boundedElastic())
-                                        .backoffRetryStrategy(1000, ofNanos(1), ofMillis(100))
+                                        .backoffRetryStrategy(100, ofNanos(1), ofMillis(1))
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
                                         .scheduler(boundedElastic())
-                                        .backoffRetryStrategy(1000, ofNanos(1), ofMillis(100))
+                                        .backoffRetryStrategy(100, ofNanos(1), ofMillis(1))
                                         .build()))),
                         Transaction::new)
                 .build();

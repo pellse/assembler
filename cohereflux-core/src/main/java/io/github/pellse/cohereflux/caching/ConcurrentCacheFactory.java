@@ -18,16 +18,16 @@ package io.github.pellse.cohereflux.caching;
 
 import io.github.pellse.cohereflux.caching.CacheFactory.CacheContext;
 import io.github.pellse.cohereflux.caching.CacheFactory.CacheTransformer;
-import io.github.pellse.cohereflux.caching.ConcurrentCache.ConcurrencyStrategy;
+import io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy;
 import reactor.core.scheduler.Scheduler;
 import reactor.util.retry.RetryBackoffSpec;
 import reactor.util.retry.RetrySpec;
 
 import java.time.Duration;
 
-import static io.github.pellse.cohereflux.caching.ConcurrentCache.ConcurrencyStrategy.READ;
-import static io.github.pellse.cohereflux.caching.ConcurrentCache.ConcurrencyStrategy.WRITE;
 import static io.github.pellse.cohereflux.caching.ConcurrentCache.concurrentCache;
+import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.READ;
+import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.WRITE;
 
 public interface ConcurrentCacheFactory {
 

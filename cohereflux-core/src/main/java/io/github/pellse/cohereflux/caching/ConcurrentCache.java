@@ -16,31 +16,22 @@
 
 package io.github.pellse.cohereflux.caching;
 
-import reactor.core.Exceptions;
+import io.github.pellse.concurrent.ConcurrentExecutor;
+import io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-import reactor.util.retry.Retry;
 import reactor.util.retry.RetryBackoffSpec;
 import reactor.util.retry.RetrySpec;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
-import static io.github.pellse.cohereflux.caching.ConcurrentCache.ConcurrencyStrategy.WRITE;
-import static io.github.pellse.util.ObjectUtils.also;
-import static io.github.pellse.util.ObjectUtils.run;
-import static reactor.core.publisher.Mono.*;
-import static reactor.util.retry.Retry.*;
+import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.WRITE;
+import static io.github.pellse.concurrent.ConcurrentExecutor.concurrentExecutor;
+import static reactor.util.retry.Retry.indefinitely;
 
 public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
-
-    LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache) {
         return concurrentCache(delegateCache, WRITE);
@@ -55,7 +46,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, max(maxAttempts), RetrySpec::filter, concurrencyStrategy);
+        return concurrentCache(delegateCache, concurrentExecutor(maxAttempts), concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff) {
@@ -63,7 +54,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, backoff(maxAttempts, minBackoff), RetryBackoffSpec::filter, concurrencyStrategy);
+        return concurrentCache(delegateCache, concurrentExecutor(maxAttempts, minBackoff), concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
@@ -71,7 +62,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, retrySpec, RetrySpec::filter, concurrencyStrategy);
+        return concurrentCache(delegateCache, concurrentExecutor(retrySpec), concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
@@ -79,144 +70,36 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, retrySpec, concurrencyStrategy, null);
+        return concurrentCache(delegateCache, concurrentExecutor(retrySpec), concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
-        return concurrentCache(delegateCache, retrySpec.scheduler(retryScheduler), RetryBackoffSpec::filter, concurrencyStrategy);
+        return concurrentCache(delegateCache, concurrentExecutor(retrySpec, retryScheduler), concurrencyStrategy);
     }
 
-    private static <ID, R, RETRY extends Retry> ConcurrentCache<ID, R> concurrentCache(
-            Cache<ID, R> delegateCache,
-            RETRY retrySpec,
-            BiFunction<RETRY, Predicate<? super Throwable>, RETRY> errorFilterFunction,
-            ConcurrencyStrategy concurrencyStrategy) {
+    private static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, ConcurrentExecutor executor, ConcurrencyStrategy concurrencyStrategy) {
 
-        return build(delegateCache, cache -> concurrentCache(cache, retryStrategy(retrySpec, errorFilterFunction), concurrencyStrategy));
-    }
-
-    private static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, Retry retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-
-        return new ConcurrentCache<>() {
-
-            private final AtomicBoolean isLocked = new AtomicBoolean();
-
-            private final AtomicLong readCount = new AtomicLong();
-
-            private final Lock readLock = new Lock() {
-
-                @Override
-                public boolean tryAcquireLock() {
-                    if (isLocked.compareAndSet(false, true)) {
-                        try {
-                            if (readCount.getAndIncrement() < 0) {
-                                throw new IllegalStateException("readCount cannot be < 0 in readLock.tryAcquireLock()");
-                            }
-                        } finally {
-                            isLocked.set(false);
-                        }
-                        return true;
-                    }
-                    return false;
-                }
-
-                @Override
-                public void releaseLock() {
-                    if (readCount.decrementAndGet() < 0) {
-                        throw new IllegalStateException("readCount cannot be < 0 in readLock.releaseLock()");
-                    }
-                }
-            };
-
-            private final Lock writeLock = new Lock() {
-
-                @Override
-                public boolean tryAcquireLock() {
-                    if (isLocked.compareAndSet(false, true)) {
-                        if (readCount.get() == 0) {
-                            return true;
-                        }
-                        isLocked.set(false);
-                    }
-                    return false;
-                }
-
-                @Override
-                public void releaseLock() {
-                    isLocked.set(false);
-                }
-            };
+        return delegateCache instanceof ConcurrentCache<ID, R> c ? c : new ConcurrentCache<>() {
 
             @Override
             public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction) {
-                return execute(delegateCache.getAll(ids, fetchFunction), concurrencyStrategy.equals(WRITE) ? writeLock : readLock);
+                return executor.execute(delegateCache.getAll(ids, fetchFunction), concurrencyStrategy);
             }
 
             @Override
             public Mono<?> putAll(Map<ID, List<R>> map) {
-                return execute(delegateCache.putAll(map), writeLock);
+                return executor.execute(delegateCache.putAll(map));
             }
 
             @Override
             public Mono<?> removeAll(Map<ID, List<R>> map) {
-                return execute(delegateCache.removeAll(map), writeLock);
+                return executor.execute(delegateCache.removeAll(map));
             }
 
             @Override
             public Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
-                return execute(delegateCache.updateAll(mapToAdd, mapToRemove), writeLock);
-            }
-
-            private <U> Mono<U> execute(Mono<U> mono, Lock lock) {
-
-                return defer(() -> {
-                    final var lockAcquired = new AtomicBoolean();
-
-                    final Runnable releaseLock = () -> {
-                        if (lockAcquired.compareAndSet(true, false)) {
-                            lock.releaseLock();
-                        }
-                    };
-
-                    return fromSupplier(lock::tryAcquireLock)
-                            .filter(isLocked -> also(isLocked, lockAcquired::set))
-                            .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
-                            .retryWhen(retrySpec)
-                            .flatMap(__ -> mono)
-                            .doOnError(run(releaseLock))
-                            .doOnCancel(releaseLock)
-                            .doOnSuccess(run(releaseLock))
-                            .onErrorResume(Exceptions::isRetryExhausted, e -> empty());
-                });
+                return executor.execute(delegateCache.updateAll(mapToAdd, mapToRemove));
             }
         };
-    }
-
-    private static <T extends Retry> T retryStrategy(
-            T retrySpec,
-            BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction) {
-
-        return errorFilterFunction.apply(retrySpec, LOCK_NOT_ACQUIRED::equals);
-    }
-
-    private static <ID, R> ConcurrentCache<ID, R> build(Cache<ID, R> delegateCache, Function<Cache<ID, R>, ConcurrentCache<ID, R>> f) {
-        return delegateCache instanceof ConcurrentCache<ID, R> c ? c : f.apply(delegateCache);
-    }
-
-    enum ConcurrencyStrategy {
-        READ,
-        WRITE
-    }
-
-    interface Lock {
-        boolean tryAcquireLock();
-
-        void releaseLock();
-    }
-
-    class LockNotAcquiredException extends Exception {
-        LockNotAcquiredException() {
-            super(null, null, true, false);
-        }
     }
 }
