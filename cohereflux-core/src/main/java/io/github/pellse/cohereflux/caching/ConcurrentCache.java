@@ -26,6 +26,7 @@ import reactor.util.retry.RetrySpec;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.WRITE;
 import static io.github.pellse.concurrent.ConcurrentExecutor.concurrentExecutor;
@@ -46,7 +47,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, concurrentExecutor(maxAttempts), concurrencyStrategy);
+        return concurrentCache(delegateCache, () -> concurrentExecutor(maxAttempts), concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff) {
@@ -54,7 +55,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, concurrentExecutor(maxAttempts, minBackoff), concurrencyStrategy);
+        return concurrentCache(delegateCache, () -> concurrentExecutor(maxAttempts, minBackoff), concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
@@ -62,7 +63,7 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, concurrentExecutor(retrySpec), concurrencyStrategy);
+        return concurrentCache(delegateCache, () -> concurrentExecutor(retrySpec), concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
@@ -70,16 +71,22 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, concurrentExecutor(retrySpec), concurrencyStrategy);
+        return concurrentCache(delegateCache, () -> concurrentExecutor(retrySpec), concurrencyStrategy);
     }
 
     static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
-        return concurrentCache(delegateCache, concurrentExecutor(retrySpec, retryScheduler), concurrencyStrategy);
+        return concurrentCache(delegateCache, () -> concurrentExecutor(retrySpec, retryScheduler), concurrencyStrategy);
     }
 
-    private static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, ConcurrentExecutor executor, ConcurrencyStrategy concurrencyStrategy) {
+    private static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, Supplier<ConcurrentExecutor> executorSupplier, ConcurrencyStrategy concurrencyStrategy) {
 
-        return delegateCache instanceof ConcurrentCache<ID, R> c ? c : new ConcurrentCache<>() {
+        if (delegateCache instanceof ConcurrentCache<ID, R> concurrentCache) {
+            return concurrentCache;
+        }
+
+        final var executor = executorSupplier.get();
+
+        return new ConcurrentCache<>() {
 
             @Override
             public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction) {
