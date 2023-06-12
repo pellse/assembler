@@ -35,39 +35,39 @@ import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.*;
 
 @FunctionalInterface
-public interface ConcurrentExecutor {
+public interface ConcurrentExecutor<T> {
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
-    static ConcurrentExecutor concurrentExecutor() {
+    static <T> ConcurrentExecutor<T> concurrentExecutor() {
         return concurrentExecutor(indefinitely());
     }
 
-    static ConcurrentExecutor concurrentExecutor(long maxAttempts) {
+    static <T> ConcurrentExecutor<T> concurrentExecutor(long maxAttempts) {
         return concurrentExecutor(max(maxAttempts));
     }
 
-    static ConcurrentExecutor concurrentExecutor(long maxAttempts, Duration minBackoff) {
+    static <T> ConcurrentExecutor<T> concurrentExecutor(long maxAttempts, Duration minBackoff) {
         return concurrentExecutor(backoff(maxAttempts, minBackoff));
     }
 
-    static ConcurrentExecutor concurrentExecutor(RetrySpec retrySpec) {
+    static <T> ConcurrentExecutor<T> concurrentExecutor(RetrySpec retrySpec) {
         return concurrentExecutor(retrySpec, RetrySpec::filter);
     }
 
-    static ConcurrentExecutor concurrentExecutor(RetryBackoffSpec retrySpec) {
+    static <T> ConcurrentExecutor<T> concurrentExecutor(RetryBackoffSpec retrySpec) {
         return concurrentExecutor(retrySpec, (Scheduler) null);
     }
 
-    static ConcurrentExecutor concurrentExecutor(RetryBackoffSpec retrySpec, Scheduler retryScheduler) {
+    static <T> ConcurrentExecutor<T> concurrentExecutor(RetryBackoffSpec retrySpec, Scheduler retryScheduler) {
         return concurrentExecutor(retrySpec.scheduler(retryScheduler), RetryBackoffSpec::filter);
     }
 
-    private static <T extends Retry> ConcurrentExecutor concurrentExecutor(T retrySpec, BiFunction<T, Predicate<? super Throwable>, T> errorFilterFunction) {
+    private static <T, R extends Retry> ConcurrentExecutor<T> concurrentExecutor(R retrySpec, BiFunction<R, Predicate<? super Throwable>, R> errorFilterFunction) {
         return concurrentExecutor(errorFilterFunction.apply(retrySpec, LOCK_NOT_ACQUIRED::equals));
     }
 
-    private static ConcurrentExecutor concurrentExecutor(Retry retrySpec) {
+    private static <T> ConcurrentExecutor<T> concurrentExecutor(Retry retrySpec) {
 
         final var isLocked = new AtomicBoolean();
         final var readCount = new AtomicLong();
@@ -109,41 +109,37 @@ public interface ConcurrentExecutor {
             }
         };
 
-        return new ConcurrentExecutor() {
+        return (mono, concurrencyStrategy) -> {
 
-            @Override
-            public <U> Mono<U> execute(Mono<U> mono, ConcurrencyStrategy concurrencyStrategy) {
+            final var lock = concurrencyStrategy.equals(WRITE) ? writeLock : readLock;
 
-                final var lock = concurrencyStrategy.equals(WRITE) ? writeLock : readLock;
+            return defer(() -> {
+                final var lockAcquired = new AtomicBoolean();
 
-                return defer(() -> {
-                    final var lockAcquired = new AtomicBoolean();
+                final Runnable releaseLock = () -> {
+                    if (lockAcquired.compareAndSet(true, false)) {
+                        lock.releaseLock();
+                    }
+                };
 
-                    final Runnable releaseLock = () -> {
-                        if (lockAcquired.compareAndSet(true, false)) {
-                            lock.releaseLock();
-                        }
-                    };
-
-                    return fromSupplier(lock::tryAcquireLock)
-                            .filter(isLocked -> also(isLocked, lockAcquired::set))
-                            .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
-                            .retryWhen(retrySpec)
-                            .flatMap(get(mono))
-                            .doOnError(run(releaseLock))
-                            .doOnCancel(releaseLock)
-                            .doOnSuccess(run(releaseLock))
-                            .onErrorResume(Exceptions::isRetryExhausted, get(Mono::empty));
-                });
-            }
+                return fromSupplier(lock::tryAcquireLock)
+                        .filter(isLockAcquired -> also(isLockAcquired, lockAcquired::set))
+                        .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
+                        .retryWhen(retrySpec)
+                        .flatMap(get(mono))
+                        .doOnError(run(releaseLock))
+                        .doOnCancel(releaseLock)
+                        .doOnSuccess(run(releaseLock))
+                        .onErrorResume(Exceptions::isRetryExhausted, get(Mono::empty));
+            });
         };
     }
 
-    default <T> Mono<T> execute(Mono<T> mono) {
+    default Mono<T> execute(Mono<T> mono) {
         return execute(mono, WRITE);
     }
 
-    <U> Mono<U> execute(Mono<U> mono, ConcurrencyStrategy concurrencyStrategy);
+    Mono<T> execute(Mono<T> mono, ConcurrencyStrategy concurrencyStrategy);
 
     enum ConcurrencyStrategy {
         READ,
