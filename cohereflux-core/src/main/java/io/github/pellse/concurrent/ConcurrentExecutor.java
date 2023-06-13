@@ -114,7 +114,10 @@ public interface ConcurrentExecutor {
             @Override
             public <T> Mono<T> execute(Mono<T> mono, ConcurrencyStrategy concurrencyStrategy) {
 
-                final var lock = concurrencyStrategy.equals(WRITE) ? writeLock : readLock;
+                final var lock = switch(concurrencyStrategy) {
+                    case READ -> readLock;
+                    case WRITE -> writeLock;
+                };
 
                 return defer(() -> {
                     final var lockAcquired = new AtomicBoolean();
