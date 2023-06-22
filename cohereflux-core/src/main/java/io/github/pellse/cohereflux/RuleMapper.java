@@ -30,7 +30,7 @@ import java.util.stream.Collector;
 
 import static io.github.pellse.cohereflux.QueryUtils.*;
 import static io.github.pellse.cohereflux.RuleMapperContext.toRuleMapperContext;
-import static io.github.pellse.cohereflux.RuleMapperSource.nullToEmptySource;
+import static io.github.pellse.cohereflux.RuleMapperSource.*;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Map.entry;
@@ -48,12 +48,12 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
         extends Function<RuleContext<T, TC, ID, R, RRC>, Function<Iterable<T>, Mono<Map<ID, RRC>>>> {
 
     static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne() {
-        return oneToOne(RuleMapperSource.emptySource(), id -> null);
+        return oneToOne(emptySource(), id -> null);
     }
 
     static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(
             Function<TC, Publisher<R>> queryFunction) {
-        return oneToOne(RuleMapperSource.toQueryFunction(queryFunction), id -> null);
+        return oneToOne(toQueryFunction(queryFunction), id -> null);
     }
 
     static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(
@@ -64,7 +64,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
     static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(
             Function<TC, Publisher<R>> queryFunction,
             Function<ID, R> defaultResultProvider) {
-        return oneToOne(RuleMapperSource.toQueryFunction(queryFunction), defaultResultProvider);
+        return oneToOne(toQueryFunction(queryFunction), defaultResultProvider);
     }
 
     static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(
@@ -83,13 +83,13 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
             Function<R, EID> idResolver) {
-        return oneToMany(idResolver, RuleMapperSource.emptySource(), ArrayList::new);
+        return oneToMany(idResolver, emptySource(), ArrayList::new);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
             Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction) {
-        return oneToMany(idResolver, RuleMapperSource.toQueryFunction(queryFunction), ArrayList::new);
+        return oneToMany(idResolver, toQueryFunction(queryFunction), ArrayList::new);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
@@ -101,7 +101,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
             Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction) {
-        return oneToMany(idResolver, RuleMapperSource.toQueryFunction(queryFunction), HashSet::new);
+        return oneToMany(idResolver, toQueryFunction(queryFunction), HashSet::new);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
@@ -114,7 +114,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
             Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction,
             Supplier<RC> collectionFactory) {
-        return oneToMany(idResolver, RuleMapperSource.toQueryFunction(queryFunction), collectionFactory);
+        return oneToMany(idResolver, toQueryFunction(queryFunction), collectionFactory);
     }
 
     static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(

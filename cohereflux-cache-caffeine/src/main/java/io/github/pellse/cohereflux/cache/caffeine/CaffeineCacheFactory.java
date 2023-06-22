@@ -28,7 +28,6 @@ import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.cohereflux.caching.Cache.adapterCache;
 import static io.github.pellse.cohereflux.caching.CacheFactory.toMono;
 import static reactor.core.publisher.Mono.fromFuture;
-import static reactor.core.scheduler.Schedulers.fromExecutor;
 
 public interface CaffeineCacheFactory {
 
