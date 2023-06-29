@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import static java.util.function.Function.identity;
 
 public sealed interface CacheEvent<R> {
+
     static <R> Updated<R> updated(R value) {
         return new Updated<>(value);
     }

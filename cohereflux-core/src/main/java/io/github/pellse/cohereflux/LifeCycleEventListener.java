@@ -17,6 +17,7 @@
 package io.github.pellse.cohereflux;
 
 public interface LifeCycleEventListener {
+
     void start();
 
     void stop();

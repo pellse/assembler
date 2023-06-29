@@ -33,6 +33,7 @@ public interface ObjectUtils {
                                            Function<? super T1, ? extends U> propertyExtractor1,
                                            T2 t2,
                                            Function<? super T2, ? extends U> propertyExtractor2) {
+
         return Optional.ofNullable(t1)
                 .map(propertyExtractor1)
                 .equals(Optional.ofNullable(t2)
@@ -40,6 +41,7 @@ public interface ObjectUtils {
     }
 
     static <T> T also(T value, Consumer<T> codeBlock) {
+
         codeBlock.accept(value);
         return value;
     }
@@ -49,6 +51,7 @@ public interface ObjectUtils {
     }
 
     static <T> void runIf(T value, Predicate<T> predicate, Consumer<T> codeBlock) {
+
         if (predicate.test(value))
             codeBlock.accept(value);
     }

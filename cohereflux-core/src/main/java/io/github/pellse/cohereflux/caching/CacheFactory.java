@@ -78,6 +78,7 @@ public interface CacheFactory<ID, R, RRC> {
     @SafeVarargs
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+
         return cached(cache(), delegateCacheFactories);
     }
 
@@ -85,6 +86,7 @@ public interface CacheFactory<ID, R, RRC> {
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
             CacheFactory<ID, R, RRC> cache,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+
         return cached(RuleMapperSource.emptySource(), cache, delegateCacheFactories);
     }
 
@@ -92,6 +94,7 @@ public interface CacheFactory<ID, R, RRC> {
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
             Function<TC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+
         return cached(RuleMapperSource.toQueryFunction(queryFunction), delegateCacheFactories);
     }
 
@@ -99,6 +102,7 @@ public interface CacheFactory<ID, R, RRC> {
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> cached(
             RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+
         return cached(ruleMapperSource, cache(), delegateCacheFactories);
     }
 
@@ -107,6 +111,7 @@ public interface CacheFactory<ID, R, RRC> {
             Function<TC, Publisher<R>> queryFunction,
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+
         return cached(RuleMapperSource.toQueryFunction(queryFunction), cacheFactory, delegateCacheFactories);
     }
 
@@ -190,6 +195,7 @@ public interface CacheFactory<ID, R, RRC> {
     }
 
     class QueryFunctionException extends Exception {
+
         QueryFunctionException(Throwable t) {
             super(null, t, true, false);
         }

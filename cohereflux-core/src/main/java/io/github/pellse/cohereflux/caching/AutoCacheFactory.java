@@ -103,6 +103,7 @@ public interface AutoCacheFactory {
     }
 
     private static <ID, R> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, Function<R, ID> correlationIdResolver) {
+
         return cacheEvents.stream()
                 .map(CacheEvent::value)
                 .collect(groupingBy(correlationIdResolver));
@@ -151,6 +152,7 @@ public interface AutoCacheFactory {
     }
 
     record OnErrorMap(Function<? super Throwable, ? extends Throwable> mapper) implements ErrorHandler {
+
         public static OnErrorMap onErrorMap(Function<? super Throwable, ? extends Throwable> mapper) {
             return new OnErrorMap(mapper);
         }
@@ -162,6 +164,7 @@ public interface AutoCacheFactory {
     }
 
     record OnErrorStop() implements ErrorHandler {
+
         public static OnErrorStop onErrorStop() {
             return new OnErrorStop();
         }

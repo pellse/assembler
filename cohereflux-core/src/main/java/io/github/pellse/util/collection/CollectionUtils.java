@@ -38,6 +38,7 @@ public interface CollectionUtils {
     }
 
     static boolean isEmpty(Iterable<?> iterable) {
+
         return iterable == null ||
                 (iterable instanceof Collection<?> coll && coll.isEmpty()) ||
                 !iterable.iterator().hasNext();
@@ -86,6 +87,7 @@ public interface CollectionUtils {
 
     @SafeVarargs
     static <K, V> Map<K, V> newMap(Map<K, V> map, Consumer<Map<K, V>>... initializers) {
+
         final var copyMap = map != null ? new HashMap<>(map) : new HashMap<K, V>();
 
         for (var initializer : initializers) {

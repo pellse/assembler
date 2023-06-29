@@ -47,6 +47,7 @@ public interface FluxAdapter {
 
     @SuppressWarnings("unchecked")
     private static <ID> List<Map<ID, ?>> toMapperResultList(Object[] mapperResults) {
+
         return Stream.of(mapperResults)
                 .map(mapResult -> (Map<ID, ?>) mapResult)
                 .collect(toList());

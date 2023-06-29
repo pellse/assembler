@@ -21,5 +21,6 @@ import reactor.core.publisher.Flux;
 
 @FunctionalInterface
 public interface CohereFlux<T, R> {
+
     Flux<R> process(Publisher<T> topLevelEntities);
 }

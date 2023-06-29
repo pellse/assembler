@@ -32,6 +32,7 @@ import static reactor.core.publisher.Mono.just;
 
 @FunctionalInterface
 interface CacheUpdater<ID, R> {
+
     Mono<?> updateCache(Cache<ID, R> cache, Map<ID, List<R>> cacheQueryResults, Map<ID, List<R>> incomingChanges);
 }
 
@@ -41,6 +42,7 @@ public interface Cache<ID, R> {
             BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> getAll,
             Function<Map<ID, List<R>>, Mono<?>> putAll,
             Function<Map<ID, List<R>>, Mono<?>> removeAll) {
+
         return adapterCache(getAll, putAll, removeAll, null);
     }
 
@@ -49,6 +51,7 @@ public interface Cache<ID, R> {
             Function<Map<ID, List<R>>, Mono<?>> putAll,
             Function<Map<ID, List<R>>, Mono<?>> removeAll,
             BiFunction<Map<ID, List<R>>, Map<ID, List<R>>, Mono<?>> updateAll) {
+
         return new Cache<>() {
 
             @Override
@@ -120,13 +123,13 @@ public interface Cache<ID, R> {
                                 cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges)));
     }
 
-    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyOr(
-            Function<Map<ID, List<R>>, Mono<?>> mappingFunction) {
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyOr(Function<Map<ID, List<R>>, Mono<?>> mappingFunction) {
         return map -> isEmpty(map) ? just(of()) : mappingFunction.apply(map);
     }
 
     private static <ID, R> BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> emptyOr(
             BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> mappingFunction) {
+
         return (ids, fetchFunction) -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids, fetchFunction);
     }
 

@@ -50,6 +50,7 @@ public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC>
     static <T, TC extends Collection<T>, ID, EID, R, RRC, K> RuleMapperSource<T, TC, ID, EID, R, RRC> call(
             Function<T, K> idResolver,
             Function<List<K>, Publisher<R>> queryFunction) {
+
         return ruleContext -> entities -> queryFunction.apply(toStream(entities).map(idResolver).toList());
     }
 
@@ -64,6 +65,7 @@ public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC>
 
     static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> nullToEmptySource(
             RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource) {
+
         return requireNonNullElse(ruleMapperSource, RuleMapperSource.<T, TC, ID, EID, R, RRC>emptySource());
     }
 

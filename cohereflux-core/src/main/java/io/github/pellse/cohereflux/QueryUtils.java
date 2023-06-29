@@ -42,6 +42,7 @@ public interface QueryUtils {
 
     static <T, R, C extends Iterable<? extends T>>
     Flux<R> safeApply(C coll, Function<C, Publisher<R>> queryFunction) {
+
         requireNonNull(queryFunction, "queryFunction cannot be null");
 
         return Mono.just(coll)
@@ -75,6 +76,7 @@ public interface QueryUtils {
     }
 
     static <ID, R> Supplier<Map<ID, R>> toSupplier(int initialCapacity, MapFactory<ID, R> mapFactory) {
+
         final MapFactory<ID, R> actualMapFactory = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
         return () -> actualMapFactory.apply(initialCapacity);
     }

@@ -39,6 +39,7 @@ public interface Rule<T, ID, RRC> extends Function<Function<T, ID>, Function<Ite
     static <T, ID, R, RRC> Rule<T, ID, RRC> rule(
             Function<R, ID> correlationIdResolver,
             RuleMapper<T, List<T>, ID, R, RRC> mapper) {
+
         return ruleBuilder(ruleContext(correlationIdResolver), mapper);
     }
 
@@ -46,6 +47,7 @@ public interface Rule<T, ID, RRC> extends Function<Function<T, ID>, Function<Ite
             Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             RuleMapper<T, TC, ID, R, RRC> mapper) {
+
         return ruleBuilder(ruleContext(correlationIdResolver, topLevelCollectionFactory), mapper);
     }
 
@@ -54,6 +56,7 @@ public interface Rule<T, ID, RRC> extends Function<Function<T, ID>, Function<Ite
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RRC> mapFactory,
             RuleMapper<T, TC, ID, R, RRC> mapper) {
+
         return ruleBuilder(ruleContext(correlationIdResolver, topLevelCollectionFactory, mapFactory), mapper);
     }
 

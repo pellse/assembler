@@ -33,6 +33,7 @@ public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
     static <T, TC extends Collection<T>, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, TC, ID, R, RRC>> ruleContext(
             Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory) {
+
         return ruleContext(correlationIdResolver, topLevelCollectionFactory, defaultMapFactory());
     }
 
@@ -40,6 +41,7 @@ public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
             Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RRC> mapFactory) {
+
         return topLevelIdResolver -> new DefaultRuleContext<>(topLevelIdResolver, correlationIdResolver, topLevelCollectionFactory, mapFactory);
     }
 

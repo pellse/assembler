@@ -64,6 +64,7 @@ public interface CohereFluxBuilder {
 
     @FunctionalInterface
     interface WithCorrelationIdResolverBuilder<R> {
+
         <T, ID> WithRulesBuilder<T, ID, R> withCorrelationIdResolver(Function<T, ID> correlationIdResolver);
     }
 

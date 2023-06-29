@@ -48,6 +48,7 @@ public interface AutoCacheFactoryBuilder {
             Supplier<Flux<U>> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
+
         return autoCacheBuilder(dataSource.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
     }
 
@@ -55,6 +56,7 @@ public interface AutoCacheFactoryBuilder {
             Flux<U> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
+
         return autoCacheEvents(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)));
     }
 
