@@ -17,6 +17,7 @@
 package io.github.pellse.cohereflux;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -25,9 +26,9 @@ public interface LifeCycleEventSource {
 
     static  LifeCycleEventListener concurrentLifeCycleEventListener(LifeCycleEventListener listener) {
 
-        return new LifeCycleEventListener() {
+        final var refCount = new AtomicLong();
 
-            private final AtomicLong refCount = new AtomicLong();
+        return new LifeCycleEventListener() {
 
             @Override
             public void start() {
@@ -47,18 +48,18 @@ public interface LifeCycleEventSource {
 
     static <T, U> LifeCycleEventListener lifeCycleEventAdapter(T eventSource, Function<T, U> start, Consumer<U> stop) {
 
-        return new LifeCycleEventListener() {
+        final var stopObj = new AtomicReference<U>();
 
-            private U stopObj;
+        return new LifeCycleEventListener() {
 
             @Override
             public void start() {
-                stopObj = start.apply(eventSource);
+                stopObj.setPlain(start.apply(eventSource));
             }
 
             @Override
             public void stop() {
-                stop.accept(stopObj);
+                stop.accept(stopObj.getPlain());
             }
         };
     }
