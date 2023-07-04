@@ -120,6 +120,14 @@ public interface AutoCacheFactoryBuilder {
             return retryStrategy(backoff(maxAttempts, minBackoff).maxBackoff(maxBackoff));
         }
 
+        default AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, double jitter) {
+            return retryStrategy(backoff(maxAttempts, minBackoff).jitter(jitter));
+        }
+
+        default AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, Duration maxBackoff, double jitter) {
+            return retryStrategy(backoff(maxAttempts, minBackoff).maxBackoff(maxBackoff).jitter(jitter));
+        }
+
         default AutoCacheFactoryDelegateBuilder<R> fixedDelayRetryStrategy(long maxAttempts, Duration fixedDelay) {
             return retryStrategy(fixedDelay(maxAttempts, fixedDelay));
         }
@@ -139,8 +147,7 @@ public interface AutoCacheFactoryBuilder {
             ErrorHandler errorHandler,
             Scheduler scheduler,
             LifeCycleEventSource eventSource,
-            CacheTransformer<?, R, ?> cacheTransformer
-    ) implements WindowingStrategyBuilder<R, U> {
+            CacheTransformer<?, R, ?> concurrentCacheTransformer) implements WindowingStrategyBuilder<R, U> {
 
         @Override
         public ConfigBuilder<R> windowingStrategy(WindowingStrategy<U> windowingStrategy) {
@@ -175,7 +182,7 @@ public interface AutoCacheFactoryBuilder {
         @SuppressWarnings("unchecked")
         @Override
         public <ID, RRC> CacheTransformer<ID, R, RRC> build() {
-            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC>) cacheTransformer);
+            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC>) concurrentCacheTransformer);
         }
     }
 }
