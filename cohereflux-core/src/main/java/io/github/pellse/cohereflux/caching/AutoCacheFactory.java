@@ -81,7 +81,7 @@ public interface AutoCacheFactory {
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> concurrentCacheTransformer) {
 
         return cacheFactory -> context -> {
-            final var cache = requireNonNullElse(concurrentCacheTransformer, ConcurrentCacheFactory::concurrent)
+            final var cache = requireNonNullElse(concurrentCacheTransformer, AutoCacheFactory::concurrent)
                     .apply(cacheFactory)
                     .create(context);
 
@@ -100,6 +100,10 @@ public interface AutoCacheFactory {
 
             return cache;
         };
+    }
+
+    private static <ID, R, RRC> CacheFactory<ID, R, RRC> concurrent(CacheFactory<ID, R, RRC> delegateCacheFactory) {
+        return ConcurrentCacheFactory.<ID, R, RRC>concurrent().apply(delegateCacheFactory);
     }
 
     private static <ID, R> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, Function<R, ID> correlationIdResolver) {
