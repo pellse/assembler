@@ -270,7 +270,7 @@ class CohereFluxKotlinTest {
         val cohereFlux = cohereFlux<Transaction>()
             .withCorrelationIdResolver(Customer::customerId)
             .withRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(::sortedMapOf), ::BillingInfo)),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(), ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached())),
                 ::Transaction
             ).build()
@@ -305,7 +305,7 @@ class CohereFluxKotlinTest {
         val cohereFlux = cohereFlux<Transaction>()
             .withCorrelationIdResolver(Customer::customerId)
             .withRules(
-                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(cache(::sortedMapOf)), ::BillingInfo)),
+                rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(), ::BillingInfo)),
                 rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached(caffeineCache()))),
                 ::Transaction
             ).build()

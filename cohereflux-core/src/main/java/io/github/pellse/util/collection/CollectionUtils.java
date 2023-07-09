@@ -88,7 +88,7 @@ public interface CollectionUtils {
     @SafeVarargs
     static <K, V> Map<K, V> newMap(Map<K, V> map, Consumer<Map<K, V>>... initializers) {
 
-        final var copyMap = map != null ? new HashMap<>(map) : new HashMap<K, V>();
+        final var copyMap = map != null ? new LinkedHashMap<>(map) : new LinkedHashMap<K, V>();
 
         for (var initializer : initializers) {
             initializer.accept(copyMap);
@@ -144,6 +144,14 @@ public interface CollectionUtils {
         return newMap;
     }
 
+    static <K, V> LinkedHashMap<K, V> toLinkedHashMap(Map<K, V> map ) {
+        return map instanceof LinkedHashMap<K,V> lhm ? lhm : new LinkedHashMap<>(map);
+    }
+
+    static <T, K, V> LinkedHashMap<K, V> toLinkedHashMap(Iterable<T> iter, Function<T, K> keyExtractor, Function<T, V> valueExtractor) {
+        return toStream(iter).collect(toMap(keyExtractor, valueExtractor, (u1, u2) -> u1, LinkedHashMap::new));
+    }
+
     static <K, V, ID> Map<K, List<V>> mergeMaps(
             Map<K, List<V>> srcMap,
             Map<K, List<V>> targetMap,
@@ -167,7 +175,7 @@ public interface CollectionUtils {
     static <K, V> Map<K, V> mergeMaps(Map<K, V>... maps) {
         return Stream.of(maps)
                 .flatMap(map -> map.entrySet().stream())
-                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1));
+                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1, LinkedHashMap::new));
     }
 
     static <K, V, ID> Map<K, List<V>> subtractFromMap(
@@ -201,6 +209,6 @@ public interface CollectionUtils {
                     return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
                 })
                 .filter(Objects::nonNull)
-                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1));
+                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1, LinkedHashMap::new));
     }
 }

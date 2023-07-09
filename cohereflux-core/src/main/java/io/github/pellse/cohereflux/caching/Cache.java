@@ -119,8 +119,7 @@ public interface Cache<ID, R> {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() ->
                 delegateCache.getAll(incomingChanges.keySet(), ids -> just(of()))
-                        .flatMap(cacheQueryResults ->
-                                cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges)));
+                        .flatMap(cacheQueryResults -> cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges)));
     }
 
     private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyOr(Function<Map<ID, List<R>>, Mono<?>> mappingFunction) {

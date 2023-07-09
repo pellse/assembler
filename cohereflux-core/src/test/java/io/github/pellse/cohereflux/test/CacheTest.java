@@ -29,11 +29,9 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -427,7 +425,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(toPublisher(this::getBillingInfoNonReactive)), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(toPublisher(this::getAllOrdersNonReactive), cache(TreeMap::new)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(toPublisher(this::getAllOrdersNonReactive), cache()))),
                         Transaction::new)
                 .build();
 
@@ -450,8 +448,8 @@ public class CacheTest {
         var cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache(TreeMap::new)), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(TreeMap::new)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache()))),
                         Transaction::new)
                 .build();
 
@@ -746,7 +744,7 @@ public class CacheTest {
 
         var billingInfoFlux = Flux.just( // E.g. Flux coming from a CDC/Kafka source
                 new MyOtherEvent<>(billingInfo1, true), new MyOtherEvent<>(billingInfo2, true),
-                new MyOtherEvent<>(billingInfo2, false), new MyOtherEvent<>(billingInfo3, false));
+                new MyOtherEvent<>(billingInfo2, false), new MyOtherEvent<>(billingInfo3, true));
 
         var orderItemFlux = Flux.just(
                 new CDCAdd<>(orderItem11), new CDCAdd<>(orderItem12), new CDCAdd<>(orderItem13),
