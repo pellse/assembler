@@ -22,6 +22,7 @@ import io.github.pellse.cohereflux.caching.Cache.FetchFunction;
 import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -130,6 +131,7 @@ public interface CacheFactory<ID, R, RRC> {
                     .create(new CacheContext<>(isEmptySource, ruleContext));
 
             return entities -> cache.getAll(ids(entities, ruleContext), isEmptySource ? ids ->  just(of()) : buildFetchFunction(entities, ruleContext, queryFunction))
+                    .subscribeOn(Schedulers.boundedElastic())
                     .filter(CollectionUtils::isNotEmpty)
                     .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)))
                     .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))
