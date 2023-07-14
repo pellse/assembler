@@ -118,7 +118,7 @@ public interface Cache<ID, R> {
             CacheUpdater<ID, R> cacheUpdater) {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() ->
-                delegateCache.getAll(incomingChanges.keySet(), ids -> just(of()))
+                delegateCache.getAll(incomingChanges.keySet(), null)
                         .flatMap(cacheQueryResults -> cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges)));
     }
 

@@ -80,6 +80,11 @@ public interface CollectionUtils {
         return also(new HashSet<>(asCollection(iter1)), set -> set.removeAll(asCollection(iter2)));
     }
 
+    static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, Function<V, V1> mappingFunction) {
+        return map.entrySet().stream()
+                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getValue()), (u1, u2) -> u1, LinkedHashMap::new));
+    }
+
     @SafeVarargs
     static <K, V> Map<K, V> newMap(Consumer<Map<K, V>>... initializers) {
         return newMap(null, initializers);
@@ -87,8 +92,16 @@ public interface CollectionUtils {
 
     @SafeVarargs
     static <K, V> Map<K, V> newMap(Map<K, V> map, Consumer<Map<K, V>>... initializers) {
+        return newMap(map, LinkedHashMap::new, initializers);
+    }
 
-        final var copyMap = map != null ? new LinkedHashMap<>(map) : new LinkedHashMap<K, V>();
+    @SafeVarargs
+    static <K, V, M extends Map<K, V>> M newMap(Map<K, V> map, Supplier<M> mapSupplier, Consumer<Map<K, V>>... initializers) {
+
+        final var copyMap = mapSupplier.get();
+        if (map != null) {
+            copyMap.putAll(map);
+        }
 
         for (var initializer : initializers) {
             initializer.accept(copyMap);
@@ -101,7 +114,11 @@ public interface CollectionUtils {
     }
 
     static <K, V> Map<K, V> readAll(Iterable<K> keys, Map<K, V> sourceMap) {
-        return newMap(map -> keys.forEach(id -> ifNotNull(sourceMap.get(id), value -> map.put(id, value))));
+        return readAll(keys, sourceMap, LinkedHashMap::new);
+    }
+
+    static <K, V, M extends Map<K, V>> Map<K, V> readAll(Iterable<K> keys, Map<K, V> sourceMap, Supplier<M> mapSupplier) {
+        return newMap(null, mapSupplier, map -> keys.forEach(id -> ifNotNull(sourceMap.get(id), value -> map.put(id, value))));
     }
 
     static <K, V, VC extends Collection<V>> VC removeDuplicates(

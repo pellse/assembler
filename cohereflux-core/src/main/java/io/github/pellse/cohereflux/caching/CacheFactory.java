@@ -23,16 +23,15 @@ import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.Empty;
 
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static io.github.pellse.cohereflux.RuleMapperSource.isEmptySource;
-import static io.github.pellse.cohereflux.RuleMapperSource.nullToEmptySource;
+import static io.github.pellse.cohereflux.RuleMapperSource.*;
 import static io.github.pellse.cohereflux.caching.Cache.adapterCache;
 import static io.github.pellse.cohereflux.caching.Cache.mergeStrategyAwareCache;
 import static io.github.pellse.util.ObjectUtils.also;
@@ -40,11 +39,10 @@ import static io.github.pellse.util.ObjectUtils.ifNotNull;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static io.github.pellse.util.reactive.ReactiveUtils.resolve;
 import static java.util.Arrays.stream;
-import static java.util.Map.of;
+import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toMap;
 import static reactor.core.publisher.Flux.from;
 import static reactor.core.publisher.Flux.fromStream;
 import static reactor.core.publisher.Mono.just;
@@ -59,33 +57,34 @@ public interface CacheFactory<ID, R, RRC> {
         BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> getAll = (ids, fetchFunction) -> {
 
             final var cachedEntitiesMap = readAll(ids, delegateMap);
-            final var missingIds = intersect(ids, cachedEntitiesMap.keySet());
+            if (fetchFunction == null) {
+                return resolve(cachedEntitiesMap);
+            }
 
+            final var missingIds = intersect(ids, cachedEntitiesMap.keySet());
             if (isEmpty(missingIds)) {
                 return resolve(cachedEntitiesMap);
             }
 
             final var sinkMap = toLinkedHashMap(missingIds, identity(), __ -> Sinks.<List<R>>one());
-            final var proxyMap = toLinkedHashMap(sinkMap.entrySet(), Entry::getKey, e -> e.getValue().asMono());
+            final var proxyMap = transformMap(sinkMap, Empty::asMono);
 
             delegateMap.putAll(proxyMap);
 
             return fetchFunction.apply(missingIds)
-                    .doOnNext(resultMap -> resultMap.forEach((id, value) -> sinkMap.get(id).tryEmitValue(value)))
-                    .doOnNext(resultMap -> intersect(proxyMap.keySet(), resultMap.keySet()).forEach(id -> {
-                        sinkMap.get(id).tryEmitEmpty();
-                        proxyMap.remove(id);
-                    }))
+                    .doOnNext(resultMap -> sinkMap.forEach((id, sink) ->
+                            ofNullable(resultMap.get(id)).ifPresentOrElse(sink::tryEmitValue, () -> {
+                                sink.tryEmitEmpty();
+                                delegateMap.remove(id);
+                            })))
                     .doOnError(e -> sinkMap.forEach((id, sink) -> {
                         sink.tryEmitError(e);
-                        proxyMap.remove(id);
+                        delegateMap.remove(id);
                     }))
-                    .flatMap(resultMap -> resolve(mergeMaps(proxyMap, cachedEntitiesMap)));
+                    .flatMap(__ -> resolve(mergeMaps(proxyMap, cachedEntitiesMap)));
         };
 
-        Function<Map<ID, List<R>>, Mono<?>> putAll = toMono(map -> delegateMap.putAll(
-                map.entrySet().stream()
-                        .collect(toMap(Entry::getKey, e -> just(e.getValue())))));
+        Function<Map<ID, List<R>>, Mono<?>> putAll = toMono(map -> delegateMap.putAll(transformMap(map, Mono::just)));
 
         Function<Map<ID, List<R>>, Mono<?>> removeAll = toMono(map -> delegateMap.keySet().removeAll(map.keySet()));
 
@@ -112,7 +111,7 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cache,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        return cached(RuleMapperSource.emptySource(), cache, delegateCacheFactories);
+        return cached(emptySource(), cache, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -120,7 +119,7 @@ public interface CacheFactory<ID, R, RRC> {
             Function<TC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        return cached(RuleMapperSource.toQueryFunction(queryFunction), delegateCacheFactories);
+        return cached(toQueryFunction(queryFunction), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -137,7 +136,7 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        return cached(RuleMapperSource.toQueryFunction(queryFunction), cacheFactory, delegateCacheFactories);
+        return cached(toQueryFunction(queryFunction), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -154,7 +153,7 @@ public interface CacheFactory<ID, R, RRC> {
             final var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
                     .create(new CacheContext<>(isEmptySource, ruleContext));
 
-            return entities -> cache.getAll(ids(entities, ruleContext), isEmptySource ? ids -> just(of()) : buildFetchFunction(entities, ruleContext, queryFunction))
+            return entities -> cache.getAll(ids(entities, ruleContext), isEmptySource ? null : buildFetchFunction(entities, ruleContext, queryFunction))
                     .filter(CollectionUtils::isNotEmpty)
                     .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)))
                     .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))

@@ -244,6 +244,7 @@ class CohereFluxKotlinTest {
         StepVerifier.create(
             getCustomers()
                 .window(3)
+                .delayElements(ofMillis(100))
                 .flatMapSequential(cohereFlux::process)
         )
             .expectSubscription()
@@ -261,8 +262,8 @@ class CohereFluxKotlinTest {
             .expectComplete()
             .verify()
 
-        assertEquals(3, billingInvocationCount.get())
-        assertEquals(3, ordersInvocationCount.get())
+        assertEquals(1, billingInvocationCount.get())
+        assertEquals(1, ordersInvocationCount.get())
     }
 
     @Test

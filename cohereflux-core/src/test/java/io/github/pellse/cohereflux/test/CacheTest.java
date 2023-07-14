@@ -140,7 +140,7 @@ public class CacheTest {
 
             var customerIds = transform(customers, Customer::customerId);
 
-            return Flux.just(billingInfo1, billingInfo3)
+            return Flux.just(billingInfo1, billingInfo2, billingInfo3)
                     .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                     .doOnComplete(billingInvocationCount::incrementAndGet);
         };
