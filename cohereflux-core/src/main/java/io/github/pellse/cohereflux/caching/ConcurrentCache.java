@@ -89,8 +89,13 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
         return new ConcurrentCache<>() {
 
             @Override
-            public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction) {
-                return executor.execute(delegateCache.getAll(ids, fetchFunction), concurrencyStrategy);
+            public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids) {
+                return executor.execute(delegateCache.getAll(ids), concurrencyStrategy);
+            }
+
+            @Override
+            public Mono<Map<ID, List<R>>> computeAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction) {
+                return executor.execute(delegateCache.computeAll(ids, fetchFunction), concurrencyStrategy);
             }
 
             @Override

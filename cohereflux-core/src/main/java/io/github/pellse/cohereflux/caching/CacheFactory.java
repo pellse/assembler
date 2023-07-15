@@ -34,8 +34,7 @@ import java.util.function.Function;
 import static io.github.pellse.cohereflux.RuleMapperSource.*;
 import static io.github.pellse.cohereflux.caching.Cache.adapterCache;
 import static io.github.pellse.cohereflux.caching.Cache.mergeStrategyAwareCache;
-import static io.github.pellse.util.ObjectUtils.also;
-import static io.github.pellse.util.ObjectUtils.ifNotNull;
+import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static io.github.pellse.util.reactive.ReactiveUtils.resolve;
 import static java.util.Arrays.stream;
@@ -54,12 +53,11 @@ public interface CacheFactory<ID, R, RRC> {
 
         final var delegateMap = new ConcurrentHashMap<ID, Mono<List<R>>>();
 
-        BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> getAll = (ids, fetchFunction) -> {
+        Function<Iterable<ID>, Mono<Map<ID, List<R>>>> getAll = ids -> resolve(readAll(ids, delegateMap));
+
+        BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> computeAll = (ids, fetchFunction) -> {
 
             final var cachedEntitiesMap = readAll(ids, delegateMap);
-            if (fetchFunction == null) {
-                return resolve(cachedEntitiesMap);
-            }
 
             final var missingIds = intersect(ids, cachedEntitiesMap.keySet());
             if (isEmpty(missingIds)) {
@@ -88,15 +86,16 @@ public interface CacheFactory<ID, R, RRC> {
 
         Function<Map<ID, List<R>>, Mono<?>> removeAll = toMono(map -> delegateMap.keySet().removeAll(map.keySet()));
 
-        return cache(getAll, putAll, removeAll);
+        return cache(getAll, computeAll, putAll, removeAll);
     }
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache(
-            BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> getAll,
+            Function<Iterable<ID>, Mono<Map<ID, List<R>>>> getAll,
+            BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> computeAll,
             Function<Map<ID, List<R>>, Mono<?>> putAll,
             Function<Map<ID, List<R>>, Mono<?>> removeAll) {
 
-        return __ -> adapterCache(getAll, putAll, removeAll);
+        return __ -> adapterCache(getAll, computeAll, putAll, removeAll);
     }
 
     @SafeVarargs
@@ -145,7 +144,7 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        var isEmptySource = isEmptySource(ruleMapperSource);
+        final var isEmptySource = isEmptySource(ruleMapperSource);
 
         return ruleContext -> {
             final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleContext);
@@ -153,7 +152,7 @@ public interface CacheFactory<ID, R, RRC> {
             final var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
                     .create(new CacheContext<>(isEmptySource, ruleContext));
 
-            return entities -> cache.getAll(ids(entities, ruleContext), isEmptySource ? null : buildFetchFunction(entities, ruleContext, queryFunction))
+            return entities -> then(ids(entities, ruleContext), ids -> isEmptySource ? cache.getAll(ids) : cache.computeAll(ids, buildFetchFunction(entities, ruleContext, queryFunction)))
                     .filter(CollectionUtils::isNotEmpty)
                     .flatMapMany(map -> fromStream(map.values().stream().flatMap(Collection::stream)))
                     .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))

@@ -335,7 +335,8 @@ public class CacheTest {
     public void testReusableCohereFluxBuilderWithFaultyCache() {
 
         CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
-                (ids, fetchFunction) -> error(new RuntimeException("Cache.getAll failed")),
+                ids -> error(new RuntimeException("Cache.getAll failed")),
+                (ids, fetchFunction) -> error(new RuntimeException("Cache.computeAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
                 map -> error(new RuntimeException("Cache.removeAll failed")));
 
@@ -391,7 +392,8 @@ public class CacheTest {
     public void testReusableCohereFluxBuilderWithFaultyCacheAndQueryFunction() {
 
         CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
-                (ids, computeIfAbsent) -> error(new RuntimeException("Cache.getAll failed")),
+                ids -> error(new RuntimeException("Cache.getAll failed")),
+                (ids, fetchFunction) -> error(new RuntimeException("Cache.computeAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
                 map -> error(new RuntimeException("Cache.removeAll failed")));
 
@@ -514,7 +516,7 @@ public class CacheTest {
     }
 
     @Test
-    public void testReusableCohereFluxBuilderWithAutoCaching() throws InterruptedException {
+    public void testReusableCohereFluxBuilderWithAutoCaching() {
 
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3)
                 .subscribeOn(parallel());
