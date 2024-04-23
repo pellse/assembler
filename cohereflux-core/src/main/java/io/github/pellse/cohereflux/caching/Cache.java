@@ -38,6 +38,18 @@ interface CacheUpdater<ID, R> {
 
 public interface Cache<ID, R> {
 
+    Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids);
+
+    Mono<Map<ID, List<R>>> computeAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction);
+
+    Mono<?> putAll(Map<ID, List<R>> map);
+
+    Mono<?> removeAll(Map<ID, List<R>> map);
+
+    default Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
+        return putAll(mapToAdd).then(removeAll(mapToRemove));
+    }
+
     static <ID, R> Cache<ID, R> adapterCache(
             Function<Iterable<ID>, Mono<Map<ID, List<R>>>> getAll,
             BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> computeAll,
@@ -135,9 +147,7 @@ public interface Cache<ID, R> {
         return map -> isEmpty(map) ? just(of()) : mappingFunction.apply(map);
     }
 
-    private static <ID, R> Function<Iterable<ID>, Mono<Map<ID, List<R>>>> emptyOr(
-            Function<Iterable<ID>, Mono<Map<ID, List<R>>>> mappingFunction) {
-
+    private static <ID, R> Function<Iterable<ID>, Mono<Map<ID, List<R>>>> emptyOr(Function<Iterable<ID>, Mono<Map<ID, List<R>>>> mappingFunction) {
         return ids -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids);
     }
 
@@ -145,18 +155,6 @@ public interface Cache<ID, R> {
             BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> mappingFunction) {
 
         return (ids, fetchFunction) -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids, fetchFunction);
-    }
-
-    Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids);
-
-    Mono<Map<ID, List<R>>> computeAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction);
-
-    Mono<?> putAll(Map<ID, List<R>> map);
-
-    Mono<?> removeAll(Map<ID, List<R>> map);
-
-    default Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
-        return putAll(mapToAdd).then(removeAll(mapToRemove));
     }
 
     interface FetchFunction<ID, R> extends Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> {

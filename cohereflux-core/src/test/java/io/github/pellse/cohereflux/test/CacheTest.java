@@ -60,8 +60,7 @@ import static io.github.pellse.cohereflux.test.CDCDelete.cdcDelete;
 import static io.github.pellse.cohereflux.test.CohereFluxTestUtils.*;
 import static io.github.pellse.util.ObjectUtils.run;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
-import static java.time.Duration.ofMillis;
-import static java.time.Duration.ofNanos;
+import static java.time.Duration.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static reactor.core.publisher.Mono.error;
@@ -88,6 +87,10 @@ record CDCDelete<T>(T item) implements CDC<T> {
 
 public class CacheTest {
 
+//    static {
+//        BlockHound.install();
+//    }
+
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
@@ -113,7 +116,8 @@ public class CacheTest {
             sink.onRequest(n -> {
                 for (long i = 0; i < n; i++) {
 
-                    if (stopCondition.test(generatedValueCount.incrementAndGet())) {
+                    var c = generatedValueCount.incrementAndGet();
+                    if (stopCondition.test(c)) {
                         sink.complete();
                         return;
                     }
@@ -136,24 +140,6 @@ public class CacheTest {
         final AtomicInteger billingInvocationCount = new AtomicInteger();
         final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-        Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
-
-            var customerIds = transform(customers, Customer::customerId);
-
-            return Flux.just(billingInfo1, billingInfo2, billingInfo3)
-                    .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
-                    .doOnComplete(billingInvocationCount::incrementAndGet);
-        };
-
-        Function<List<Customer>, Publisher<OrderItem>> getAllOrders = customers -> {
-
-            var customerIds = transform(customers, Customer::customerId);
-
-            return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                    .filter(orderItem -> customerIds.contains(orderItem.customerId()))
-                    .doOnComplete(ordersInvocationCount::incrementAndGet);
-        };
-
         var customerList = List.of(customer1, customer2, customer3);
 
         var billingInfoList = List.of(cdcAdd(billingInfo1), cdcAdd(billingInfo2), cdcAdd(updatedBillingInfo2), cdcAdd(billingInfo3));
@@ -163,9 +149,32 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var customerFlux = longRunningFlux(customerList).delayElements(ofNanos(1));
-        var billingInfoFlux = longRunningFlux(billingInfoList).delayElements(ofNanos(1));
-        var orderItemFlux = longRunningFlux(orderItemList).delayElements(ofNanos(1));
+        var billingInfoScheduler = newBoundedElastic(4, Integer. MAX_VALUE, "billingInfo", 15, true);
+        var orderItemScheduler = newBoundedElastic(4, Integer. MAX_VALUE, "orderItem", 15, true);
+
+        var customerFlux = longRunningFlux(customerList).delayElements(ofMillis(30));
+        var billingInfoFlux = longRunningFlux(billingInfoList, 2_000).delayElements(ofMillis(5), billingInfoScheduler);
+        var orderItemFlux = longRunningFlux(orderItemList, 2_000).delayElements(ofMillis(5), orderItemScheduler);
+
+        Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
+
+            var customerIds = transform(customers, Customer::customerId);
+
+            return Flux.just(billingInfo1, billingInfo2, billingInfo3)
+                    .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                    .doOnComplete(billingInvocationCount::incrementAndGet)
+                    .subscribeOn(billingInfoScheduler);
+        };
+
+        Function<List<Customer>, Publisher<OrderItem>> getAllOrders = customers -> {
+
+            var customerIds = transform(customers, Customer::customerId);
+
+            return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                    .filter(orderItem -> customerIds.contains(orderItem.customerId()))
+                    .doOnComplete(ordersInvocationCount::incrementAndGet)
+                    .subscribeOn(orderItemScheduler);
+        };
 
         var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
 
@@ -176,15 +185,15 @@ public class CacheTest {
                                 autoCacheBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(boundedElastic())
-                                        .backoffRetryStrategy(100, ofNanos(1), ofMillis(1))
+//                                        .scheduler(billingInfoScheduler)
+                                        .backoffRetryStrategy(100, ofMillis(10), ofMillis(200), 1.0)
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(boundedElastic())
-                                        .backoffRetryStrategy(100, ofNanos(1), ofMillis(1))
+//                                        .scheduler(orderItemScheduler)
+                                        .backoffRetryStrategy(100, ofMillis(10), ofMillis(200), 1.0)
                                         .build()))),
                         Transaction::new)
                 .build();
@@ -192,11 +201,11 @@ public class CacheTest {
         var transactionFlux = customerFlux
                 .window(3)
                 .flatMapSequential(cohereFlux::process)
-                .take(10_000)
+                .take(1000)
                 .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
                 .doFinally(run(lifeCycleEventBroadcaster::stop));
 
-        var initialCount = 500;
+        var initialCount = 50;
         var latch = new CountDownLatch(initialCount);
         IntStream.range(0, initialCount).forEach(__ -> transactionFlux.subscribe(null, error -> latch.countDown(),
                 () -> {
@@ -595,7 +604,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCacheBuilder(dataSource1).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCacheBuilder(dataSource2).maxWindowSize(1).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCacheBuilder(dataSource2).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build();
 

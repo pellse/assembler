@@ -36,10 +36,10 @@ import static io.github.pellse.cohereflux.caching.Cache.adapterCache;
 import static io.github.pellse.cohereflux.caching.Cache.mergeStrategyAwareCache;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
+import static io.github.pellse.util.reactive.ReactiveUtils.createSinkMap;
 import static io.github.pellse.util.reactive.ReactiveUtils.resolve;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-import static java.util.function.Function.identity;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.groupingBy;
 import static reactor.core.publisher.Flux.from;
@@ -51,40 +51,39 @@ public interface CacheFactory<ID, R, RRC> {
 
     static <ID, R, RRC> CacheFactory<ID, R, RRC> cache() {
 
-        final var delegateMap = new ConcurrentHashMap<ID, Mono<List<R>>>();
+        final var delegateMap = new ConcurrentHashMap<ID, Sinks.One<List<R>>>();
 
-        Function<Iterable<ID>, Mono<Map<ID, List<R>>>> getAll = ids -> resolve(readAll(ids, delegateMap));
+        Function<Iterable<ID>, Mono<Map<ID, List<R>>>> getAll = ids -> resolve(readAll(ids, delegateMap, Empty::asMono));
 
         BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> computeAll = (ids, fetchFunction) -> {
 
-            final var cachedEntitiesMap = readAll(ids, delegateMap);
+            final var cachedEntitiesMap = readAll(ids, delegateMap, Empty::asMono);
 
             final var missingIds = intersect(ids, cachedEntitiesMap.keySet());
             if (isEmpty(missingIds)) {
                 return resolve(cachedEntitiesMap);
             }
 
-            final var sinkMap = toLinkedHashMap(missingIds, identity(), __ -> Sinks.<List<R>>one());
-            final var proxyMap = transformMap(sinkMap, Empty::asMono);
-
-            delegateMap.putAll(proxyMap);
+            final var sinkMap = also(createSinkMap(missingIds), delegateMap::putAll);
 
             return fetchFunction.apply(missingIds)
-                    .doOnNext(resultMap -> sinkMap.forEach((id, sink) ->
-                            ofNullable(resultMap.get(id)).ifPresentOrElse(sink::tryEmitValue, () -> {
-                                sink.tryEmitEmpty();
+                    .doOnNext(resultMap -> sinkMap.forEach((id, sink) -> ofNullable(resultMap.get(id))
+                            .ifPresentOrElse(sink::tryEmitValue, () -> {
                                 delegateMap.remove(id);
+                                sink.tryEmitEmpty();
                             })))
                     .doOnError(e -> sinkMap.forEach((id, sink) -> {
-                        sink.tryEmitError(e);
                         delegateMap.remove(id);
+                        sink.tryEmitError(e);
                     }))
-                    .flatMap(__ -> resolve(mergeMaps(proxyMap, cachedEntitiesMap)));
+                    .flatMap(__ -> resolve(mergeMaps(transformMap(sinkMap, Empty::asMono), cachedEntitiesMap)));
         };
 
-        Function<Map<ID, List<R>>, Mono<?>> putAll = toMono(map -> delegateMap.putAll(transformMap(map, Mono::just)));
+        Function<Map<ID, List<R>>, Mono<?>> putAll = toMono(map -> also(createSinkMap(map.keySet()), delegateMap::putAll)
+                .forEach((id, sink) -> sink.tryEmitValue(map.get(id))));
 
-        Function<Map<ID, List<R>>, Mono<?>> removeAll = toMono(map -> delegateMap.keySet().removeAll(map.keySet()));
+        Function<Map<ID, List<R>>, Mono<?>> removeAll = toMono(map -> also(map.keySet(), ids -> delegateMap.keySet().removeAll(ids))
+                .forEach(id -> ofNullable(delegateMap.get(id)).ifPresent(Empty::tryEmitEmpty)));
 
         return cache(getAll, computeAll, putAll, removeAll);
     }
@@ -194,12 +193,17 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        return ConcurrentCacheFactory.<ID, R, RRC>concurrent().apply(
-                stream(delegateCacheFactories)
-                        .reduce(context -> mergeStrategyAwareCache(ruleContext.idResolver(), cacheFactory.create(context)),
-                                (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
-                                (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory)
-        );
+        return stream(delegateCacheFactories)
+                .reduce(context -> mergeStrategyAwareCache(ruleContext.idResolver(), cacheFactory.create(context)),
+                        (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
+                        (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory);
+
+//        return ConcurrentCacheFactory.<ID, R, RRC>concurrent().apply(
+//                stream(delegateCacheFactories)
+//                        .reduce(context -> mergeStrategyAwareCache(ruleContext.idResolver(), cacheFactory.create(context)),
+//                                (previousCacheFactory, delegateCacheFactoryFunction) -> delegateCacheFactoryFunction.apply(previousCacheFactory),
+//                                (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory)
+//        );
     }
 
     private static <T, TC extends Collection<T>, ID, EID, R, RRC> Map<ID, List<R>> buildCacheFragment(

@@ -60,12 +60,12 @@ public interface CollectionUtils {
         return !isEmpty(map);
     }
 
-    static <T, R> List<R>  transform(Iterable<? extends T> from, Function<T, R> mappingFunction) {
+    static <T, R> List<R> transform(Iterable<? extends T> from, Function<T, R> mappingFunction) {
         return toStream(from).map(mappingFunction).toList();
     }
 
-    static <E> Collection<E> asCollection(Iterable<E> iter) {
-        return iter instanceof Collection<E> coll ? coll : stream(iter.spliterator(), false).toList();
+    static <E> Collection<E> asCollection(Iterable<E> iterable) {
+        return iterable instanceof Collection<E> coll ? coll : stream(iterable.spliterator(), false).toList();
     }
 
     static <E, C extends Collection<E>> C translate(Iterable<? extends E> from, Supplier<C> collectionFactory) {
@@ -76,8 +76,8 @@ public interface CollectionUtils {
         return iterable == null ? 0 : asCollection(iterable).size();
     }
 
-    static <E> Set<E> intersect(Iterable<? extends E> iter1, Iterable<? extends E> iter2) {
-        return also(new HashSet<>(asCollection(iter1)), set -> set.removeAll(asCollection(iter2)));
+    static <E> Set<E> intersect(Iterable<? extends E> iterable1, Iterable<? extends E> iterable2) {
+        return also(new HashSet<>(asCollection(iterable1)), set -> set.removeAll(asCollection(iterable2)));
     }
 
     static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, Function<V, V1> mappingFunction) {
@@ -114,11 +114,15 @@ public interface CollectionUtils {
     }
 
     static <K, V> Map<K, V> readAll(Iterable<K> keys, Map<K, V> sourceMap) {
-        return readAll(keys, sourceMap, LinkedHashMap::new);
+        return readAll(keys, sourceMap, identity());
     }
 
-    static <K, V, M extends Map<K, V>> Map<K, V> readAll(Iterable<K> keys, Map<K, V> sourceMap, Supplier<M> mapSupplier) {
-        return newMap(null, mapSupplier, map -> keys.forEach(id -> ifNotNull(sourceMap.get(id), value -> map.put(id, value))));
+    static <K, V, V1> Map<K, V1> readAll(Iterable<K> keys, Map<K, V> sourceMap, Function<V, V1> mappingFunction) {
+        return readAll(keys, sourceMap, LinkedHashMap::new, mappingFunction);
+    }
+
+    static <K, V, V1, M extends Map<K, V1>> Map<K, V1> readAll(Iterable<K> keys, Map<K, V> sourceMap, Supplier<M> mapSupplier, Function<V, V1> mappingFunction) {
+        return newMap(null, mapSupplier, map -> keys.forEach(id -> ifNotNull(sourceMap.get(id), value -> map.put(id, mappingFunction.apply(value)))));
     }
 
     static <K, V, VC extends Collection<V>> VC removeDuplicates(
@@ -161,12 +165,12 @@ public interface CollectionUtils {
         return newMap;
     }
 
-    static <K, V> LinkedHashMap<K, V> toLinkedHashMap(Map<K, V> map ) {
-        return map instanceof LinkedHashMap<K,V> lhm ? lhm : new LinkedHashMap<>(map);
+    static <K, V> LinkedHashMap<K, V> toLinkedHashMap(Map<K, V> map) {
+        return map instanceof LinkedHashMap<K, V> lhm ? lhm : new LinkedHashMap<>(map);
     }
 
-    static <T, K, V> LinkedHashMap<K, V> toLinkedHashMap(Iterable<T> iter, Function<T, K> keyExtractor, Function<T, V> valueExtractor) {
-        return toStream(iter).collect(toMap(keyExtractor, valueExtractor, (u1, u2) -> u1, LinkedHashMap::new));
+    static <T, K, V> LinkedHashMap<K, V> toLinkedHashMap(Iterable<T> iterable, Function<T, K> keyExtractor, Function<T, V> valueExtractor) {
+        return toStream(iterable).collect(toMap(keyExtractor, valueExtractor, (u1, u2) -> u1, LinkedHashMap::new));
     }
 
     static <K, V, ID> Map<K, List<V>> mergeMaps(

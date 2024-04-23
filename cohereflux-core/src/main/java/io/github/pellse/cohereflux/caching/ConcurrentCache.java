@@ -28,8 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.READ;
 import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.WRITE;
 import static io.github.pellse.concurrent.ConcurrentExecutor.concurrentExecutor;
+import static java.util.Map.of;
+import static reactor.core.publisher.Mono.just;
 import static reactor.util.retry.Retry.indefinitely;
 
 public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
@@ -90,12 +93,12 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
 
             @Override
             public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids) {
-                return executor.execute(delegateCache.getAll(ids), concurrencyStrategy);
+                return executor.execute(delegateCache.getAll(ids), READ, just(of()));
             }
 
             @Override
             public Mono<Map<ID, List<R>>> computeAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction) {
-                return executor.execute(delegateCache.computeAll(ids, fetchFunction), concurrencyStrategy);
+                return executor.execute(delegateCache.computeAll(ids, fetchFunction), concurrencyStrategy, just(of()));
             }
 
             @Override

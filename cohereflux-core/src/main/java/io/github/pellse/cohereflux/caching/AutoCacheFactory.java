@@ -18,6 +18,7 @@ package io.github.pellse.cohereflux.caching;
 
 import io.github.pellse.cohereflux.LifeCycleEventListener;
 import io.github.pellse.cohereflux.LifeCycleEventSource;
+import io.github.pellse.cohereflux.caching.CacheEvent.Updated;
 import io.github.pellse.cohereflux.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -90,9 +91,9 @@ public interface AutoCacheFactory {
             final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
                     .transform(scheduleOn(scheduler, Flux::publishOn))
                     .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
-                    .flatMap(flux -> flux.collect(partitioningBy(CacheEvent.Updated.class::isInstance)))
+                    .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idResolver), toMap(eventMap.get(false), idResolver)))
-                    .transform(requireNonNullElse(errorHandler, onErrorContinue((e, o) -> runIf(scheduler, not(Scheduler::isDisposed), __ -> AutoCacheFactory.logError(e, o)))).toFluxErrorHandler())
+                    .transform(requireNonNullElse(errorHandler, onErrorContinue((e, o) -> runIf(scheduler, not(Scheduler::isDisposed), __ -> logError(e, o)))).toFluxErrorHandler())
                     .doFinally(__ -> ifNotNull(scheduler, Scheduler::dispose));
 
             requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start)

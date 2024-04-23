@@ -17,6 +17,7 @@
 package io.github.pellse.util.reactive;
 
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.util.function.Tuple2;
 
 import java.util.List;
@@ -25,11 +26,12 @@ import java.util.Map;
 import static io.github.pellse.util.collection.CollectionUtils.toLinkedHashMap;
 import static java.lang.Math.toIntExact;
 import static java.util.List.copyOf;
+import static java.util.function.Function.identity;
 import static reactor.core.publisher.Flux.concat;
 
 public interface ReactiveUtils {
 
-    static <ID, R> Mono<Map<ID, List<R>>> resolve(Map<ID, Mono<List<R>>> monoMap) {
+    static <T, R> Mono<Map<T, List<R>>> resolve(Map<T, Mono<List<R>>> monoMap) {
 
         final var monoLinkedMap = toLinkedHashMap(monoMap);
         final var keys = copyOf(monoLinkedMap.keySet());
@@ -37,5 +39,9 @@ public interface ReactiveUtils {
         return concat(monoLinkedMap.values())
                 .index()
                 .collectMap(tuple -> keys.get(toIntExact(tuple.getT1())), Tuple2::getT2);
+    }
+
+    static <T, R> Map<T, Sinks.One<List<R>>> createSinkMap(Iterable<T> iterable) {
+        return toLinkedHashMap(iterable, identity(), __ -> Sinks.one());
     }
 }
