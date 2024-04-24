@@ -27,6 +27,9 @@ import java.util.function.Function;
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.cohereflux.caching.Cache.adapterCache;
 import static io.github.pellse.cohereflux.caching.CacheFactory.toMono;
+import static io.github.pellse.util.ObjectUtils.also;
+import static java.util.Map.of;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 import static reactor.core.publisher.Mono.fromFuture;
 
 public interface CaffeineCacheFactory {
@@ -58,9 +61,10 @@ public interface CaffeineCacheFactory {
         final AsyncCache<ID, List<R>> delegateCache = caffeine.buildAsync();
 
         return __ -> adapterCache(
+                ids -> fromFuture(delegateCache.getAll(ids, keys -> of())),
                 (ids, fetchFunction) -> fromFuture(delegateCache.getAll(ids, (keys, executor) -> fetchFunction.apply(keys).toFuture())),
-                toMono(map -> delegateCache.synchronous().putAll(map)),
-                toMono(map -> delegateCache.synchronous().invalidateAll(map.keySet()))
+                toMono(map -> map.forEach((id, results) -> delegateCache.put(id, completedFuture(results)))),
+                toMono(map -> also(delegateCache.asMap(), cache -> map.keySet().forEach(cache::remove)))
         );
     }
 }

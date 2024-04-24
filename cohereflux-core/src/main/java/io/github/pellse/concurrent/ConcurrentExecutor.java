@@ -30,12 +30,22 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.WRITE;
-import static io.github.pellse.util.ObjectUtils.*;
+import static io.github.pellse.util.ObjectUtils.get;
 import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.*;
 
 @FunctionalInterface
 public interface ConcurrentExecutor {
+
+    <T> Mono<T> execute(Mono<T> mono, ConcurrencyStrategy concurrencyStrategy, Mono<T> defaultValueProvider);
+
+    default <T> Mono<T> execute(Mono<T> mono) {
+        return execute(mono, empty());
+    }
+
+    default <T> Mono<T> execute(Mono<T> mono, Mono<T> defaultValueProvider) {
+        return execute(mono, WRITE, defaultValueProvider);
+    }
 
     LockNotAcquiredException LOCK_NOT_ACQUIRED = new LockNotAcquiredException();
 
@@ -75,9 +85,9 @@ public interface ConcurrentExecutor {
         final var readLock = new Lock() {
 
             @Override
-            public boolean tryAcquireLock() {
+            public boolean tryAcquire() {
                 if (isLocked.compareAndSet(false, true)) {
-                    readCount.getAndIncrement();
+                    readCount.incrementAndGet();
                     isLocked.set(false);
                     return true;
                 }
@@ -85,15 +95,16 @@ public interface ConcurrentExecutor {
             }
 
             @Override
-            public void releaseLock() {
+            public boolean release() {
                 readCount.decrementAndGet();
+                return true;
             }
         };
 
         final var writeLock = new Lock() {
 
             @Override
-            public boolean tryAcquireLock() {
+            public boolean tryAcquire() {
                 if (isLocked.compareAndSet(false, true)) {
                     if (readCount.get() == 0) {
                         return true;
@@ -104,49 +115,34 @@ public interface ConcurrentExecutor {
             }
 
             @Override
-            public void releaseLock() {
-                isLocked.set(false);
+            public boolean release() {
+                return isLocked.compareAndSet(true, false);
             }
         };
 
         return new ConcurrentExecutor() {
 
             @Override
-            public <T> Mono<T> execute(Mono<T> mono, ConcurrencyStrategy concurrencyStrategy) {
+            public <T> Mono<T> execute(Mono<T> mono, ConcurrencyStrategy concurrencyStrategy, Mono<T> defaultMono) {
+                return usingWhen(
+                        just(getLock(concurrencyStrategy)),
+                        lock -> fromSupplier(lock::tryAcquire)
+                                .filter(isLocked -> isLocked)
+                                .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
+                                .retryWhen(retrySpec)
+                                .flatMap(get(mono)),
+                        lock -> fromSupplier(lock::release)
+                ).onErrorResume(Exceptions::isRetryExhausted, e -> defaultMono);
+            }
 
-                final var lock = switch(concurrencyStrategy) {
+            private Lock getLock(ConcurrencyStrategy concurrencyStrategy) {
+                return switch (concurrencyStrategy) {
                     case READ -> readLock;
                     case WRITE -> writeLock;
                 };
-
-                return defer(() -> {
-                    final var lockAcquired = new AtomicBoolean();
-
-                    final Runnable releaseLock = () -> {
-                        if (lockAcquired.compareAndSet(true, false)) {
-                            lock.releaseLock();
-                        }
-                    };
-
-                    return fromSupplier(lock::tryAcquireLock)
-                            .filter(isLocked -> also(isLocked, lockAcquired::set))
-                            .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
-                            .retryWhen(retrySpec)
-                            .flatMap(get(mono))
-                            .doOnError(run(releaseLock))
-                            .doOnCancel(releaseLock)
-                            .doOnSuccess(run(releaseLock))
-                            .onErrorResume(Exceptions::isRetryExhausted, get(Mono::empty));
-                });
             }
         };
     }
-
-    default <T> Mono<T> execute(Mono<T> mono) {
-        return execute(mono, WRITE);
-    }
-
-    <T> Mono<T> execute(Mono<T> mono, ConcurrencyStrategy concurrencyStrategy);
 
     enum ConcurrencyStrategy {
         READ,
@@ -154,9 +150,9 @@ public interface ConcurrentExecutor {
     }
 
     interface Lock {
-        boolean tryAcquireLock();
+        boolean tryAcquire();
 
-        void releaseLock();
+        boolean release();
     }
 
     class LockNotAcquiredException extends Exception {

@@ -7,4 +7,5 @@ dependencies {
 
     testImplementation project(":cohereflux-core").sourceSets.test.output
     testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
+    testImplementation("io.projectreactor.tools:blockhound:1.0.8.RELEASE")
 }

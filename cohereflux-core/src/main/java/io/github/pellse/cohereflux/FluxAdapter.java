@@ -42,7 +42,7 @@ public interface FluxAdapter {
                         zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).collect(toList()),
                                 mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))))
                 .publishOn(scheduler) // from(publisher) above can itself switch to a different scheduler e.g. AutoCache
-                .flatMap(Flux::fromStream);
+                .flatMapSequential(Flux::fromStream);
     }
 
     @SuppressWarnings("unchecked")

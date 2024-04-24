@@ -16,10 +16,6 @@
 
 package io.github.pellse.cohereflux.cache.caffeine;
 
-import io.github.pellse.cohereflux.CohereFluxBuilder;
-import io.github.pellse.cohereflux.Rule;
-import io.github.pellse.cohereflux.RuleMapperSource;
-import io.github.pellse.cohereflux.caching.AutoCacheFactoryBuilder;
 import io.github.pellse.cohereflux.caching.CacheEvent.Updated;
 import io.github.pellse.cohereflux.caching.CacheFactory;
 import io.github.pellse.cohereflux.util.BillingInfo;
@@ -39,10 +35,14 @@ import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.cohereflux.CohereFluxBuilder.cohereFluxOf;
+import static io.github.pellse.cohereflux.Rule.rule;
 import static io.github.pellse.cohereflux.RuleMapper.oneToMany;
 import static io.github.pellse.cohereflux.RuleMapper.oneToOne;
+import static io.github.pellse.cohereflux.RuleMapperSource.pipe;
 import static io.github.pellse.cohereflux.cache.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.cohereflux.caching.AutoCacheFactory.autoCache;
+import static io.github.pellse.cohereflux.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
+import static io.github.pellse.cohereflux.caching.AutoCacheFactoryBuilder.autoCacheEvents;
 import static io.github.pellse.cohereflux.caching.CacheEvent.removed;
 import static io.github.pellse.cohereflux.caching.CacheEvent.updated;
 import static io.github.pellse.cohereflux.caching.CacheFactory.cached;
@@ -53,6 +53,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.parallel;
 
 public class CohereFluxCaffeineCacheTest {
+
+//    static {
+//        BlockHound.install();
+//    }
 
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
@@ -91,8 +95,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
@@ -115,8 +119,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
@@ -139,8 +143,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cached(this::getAllOrders, caffeineCache())))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cached(this::getAllOrders, caffeineCache())))),
                         Transaction::new)
                 .build();
 
@@ -163,13 +167,13 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(RuleMapperSource.pipe(
+                        rule(BillingInfo::customerId, oneToOne(pipe(
                                         cached(this::getBillingInfo, caffeineCache()),
                                         CacheFactory::cached,
                                         CacheFactory::cached),
                                 BillingInfo::new)),
-                        Rule.rule(OrderItem::customerId,
-                                oneToMany(OrderItem::id, RuleMapperSource.pipe(
+                        rule(OrderItem::customerId,
+                                oneToMany(OrderItem::id, pipe(
                                         cached(this::getAllOrders, caffeineCache()),
                                         CacheFactory::cached,
                                         CacheFactory::cached))),
@@ -198,8 +202,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, caffeineCache()), BillingInfo::new)),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, caffeineCache()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
                         Transaction::new)
                 .build();
 
@@ -230,13 +234,44 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCache(dataSource1)))),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCache(dataSource2)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(caffeineCache(), autoCache(dataSource1)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(caffeineCache(), autoCache(dataSource2)))),
                         Transaction::new)
                 .build();
 
         StepVerifier.create(getCustomers()
-                        .window(5)
+                        .window(1)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(cohereFlux::process))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(0, billingInvocationCount.get());
+        assertEquals(0, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableCohereFluxBuilderWithAutoCaching3() {
+
+        Flux<BillingInfo> dataSource1 = Flux.just(billingInfo1, billingInfo2, billingInfo3);
+        Flux<OrderItem> dataSource2 = Flux.just(
+                orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33);
+
+        Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
+
+        var cohereFlux = cohereFluxOf(Transaction.class)
+                .withCorrelationIdResolver(Customer::customerId)
+                .withRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheBuilder(dataSource1).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCacheBuilder(dataSource2).maxWindowSize(3).build()))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
                         .delayElements(ofMillis(100))
                         .flatMapSequential(cohereFlux::process))
                 .expectSubscription()
@@ -281,8 +316,8 @@ public class CohereFluxCaffeineCacheTest {
         var cohereFlux = cohereFluxOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        Rule.rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), AutoCacheFactoryBuilder.autoCacheEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
-                        Rule.rule(OrderItem::customerId, oneToMany(OrderItem::id, CacheFactory.cached(caffeineCache(), AutoCacheFactoryBuilder.autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, CacheFactory.cached(caffeineCache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build();
 

@@ -40,20 +40,33 @@ public interface ObjectUtils {
                         .map(propertyExtractor2));
     }
 
-    static <T> T also(T value, Consumer<T> codeBlock) {
-
-        codeBlock.accept(value);
-        return value;
-    }
-
     static <T> void ifNotNull(T value, Consumer<T> codeBlock) {
         runIf(value, Objects::nonNull, codeBlock);
     }
 
+    @SafeVarargs
+    static <T> T also(T value, Consumer<T>... codeBlocks) {
+
+        if (value == null) {
+            return null;
+        }
+
+        for (var codeBlock : codeBlocks) {
+            codeBlock.accept(value);
+        }
+        return value;
+    }
+
+    @SafeVarargs
+    static <T> void run(T value, Consumer<T>... codeBlocks) {
+        also(value, codeBlocks);
+    }
+
     static <T> void runIf(T value, Predicate<T> predicate, Consumer<T> codeBlock) {
 
-        if (predicate.test(value))
+        if (predicate.test(value)) {
             codeBlock.accept(value);
+        }
     }
 
     static <T> Consumer<T> doNothing() {
