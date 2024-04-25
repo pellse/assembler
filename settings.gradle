@@ -5,8 +5,8 @@ pluginManagement {
     }
 }
 
-rootProject.name = "cohereflux"
+rootProject.name = "assembler"
 
-include "cohereflux-core",
-        "cohereflux-kotlin-extension",
-        "cohereflux-cache-caffeine"
+include "assembler",
+        "assembler-kotlin-extension",
+        "assembler-cache-caffeine"
