@@ -29,6 +29,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 import static io.github.pellse.assembler.QueryUtils.*;
+import static io.github.pellse.assembler.RuleContext.IdAwareRuleContext.*;
 import static io.github.pellse.assembler.RuleMapperContext.toRuleMapperContext;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.util.ObjectUtils.then;
@@ -72,7 +73,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> IdAwareRuleContext.toIdAwareRuleContext(ctx.correlationIdResolver(), ctx),
+                ctx -> toIdAwareRuleContext(ctx.correlationIdResolver(), ctx),
                 defaultResultProvider,
                 ctx -> initialMapCapacity ->
                         toMap(ctx.correlationIdResolver(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
@@ -127,7 +128,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> IdAwareRuleContext.toIdAwareRuleContext(idResolver, ctx),
+                ctx -> toIdAwareRuleContext(idResolver, ctx),
                 id -> collectionFactory.get(),
                 ctx -> initialMapCapacity ->
                         groupingBy(
