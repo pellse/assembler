@@ -14,7 +14,7 @@ https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9
 
 *The code implementing the whole real-time data aggregation pipeline is as simple as below:*
 
-![Assembler](./images/AssemblerExample.png)
+![Assembler](./images/CohereFluxExample.png)
 
 ## Table of Contents
 
