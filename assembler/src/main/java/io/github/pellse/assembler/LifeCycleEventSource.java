@@ -24,6 +24,8 @@ import java.util.function.Function;
 @FunctionalInterface
 public interface LifeCycleEventSource {
 
+    void addLifeCycleEventListener(LifeCycleEventListener listener);
+
     static  LifeCycleEventListener concurrentLifeCycleEventListener(LifeCycleEventListener listener) {
 
         final var refCount = new AtomicLong();
@@ -63,6 +65,4 @@ public interface LifeCycleEventSource {
             }
         };
     }
-
-    void addLifeCycleEventListener(LifeCycleEventListener listener);
 }

@@ -36,6 +36,8 @@ public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
 
     interface IdAwareRuleContext<T, TC extends Collection<T>, ID, EID, R, RRC> extends RuleContext<T, TC, ID, R, RRC> {
 
+        Function<R, EID> idResolver();
+
         static <T, TC extends Collection<T>, ID, EID, R, RRC> IdAwareRuleContext<T, TC, ID, EID, R, RRC> toIdAwareRuleContext(
                 Function<R, EID> idResolver,
                 RuleContext<T, TC, ID, R, RRC> ruleContext) {
@@ -68,8 +70,6 @@ public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
                 }
             };
         }
-
-        Function<R, EID> idResolver();
     }
 
     record DefaultRuleContext<T, TC extends Collection<T>, ID, R, RRC>(
