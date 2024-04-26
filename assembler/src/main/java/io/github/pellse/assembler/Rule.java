@@ -36,6 +36,35 @@ import static reactor.core.publisher.Flux.fromIterable;
 @FunctionalInterface
 public interface Rule<T, ID, RRC> extends Function<Function<T, ID>, Function<Iterable<T>, Mono<Map<ID, RRC>>>> {
 
+    @FunctionalInterface
+    interface BatchRule<T, RRC> {
+
+        Mono<Map<T, RRC>> executeToMono(Iterable<T> entities);
+
+        default Flux<RRC> executeToFlux(Iterable<T> entities) {
+            return executeToMono(entities)
+                    .flatMapMany(resultMap -> fromIterable(resultMap.values()));
+        }
+    }
+
+    interface BatchRuleBuilder<T, ID> {
+
+        <R, RRC> BatchRule<T, RRC> createRule(
+                Function<R, ID> correlationIdResolver,
+                RuleMapper<T, List<T>, ID, R, RRC> mapper);
+
+        <TC extends Collection<T>, R, RRC> BatchRule<T, RRC> createRule(
+                Function<R, ID> correlationIdResolver,
+                Supplier<TC> topLevelCollectionFactory,
+                RuleMapper<T, TC, ID, R, RRC> mapper);
+
+        <TC extends Collection<T>, R, RRC> BatchRule<T, RRC> createRule(
+                Function<R, ID> correlationIdResolver,
+                Supplier<TC> topLevelCollectionFactory,
+                MapFactory<ID, RRC> mapFactory,
+                RuleMapper<T, TC, ID, R, RRC> mapper);
+    }
+
     static <T, ID, R, RRC> Rule<T, ID, RRC> rule(
             Function<R, ID> correlationIdResolver,
             RuleMapper<T, List<T>, ID, R, RRC> mapper) {
@@ -58,13 +87,6 @@ public interface Rule<T, ID, RRC> extends Function<Function<T, ID>, Function<Ite
             RuleMapper<T, TC, ID, R, RRC> mapper) {
 
         return ruleBuilder(ruleContext(correlationIdResolver, topLevelCollectionFactory, mapFactory), mapper);
-    }
-
-    private static <T, TC extends Collection<T>, ID, R, RRC> Rule<T, ID, RRC> ruleBuilder(
-            Function<Function<T, ID>, RuleContext<T, TC, ID, R, RRC>> ruleContextBuilder,
-            RuleMapper<T, TC, ID, R, RRC> mapper) {
-
-        return topLevelIdResolver -> mapper.apply(ruleContextBuilder.apply(topLevelIdResolver));
     }
 
     static <T, ID> BatchRuleBuilder<T, ID> withIdResolver(Function<T, ID> idResolver) {
@@ -107,6 +129,13 @@ public interface Rule<T, ID, RRC> extends Function<Function<T, ID>, Function<Ite
         };
     }
 
+    private static <T, TC extends Collection<T>, ID, R, RRC> Rule<T, ID, RRC> ruleBuilder(
+            Function<Function<T, ID>, RuleContext<T, TC, ID, R, RRC>> ruleContextBuilder,
+            RuleMapper<T, TC, ID, R, RRC> mapper) {
+
+        return topLevelIdResolver -> mapper.apply(ruleContextBuilder.apply(topLevelIdResolver));
+    }
+
     private static <T, ID, RRC> BatchRule<T, RRC> wrap(Function<T, ID> idResolver, Rule<T, ID, RRC> rule) {
 
         final var queryFunction = rule.apply(idResolver);
@@ -120,34 +149,5 @@ public interface Rule<T, ID, RRC> extends Function<Function<T, ID>, Function<Ite
                             .stream()
                             .collect(toMap(m -> entityMap.get(m.getKey()), Entry::getValue, (o, o2) -> o2, LinkedHashMap::new)));
         };
-    }
-
-    @FunctionalInterface
-    interface BatchRule<T, RRC> {
-
-        Mono<Map<T, RRC>> executeToMono(Iterable<T> entities);
-
-        default Flux<RRC> executeToFlux(Iterable<T> entities) {
-            return executeToMono(entities)
-                    .flatMapMany(resultMap -> fromIterable(resultMap.values()));
-        }
-    }
-
-    interface BatchRuleBuilder<T, ID> {
-
-        <R, RRC> BatchRule<T, RRC> createRule(
-                Function<R, ID> correlationIdResolver,
-                RuleMapper<T, List<T>, ID, R, RRC> mapper);
-
-        <TC extends Collection<T>, R, RRC> BatchRule<T, RRC> createRule(
-                Function<R, ID> correlationIdResolver,
-                Supplier<TC> topLevelCollectionFactory,
-                RuleMapper<T, TC, ID, R, RRC> mapper);
-
-        <TC extends Collection<T>, R, RRC> BatchRule<T, RRC> createRule(
-                Function<R, ID> correlationIdResolver,
-                Supplier<TC> topLevelCollectionFactory,
-                MapFactory<ID, RRC> mapFactory,
-                RuleMapper<T, TC, ID, R, RRC> mapper);
     }
 }

@@ -26,25 +26,6 @@ import static io.github.pellse.assembler.MapFactory.defaultMapFactory;
 
 public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
 
-    static <T, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, List<T>, ID, R, RRC>> ruleContext(Function<R, ID> correlationIdResolver) {
-        return ruleContext(correlationIdResolver, ArrayList::new);
-    }
-
-    static <T, TC extends Collection<T>, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, TC, ID, R, RRC>> ruleContext(
-            Function<R, ID> correlationIdResolver,
-            Supplier<TC> topLevelCollectionFactory) {
-
-        return ruleContext(correlationIdResolver, topLevelCollectionFactory, defaultMapFactory());
-    }
-
-    static <T, TC extends Collection<T>, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, TC, ID, R, RRC>> ruleContext(
-            Function<R, ID> correlationIdResolver,
-            Supplier<TC> topLevelCollectionFactory,
-            MapFactory<ID, RRC> mapFactory) {
-
-        return topLevelIdResolver -> new DefaultRuleContext<>(topLevelIdResolver, correlationIdResolver, topLevelCollectionFactory, mapFactory);
-    }
-
     Function<T, ID> topLevelIdResolver();
 
     Function<R, ID> correlationIdResolver();
@@ -52,13 +33,6 @@ public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
     Supplier<TC> topLevelCollectionFactory();
 
     MapFactory<ID, RRC> mapFactory();
-
-    record DefaultRuleContext<T, TC extends Collection<T>, ID, R, RRC>(
-            Function<T, ID> topLevelIdResolver,
-            Function<R, ID> correlationIdResolver,
-            Supplier<TC> topLevelCollectionFactory,
-            MapFactory<ID, RRC> mapFactory) implements RuleContext<T, TC, ID, R, RRC> {
-    }
 
     interface IdAwareRuleContext<T, TC extends Collection<T>, ID, EID, R, RRC> extends RuleContext<T, TC, ID, R, RRC> {
 
@@ -96,5 +70,31 @@ public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
         }
 
         Function<R, EID> idResolver();
+    }
+
+    record DefaultRuleContext<T, TC extends Collection<T>, ID, R, RRC>(
+            Function<T, ID> topLevelIdResolver,
+            Function<R, ID> correlationIdResolver,
+            Supplier<TC> topLevelCollectionFactory,
+            MapFactory<ID, RRC> mapFactory) implements RuleContext<T, TC, ID, R, RRC> {
+    }
+
+    static <T, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, List<T>, ID, R, RRC>> ruleContext(Function<R, ID> correlationIdResolver) {
+        return ruleContext(correlationIdResolver, ArrayList::new);
+    }
+
+    static <T, TC extends Collection<T>, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, TC, ID, R, RRC>> ruleContext(
+            Function<R, ID> correlationIdResolver,
+            Supplier<TC> topLevelCollectionFactory) {
+
+        return ruleContext(correlationIdResolver, topLevelCollectionFactory, defaultMapFactory());
+    }
+
+    static <T, TC extends Collection<T>, ID, R, RRC> Function<Function<T, ID>, RuleContext<T, TC, ID, R, RRC>> ruleContext(
+            Function<R, ID> correlationIdResolver,
+            Supplier<TC> topLevelCollectionFactory,
+            MapFactory<ID, RRC> mapFactory) {
+
+        return topLevelIdResolver -> new DefaultRuleContext<>(topLevelIdResolver, correlationIdResolver, topLevelCollectionFactory, mapFactory);
     }
 }
