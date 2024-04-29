@@ -22,6 +22,7 @@ import io.github.pellse.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.lang.System.Logger;
@@ -39,7 +40,6 @@ import static java.lang.System.getLogger;
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.function.Function.identity;
-import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
 
@@ -93,7 +93,7 @@ public interface AutoCacheFactory {
                     .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idResolver), toMap(eventMap.get(false), idResolver)))
-                    .transform(requireNonNullElse(errorHandler, onErrorContinue((e, o) -> runIf(scheduler, not(Scheduler::isDisposed), __ -> logError(e, o)))).toFluxErrorHandler())
+                    .transform(requireNonNullElse(errorHandler, onErrorContinue(AutoCacheFactory::logError)).toFluxErrorHandler())
                     .doFinally(__ -> ifNotNull(scheduler, Scheduler::dispose));
 
             requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start)
@@ -153,6 +153,30 @@ public interface AutoCacheFactory {
         @Override
         public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
             return flux -> flux.onErrorContinue(errorPredicate(), errorConsumer());
+        }
+    }
+
+    record OnErrorResume(
+            Predicate<Throwable> errorPredicate,
+            Consumer<Throwable> errorConsumer) implements ErrorHandler {
+
+        public static OnErrorResume onErrorResume() {
+            return onErrorResume(doNothing());
+        }
+
+        public static OnErrorResume onErrorResume(Consumer<Throwable> errorConsumer) {
+            return onErrorResume(__ -> true, errorConsumer);
+        }
+
+        public static OnErrorResume onErrorResume(Predicate<Throwable> errorPredicate, Consumer<Throwable> errorConsumer) {
+            return new OnErrorResume(errorPredicate, errorConsumer);
+        }
+
+        @Override
+        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
+            return flux -> flux
+                    .doOnError(errorPredicate(), errorConsumer())
+                    .onErrorResume(errorPredicate(), __ -> Mono.empty());
         }
     }
 
