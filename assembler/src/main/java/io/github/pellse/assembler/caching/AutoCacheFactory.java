@@ -118,8 +118,8 @@ public interface AutoCacheFactory {
         return flux -> scheduler != null ? scheduleFunction.apply(flux, scheduler) : flux;
     }
 
-    private static void logError(Throwable t, Object object) {
-        logger.log(WARNING, "Error while updating cache in autoCache()", t);
+    private static void logError(Throwable t, Object faultyData) {
+        logger.log(WARNING, "Error while updating cache in autoCache() with " + faultyData, t);
     }
 
     sealed interface ErrorHandler {
