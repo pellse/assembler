@@ -23,6 +23,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import static java.util.Optional.ofNullable;
+
 public interface ObjectUtils {
 
     static <T, U> boolean isSafeEqual(T t1, T t2, Function<? super T, ? extends U> propertyExtractor) {
@@ -34,9 +36,9 @@ public interface ObjectUtils {
                                            T2 t2,
                                            Function<? super T2, ? extends U> propertyExtractor2) {
 
-        return Optional.ofNullable(t1)
+        return ofNullable(t1)
                 .map(propertyExtractor1)
-                .equals(Optional.ofNullable(t2)
+                .equals(ofNullable(t2)
                         .map(propertyExtractor2));
     }
 
@@ -64,7 +66,7 @@ public interface ObjectUtils {
 
     static <T> void runIf(T value, Predicate<T> predicate, Consumer<T> codeBlock) {
 
-        if (predicate.test(value)) {
+        if (value != null && predicate.test(value)) {
             codeBlock.accept(value);
         }
     }
