@@ -25,6 +25,7 @@ import io.github.pellse.assembler.util.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
+import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -54,9 +55,9 @@ import static reactor.core.scheduler.Schedulers.parallel;
 
 public class AssemblerCaffeineCacheTest {
 
-//    static {
-//        BlockHound.install();
-//    }
+    static {
+        BlockHound.install();
+    }
 
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
