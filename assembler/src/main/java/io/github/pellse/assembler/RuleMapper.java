@@ -174,8 +174,8 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 //            Function<R, EID> idResolver,
 //            Supplier<RC> collectionFactory) {
 //
-//        return (cacheQueryResults, itemsToUpdateMap) ->
-//                concat(toStream(cacheQueryResults.entrySet()), toStream(itemsToUpdateMap.entrySet()))
+//        return (existingCacheItems, itemsToUpdateMap) ->
+//                concat(toStream(existingCacheItems.entrySet()), toStream(itemsToUpdateMap.entrySet()))
 //                        .flatMap(entry -> entry.getValue().stream()
 //                                .map(e -> new Wrapper<>(entry.getKey(), idResolver.apply(e), e)))
 //                        .distinct()
@@ -183,12 +183,12 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 //    }
 //
 //    private static <ID, R> MergeStrategy<ID, R> removeStrategy() {
-//        return (cacheQueryResults, itemsToRemoveMap) -> also(cacheQueryResults, c -> c.keySet().removeAll(itemsToRemoveMap.keySet()));
+//        return (existingCacheItems, itemsToRemoveMap) -> also(existingCacheItems, c -> c.keySet().removeAll(itemsToRemoveMap.keySet()));
 //    }
 //
     private static <ID, EID, R> MergeStrategy<ID, R> removeMultiStrategy(Function<R, EID> idResolver) {
 
-        return (cacheQueryResults, itemsToRemoveMap) -> cacheQueryResults.entrySet().stream()
+        return (existingCacheItems, itemsToRemoveMap) -> existingCacheItems.entrySet().stream()
                 .map(entry -> {
                     final var itemsToRemove = itemsToRemoveMap.get(entry.getKey());
                     if (itemsToRemove == null)
@@ -209,7 +209,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
     }
 //
 //    private static <ID, R> MergeStrategy<ID, R> safeStrategy(MergeStrategy<ID, R> strategy) {
-//        return (cacheQueryResults, itemsToUpdateMap) -> strategy.merge(new HashMap<>(cacheQueryResults), unmodifiableMap(itemsToUpdateMap));
+//        return (existingCacheItems, itemsToUpdateMap) -> strategy.merge(new HashMap<>(existingCacheItems), unmodifiableMap(itemsToUpdateMap));
 //    }
 
     private static int validate(int initialCapacity) {

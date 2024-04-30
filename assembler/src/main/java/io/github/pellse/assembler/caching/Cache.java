@@ -33,7 +33,7 @@ import static reactor.core.publisher.Mono.just;
 @FunctionalInterface
 interface CacheUpdater<ID, R> {
 
-    Mono<?> updateCache(Cache<ID, R> cache, Map<ID, List<R>> cacheQueryResults, Map<ID, List<R>> incomingChanges);
+    Mono<?> updateCache(Cache<ID, R> cache, Map<ID, List<R>> existingCacheItems, Map<ID, List<R>> incomingChanges);
 }
 
 public interface Cache<ID, R> {
@@ -113,13 +113,13 @@ public interface Cache<ID, R> {
                 optimizedCache::computeAll,
                 applyMergeStrategy(
                         optimizedCache,
-                        (cacheQueryResults, incomingChanges) -> mergeMaps(incomingChanges, cacheQueryResults, idResolver),
+                        (existingCacheItems, incomingChanges) -> mergeMaps(incomingChanges, existingCacheItems, idResolver),
                         Cache::putAll),
                 applyMergeStrategy(
                         optimizedCache,
-                        (cache, cacheQueryResults, incomingChanges) ->
-                                then(subtractFromMap(incomingChanges, cacheQueryResults, idResolver),
-                                        updatedMap -> cache.updateAll(updatedMap, diff(cacheQueryResults, updatedMap))))
+                        (cache, existingCacheItems, incomingChanges) ->
+                                then(subtractFromMap(incomingChanges, existingCacheItems, idResolver),
+                                        updatedMap -> cache.updateAll(updatedMap, diff(existingCacheItems, updatedMap))))
         );
     }
 
@@ -130,8 +130,8 @@ public interface Cache<ID, R> {
 
         return applyMergeStrategy(
                 delegateCache,
-                (cache, cacheQueryResults, incomingChanges) ->
-                        cacheUpdater.apply(cache, mergeStrategy.merge(cacheQueryResults, incomingChanges)));
+                (cache, existingCacheItems, incomingChanges) ->
+                        cacheUpdater.apply(cache, mergeStrategy.merge(existingCacheItems, incomingChanges)));
     }
 
     private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
@@ -140,7 +140,7 @@ public interface Cache<ID, R> {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() ->
                 delegateCache.getAll(incomingChanges.keySet())
-                        .flatMap(cacheQueryResults -> cacheUpdater.updateCache(delegateCache, cacheQueryResults, incomingChanges)));
+                        .flatMap(existingCacheItems -> cacheUpdater.updateCache(delegateCache, existingCacheItems, incomingChanges)));
     }
 
     private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyMapOr(Function<Map<ID, List<R>>, Mono<?>> mappingFunction) {
