@@ -16,8 +16,10 @@
 
 package io.github.pellse.assembler.caching;
 
+import io.github.pellse.assembler.RuleMapperContext;
 import reactor.core.publisher.Mono;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -97,8 +99,8 @@ public interface Cache<ID, R> {
         };
     }
 
-    static <ID, EID, R> Cache<ID, R> mergeStrategyAwareCache(
-            Function<R, EID> idResolver,
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> Cache<ID, R> mergeStrategyAwareCache(
+            RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext,
             Cache<ID, R> delegateCache) {
 
         final var optimizedCache = adapterCache(
@@ -107,6 +109,8 @@ public interface Cache<ID, R> {
                 emptyMapOr(delegateCache::putAll),
                 emptyMapOr(delegateCache::removeAll)
         );
+
+        final var idResolver = ruleContext.idResolver();
 
         return adapterCache(
                 optimizedCache::getAll,
