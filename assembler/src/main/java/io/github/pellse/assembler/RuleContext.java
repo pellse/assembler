@@ -34,44 +34,6 @@ public interface RuleContext<T, TC extends Collection<T>, ID, R, RRC> {
 
     MapFactory<ID, RRC> mapFactory();
 
-    interface IdAwareRuleContext<T, TC extends Collection<T>, ID, EID, R, RRC> extends RuleContext<T, TC, ID, R, RRC> {
-
-        Function<R, EID> idResolver();
-
-        static <T, TC extends Collection<T>, ID, EID, R, RRC> IdAwareRuleContext<T, TC, ID, EID, R, RRC> toIdAwareRuleContext(
-                Function<R, EID> idResolver,
-                RuleContext<T, TC, ID, R, RRC> ruleContext) {
-
-            return new IdAwareRuleContext<>() {
-
-                @Override
-                public Function<T, ID> topLevelIdResolver() {
-                    return ruleContext.topLevelIdResolver();
-                }
-
-                @Override
-                public Function<R, EID> idResolver() {
-                    return idResolver;
-                }
-
-                @Override
-                public Function<R, ID> correlationIdResolver() {
-                    return ruleContext.correlationIdResolver();
-                }
-
-                @Override
-                public Supplier<TC> topLevelCollectionFactory() {
-                    return ruleContext.topLevelCollectionFactory();
-                }
-
-                @Override
-                public MapFactory<ID, RRC> mapFactory() {
-                    return ruleContext.mapFactory();
-                }
-            };
-        }
-    }
-
     record DefaultRuleContext<T, TC extends Collection<T>, ID, R, RRC>(
             Function<T, ID> topLevelIdResolver,
             Function<R, ID> correlationIdResolver,
