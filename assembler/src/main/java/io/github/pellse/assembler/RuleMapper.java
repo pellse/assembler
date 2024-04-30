@@ -16,26 +16,22 @@
 
 package io.github.pellse.assembler;
 
+import io.github.pellse.assembler.RuleMapperContext.OneToManyRuleMapperContext;
+import io.github.pellse.assembler.RuleMapperContext.OneToOneRuleMapperContext;
 import io.github.pellse.assembler.caching.MergeStrategy;
-import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
-import java.util.function.IntFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collector;
 
 import static io.github.pellse.assembler.QueryUtils.*;
-import static io.github.pellse.assembler.RuleContext.IdAwareRuleContext.*;
-import static io.github.pellse.assembler.RuleMapperContext.toRuleMapperContext;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Map.entry;
-import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
 /**
@@ -73,12 +69,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> toIdAwareRuleContext(ctx.correlationIdResolver(), ctx),
-                defaultResultProvider,
-                ctx -> initialMapCapacity ->
-                        toMap(ctx.correlationIdResolver(), identity(), (u1, u2) -> u2, toSupplier(validate(initialMapCapacity), ctx.mapFactory())),
-                CollectionUtils::first,
-                Collections::singletonList);
+                ctx -> new OneToOneRuleMapperContext<>(ctx, defaultResultProvider));
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(Function<R, EID> idResolver) {
@@ -128,34 +119,15 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> toIdAwareRuleContext(idResolver, ctx),
-                id -> collectionFactory.get(),
-                ctx -> initialMapCapacity ->
-                        groupingBy(
-                                ctx.correlationIdResolver(),
-                                toSupplier(validate(initialMapCapacity), ctx.mapFactory()),
-                                toCollection(collectionFactory)),
-                list -> toStream(list)
-                        .collect(toCollection(collectionFactory)),
-                List::copyOf);
+                ctx -> new OneToManyRuleMapperContext<>(ctx, idResolver, collectionFactory));
     }
 
     private static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapper<T, TC, ID, R, RRC> createRuleMapper(
             RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource,
-            Function<RuleContext<T, TC, ID, R, RRC>, IdAwareRuleContext<T, TC, ID, EID, R, RRC>> ruleContextConverter,
-            Function<ID, RRC> defaultResultProvider,
-            Function<RuleContext<T, TC, ID, R, RRC>, IntFunction<Collector<R, ?, Map<ID, RRC>>>> mapCollector,
-            Function<List<R>, RRC> fromListConverter,
-            Function<RRC, List<R>> toListConverter) {
+            Function<RuleContext<T, TC, ID, R, RRC>, RuleMapperContext<T, TC, ID, EID, R, RRC>> ruleMapperContextProvider) {
 
         return ruleContext -> {
-            final var ruleMapperContext = toRuleMapperContext(
-                    ruleContextConverter.apply(ruleContext),
-                    defaultResultProvider,
-                    mapCollector.apply(ruleContext),
-                    fromListConverter,
-                    toListConverter);
-
+            final var ruleMapperContext = ruleMapperContextProvider.apply(ruleContext);
             final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
 
             return entityList ->
@@ -211,8 +183,4 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 //    private static <ID, R> MergeStrategy<ID, R> safeStrategy(MergeStrategy<ID, R> strategy) {
 //        return (existingCacheItems, itemsToUpdateMap) -> strategy.merge(new HashMap<>(existingCacheItems), unmodifiableMap(itemsToUpdateMap));
 //    }
-
-    private static int validate(int initialCapacity) {
-        return Math.max(initialCapacity, 0);
-    }
 }
