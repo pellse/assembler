@@ -50,6 +50,7 @@ public interface CacheFactory<ID, R, RRC> {
 
     Cache<ID, RRC> create(CacheContext<ID, R, RRC> context);
 
+    @FunctionalInterface
     interface CacheTransformer<ID, R, RRC> extends Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> {
     }
 
@@ -132,7 +133,7 @@ public interface CacheFactory<ID, R, RRC> {
             Function<TC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        return cached(toQueryFunction(queryFunction), delegateCacheFactories);
+        return cached(toRuleMapperSource(queryFunction), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -149,7 +150,7 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RRC> cacheFactory,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
 
-        return cached(toQueryFunction(queryFunction), cacheFactory, delegateCacheFactories);
+        return cached(toRuleMapperSource(queryFunction), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -163,6 +164,7 @@ public interface CacheFactory<ID, R, RRC> {
         return ruleContext -> {
             final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleContext);
             final var cacheContext = new CacheContext<>(isEmptySource, ruleContext);
+
             final var cache = delegate(ruleContext, cacheFactory, delegateCacheFactories)
                     .create(cacheContext);
 
