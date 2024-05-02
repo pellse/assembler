@@ -18,6 +18,7 @@ package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.LifeCycleEventListener;
 import io.github.pellse.assembler.LifeCycleEventSource;
+import io.github.pellse.assembler.RuleMapperContext;
 import io.github.pellse.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
@@ -40,7 +41,6 @@ import static java.lang.System.getLogger;
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.partitioningBy;
 
 public interface AutoCacheFactory {
@@ -81,18 +81,18 @@ public interface AutoCacheFactory {
             Scheduler scheduler,
             Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>> concurrentCacheTransformer) {
 
-        return cacheFactory -> context -> {
+        return cacheFactory -> cacheContext -> {
             final var cache = requireNonNullElse(concurrentCacheTransformer, AutoCacheFactory::concurrent)
                     .apply(cacheFactory)
-                    .create(context);
+                    .create(cacheContext);
 
-            final var idResolver = context.correlationIdResolver();
+            final var ctx = cacheContext.ctx();
 
             final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
                     .transform(scheduleOn(scheduler, Flux::publishOn))
                     .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
-                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), idResolver), toMap(eventMap.get(false), idResolver)))
+                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), ctx), toMap(eventMap.get(false), ctx)))
                     .transform(requireNonNullElse(errorHandler, onErrorContinue(AutoCacheFactory::logError)).toFluxErrorHandler())
                     .doFinally(__ -> ifNotNull(scheduler, Scheduler::dispose));
 
@@ -107,11 +107,10 @@ public interface AutoCacheFactory {
         return ConcurrentCacheFactory.<ID, R, RRC>concurrent().apply(delegateCacheFactory);
     }
 
-    private static <ID, R> Map<ID, List<R>> toMap(List<? extends CacheEvent<R>> cacheEvents, Function<R, ID> correlationIdResolver) {
-
+    private static <ID, R, RRC> Map<ID, RRC> toMap(List<? extends CacheEvent<R>> cacheEvents, RuleMapperContext<?, ?, ID, ?, R, RRC> ctx) {
         return cacheEvents.stream()
                 .map(CacheEvent::value)
-                .collect(groupingBy(correlationIdResolver));
+                .collect(ctx.mapCollector().apply(cacheEvents.size()));
     }
 
     private static <T> Function<Flux<T>, Flux<T>> scheduleOn(Scheduler scheduler, BiFunction<Flux<T>, Scheduler, Flux<T>> scheduleFunction) {

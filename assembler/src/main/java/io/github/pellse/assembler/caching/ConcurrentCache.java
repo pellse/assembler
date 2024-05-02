@@ -24,7 +24,6 @@ import reactor.util.retry.RetryBackoffSpec;
 import reactor.util.retry.RetrySpec;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -35,55 +34,55 @@ import static java.util.Map.of;
 import static reactor.core.publisher.Mono.just;
 import static reactor.util.retry.Retry.indefinitely;
 
-public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
+public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache) {
         return concurrentCache(delegateCache, WRITE);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, indefinitely(), concurrencyStrategy);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long maxAttempts) {
         return concurrentCache(delegateCache, maxAttempts, WRITE);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, () -> concurrentExecutor(maxAttempts), concurrencyStrategy);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long maxAttempts, Duration minBackoff) {
         return concurrentCache(delegateCache, maxAttempts, minBackoff, WRITE);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, () -> concurrentExecutor(maxAttempts, minBackoff), concurrencyStrategy);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetrySpec retrySpec) {
         return concurrentCache(delegateCache, retrySpec, WRITE);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, () -> concurrentExecutor(retrySpec), concurrencyStrategy);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetryBackoffSpec retrySpec) {
         return concurrentCache(delegateCache, retrySpec, WRITE);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
         return concurrentCache(delegateCache, () -> concurrentExecutor(retrySpec), concurrencyStrategy);
     }
 
-    static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
         return concurrentCache(delegateCache, () -> concurrentExecutor(retrySpec, retryScheduler), concurrencyStrategy);
     }
 
-    private static <ID, R> ConcurrentCache<ID, R> concurrentCache(Cache<ID, R> delegateCache, Supplier<ConcurrentExecutor> executorSupplier, ConcurrencyStrategy concurrencyStrategy) {
+    private static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, Supplier<ConcurrentExecutor> executorSupplier, ConcurrencyStrategy concurrencyStrategy) {
 
-        if (delegateCache instanceof ConcurrentCache<ID, R> concurrentCache) {
+        if (delegateCache instanceof ConcurrentCache<ID, RRC> concurrentCache) {
             return concurrentCache;
         }
 
@@ -92,27 +91,27 @@ public interface ConcurrentCache<ID, R> extends Cache<ID, R> {
         return new ConcurrentCache<>() {
 
             @Override
-            public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids) {
+            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
                 return executor.execute(delegateCache.getAll(ids), READ, just(of()));
             }
 
             @Override
-            public Mono<Map<ID, List<R>>> computeAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction) {
+            public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
                 return executor.execute(delegateCache.computeAll(ids, fetchFunction), concurrencyStrategy, just(of()));
             }
 
             @Override
-            public Mono<?> putAll(Map<ID, List<R>> map) {
+            public Mono<?> putAll(Map<ID, RRC> map) {
                 return executor.execute(delegateCache.putAll(map));
             }
 
             @Override
-            public Mono<?> removeAll(Map<ID, List<R>> map) {
+            public Mono<?> removeAll(Map<ID, RRC> map) {
                 return executor.execute(delegateCache.removeAll(map));
             }
 
             @Override
-            public Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
+            public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
                 return executor.execute(delegateCache.updateAll(mapToAdd, mapToRemove));
             }
         };

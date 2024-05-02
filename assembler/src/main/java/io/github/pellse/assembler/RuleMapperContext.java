@@ -16,19 +16,15 @@
 
 package io.github.pellse.assembler;
 
-import io.github.pellse.util.collection.CollectionUtils;
-
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.QueryUtils.toSupplier;
-import static io.github.pellse.util.collection.CollectionUtils.toStream;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
@@ -40,19 +36,14 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
 
     IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector();
 
-    Function<List<R>, RRC> fromListConverter();
-
-    Function<RRC, List<R>> toListConverter();
+    Function<Stream<RRC>, Stream<R>> streamFlattener();
 
     record OneToOneRuleMapperContext<T, TC extends Collection<T>, ID, R>(
             Function<T, ID> topLevelIdResolver,
             Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, R> mapFactory,
-            Function<ID, R> defaultResultProvider,
-            IntFunction<Collector<R, ?, Map<ID, R>>> mapCollector,
-            Function<List<R>, R> fromListConverter,
-            Function<R, List<R>> toListConverter) implements RuleMapperContext<T, TC, ID, ID, R, R> {
+            Function<ID, R> defaultResultProvider) implements RuleMapperContext<T, TC, ID, ID, R, R> {
 
         public OneToOneRuleMapperContext(
                 RuleContext<T, TC, ID, R, R> ruleContext,
@@ -62,50 +53,66 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
                     ruleContext.correlationIdResolver(),
                     ruleContext.topLevelCollectionFactory(),
                     ruleContext.mapFactory(),
-                    defaultResultProvider,
-                    initialMapCapacity -> toMap(
-                            ruleContext.correlationIdResolver(),
-                            identity(),
-                            (u1, u2) -> u2,
-                            toSupplier(validate(initialMapCapacity), ruleContext.mapFactory())),
-                    CollectionUtils::first,
-                    Collections::singletonList);
+                    defaultResultProvider);
         }
 
         @Override
         public Function<R, ID> idResolver() {
             return correlationIdResolver();
         }
+
+        @Override
+        public IntFunction<Collector<R, ?, Map<ID, R>>> mapCollector() {
+            return initialMapCapacity -> toMap(
+                    correlationIdResolver(),
+                    identity(),
+                    (u1, u2) -> u2,
+                    toSupplier(validate(initialMapCapacity), mapFactory()));
+        }
+
+        @Override
+        public Function<Stream<R>, Stream<R>> streamFlattener() {
+            return identity();
+        }
     }
 
     record OneToManyRuleMapperContext<T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>>(
-            Function<R, EID> idResolver,
             Function<T, ID> topLevelIdResolver,
             Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RC> mapFactory,
-            Function<ID, RC> defaultResultProvider,
-            IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector,
-            Function<List<R>, RC> fromListConverter,
-            Function<RC, List<R>> toListConverter) implements RuleMapperContext<T, TC, ID, EID, R, RC> {
+            Function<R, EID> idResolver,
+            Supplier<RC> collectionFactory) implements RuleMapperContext<T, TC, ID, EID, R, RC> {
 
         public OneToManyRuleMapperContext(
                 RuleContext<T, TC, ID, R, RC> ruleContext,
                 Function<R, EID> idResolver,
                 Supplier<RC> collectionFactory) {
 
-            this(idResolver,
-                    ruleContext.topLevelIdResolver(),
+            this(ruleContext.topLevelIdResolver(),
                     ruleContext.correlationIdResolver(),
                     ruleContext.topLevelCollectionFactory(),
                     ruleContext.mapFactory(),
-                    id -> collectionFactory.get(),
-                    initialMapCapacity -> groupingBy(
-                            ruleContext.correlationIdResolver(),
-                            toSupplier(validate(initialMapCapacity), ruleContext.mapFactory()),
-                            toCollection(collectionFactory)),
-                    list -> toStream(list).collect(toCollection(collectionFactory)),
-                    List::copyOf);
+                    idResolver,
+                    collectionFactory);
+        }
+
+        @Override
+        public Function<ID, RC> defaultResultProvider() {
+            return id -> collectionFactory.get();
+        }
+
+        @Override
+        public IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector() {
+            return initialMapCapacity -> groupingBy(
+                    correlationIdResolver(),
+                    toSupplier(validate(initialMapCapacity), mapFactory()),
+                    toCollection(collectionFactory));
+        }
+
+        @Override
+        public Function<Stream<RC>, Stream<R>> streamFlattener() {
+            return stream -> stream.flatMap(Collection::stream);
         }
     }
 

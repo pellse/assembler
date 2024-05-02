@@ -17,10 +17,11 @@
 package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.RuleMapperContext;
+import io.github.pellse.assembler.RuleMapperContext.OneToManyRuleMapperContext;
+import io.github.pellse.assembler.RuleMapperContext.OneToOneRuleMapperContext;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -32,66 +33,69 @@ import static java.util.Optional.ofNullable;
 import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.just;
 
-@FunctionalInterface
-interface CacheUpdater<ID, R> {
+public interface Cache<ID, RRC> {
 
-    Mono<?> updateCache(Cache<ID, R> cache, Map<ID, List<R>> existingCacheItems, Map<ID, List<R>> incomingChanges);
-}
+    Mono<Map<ID, RRC>> getAll(Iterable<ID> ids);
 
-public interface Cache<ID, R> {
+    Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction);
 
-    Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids);
+    Mono<?> putAll(Map<ID, RRC> map);
 
-    Mono<Map<ID, List<R>>> computeAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction);
+    Mono<?> removeAll(Map<ID, RRC> map);
 
-    Mono<?> putAll(Map<ID, List<R>> map);
-
-    Mono<?> removeAll(Map<ID, List<R>> map);
-
-    default Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
+    default Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
         return putAll(mapToAdd).then(removeAll(mapToRemove));
     }
 
-    static <ID, R> Cache<ID, R> adapterCache(
-            Function<Iterable<ID>, Mono<Map<ID, List<R>>>> getAll,
-            BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> computeAll,
-            Function<Map<ID, List<R>>, Mono<?>> putAll,
-            Function<Map<ID, List<R>>, Mono<?>> removeAll) {
+    @FunctionalInterface
+    interface CacheUpdater<ID, RRC> {
+        Mono<?> updateCache(Cache<ID, RRC> cache, Map<ID, RRC> existingCacheItems, Map<ID, RRC> incomingChanges);
+    }
+
+    @FunctionalInterface
+    interface FetchFunction<ID, RRC> extends Function<Iterable<? extends ID>, Mono<Map<ID, RRC>>> {
+    }
+
+    static <ID, RRC> Cache<ID, RRC> adapterCache(
+            Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll,
+            BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll,
+            Function<Map<ID, RRC>, Mono<?>> putAll,
+            Function<Map<ID, RRC>, Mono<?>> removeAll) {
 
         return adapterCache(getAll, computeAll, putAll, removeAll, null);
     }
 
-    static <ID, R> Cache<ID, R> adapterCache(
-            Function<Iterable<ID>, Mono<Map<ID, List<R>>>> getAll,
-            BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> computeAll,
-            Function<Map<ID, List<R>>, Mono<?>> putAll,
-            Function<Map<ID, List<R>>, Mono<?>> removeAll,
-            BiFunction<Map<ID, List<R>>, Map<ID, List<R>>, Mono<?>> updateAll) {
+    static <ID, RRC> Cache<ID, RRC> adapterCache(
+            Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll,
+            BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll,
+            Function<Map<ID, RRC>, Mono<?>> putAll,
+            Function<Map<ID, RRC>, Mono<?>> removeAll,
+            BiFunction<Map<ID, RRC>, Map<ID, RRC>, Mono<?>> updateAll) {
 
         return new Cache<>() {
 
             @Override
-            public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids) {
+            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
                 return getAll.apply(ids);
             }
 
             @Override
-            public Mono<Map<ID, List<R>>> computeAll(Iterable<ID> ids, FetchFunction<ID, R> fetchFunction) {
+            public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
                 return computeAll.apply(ids, fetchFunction);
             }
 
             @Override
-            public Mono<?> putAll(Map<ID, List<R>> map) {
+            public Mono<?> putAll(Map<ID, RRC> map) {
                 return putAll.apply(map);
             }
 
             @Override
-            public Mono<?> removeAll(Map<ID, List<R>> map) {
+            public Mono<?> removeAll(Map<ID, RRC> map) {
                 return removeAll.apply(map);
             }
 
             @Override
-            public Mono<?> updateAll(Map<ID, List<R>> mapToAdd, Map<ID, List<R>> mapToRemove) {
+            public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
                 return ofNullable(updateAll)
                         .orElse(Cache.super::updateAll)
                         .apply(mapToAdd, mapToRemove);
@@ -99,9 +103,9 @@ public interface Cache<ID, R> {
         };
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> Cache<ID, R> mergeStrategyAwareCache(
-            RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext,
-            Cache<ID, R> delegateCache) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> Cache<ID, RRC> mergeStrategyAwareCache(
+            RuleMapperContext<T, TC, ID, EID, R, RRC> ctx,
+            Cache<ID, RRC> delegateCache) {
 
         final var optimizedCache = adapterCache(
                 emptyOr(delegateCache::getAll),
@@ -110,27 +114,53 @@ public interface Cache<ID, R> {
                 emptyMapOr(delegateCache::removeAll)
         );
 
-        final var idResolver = ruleContext.idResolver();
+        return switch (ctx) {
+            case OneToOneRuleMapperContext<?, ?, ?, ?> ignored -> oneToOneCache(delegateCache);
+            case OneToManyRuleMapperContext<?, ?, ?, ?, ?, ?> oneToManyCtx ->
+                    oneToManyCache(oneToManyCtx, delegateCache);
+        };
+    }
+
+    private static <ID, R> Cache<ID, R> optimizedCache(Cache<ID, R> delegateCache) {
+        return adapterCache(
+                emptyOr(delegateCache::getAll),
+                emptyOr(delegateCache::computeAll),
+                emptyMapOr(delegateCache::putAll),
+                emptyMapOr(delegateCache::removeAll)
+        );
+    }
+
+    private static <ID, R> Cache<ID, R> oneToOneCache(Cache<ID, R> delegateCache) {
+        return optimizedCache(delegateCache);
+    }
+
+    private static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
+            OneToManyRuleMapperContext<T, TC, ID, EID, R, RC> ctx,
+            Cache<ID, RC> delegateCache) {
+
+        final var optimizedCache = optimizedCache(delegateCache);
+
+        final var collectionFactory = ctx.collectionFactory();
 
         return adapterCache(
                 optimizedCache::getAll,
                 optimizedCache::computeAll,
                 applyMergeStrategy(
                         optimizedCache,
-                        (existingCacheItems, incomingChanges) -> mergeMaps(incomingChanges, existingCacheItems, idResolver),
+                        (existingCacheItems, incomingChanges) -> mergeMaps(incomingChanges, existingCacheItems, ctx.idResolver(), collectionFactory),
                         Cache::putAll),
                 applyMergeStrategy(
                         optimizedCache,
                         (cache, existingCacheItems, incomingChanges) ->
-                                then(subtractFromMap(incomingChanges, existingCacheItems, idResolver),
+                                then(subtractFromMap(incomingChanges, existingCacheItems, ctx.idResolver(), collectionFactory),
                                         updatedMap -> cache.updateAll(updatedMap, diff(existingCacheItems, updatedMap))))
         );
     }
 
-    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
-            Cache<ID, R> delegateCache,
-            MergeStrategy<ID, R> mergeStrategy,
-            BiFunction<Cache<ID, R>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
+    private static <ID, R, RC extends Collection<R>> Function<Map<ID, RC>, Mono<?>> applyMergeStrategy(
+            Cache<ID, RC> delegateCache,
+            MergeStrategy<ID, RC> mergeStrategy,
+            BiFunction<Cache<ID, RC>, Map<ID, RC>, Mono<?>> cacheUpdater) {
 
         return applyMergeStrategy(
                 delegateCache,
@@ -138,29 +168,26 @@ public interface Cache<ID, R> {
                         cacheUpdater.apply(cache, mergeStrategy.merge(existingCacheItems, incomingChanges)));
     }
 
-    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
-            Cache<ID, R> delegateCache,
-            CacheUpdater<ID, R> cacheUpdater) {
+    private static <ID, R, RC extends Collection<R>> Function<Map<ID, RC>, Mono<?>> applyMergeStrategy(
+            Cache<ID, RC> delegateCache,
+            CacheUpdater<ID, RC> cacheUpdater) {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() ->
                 delegateCache.getAll(incomingChanges.keySet())
                         .flatMap(existingCacheItems -> cacheUpdater.updateCache(delegateCache, existingCacheItems, incomingChanges)));
     }
 
-    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> emptyMapOr(Function<Map<ID, List<R>>, Mono<?>> mappingFunction) {
+    private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> emptyMapOr(Function<Map<ID, RRC>, Mono<?>> mappingFunction) {
         return map -> isEmpty(map) ? just(of()) : mappingFunction.apply(map);
     }
 
-    private static <ID, R> Function<Iterable<ID>, Mono<Map<ID, List<R>>>> emptyOr(Function<Iterable<ID>, Mono<Map<ID, List<R>>>> mappingFunction) {
+    private static <ID, RRC> Function<Iterable<ID>, Mono<Map<ID, RRC>>> emptyOr(Function<Iterable<ID>, Mono<Map<ID, RRC>>> mappingFunction) {
         return ids -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids);
     }
 
-    private static <ID, R> BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> emptyOr(
-            BiFunction<Iterable<ID>, FetchFunction<ID, R>, Mono<Map<ID, List<R>>>> mappingFunction) {
+    private static <ID, RRC> BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> emptyOr(
+            BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> mappingFunction) {
 
         return (ids, fetchFunction) -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids, fetchFunction);
-    }
-
-    interface FetchFunction<ID, R> extends Function<Iterable<? extends ID>, Mono<Map<ID, List<R>>>> {
     }
 }

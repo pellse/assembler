@@ -16,11 +16,10 @@
 
 package io.github.pellse.assembler.caching;
 
-import java.util.List;
 import java.util.Map;
 
 @FunctionalInterface
-public interface MergeStrategy<ID, R> {
+public interface MergeStrategy<ID, RRC> {
 
-    Map<ID, List<R>> merge(Map<ID, List<R>> cache, Map<ID, List<R>> itemsToUpdateMap);
+    Map<ID, RRC> merge(Map<ID, RRC> cache, Map<ID, RRC> itemsToUpdateMap);
 }

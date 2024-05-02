@@ -18,21 +18,15 @@ package io.github.pellse.assembler;
 
 import io.github.pellse.assembler.RuleMapperContext.OneToManyRuleMapperContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToOneRuleMapperContext;
-import io.github.pellse.assembler.caching.MergeStrategy;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.QueryUtils.*;
 import static io.github.pellse.assembler.RuleMapperSource.*;
-import static io.github.pellse.util.ObjectUtils.then;
-import static io.github.pellse.util.collection.CollectionUtils.*;
-import static java.util.Map.entry;
-import static java.util.stream.Collectors.*;
 
 /**
  * @param <ID>  Correlation Id type
@@ -126,61 +120,6 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
             RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource,
             Function<RuleContext<T, TC, ID, R, RRC>, RuleMapperContext<T, TC, ID, EID, R, RRC>> ruleMapperContextProvider) {
 
-        return ruleContext -> {
-            final var ruleMapperContext = ruleMapperContextProvider.apply(ruleContext);
-            final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
-
-            return entityList ->
-                    then(translate(entityList, ruleMapperContext.topLevelCollectionFactory()), entities ->
-                            safeApply(entities, queryFunction)
-                                    .collect(ruleMapperContext.mapCollector().apply(entities.size()))
-                                    .map(map -> toResultMap(entities, map, ruleMapperContext.topLevelIdResolver(), ruleMapperContext.defaultResultProvider())));
-        };
+        return ruleContext -> buildQueryFunction(ruleMapperSource, ruleMapperContextProvider.apply(ruleContext));
     }
-
-    //    private static <ID, R> MergeStrategy<ID, R> updateStrategy() {
-//        return (cache, itemsToUpdateMap) -> itemsToUpdateMap;
-//    }
-//
-//    private static <ID, EID, R, RC extends Collection<R>> MergeStrategy<ID, RC> updateMultiStrategy(
-//            Function<R, EID> idResolver,
-//            Supplier<RC> collectionFactory) {
-//
-//        return (existingCacheItems, itemsToUpdateMap) ->
-//                concat(toStream(existingCacheItems.entrySet()), toStream(itemsToUpdateMap.entrySet()))
-//                        .flatMap(entry -> entry.getValue().stream()
-//                                .map(e -> new Wrapper<>(entry.getKey(), idResolver.apply(e), e)))
-//                        .distinct()
-//                        .collect(groupingBy(Wrapper::correlationId, mapping(Wrapper::payload, toCollection(collectionFactory))));
-//    }
-//
-//    private static <ID, R> MergeStrategy<ID, R> removeStrategy() {
-//        return (existingCacheItems, itemsToRemoveMap) -> also(existingCacheItems, c -> c.keySet().removeAll(itemsToRemoveMap.keySet()));
-//    }
-//
-    private static <ID, EID, R> MergeStrategy<ID, R> removeMultiStrategy(Function<R, EID> idResolver) {
-
-        return (existingCacheItems, itemsToRemoveMap) -> existingCacheItems.entrySet().stream()
-                .map(entry -> {
-                    final var itemsToRemove = itemsToRemoveMap.get(entry.getKey());
-                    if (itemsToRemove == null)
-                        return entry;
-
-                    final var idsToRemove = itemsToRemove.stream()
-                            .map(idResolver)
-                            .collect(toSet());
-
-                    final var newColl = toStream(entry.getValue())
-                            .filter(element -> !idsToRemove.contains(idResolver.apply(element)))
-                            .toList();
-
-                    return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
-                })
-                .filter(Objects::nonNull)
-                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1));
-    }
-//
-//    private static <ID, R> MergeStrategy<ID, R> safeStrategy(MergeStrategy<ID, R> strategy) {
-//        return (existingCacheItems, itemsToUpdateMap) -> strategy.merge(new HashMap<>(existingCacheItems), unmodifiableMap(itemsToUpdateMap));
-//    }
 }

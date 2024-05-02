@@ -28,13 +28,29 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.github.pellse.assembler.RuleMapperSource.nullToEmptySource;
 import static io.github.pellse.util.ObjectUtils.isSafeEqual;
+import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
+import static io.github.pellse.util.collection.CollectionUtils.translate;
 import static java.util.Objects.*;
 import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Flux.fromIterable;
 
 public interface QueryUtils {
+
+    static <T, TC extends Collection<T>, ID, EID, R, RRC> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
+            RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource,
+            RuleMapperContext<T, TC, ID, EID, R, RRC> ruleMapperContext) {
+
+        final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
+
+        return entityList ->
+                then(translate(entityList, ruleMapperContext.topLevelCollectionFactory()), entities ->
+                        safeApply(entities, queryFunction)
+                                .collect(ruleMapperContext.mapCollector().apply(entities.size()))
+                                .map(map -> toResultMap(entities, map, ruleMapperContext.topLevelIdResolver(), ruleMapperContext.defaultResultProvider())));
+    }
 
     static <T, TC extends Collection<T>, R> Function<TC, Publisher<R>> toPublisher(Function<TC, Iterable<R>> queryFunction) {
         return entities -> fromIterable(queryFunction.apply(entities));
