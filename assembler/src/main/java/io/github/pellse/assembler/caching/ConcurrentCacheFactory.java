@@ -16,7 +16,6 @@
 
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.assembler.caching.CacheFactory.CacheContext;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy;
 import reactor.core.scheduler.Scheduler;

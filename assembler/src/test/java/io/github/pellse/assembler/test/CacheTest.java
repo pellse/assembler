@@ -52,8 +52,7 @@ import static io.github.pellse.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
 import static io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
 import static io.github.pellse.assembler.caching.CacheEvent.*;
-import static io.github.pellse.assembler.caching.CacheFactory.cache;
-import static io.github.pellse.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.assembler.caching.CacheFactory.*;
 import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
 import static io.github.pellse.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.assembler.test.CDCDelete.cdcDelete;
@@ -188,7 +187,7 @@ public class CacheTest {
 //                                        .scheduler(billingInfoScheduler)
                                         .backoffRetryStrategy(100, ofMillis(10), ofMillis(200), 1.0)
                                         .build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
@@ -299,7 +298,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(call(getBillingInfo)), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders))),
                         Transaction::new)
                 .build();
 
@@ -323,7 +322,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, concurrent()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(), concurrent()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, cache(), concurrent()))),
                         Transaction::new)
                 .build();
 
@@ -353,7 +352,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, faultyCache), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders))),
                         Transaction::new)
                 .build();
 
@@ -381,7 +380,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders))),
                         Transaction::new)
                 .build();
 
@@ -413,7 +412,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, faultyCache), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders))),
                         Transaction::new)
                 .build();
 
@@ -436,7 +435,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(toPublisher(this::getBillingInfoNonReactive)), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(toPublisher(this::getAllOrdersNonReactive), cache()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(toPublisher(this::getAllOrdersNonReactive), cache()))),
                         Transaction::new)
                 .build();
 
@@ -460,7 +459,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, cache()))),
                         Transaction::new)
                 .build();
 
@@ -484,7 +483,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
-                        rule(OrderItem::customerId, HashSet::new, oneToManyAsSet(OrderItem::id, cached(this::getAllOrdersWithIdSet))),
+                        rule(OrderItem::customerId, HashSet::new, oneToManyAsSet(OrderItem::id, cachedMany(this::getAllOrdersWithIdSet))),
                         TransactionSet::new)
                 .build(immediate());
 
@@ -507,7 +506,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
-                        rule(OrderItem::customerId, HashSet::new, oneToMany(OrderItem::id, cached(this::getAllOrdersWithIdSet))),
+                        rule(OrderItem::customerId, HashSet::new, oneToMany(OrderItem::id, cachedMany(this::getAllOrdersWithIdSet))),
                         Transaction::new)
                 .build();
 
@@ -543,7 +542,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(autoCacheBuilder(billingInfoFlux).maxWindowSize(10).build(), cff1, cff2))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), autoCacheBuilder(orderItemFlux).maxWindowSize(10).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(cache(), autoCacheBuilder(orderItemFlux).maxWindowSize(10).build()))),
                         Transaction::new)
                 .build();
 
@@ -604,7 +603,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCacheBuilder(dataSource1).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCacheBuilder(dataSource2).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, autoCacheBuilder(dataSource2).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build();
 
@@ -643,7 +642,7 @@ public class CacheTest {
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
                                         .build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, cache(),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, cache(),
                                 autoCacheBuilder(orderItemFlux)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
@@ -730,7 +729,7 @@ public class CacheTest {
                         .build();
 
         var billingInfoRule = Rule.<Customer, Long, BillingInfo, BillingInfo>rule(BillingInfo::customerId, oneToOne(cached(billingInfoAutoCache)));
-        var orderItemRule = Rule.<Customer, Long, OrderItem, List<OrderItem>>rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cache(), orderItemAutoCache)));
+        var orderItemRule = Rule.<Customer, Long, OrderItem, List<OrderItem>>rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(cache(), orderItemAutoCache)));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
@@ -773,7 +772,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, billingInfoAutoCache), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, orderItemAutoCache))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, orderItemAutoCache))),
                         Transaction::new)
                 .build();
 
@@ -825,7 +824,7 @@ public class CacheTest {
                                         .maxWindowSize(3)
                                         .maxRetryStrategy(20)
                                         .build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(getAllOrders,
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .backoffRetryStrategy(20, ofMillis(1))
@@ -868,7 +867,7 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, autoCacheEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build(immediate());
 

@@ -38,14 +38,14 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
 
     Function<Stream<RRC>, Stream<R>> streamFlattener();
 
-    record OneToOneRuleMapperContext<T, TC extends Collection<T>, ID, R>(
+    record OneToOneContext<T, TC extends Collection<T>, ID, R>(
             Function<T, ID> topLevelIdResolver,
             Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, R> mapFactory,
             Function<ID, R> defaultResultProvider) implements RuleMapperContext<T, TC, ID, ID, R, R> {
 
-        public OneToOneRuleMapperContext(
+        public OneToOneContext(
                 RuleContext<T, TC, ID, R, R> ruleContext,
                 Function<ID, R> defaultResultProvider) {
 
@@ -76,7 +76,7 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
         }
     }
 
-    record OneToManyRuleMapperContext<T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>>(
+    record OneToManyContext<T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>>(
             Function<T, ID> topLevelIdResolver,
             Function<R, ID> correlationIdResolver,
             Supplier<TC> topLevelCollectionFactory,
@@ -84,7 +84,7 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
             Function<R, EID> idResolver,
             Supplier<RC> collectionFactory) implements RuleMapperContext<T, TC, ID, EID, R, RC> {
 
-        public OneToManyRuleMapperContext(
+        public OneToManyContext(
                 RuleContext<T, TC, ID, R, RC> ruleContext,
                 Function<R, EID> idResolver,
                 Supplier<RC> collectionFactory) {

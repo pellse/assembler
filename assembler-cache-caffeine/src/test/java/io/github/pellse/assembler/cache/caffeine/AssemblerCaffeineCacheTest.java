@@ -47,6 +47,7 @@ import static io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCac
 import static io.github.pellse.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.time.Duration.ofMillis;
@@ -97,7 +98,7 @@ public class AssemblerCaffeineCacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
@@ -121,7 +122,7 @@ public class AssemblerCaffeineCacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
 
@@ -145,7 +146,7 @@ public class AssemblerCaffeineCacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(cached(this::getAllOrders, caffeineCache())))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(cachedMany(this::getAllOrders, caffeineCache())))),
                         Transaction::new)
                 .build();
 
@@ -175,9 +176,9 @@ public class AssemblerCaffeineCacheTest {
                                 BillingInfo::new)),
                         rule(OrderItem::customerId,
                                 oneToMany(OrderItem::id, pipe(
-                                        cached(this::getAllOrders, caffeineCache()),
-                                        CacheFactory::cached,
-                                        CacheFactory::cached))),
+                                        cachedMany(this::getAllOrders, caffeineCache()),
+                                        CacheFactory::cachedMany,
+                                        CacheFactory::cachedMany))),
                         Transaction::new)
                 .build();
 
@@ -204,7 +205,7 @@ public class AssemblerCaffeineCacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, caffeineCache()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, caffeineCache()))),
                         Transaction::new)
                 .build();
 
@@ -236,7 +237,7 @@ public class AssemblerCaffeineCacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(caffeineCache(), autoCache(dataSource1)))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(caffeineCache(), autoCache(dataSource2)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(caffeineCache(), autoCache(dataSource2)))),
                         Transaction::new)
                 .build();
 
@@ -267,7 +268,7 @@ public class AssemblerCaffeineCacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheBuilder(dataSource1).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders, caffeineCache(), autoCacheBuilder(dataSource2).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, caffeineCache(), autoCacheBuilder(dataSource2).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build();
 
@@ -318,7 +319,7 @@ public class AssemblerCaffeineCacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, CacheFactory.cached(caffeineCache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(caffeineCache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build();
 

@@ -16,8 +16,8 @@
 
 package io.github.pellse.assembler;
 
-import io.github.pellse.assembler.RuleMapperContext.OneToManyRuleMapperContext;
-import io.github.pellse.assembler.RuleMapperContext.OneToOneRuleMapperContext;
+import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
+import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -46,7 +46,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
         return oneToOne(toRuleMapperSource(queryFunction), id -> null);
     }
 
-    static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(RuleMapperSource<T, TC, ID, ID, R, R> ruleMapperSource) {
+    static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> ruleMapperSource) {
         return oneToOne(ruleMapperSource, id -> null);
     }
 
@@ -58,12 +58,12 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
     }
 
     static <T, TC extends Collection<T>, ID, R> RuleMapper<T, TC, ID, R, R> oneToOne(
-            RuleMapperSource<T, TC, ID, ID, R, R> ruleMapperSource,
+            RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> ruleMapperSource,
             Function<ID, R> defaultResultProvider) {
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> new OneToOneRuleMapperContext<>(ctx, defaultResultProvider));
+                ctx -> new OneToOneContext<>(ctx, defaultResultProvider));
     }
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(Function<R, EID> idResolver) {
@@ -79,7 +79,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
             Function<R, EID> idResolver,
-            RuleMapperSource<T, TC, ID, EID, R, List<R>> ruleMapperSource) {
+            RuleMapperSource<T, TC, ID, EID, R, List<R>, OneToManyContext<T, TC, ID, EID, R, List<R>>> ruleMapperSource) {
 
         return oneToMany(idResolver, ruleMapperSource, ArrayList::new);
     }
@@ -93,7 +93,7 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 
     static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
             Function<R, EID> idResolver,
-            RuleMapperSource<T, TC, ID, EID, R, Set<R>> ruleMapperSource) {
+            RuleMapperSource<T, TC, ID, EID, R, Set<R>, OneToManyContext<T, TC, ID, EID, R, Set<R>>> ruleMapperSource) {
 
         return oneToMany(idResolver, ruleMapperSource, HashSet::new);
     }
@@ -108,17 +108,17 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
 
     static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(
             Function<R, EID> idResolver,
-            RuleMapperSource<T, TC, ID, EID, R, RC> ruleMapperSource,
+            RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> ruleMapperSource,
             Supplier<RC> collectionFactory) {
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> new OneToManyRuleMapperContext<>(ctx, idResolver, collectionFactory));
+                ctx -> new OneToManyContext<>(ctx, idResolver, collectionFactory));
     }
 
-    private static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapper<T, TC, ID, R, RRC> createRuleMapper(
-            RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource,
-            Function<RuleContext<T, TC, ID, R, RRC>, RuleMapperContext<T, TC, ID, EID, R, RRC>> ruleMapperContextProvider) {
+    private static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> RuleMapper<T, TC, ID, R, RRC> createRuleMapper(
+            RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> ruleMapperSource,
+            Function<RuleContext<T, TC, ID, R, RRC>, CTX> ruleMapperContextProvider) {
 
         return ruleContext -> buildQueryFunction(ruleMapperSource, ruleMapperContextProvider.apply(ruleContext));
     }

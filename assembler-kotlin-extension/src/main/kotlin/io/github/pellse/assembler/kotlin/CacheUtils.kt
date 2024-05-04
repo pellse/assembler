@@ -16,17 +16,29 @@
 
 package io.github.pellse.assembler.kotlin
 
+import io.github.pellse.assembler.RuleMapperContext.OneToManyContext
+import io.github.pellse.assembler.RuleMapperContext.OneToOneContext
 import io.github.pellse.assembler.RuleMapperSource
 import io.github.pellse.assembler.caching.CacheFactory
 import io.github.pellse.assembler.caching.CacheFactory.cached
+import io.github.pellse.assembler.caching.CacheFactory.cachedMany
 import org.reactivestreams.Publisher
 import java.util.function.Function
 
-fun <T, TC : Collection<T>, ID, EID, R, RRC> ((TC) -> Publisher<R>).cached(
-    vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
-): RuleMapperSource<T, TC, ID, EID, R, RRC> = cached(this, *delegateCacheFactories)
+fun <T, TC : Collection<T>, ID, R> ((TC) -> Publisher<R>).cached(
+    vararg delegateCacheFactories: Function<CacheFactory<ID, R, R>, CacheFactory<ID, R, R>>
+): RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> = cached(this, *delegateCacheFactories)
 
-fun <T, TC : Collection<T>, ID, EID, R, RRC> ((TC) -> Publisher<R>).cached(
-    cache: CacheFactory<ID, R, RRC>,
-    vararg delegateCacheFactories: Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>
-): RuleMapperSource<T, TC, ID, EID, R, RRC> = cached(this, cache, *delegateCacheFactories)
+fun <T, TC : Collection<T>, ID, R> ((TC) -> Publisher<R>).cached(
+    cache: CacheFactory<ID, R, R>,
+    vararg delegateCacheFactories: Function<CacheFactory<ID, R, R>, CacheFactory<ID, R, R>>
+): RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> = cached(this, cache, *delegateCacheFactories)
+
+fun <T, TC : Collection<T>, ID, EID, R, RC: Collection<R>> ((TC) -> Publisher<R>).cachedMany(
+    vararg delegateCacheFactories: Function<CacheFactory<ID, R, RC>, CacheFactory<ID, R, RC>>
+): RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> = cachedMany(this, *delegateCacheFactories)
+
+fun <T, TC : Collection<T>, ID, EID, R, RC: Collection<R>> ((TC) -> Publisher<R>).cachedMany(
+    cache: CacheFactory<ID, R, RC>,
+    vararg delegateCacheFactories: Function<CacheFactory<ID, R, RC>, CacheFactory<ID, R, RC>>
+): RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> = cachedMany(this, cache, *delegateCacheFactories)

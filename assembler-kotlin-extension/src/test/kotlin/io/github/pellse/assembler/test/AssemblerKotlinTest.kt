@@ -237,7 +237,7 @@ class AssemblerKotlinTest {
                     BillingInfo::customerId,
                     oneToOne(::getBillingInfoNonReactive.toPublisher().cached(), ::BillingInfo)
                 ),
-                rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrdersNonReactive.toPublisher().cached())),
+                rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrdersNonReactive.toPublisher().cachedMany())),
                 ::Transaction
             ).build()
 
@@ -272,7 +272,7 @@ class AssemblerKotlinTest {
             .withCorrelationIdResolver(Customer::customerId)
             .withRules(
                 rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(), ::BillingInfo)),
-                rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached())),
+                rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cachedMany())),
                 ::Transaction
             ).build()
 
@@ -307,7 +307,7 @@ class AssemblerKotlinTest {
             .withCorrelationIdResolver(Customer::customerId)
             .withRules(
                 rule(BillingInfo::customerId, oneToOne(::getBillingInfo.cached(), ::BillingInfo)),
-                rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cached(caffeineCache()))),
+                rule(OrderItem::customerId, oneToMany(OrderItem::id, ::getAllOrders.cachedMany(caffeineCache()))),
                 ::Transaction
             ).build()
 
@@ -389,7 +389,7 @@ class AssemblerKotlinTest {
                     OrderItem::customerId,
                     oneToMany(
                         OrderItem::id,
-                        getAllOrders.cached(cache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build())
+                        getAllOrders.cachedMany(cache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build())
                     )
                 ),
                 ::Transaction
@@ -443,7 +443,7 @@ class AssemblerKotlinTest {
                     OrderItem::customerId,
                     oneToMany(
                         OrderItem::id,
-                        ::getAllOrders.cached(
+                        ::getAllOrders.cachedMany(
                             autoCacheBuilder(orderItemFlux, CDCAdd::class::isInstance, CDC<OrderItem>::item)
                                 .maxWindowSize(3)
                                 .build()))),

@@ -16,9 +16,7 @@
 
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.assembler.RuleMapperContext;
-import io.github.pellse.assembler.RuleMapperContext.OneToManyRuleMapperContext;
-import io.github.pellse.assembler.RuleMapperContext.OneToOneRuleMapperContext;
+import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
@@ -103,25 +101,7 @@ public interface Cache<ID, RRC> {
         };
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> Cache<ID, RRC> mergeStrategyAwareCache(
-            RuleMapperContext<T, TC, ID, EID, R, RRC> ctx,
-            Cache<ID, RRC> delegateCache) {
-
-        final var optimizedCache = adapterCache(
-                emptyOr(delegateCache::getAll),
-                emptyOr(delegateCache::computeAll),
-                emptyMapOr(delegateCache::putAll),
-                emptyMapOr(delegateCache::removeAll)
-        );
-
-        return switch (ctx) {
-            case OneToOneRuleMapperContext<?, ?, ?, ?> ignored -> oneToOneCache(delegateCache);
-            case OneToManyRuleMapperContext<?, ?, ?, ?, ?, ?> oneToManyCtx ->
-                    oneToManyCache(oneToManyCtx, delegateCache);
-        };
-    }
-
-    private static <ID, R> Cache<ID, R> optimizedCache(Cache<ID, R> delegateCache) {
+    static <ID, RRC> Cache<ID, RRC> optimizedCache(Cache<ID, RRC> delegateCache) {
         return adapterCache(
                 emptyOr(delegateCache::getAll),
                 emptyOr(delegateCache::computeAll),
@@ -130,16 +110,15 @@ public interface Cache<ID, RRC> {
         );
     }
 
-    private static <ID, R> Cache<ID, R> oneToOneCache(Cache<ID, R> delegateCache) {
+    static <ID, R> Cache<ID, R> oneToOneCache(Cache<ID, R> delegateCache) {
         return optimizedCache(delegateCache);
     }
 
-    private static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
-            OneToManyRuleMapperContext<T, TC, ID, EID, R, RC> ctx,
+    static <ID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
+            OneToManyContext<?, ?, ?, ?, R, RC> ctx,
             Cache<ID, RC> delegateCache) {
 
         final var optimizedCache = optimizedCache(delegateCache);
-
         final var collectionFactory = ctx.collectionFactory();
 
         return adapterCache(

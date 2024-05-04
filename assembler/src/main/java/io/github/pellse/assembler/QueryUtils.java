@@ -39,9 +39,9 @@ import static reactor.core.publisher.Flux.fromIterable;
 
 public interface QueryUtils {
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
-            RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource,
-            RuleMapperContext<T, TC, ID, EID, R, RRC> ruleMapperContext) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
+            RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> ruleMapperSource,
+            CTX ruleMapperContext) {
 
         final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
 
