@@ -157,26 +157,8 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, R> cacheFactory,
             Function<CacheFactory<ID, R, R>, CacheFactory<ID, R, R>>... delegateCacheFactories) {
 
-        final var isEmptySource = isEmptySource(ruleMapperSource);
-
-        return ruleContext -> {
-            final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleContext);
-            final var cacheContext = new OneToOneCacheContext<>(isEmptySource, ruleContext);
-
-            final var cache = delegate(cacheContext::mergeStrategyAwareCache, cacheFactory, delegateCacheFactories)
-                    .create(cacheContext);
-
-            return entities -> then(ids(entities, ruleContext), ids -> isEmptySource ? cache.getAll(ids) : cache.computeAll(ids, buildFetchFunction(entities, nullToEmptySource(ruleMapperSource), ruleContext)))
-                    .filter(CollectionUtils::isNotEmpty)
-                    .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())))
-                    .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))
-                    .onErrorMap(QueryFunctionException.class, Throwable::getCause);
-        };
+        return cached(OneToOneCacheContext::new, ruleMapperSource, cacheFactory, delegateCacheFactories);
     }
-
-
-
-
 
     @SafeVarargs
     static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
@@ -224,11 +206,25 @@ public interface CacheFactory<ID, R, RRC> {
             CacheFactory<ID, R, RC> cacheFactory,
             Function<CacheFactory<ID, R, RC>, CacheFactory<ID, R, RC>>... delegateCacheFactories) {
 
+        return cached(OneToManyCacheContext::new, ruleMapperSource, cacheFactory, delegateCacheFactories);
+    }
+
+    static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> toMono(Consumer<Map<ID, RRC>> consumer) {
+        return map -> just(also(map, consumer));
+    }
+
+    @SafeVarargs
+    private static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> cached(
+            BiFunction<Boolean, CTX, CacheContext<ID, R, RRC>> cacheContextProvider,
+            RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> ruleMapperSource,
+            CacheFactory<ID, R, RRC> cacheFactory,
+            Function<CacheFactory<ID, R, RRC>, CacheFactory<ID, R, RRC>>... delegateCacheFactories) {
+
         final var isEmptySource = isEmptySource(ruleMapperSource);
 
         return ruleContext -> {
             final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleContext);
-            final var cacheContext = new OneToManyCacheContext<>(isEmptySource, ruleContext);
+            final var cacheContext = cacheContextProvider.apply(isEmptySource, ruleContext);
 
             final var cache = delegate(cacheContext::mergeStrategyAwareCache, cacheFactory, delegateCacheFactories)
                     .create(cacheContext);
@@ -239,14 +235,6 @@ public interface CacheFactory<ID, R, RRC> {
                     .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))
                     .onErrorMap(QueryFunctionException.class, Throwable::getCause);
         };
-    }
-
-
-
-
-
-    static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> toMono(Consumer<Map<ID, RRC>> consumer) {
-        return map -> just(also(map, consumer));
     }
 
     private static <T, TC extends Collection<T>, ID, EID, R, RRC> List<ID> ids(TC entities, RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext) {
