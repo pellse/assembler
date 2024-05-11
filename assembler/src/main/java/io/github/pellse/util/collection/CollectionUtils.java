@@ -18,6 +18,7 @@ package io.github.pellse.util.collection;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -88,8 +89,12 @@ public interface CollectionUtils {
     }
 
     static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, Function<V, V1> mappingFunction) {
+        return transformMap(map, (__, value) -> mappingFunction.apply(value));
+    }
+
+    static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, BiFunction<K, V, V1> mappingFunction) {
         return map.entrySet().stream()
-                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getValue()), (u1, u2) -> u1, LinkedHashMap::new));
+                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getKey(), e.getValue()), (u1, u2) -> u1, LinkedHashMap::new));
     }
 
     @SafeVarargs

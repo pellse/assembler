@@ -15,15 +15,19 @@ public sealed interface CacheContext<ID, EID, R, RRC> {
 
     RuleMapperContext<?, ?, ID, EID, R, RRC> ctx();
 
-    Cache<ID, RRC> mergeStrategyAwareCache(Cache<ID, RRC> delegateCache);
+    CacheFactory<ID, EID, R, RRC> mergeStrategyAwareCache(CacheFactory<ID, EID, R, RRC> delegateCacheFactory);
 
     record OneToOneCacheContext<ID, R>(
             boolean isEmptySource,
             OneToOneContext<?, ?, ID, R> ctx) implements CacheContext<ID, ID, R, R> {
 
         @Override
-        public Cache<ID, R> mergeStrategyAwareCache(Cache<ID, R> delegateCache) {
-            return oneToOneCache(delegateCache);
+        public CacheFactory<ID, ID, R, R> mergeStrategyAwareCache(CacheFactory<ID, ID, R, R> delegateCacheFactory) {
+            return ctx -> oneToOneCache(delegateCacheFactory.create(ctx));
+        }
+
+        public R convert(R value) {
+            return value;
         }
     }
 
@@ -38,8 +42,8 @@ public sealed interface CacheContext<ID, EID, R, RRC> {
         }
 
         @Override
-        public Cache<ID, RC> mergeStrategyAwareCache(Cache<ID, RC> delegateCache) {
-            return oneToManyCache(ctx(), this::convert, delegateCache);
+        public CacheFactory<ID, EID, R, RC> mergeStrategyAwareCache(CacheFactory<ID, EID, R, RC> delegateCacheFactory) {
+            return cacheContext -> oneToManyCache(ctx(), this::convert, delegateCacheFactory.create(cacheContext));
         }
 
         @SuppressWarnings("unchecked")
