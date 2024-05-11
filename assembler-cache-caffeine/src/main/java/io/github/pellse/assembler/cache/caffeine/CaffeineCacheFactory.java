@@ -21,6 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.pellse.assembler.caching.CacheFactory;
 
 import java.time.Duration;
+import java.time.LocalTime;
 import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
@@ -33,36 +34,37 @@ import static reactor.core.publisher.Mono.fromFuture;
 
 public interface CaffeineCacheFactory {
 
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache() {
+    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache() {
         return caffeineCache(newBuilder());
     }
 
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(long maxSize) {
+    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(long maxSize) {
         return caffeineCache(newBuilder().maximumSize(maxSize));
     }
 
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(Duration expireAfterAccessDuration) {
+    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(Duration expireAfterAccessDuration) {
         return caffeineCache(newBuilder().expireAfterAccess(expireAfterAccessDuration));
     }
 
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(long maxSize, Duration expireAfterAccessDuration) {
+    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(long maxSize, Duration expireAfterAccessDuration) {
         return caffeineCache(newBuilder()
                 .maximumSize(maxSize)
                 .expireAfterAccess(expireAfterAccessDuration));
     }
 
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(Function<Caffeine<Object, Object>, Caffeine<Object, Object>> customizer) {
+    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(Function<Caffeine<Object, Object>, Caffeine<Object, Object>> customizer) {
         return caffeineCache(customizer.apply(newBuilder()));
     }
 
-    static <ID, R, RRC> CacheFactory<ID, R, RRC> caffeineCache(Caffeine<Object, Object> caffeine) {
+    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(Caffeine<Object, Object> caffeine) {
 
         final AsyncCache<ID, RRC> delegateCache = caffeine.buildAsync();
 
         return __ -> adapterCache(
                 ids -> fromFuture(delegateCache.getAll(ids, keys -> of())),
                 (ids, fetchFunction) -> fromFuture(delegateCache.getAll(ids, (keys, executor) -> fetchFunction.apply(keys).toFuture())),
-                toMono(map -> map.forEach((id, results) -> delegateCache.put(id, completedFuture(results)))),
+//                toMono(map -> map.forEach((id, results) -> delegateCache.put(id, completedFuture(results)))),
+                toMono(map -> also(map, m -> map.forEach((id, results) -> delegateCache.put(id, completedFuture(results))), m -> System.out.println("caffeine: Time = " + LocalTime.now() + ", thread = " + Thread.currentThread().getName() + ", map to insert into cache =" + m))),
                 toMono(map -> also(delegateCache.asMap(), cache -> map.keySet().forEach(cache::remove)))
         );
     }

@@ -19,6 +19,7 @@ package io.github.pellse.assembler.caching;
 import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalTime;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -28,8 +29,7 @@ import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Map.of;
 import static java.util.Optional.ofNullable;
-import static reactor.core.publisher.Mono.defer;
-import static reactor.core.publisher.Mono.just;
+import static reactor.core.publisher.Mono.*;
 
 public interface Cache<ID, RRC> {
 
@@ -106,7 +106,8 @@ public interface Cache<ID, RRC> {
                 emptyOr(delegateCache::getAll),
                 emptyOr(delegateCache::computeAll),
                 emptyMapOr(delegateCache::putAll),
-                emptyMapOr(delegateCache::removeAll)
+                emptyMapOr(delegateCache::removeAll),
+                emptyMapOr(delegateCache::updateAll)
         );
     }
 
@@ -114,25 +115,32 @@ public interface Cache<ID, RRC> {
         return optimizedCache(delegateCache);
     }
 
-    static <ID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
-            OneToManyContext<?, ?, ?, ?, R, RC> ctx,
+    static <ID,  EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
+            OneToManyContext<?, ?, ID, EID, R, RC> ctx,
+            Function<Collection<R>, RC> converter,
             Cache<ID, RC> delegateCache) {
 
         final var optimizedCache = optimizedCache(delegateCache);
-        final var collectionFactory = ctx.collectionFactory();
 
         return adapterCache(
                 optimizedCache::getAll,
                 optimizedCache::computeAll,
                 applyMergeStrategy(
                         optimizedCache,
-                        (existingCacheItems, incomingChanges) -> mergeMaps(incomingChanges, existingCacheItems, ctx.idResolver(), collectionFactory),
+                        (existingCacheItems, incomingChanges) -> mergeMaps(incomingChanges, existingCacheItems, ctx.idResolver(), converter),
                         Cache::putAll),
                 applyMergeStrategy(
                         optimizedCache,
                         (cache, existingCacheItems, incomingChanges) ->
-                                then(subtractFromMap(incomingChanges, existingCacheItems, ctx.idResolver(), collectionFactory),
+                                then(subtractFromMap(incomingChanges, existingCacheItems, ctx.idResolver(), ctx.collectionFactory()),
                                         updatedMap -> cache.updateAll(updatedMap, diff(existingCacheItems, updatedMap))))
+//                (incomingChangesToAdd, incomingChangesToRemove) -> {
+//                    delegateCache.getAll(Stream.concat(incomingChangesToAdd.keySet().stream(), incomingChangesToRemove.keySet().stream()).distinct().toList())
+//                            .flatMap(existingCacheItems -> )
+//
+//
+//                    return just(of());
+//                }
         );
     }
 
@@ -151,13 +159,9 @@ public interface Cache<ID, RRC> {
             Cache<ID, RC> delegateCache,
             CacheUpdater<ID, RC> cacheUpdater) {
 
-        return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() ->
-                delegateCache.getAll(incomingChanges.keySet())
-                        .flatMap(existingCacheItems -> cacheUpdater.updateCache(delegateCache, existingCacheItems, incomingChanges)));
-    }
-
-    private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> emptyMapOr(Function<Map<ID, RRC>, Mono<?>> mappingFunction) {
-        return map -> isEmpty(map) ? just(of()) : mappingFunction.apply(map);
+        return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() -> delegateCache.getAll(incomingChanges.keySet()))
+                .doOnNext(m -> System.out.println("getAll: Time = " + LocalTime.now() + ", Thread = " + Thread.currentThread().getName() + ",  keys = " + incomingChanges.keySet() + ", map = " + m))
+                .flatMap(existingCacheItems -> cacheUpdater.updateCache(delegateCache, existingCacheItems, incomingChanges));
     }
 
     private static <ID, RRC> Function<Iterable<ID>, Mono<Map<ID, RRC>>> emptyOr(Function<Iterable<ID>, Mono<Map<ID, RRC>>> mappingFunction) {
@@ -168,5 +172,13 @@ public interface Cache<ID, RRC> {
             BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> mappingFunction) {
 
         return (ids, fetchFunction) -> isEmpty(ids) ? just(of()) : mappingFunction.apply(ids, fetchFunction);
+    }
+
+    private static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> emptyMapOr(Function<Map<ID, RRC>, Mono<?>> mappingFunction) {
+        return map -> isEmpty(map) ? just(of()) : mappingFunction.apply(map);
+    }
+
+    private static <ID, RRC> BiFunction<Map<ID, RRC>, Map<ID, RRC>, Mono<?>> emptyMapOr(BiFunction<Map<ID, RRC>, Map<ID, RRC>, Mono<?>> mappingFunction) {
+        return (map1, map2) -> isEmpty(map1) && isEmpty(map2) ? just(of()) : mappingFunction.apply(nullToEmptyMap(map1), nullToEmptyMap(map2));
     }
 }

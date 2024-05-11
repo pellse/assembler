@@ -25,7 +25,6 @@ import io.github.pellse.assembler.util.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
-import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -48,17 +47,20 @@ import static io.github.pellse.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
+import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.time.Duration.ofMillis;
+import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static reactor.core.scheduler.Schedulers.boundedElastic;
 import static reactor.core.scheduler.Schedulers.parallel;
 
 public class AssemblerCaffeineCacheTest {
 
-    static {
-        BlockHound.install();
-    }
+//    static {
+//        BlockHound.install();
+//    }
 
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
@@ -230,8 +232,8 @@ public class AssemblerCaffeineCacheTest {
         Flux<OrderItem> dataSource2 = Flux.just(
                 orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33);
 
-        Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
-        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
+        Transaction transaction2 = new Transaction(customer2, billingInfo2, of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, of(orderItem31, orderItem32, orderItem33));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
@@ -261,14 +263,21 @@ public class AssemblerCaffeineCacheTest {
         Flux<OrderItem> dataSource2 = Flux.just(
                 orderItem11, orderItem12, orderItem13, orderItem21, orderItem22, orderItem31, orderItem32, orderItem33);
 
-        Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
-        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
+        Transaction transaction2 = new Transaction(customer2, billingInfo2, of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, of(orderItem31, orderItem32, orderItem33));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheBuilder(dataSource1).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, caffeineCache(), autoCacheBuilder(dataSource2).maxWindowSize(3).build()))),
+//                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheBuilder(dataSource1).build()))),
+                        rule(BillingInfo::customerId, oneToOne((List<Customer> __) -> Flux.just(billingInfo1, billingInfo2, billingInfo3))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id,
+                                cachedMany(caffeineCache(),
+                                        concurrent(100, ofMillis(5)),
+                                        autoCacheBuilder(dataSource2)
+                                                .maxWindowSize(3)
+                                                .scheduler(boundedElastic())
+                                                .build()))),
                         Transaction::new)
                 .build();
 
@@ -312,8 +321,8 @@ public class AssemblerCaffeineCacheTest {
                 .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
                 .subscribeOn(parallel());
 
-        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
-        Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
+        Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, of(orderItem21, orderItem22));
+        Transaction transaction3 = new Transaction(customer3, billingInfo3, of(orderItem33));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)

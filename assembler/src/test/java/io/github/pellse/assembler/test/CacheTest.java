@@ -148,12 +148,12 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var billingInfoScheduler = newBoundedElastic(4, Integer. MAX_VALUE, "billingInfo", 15, true);
-        var orderItemScheduler = newBoundedElastic(4, Integer. MAX_VALUE, "orderItem", 15, true);
+        var billingInfoScheduler = newBoundedElastic(4, Integer.MAX_VALUE, "billingInfo", 15, true);
+        var orderItemScheduler = newBoundedElastic(4, Integer.MAX_VALUE, "orderItem", 15, true);
 
         var customerFlux = longRunningFlux(customerList).delayElements(ofMillis(30));
-        var billingInfoFlux = longRunningFlux(billingInfoList, 2_000).delayElements(ofMillis(5), billingInfoScheduler);
-        var orderItemFlux = longRunningFlux(orderItemList, 2_000).delayElements(ofMillis(5), orderItemScheduler);
+        var billingInfoFlux = longRunningFlux(billingInfoList, 200).delayElements(ofMillis(5)).doOnComplete(() -> System.out.println("billingInfo Flux completed"));
+        var orderItemFlux = longRunningFlux(orderItemList, 200).delayElements(ofMillis(7)).doOnComplete(() -> System.out.println("orderItem Flux completed"));
 
         Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
 
@@ -161,8 +161,8 @@ public class CacheTest {
 
             return Flux.just(billingInfo1, billingInfo2, billingInfo3)
                     .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
-                    .doOnComplete(billingInvocationCount::incrementAndGet)
-                    .subscribeOn(billingInfoScheduler);
+                    .doOnComplete(billingInvocationCount::incrementAndGet);
+//                    .subscribeOn(billingInfoScheduler);
         };
 
         Function<List<Customer>, Publisher<OrderItem>> getAllOrders = customers -> {
@@ -171,8 +171,8 @@ public class CacheTest {
 
             return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                     .filter(orderItem -> customerIds.contains(orderItem.customerId()))
-                    .doOnComplete(ordersInvocationCount::incrementAndGet)
-                    .subscribeOn(orderItemScheduler);
+                    .doOnComplete(ordersInvocationCount::incrementAndGet);
+//                    .subscribeOn(orderItemScheduler);
         };
 
         var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
@@ -180,19 +180,23 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
+//                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, concurrent()))),
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
+//                                concurrent(100, ofMillis(4)),
                                 autoCacheBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
 //                                        .scheduler(billingInfoScheduler)
-                                        .backoffRetryStrategy(100, ofMillis(10), ofMillis(200), 1.0)
+//                                        .backoffRetryStrategy(1, ofMillis(10), ofMillis(200), 1.0)
                                         .build()))),
+//                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders, concurrent()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders,
+                                concurrent(100, ofMillis(3)),
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
 //                                        .scheduler(orderItemScheduler)
-                                        .backoffRetryStrategy(100, ofMillis(10), ofMillis(200), 1.0)
+//                                        .backoffRetryStrategy(1, ofMillis(10), ofMillis(200), 1.0)
                                         .build()))),
                         Transaction::new)
                 .build();
@@ -206,7 +210,7 @@ public class CacheTest {
 
         var initialCount = 50;
         var latch = new CountDownLatch(initialCount);
-        IntStream.range(0, initialCount).forEach(__ -> transactionFlux.subscribe(null, error -> latch.countDown(),
+        IntStream.range(0, initialCount).forEach(__ -> transactionFlux.subscribe(null, error -> run(error, e -> latch.countDown(), e -> System.out.println("e = " + e)),
                 () -> {
                     latch.countDown();
                     System.out.println("complete, count = " + latch.getCount() + ", Thread = " + Thread.currentThread().getName());
@@ -289,10 +293,10 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithCaching() {
 
-        Function<List<Long>,  Publisher<BillingInfo>> getBillingInfo = customerIds ->
-             Flux.just(billingInfo1, billingInfo3)
-                    .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
-                    .doOnComplete(billingInvocationCount::incrementAndGet);
+        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = customerIds ->
+                Flux.just(billingInfo1, billingInfo3)
+                        .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                        .doOnComplete(billingInvocationCount::incrementAndGet);
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
@@ -342,7 +346,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithFaultyCache() {
 
-        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
+        CacheFactory<Long, Long, BillingInfo, BillingInfo> faultyCache = cache(
                 ids -> error(new RuntimeException("Cache.getAll failed")),
                 (ids, fetchFunction) -> error(new RuntimeException("Cache.computeAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
@@ -399,7 +403,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithFaultyCacheAndQueryFunction() {
 
-        CacheFactory<Long, BillingInfo, BillingInfo> faultyCache = cache(
+        CacheFactory<Long, Long, BillingInfo, BillingInfo> faultyCache = cache(
                 ids -> error(new RuntimeException("Cache.getAll failed")),
                 (ids, fetchFunction) -> error(new RuntimeException("Cache.computeAll failed")),
                 map -> error(new RuntimeException("Cache.putAll failed")),
@@ -535,8 +539,8 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, billingInfo2, List.of(orderItem21, orderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem31, orderItem32, orderItem33));
 
-        Function<CacheFactory<Long, BillingInfo, BillingInfo>, CacheFactory<Long, BillingInfo, BillingInfo>> cff1 = cf -> cf;
-        Function<CacheFactory<Long, BillingInfo, BillingInfo>, CacheFactory<Long, BillingInfo, BillingInfo>> cff2 = cf -> cf;
+        Function<CacheFactory<Long, Long, BillingInfo, BillingInfo>, CacheFactory<Long, Long, BillingInfo, BillingInfo>> cff1 = cf -> cf;
+        Function<CacheFactory<Long, Long, BillingInfo, BillingInfo>, CacheFactory<Long, Long, BillingInfo, BillingInfo>> cff2 = cf -> cf;
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
@@ -718,12 +722,12 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
-        CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
+        CacheTransformer<Long, Long, BillingInfo, BillingInfo> billingInfoAutoCache =
                 autoCacheEvents(billingInfoEventFlux)
                         .maxWindowSize(3)
                         .build();
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
+        CacheTransformer<Long, String, OrderItem, List<OrderItem>> orderItemAutoCache =
                 autoCacheBuilder(orderItemFlux, toCacheEvent(CDCAdd.class::isInstance, CDC::item))
                         .maxWindowSize(3)
                         .build();
@@ -762,10 +766,10 @@ public class CacheTest {
                 new CDCAdd<>(orderItem31), new CDCAdd<>(orderItem32), new CDCAdd<>(orderItem33),
                 new CDCDelete<>(orderItem31), new CDCDelete<>(orderItem32), new CDCDelete<>(orderItem33));
 
-        CacheTransformer<Long, BillingInfo, BillingInfo> billingInfoAutoCache =
+        CacheTransformer<Long, Long, BillingInfo, BillingInfo> billingInfoAutoCache =
                 autoCache(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value);
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>> orderItemAutoCache =
+        CacheTransformer<Long, String, OrderItem, List<OrderItem>> orderItemAutoCache =
                 autoCache(orderItemFlux, CDCAdd.class::isInstance, CDC::item);
 
         Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
