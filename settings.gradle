@@ -8,5 +8,5 @@ pluginManagement {
 rootProject.name = "assembler"
 
 include "assembler",
-        "assembler-kotlin-extension",
+//        "assembler-kotlin-extension",
         "assembler-cache-caffeine"
