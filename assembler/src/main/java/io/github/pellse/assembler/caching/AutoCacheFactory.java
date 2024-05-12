@@ -53,15 +53,15 @@ public interface AutoCacheFactory {
 
     Logger logger = getLogger(CacheFactory.class.getName());
 
-    static <ID, EID, R, RRC> CacheTransformer<ID, EID, R, RRC> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
         return autoCache(dataSourceSupplier.get());
     }
 
-    static <ID, EID, R, RRC> CacheTransformer<ID, EID, R, RRC> autoCache(Flux<R> dataSource) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> autoCache(Flux<R> dataSource) {
         return autoCache(dataSource, __ -> true, identity());
     }
 
-    static <ID, EID, R, RRC, U> CacheTransformer<ID, EID, R, RRC> autoCache(
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>, U> CacheTransformer<ID, EID, R, RRC, CTX> autoCache(
             Supplier<Flux<U>> dataSourceSupplier,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
@@ -69,7 +69,7 @@ public interface AutoCacheFactory {
         return autoCache(dataSourceSupplier.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
     }
 
-    static <ID, EID, R, RRC, U> CacheTransformer<ID, EID, R, RRC> autoCache(
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>, U> CacheTransformer<ID, EID, R, RRC, CTX> autoCache(
             Flux<U> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
@@ -77,13 +77,13 @@ public interface AutoCacheFactory {
         return autoCache(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
-    static <ID, EID, R, RRC, U extends CacheEvent<R>> CacheTransformer<ID, EID, R, RRC> autoCache(
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>, U extends CacheEvent<R>> CacheTransformer<ID, EID, R, RRC, CTX> autoCache(
             Flux<U> dataSource,
             WindowingStrategy<U> windowingStrategy,
             ErrorHandler errorHandler,
             LifeCycleEventSource lifeCycleEventSource,
             Scheduler scheduler,
-            Function<CacheFactory<ID, EID, R, RRC>, CacheFactory<ID, EID, R, RRC>> concurrentCacheTransformer) {
+            Function<CacheFactory<ID, EID, R, RRC, CTX>, CacheFactory<ID, EID, R, RRC, CTX>> concurrentCacheTransformer) {
 
         return cacheFactory -> cacheContext -> {
 
@@ -110,11 +110,11 @@ public interface AutoCacheFactory {
         };
     }
 
-    private static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> concurrent(CacheFactory<ID, EID, R, RRC> delegateCacheFactory) {
-        return ConcurrentCacheFactory.<ID, EID, R, RRC>concurrent().apply(delegateCacheFactory);
+    private static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheFactory<ID, EID, R, RRC, CTX> concurrent(CacheFactory<ID, EID, R, RRC, CTX> delegateCacheFactory) {
+        return ConcurrentCacheFactory.<ID, EID, R, RRC, CTX>concurrent().apply(delegateCacheFactory);
     }
 
-    private static <ID, EID, R, RRC> Map<ID, RRC> toMap(List<? extends CacheEvent<R>> cacheEvents, RuleMapperContext<?, ?, ID, EID, R, RRC> ctx) {
+    private static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> Map<ID, RRC> toMap(List<? extends CacheEvent<R>> cacheEvents, RuleMapperContext<?, ?, ID, EID, R, RRC> ctx) {
         return isEmpty(cacheEvents) ? Map.of() : cacheEvents.stream()
                 .map(CacheEvent::value)
                 .collect(ctx.mapCollector().apply(cacheEvents.size()));

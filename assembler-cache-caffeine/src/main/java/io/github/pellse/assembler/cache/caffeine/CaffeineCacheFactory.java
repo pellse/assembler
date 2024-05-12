@@ -18,6 +18,7 @@ package io.github.pellse.assembler.cache.caffeine;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.pellse.assembler.caching.CacheContext;
 import io.github.pellse.assembler.caching.CacheFactory;
 
 import java.time.Duration;
@@ -34,29 +35,29 @@ import static reactor.core.publisher.Mono.fromFuture;
 
 public interface CaffeineCacheFactory {
 
-    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache() {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheFactory<ID, EID, R, RRC, CTX> caffeineCache() {
         return caffeineCache(newBuilder());
     }
 
-    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(long maxSize) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheFactory<ID, EID, R, RRC, CTX> caffeineCache(long maxSize) {
         return caffeineCache(newBuilder().maximumSize(maxSize));
     }
 
-    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(Duration expireAfterAccessDuration) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheFactory<ID, EID, R, RRC, CTX> caffeineCache(Duration expireAfterAccessDuration) {
         return caffeineCache(newBuilder().expireAfterAccess(expireAfterAccessDuration));
     }
 
-    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(long maxSize, Duration expireAfterAccessDuration) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheFactory<ID, EID, R, RRC, CTX> caffeineCache(long maxSize, Duration expireAfterAccessDuration) {
         return caffeineCache(newBuilder()
                 .maximumSize(maxSize)
                 .expireAfterAccess(expireAfterAccessDuration));
     }
 
-    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(Function<Caffeine<Object, Object>, Caffeine<Object, Object>> customizer) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheFactory<ID, EID, R, RRC, CTX> caffeineCache(Function<Caffeine<Object, Object>, Caffeine<Object, Object>> customizer) {
         return caffeineCache(customizer.apply(newBuilder()));
     }
 
-    static <ID, EID, R, RRC> CacheFactory<ID, EID, R, RRC> caffeineCache(Caffeine<Object, Object> caffeine) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheFactory<ID, EID, R, RRC, CTX> caffeineCache(Caffeine<Object, Object> caffeine) {
 
         final AsyncCache<ID, RRC> delegateCache = caffeine.buildAsync();
 
