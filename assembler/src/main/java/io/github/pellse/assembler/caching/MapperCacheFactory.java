@@ -11,11 +11,11 @@ import static io.github.pellse.util.collection.CollectionUtils.transformMap;
 
 public interface MapperCacheFactory {
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> mapper(Function<CTX, BiFunction<ID, RRC, RRC>> contextMappingFunction) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> mapper(Function<CTX, BiFunction<ID, RRC, RRC>> contextMappingFunction) {
         return cacheFactory -> mapper(cacheFactory, contextMappingFunction);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheFactory<ID, EID, R, RRC, CTX> mapper(CacheFactory<ID, EID, R, RRC, CTX> cacheFactory, Function<CTX, BiFunction<ID, RRC, RRC>> contextMappingFunction) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> mapper(CacheFactory<ID, EID, R, RRC, CTX> cacheFactory, Function<CTX, BiFunction<ID, RRC, RRC>> contextMappingFunction) {
         return context -> then(cacheFactory.create(context), delegateCache -> adapterCache(
                 delegateCache::getAll,
                 delegateCache::computeAll,

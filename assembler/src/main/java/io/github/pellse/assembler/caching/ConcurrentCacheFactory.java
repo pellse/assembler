@@ -30,57 +30,57 @@ import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy
 
 public interface ConcurrentCacheFactory {
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent() {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent() {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), concurrencyStrategy(context));
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(ConcurrencyStrategy concurrencyStrategy) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), concurrencyStrategy);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(long maxAttempts) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(long maxAttempts) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), maxAttempts, concurrencyStrategy(context));
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), maxAttempts, concurrencyStrategy);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(long maxAttempts, Duration minBackoff) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(long maxAttempts, Duration minBackoff) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), maxAttempts, minBackoff, concurrencyStrategy(context));
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), maxAttempts, minBackoff, concurrencyStrategy);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetrySpec retrySpec) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetrySpec retrySpec) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), retrySpec, concurrencyStrategy(context));
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), retrySpec, concurrencyStrategy);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetryBackoffSpec retrySpec) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetryBackoffSpec retrySpec) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), retrySpec, concurrencyStrategy(context));
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetryBackoffSpec retrySpec, Scheduler retryScheduler) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetryBackoffSpec retrySpec, Scheduler retryScheduler) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), retrySpec, concurrencyStrategy(context), retryScheduler);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), retrySpec, concurrencyStrategy);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> concurrent(RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), retrySpec, concurrencyStrategy, retryScheduler);
     }
 
     // Helpers
 
-    private static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> ConcurrencyStrategy concurrencyStrategy(CacheContext<ID, EID, R, RRC, CTX> context) {
+    private static <ID, EID, R, RRC> ConcurrencyStrategy concurrencyStrategy(CacheContext<ID, EID, R, RRC> context) {
         return context.isEmptySource() ? READ : WRITE;
     }
 }

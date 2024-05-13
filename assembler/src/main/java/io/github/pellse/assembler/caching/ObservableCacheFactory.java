@@ -11,7 +11,7 @@ import static io.github.pellse.assembler.caching.Cache.adapterCache;
 
 public interface ObservableCacheFactory {
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC, CTX>> CacheTransformer<ID, EID, R, RRC, CTX> observableCache(
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> observableCache(
             Consumer<Map<ID, RRC>> onGetAll,
             Consumer<Map<ID, RRC>> onComputeAll,
             Consumer<Map<ID, RRC>> onPutAll,
