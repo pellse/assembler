@@ -48,9 +48,11 @@ import static io.github.pellse.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
 import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
+import static io.github.pellse.assembler.caching.SortedCacheFactory.sorted;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.time.Duration.ofMillis;
+import static java.util.Comparator.comparing;
 import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.boundedElastic;
@@ -274,6 +276,7 @@ public class AssemblerCaffeineCacheTest {
                         rule(OrderItem::customerId, oneToMany(OrderItem::id,
                                 cachedMany(caffeineCache(),
                                         concurrent(100, ofMillis(5)),
+                                        sorted(comparing(OrderItem::id)),
                                         autoCacheBuilder(dataSource2)
                                                 .maxWindowSize(3)
                                                 .scheduler(boundedElastic())
