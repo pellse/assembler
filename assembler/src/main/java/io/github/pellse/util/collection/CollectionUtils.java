@@ -153,7 +153,6 @@ public interface CollectionUtils {
         return collectionConverter.apply(stream
                 .collect(toMap(keyExtractor, identity(), (o, o2) -> o2, LinkedHashMap::new))
                 .values());
-//                .collect(Collectors.toCollection(() -> new TreeSet<>(comparing(keyExtractor)))));
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> removeDuplicates(
@@ -199,6 +198,7 @@ public interface CollectionUtils {
             Function<Collection<V>, VC> collectionConverter) {
 
         return concat(targetMap.entrySet(), srcMap.entrySet())
+                .map(entry -> entry(entry.getKey(), removeDuplicates(entry.getValue(), idResolver, collectionConverter)))
                 .collect(toMap(
                         Entry::getKey,
                         Entry::getValue,
