@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.QueryUtils.*;
 import static io.github.pellse.assembler.RuleMapperSource.*;
+import static java.util.Comparator.comparing;
 
 /**
  * @param <ID>  Correlation Id type
@@ -66,39 +67,39 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
                 ctx -> new OneToOneContext<>(ctx, defaultResultProvider));
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(Function<R, EID> idResolver) {
+    static <T, TC extends Collection<T>, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(Function<R, EID> idResolver) {
         return oneToMany(idResolver, emptySource(), ArrayList::new);
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
+    static <T, TC extends Collection<T>, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
             Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction) {
 
         return oneToMany(idResolver, toRuleMapperSource(queryFunction), ArrayList::new);
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
+    static <T, TC extends Collection<T>, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, ID, R, List<R>> oneToMany(
             Function<R, EID> idResolver,
             RuleMapperSource<T, TC, ID, EID, R, List<R>, OneToManyContext<T, TC, ID, EID, R, List<R>>> ruleMapperSource) {
 
         return oneToMany(idResolver, ruleMapperSource, ArrayList::new);
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
+    static <T, TC extends Collection<T>, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
             Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction) {
 
         return oneToMany(idResolver, toRuleMapperSource(queryFunction), HashSet::new);
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
+    static <T, TC extends Collection<T>, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, ID, R, Set<R>> oneToManyAsSet(
             Function<R, EID> idResolver,
             RuleMapperSource<T, TC, ID, EID, R, Set<R>, OneToManyContext<T, TC, ID, EID, R, Set<R>>> ruleMapperSource) {
 
         return oneToMany(idResolver, ruleMapperSource, HashSet::new);
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(
+    static <T, TC extends Collection<T>, ID, EID extends Comparable<EID>, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(
             Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction,
             Supplier<RC> collectionFactory) {
@@ -106,14 +107,14 @@ public interface RuleMapper<T, TC extends Collection<T>, ID, R, RRC>
         return oneToMany(idResolver, toRuleMapperSource(queryFunction), collectionFactory);
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(
+    static <T, TC extends Collection<T>, ID, EID extends Comparable<EID>, R, RC extends Collection<R>> RuleMapper<T, TC, ID, R, RC> oneToMany(
             Function<R, EID> idResolver,
             RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> ruleMapperSource,
             Supplier<RC> collectionFactory) {
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> new OneToManyContext<>(ctx, idResolver, collectionFactory));
+                ctx -> new OneToManyContext<>(ctx, idResolver, comparing(idResolver), collectionFactory));
     }
 
     private static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> RuleMapper<T, TC, ID, R, RRC> createRuleMapper(

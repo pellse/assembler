@@ -17,6 +17,7 @@
 package io.github.pellse.assembler;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -82,11 +83,13 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RC> mapFactory,
             Function<R, EID> idResolver,
+            Comparator<R> idComparator,
             Supplier<RC> collectionFactory) implements RuleMapperContext<T, TC, ID, EID, R, RC> {
 
         public OneToManyContext(
                 RuleContext<T, TC, ID, R, RC> ruleContext,
                 Function<R, EID> idResolver,
+                Comparator<R> idComparator,
                 Supplier<RC> collectionFactory) {
 
             this(ruleContext.topLevelIdResolver(),
@@ -94,6 +97,7 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
                     ruleContext.topLevelCollectionFactory(),
                     ruleContext.mapFactory(),
                     idResolver,
+                    idComparator,
                     collectionFactory);
         }
 
