@@ -16,71 +16,14 @@
 
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.concurrent.ConcurrentExecutor;
-import io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy;
 import io.github.pellse.concurrent.ReentrantExecutor;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.util.retry.RetryBackoffSpec;
-import reactor.util.retry.RetrySpec;
 
-import java.time.Duration;
 import java.util.Map;
-import java.util.function.Supplier;
-
-import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.WRITE;
-import static io.github.pellse.concurrent.ConcurrentExecutor.concurrentExecutor;
-import static java.time.Duration.ofMillis;
-import static java.time.Duration.ofSeconds;
-import static reactor.util.retry.Retry.backoff;
 
 public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
     static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache) {
-        return concurrentCache(delegateCache, WRITE);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, backoff(10, ofMillis(10)).maxBackoff(ofSeconds(2)), concurrencyStrategy);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long maxAttempts) {
-        return concurrentCache(delegateCache, maxAttempts, WRITE);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long maxAttempts, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, () -> concurrentExecutor(maxAttempts), concurrencyStrategy);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long maxAttempts, Duration minBackoff) {
-        return concurrentCache(delegateCache, maxAttempts, minBackoff, WRITE);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long maxAttempts, Duration minBackoff, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, () -> concurrentExecutor(maxAttempts, minBackoff), concurrencyStrategy);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetrySpec retrySpec) {
-        return concurrentCache(delegateCache, retrySpec, WRITE);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetrySpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, () -> concurrentExecutor(retrySpec), concurrencyStrategy);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetryBackoffSpec retrySpec) {
-        return concurrentCache(delegateCache, retrySpec, WRITE);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, () -> concurrentExecutor(retrySpec), concurrencyStrategy);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, RetryBackoffSpec retrySpec, ConcurrencyStrategy concurrencyStrategy, Scheduler retryScheduler) {
-        return concurrentCache(delegateCache, () -> concurrentExecutor(retrySpec, retryScheduler), concurrencyStrategy);
-    }
-
-    private static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, Supplier<ConcurrentExecutor> executorSupplier, ConcurrencyStrategy concurrencyStrategy) {
 
         if (delegateCache instanceof ConcurrentCache<ID, RRC> concurrentCache) {
             return concurrentCache;
@@ -97,7 +40,7 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
             @Override
             public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
-                return executor.withReadLock(ex -> delegateCache.computeAll(ids, idList -> ex.withWriteLock(fetchFunction.apply(idList))));
+                return executor.withReadLock(writeLockExecutor -> delegateCache.computeAll(ids, IdsToFetch -> writeLockExecutor.withWriteLock(fetchFunction.apply(IdsToFetch))));
             }
 
             @Override
