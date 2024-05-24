@@ -32,6 +32,8 @@ import static io.github.pellse.assembler.caching.AutoCacheFactory.OnErrorContinu
 import static io.github.pellse.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
+import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofSeconds;
 import static reactor.util.retry.Retry.*;
 
 public interface AutoCacheFactoryBuilder {
@@ -107,6 +109,10 @@ public interface AutoCacheFactoryBuilder {
     }
 
     interface RetryStrategyBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
+
+        default AutoCacheFactoryDelegateBuilder<R> defaultRetryStrategy() {
+            return backoffRetryStrategy(10, ofMillis(10), ofSeconds(2));
+        }
 
         default AutoCacheFactoryDelegateBuilder<R> maxRetryStrategy(long maxAttempts) {
             return retryStrategy(max(maxAttempts));

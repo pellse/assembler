@@ -18,6 +18,7 @@ package io.github.pellse.assembler.caching;
 
 import io.github.pellse.concurrent.ConcurrentExecutor;
 import io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy;
+import io.github.pellse.concurrent.ReentrantExecutor;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.util.retry.RetryBackoffSpec;
@@ -27,12 +28,11 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.READ;
 import static io.github.pellse.concurrent.ConcurrentExecutor.ConcurrencyStrategy.WRITE;
 import static io.github.pellse.concurrent.ConcurrentExecutor.concurrentExecutor;
-import static java.util.Map.of;
-import static reactor.core.publisher.Mono.just;
-import static reactor.util.retry.Retry.indefinitely;
+import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofSeconds;
+import static reactor.util.retry.Retry.backoff;
 
 public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
@@ -41,7 +41,7 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
     }
 
     static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, ConcurrencyStrategy concurrencyStrategy) {
-        return concurrentCache(delegateCache, indefinitely(), concurrencyStrategy);
+        return concurrentCache(delegateCache, backoff(10, ofMillis(10)).maxBackoff(ofSeconds(2)), concurrencyStrategy);
     }
 
     static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long maxAttempts) {
@@ -86,33 +86,33 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
             return concurrentCache;
         }
 
-        final var executor = executorSupplier.get();
+        final var executor = ReentrantExecutor.create();
 
         return new ConcurrentCache<>() {
 
             @Override
             public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
-                return executor.execute(delegateCache.getAll(ids), READ, just(of()));
+                return executor.withReadLock(delegateCache.getAll(ids));
             }
 
             @Override
             public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
-                return executor.execute(delegateCache.computeAll(ids, fetchFunction), concurrencyStrategy, just(of()));
+                return executor.withReadLock(ex -> delegateCache.computeAll(ids, idList -> ex.withWriteLock(fetchFunction.apply(idList))));
             }
 
             @Override
             public Mono<?> putAll(Map<ID, RRC> map) {
-                return executor.execute(delegateCache.putAll(map));
+                return executor.withWriteLock(delegateCache.putAll(map));
             }
 
             @Override
             public Mono<?> removeAll(Map<ID, RRC> map) {
-                return executor.execute(delegateCache.removeAll(map));
+                return executor.withWriteLock(delegateCache.removeAll(map));
             }
 
             @Override
             public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
-                return executor.execute(delegateCache.updateAll(mapToAdd, mapToRemove));
+                return executor.withWriteLock(delegateCache.updateAll(mapToAdd, mapToRemove));
             }
         };
     }

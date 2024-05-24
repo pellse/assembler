@@ -19,6 +19,8 @@ package io.github.pellse.assembler.caching;
 import io.github.pellse.assembler.LifeCycleEventListener;
 import io.github.pellse.assembler.LifeCycleEventSource;
 import io.github.pellse.assembler.RuleMapperContext;
+import io.github.pellse.assembler.caching.CacheContext.OneToManyCacheContext;
+import io.github.pellse.assembler.caching.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
@@ -27,16 +29,15 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.lang.System.Logger;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
 
 import static io.github.pellse.assembler.LifeCycleEventSource.concurrentLifeCycleEventListener;
 import static io.github.pellse.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
+import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.isEmpty;
 import static java.lang.System.Logger.Level.WARNING;
@@ -87,20 +88,21 @@ public interface AutoCacheFactory {
 
         return cacheFactory -> cacheContext -> {
 
+            final CacheTransformer<ID, EID, R, RRC, CTX> defaultCacheTransformer = switch (cacheContext) {
+                case OneToOneCacheContext<?, ?> __ -> cf -> cf;
+                case OneToManyCacheContext<?, ?, ?, ?> __ -> concurrent();
+            };
+
             final var cache = ofNullable(concurrentCacheTransformer)
                     .map(transformer -> transformer.apply(cacheFactory))
-                    .orElse(cacheFactory)
+                    .orElse(defaultCacheTransformer.apply(cacheFactory))
                     .create(cacheContext);
-
-            final var ctx = cacheContext.ctx();
-            final var counter = new AtomicInteger();
 
             final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
                     .transform(scheduleOn(scheduler, Flux::publishOn))
                     .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
-                    .flatMapSequential(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
-                    .doOnNext(eventMap -> System.out.println("eventMap in Autocache: Time = " + LocalTime.now() + ", count = " + counter.incrementAndGet() + ", Thread = " + Thread.currentThread().getName() + " , value = " + eventMap.get(true)))
-                    .flatMapSequential(eventMap -> cache.updateAll(toMap(eventMap.get(true), ctx), toMap(eventMap.get(false), ctx)))
+                    .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
+                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), cacheContext.ctx()), toMap(eventMap.get(false), cacheContext.ctx())))
                     .transform(requireNonNullElse(errorHandler, onErrorContinue(AutoCacheFactory::logError)).toFluxErrorHandler());
 
             requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start)

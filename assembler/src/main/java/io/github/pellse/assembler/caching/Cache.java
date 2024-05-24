@@ -19,7 +19,6 @@ package io.github.pellse.assembler.caching;
 import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import reactor.core.publisher.Mono;
 
-import java.time.LocalTime;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -160,7 +159,6 @@ public interface Cache<ID, RRC> {
             CacheUpdater<ID, RC> cacheUpdater) {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : defer(() -> delegateCache.getAll(incomingChanges.keySet()))
-                .doOnNext(m -> System.out.println("getAll: Time = " + LocalTime.now() + ", Thread = " + Thread.currentThread().getName() + ",  keys = " + incomingChanges.keySet() + ", map = " + m))
                 .flatMap(existingCacheItems -> cacheUpdater.updateCache(delegateCache, existingCacheItems, incomingChanges));
     }
 

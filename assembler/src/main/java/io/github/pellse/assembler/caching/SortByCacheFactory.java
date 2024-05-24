@@ -8,7 +8,6 @@ import java.util.Comparator;
 import java.util.function.Function;
 
 import static io.github.pellse.assembler.caching.MapperCacheFactory.mapper;
-import static io.github.pellse.util.ObjectUtils.also;
 import static java.util.stream.Collectors.toCollection;
 
 public interface SortByCacheFactory {
@@ -28,8 +27,8 @@ public interface SortByCacheFactory {
     private static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy(CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory, Function<OneToManyCacheContext<ID, EID, R, RC>, Comparator<R>> comparatorProvider) {
         return mapper(cacheFactory,
                 cacheContext ->
-                        (id, coll) -> also(coll.stream()
+                        (id, coll) -> coll.stream()
                                 .sorted(comparatorProvider.apply(cacheContext))
-                                .collect(toCollection(cacheContext.ctx().collectionFactory())), System.out::println));
+                                .collect(toCollection(cacheContext.ctx().collectionFactory())));
     }
 }

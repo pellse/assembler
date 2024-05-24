@@ -47,7 +47,6 @@ import static io.github.pellse.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
-import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.time.Duration.ofMillis;
@@ -271,8 +270,7 @@ public class AssemblerCaffeineCacheTest {
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(), autoCacheBuilder(dataSource1).build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id,
-                                cachedMany(caffeineCache(),
-                                        concurrent(100, ofMillis(5)),
+                                cachedMany(this::getAllOrders, caffeineCache(),
                                         autoCacheBuilder(dataSource2)
                                                 .maxWindowSize(3)
                                                 .scheduler(boundedElastic())

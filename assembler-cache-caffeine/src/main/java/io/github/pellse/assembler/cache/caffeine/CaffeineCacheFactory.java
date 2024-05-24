@@ -22,7 +22,6 @@ import io.github.pellse.assembler.caching.CacheContext;
 import io.github.pellse.assembler.caching.CacheFactory;
 
 import java.time.Duration;
-import java.time.LocalTime;
 import java.util.function.Function;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
@@ -64,8 +63,7 @@ public interface CaffeineCacheFactory {
         return __ -> adapterCache(
                 ids -> fromFuture(delegateCache.getAll(ids, keys -> of())),
                 (ids, fetchFunction) -> fromFuture(delegateCache.getAll(ids, (keys, executor) -> fetchFunction.apply(keys).toFuture())),
-//                toMono(map -> map.forEach((id, results) -> delegateCache.put(id, completedFuture(results)))),
-                toMono(map -> also(map, m -> map.forEach((id, results) -> delegateCache.put(id, completedFuture(results))), m -> System.out.println("caffeine: Time = " + LocalTime.now() + ", thread = " + Thread.currentThread().getName() + ", map to insert into cache =" + m))),
+                toMono(map -> map.forEach((id, results) -> delegateCache.put(id, completedFuture(results)))),
                 toMono(map -> also(delegateCache.asMap(), cache -> map.keySet().forEach(cache::remove)))
         );
     }

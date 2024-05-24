@@ -82,12 +82,15 @@ public interface ConcurrentExecutor {
         final var isLocked = new AtomicBoolean();
         final var readCount = new AtomicLong();
 
-        final var readLock = new Lock() {
+        class ReadLock implements Lock {
+
+            private volatile boolean lockAcquired = false;
 
             @Override
             public boolean tryAcquire() {
                 if (isLocked.compareAndSet(false, true)) {
                     readCount.incrementAndGet();
+                    lockAcquired = true;
                     isLocked.set(false);
                     return true;
                 }
@@ -96,12 +99,14 @@ public interface ConcurrentExecutor {
 
             @Override
             public boolean release() {
-                readCount.decrementAndGet();
+                if (lockAcquired) {
+                    readCount.decrementAndGet();
+                }
                 return true;
             }
-        };
+        }
 
-        final var writeLock = new Lock() {
+        class WriteLock implements Lock {
 
             @Override
             public boolean tryAcquire() {
@@ -118,26 +123,30 @@ public interface ConcurrentExecutor {
             public boolean release() {
                 return isLocked.compareAndSet(true, false);
             }
-        };
+        }
+
+        final var writeLock = new WriteLock();
 
         return new ConcurrentExecutor() {
 
             @Override
             public <T> Mono<T> execute(Mono<T> mono, ConcurrencyStrategy concurrencyStrategy, Mono<T> defaultMono) {
                 return usingWhen(
-                        just(getLock(concurrencyStrategy)),
-                        lock -> fromSupplier(lock::tryAcquire)
+                        just(isLocked),
+                        lock -> fromSupplier(() -> lock.compareAndSet(false, true))
                                 .filter(isLocked -> isLocked)
                                 .switchIfEmpty(error(LOCK_NOT_ACQUIRED))
-                                .retryWhen(retrySpec)
-                                .flatMap(get(mono)),
-                        lock -> fromSupplier(lock::release)
-                ).onErrorResume(Exceptions::isRetryExhausted, e -> defaultMono);
+                                .flatMap(get(mono))
+                                .retryWhen(retrySpec),
+                        lock -> fromRunnable(() -> lock.set(false))
+                )
+                        .doOnError(System.out::println)
+                        .onErrorResume(Exceptions::isRetryExhausted, e -> defaultMono);
             }
 
             private Lock getLock(ConcurrencyStrategy concurrencyStrategy) {
                 return switch (concurrencyStrategy) {
-                    case READ -> readLock;
+                    case READ -> new ReadLock();
                     case WRITE -> writeLock;
                 };
             }
