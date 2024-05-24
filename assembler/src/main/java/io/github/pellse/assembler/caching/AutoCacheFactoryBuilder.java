@@ -22,8 +22,6 @@ import io.github.pellse.assembler.caching.AutoCacheFactory.WindowingStrategy;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
-import reactor.util.retry.RetryBackoffSpec;
-import reactor.util.retry.RetrySpec;
 
 import java.time.Duration;
 import java.util.function.*;
@@ -31,10 +29,6 @@ import java.util.function.*;
 import static io.github.pellse.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
-import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
-import static java.time.Duration.ofMillis;
-import static java.time.Duration.ofSeconds;
-import static reactor.util.retry.Retry.*;
 
 public interface AutoCacheFactoryBuilder {
 
@@ -104,43 +98,8 @@ public interface AutoCacheFactoryBuilder {
         SchedulerBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource);
     }
 
-    interface SchedulerBuilder<R> extends RetryStrategyBuilder<R> {
-        RetryStrategyBuilder<R> scheduler(Scheduler scheduler);
-    }
-
-    interface RetryStrategyBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
-
-        default AutoCacheFactoryDelegateBuilder<R> defaultRetryStrategy() {
-            return backoffRetryStrategy(10, ofMillis(10), ofSeconds(2));
-        }
-
-        default AutoCacheFactoryDelegateBuilder<R> maxRetryStrategy(long maxAttempts) {
-            return retryStrategy(max(maxAttempts));
-        }
-
-        default AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff) {
-            return retryStrategy(backoff(maxAttempts, minBackoff));
-        }
-
-        default AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, Duration maxBackoff) {
-            return retryStrategy(backoff(maxAttempts, minBackoff).maxBackoff(maxBackoff));
-        }
-
-        default AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, double jitter) {
-            return retryStrategy(backoff(maxAttempts, minBackoff).jitter(jitter));
-        }
-
-        default AutoCacheFactoryDelegateBuilder<R> backoffRetryStrategy(long maxAttempts, Duration minBackoff, Duration maxBackoff, double jitter) {
-            return retryStrategy(backoff(maxAttempts, minBackoff).maxBackoff(maxBackoff).jitter(jitter));
-        }
-
-        default AutoCacheFactoryDelegateBuilder<R> fixedDelayRetryStrategy(long maxAttempts, Duration fixedDelay) {
-            return retryStrategy(fixedDelay(maxAttempts, fixedDelay));
-        }
-
-        AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetrySpec retrySpec);
-
-        AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetryBackoffSpec retryBackoffSpec);
+    interface SchedulerBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
+        AutoCacheFactoryDelegateBuilder<R> scheduler(Scheduler scheduler);
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
@@ -171,18 +130,8 @@ public interface AutoCacheFactoryBuilder {
         }
 
         @Override
-        public RetryStrategyBuilder<R> scheduler(Scheduler scheduler) {
+        public AutoCacheFactoryDelegateBuilder<R> scheduler(Scheduler scheduler) {
             return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, null);
-        }
-
-        @Override
-        public AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetrySpec retrySpec) {
-            return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, concurrent(retrySpec));
-        }
-
-        @Override
-        public AutoCacheFactoryDelegateBuilder<R> retryStrategy(RetryBackoffSpec retryBackoffSpec) {
-            return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, concurrent(retryBackoffSpec, scheduler));
         }
 
         @SuppressWarnings("unchecked")
