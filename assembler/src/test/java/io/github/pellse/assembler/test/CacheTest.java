@@ -189,7 +189,6 @@ public class CacheTest {
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
                                         .scheduler(billingInfoScheduler)
-//                                        .backoffRetryStrategy(1, ofMillis(10), ofMillis(200), 1.0)
                                         .build()))),
 //                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders, concurrent()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders,
@@ -198,7 +197,6 @@ public class CacheTest {
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
                                         .scheduler(orderItemScheduler)
-//                                        .backoffRetryStrategy(1, ofMillis(10), ofMillis(200), 1.0)
                                         .build()))),
                         Transaction::new)
                 .build();

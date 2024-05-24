@@ -45,11 +45,11 @@ public interface ReentrantExecutor {
                                         return usingWhen(
                                                 lockManager.convertToWriteLock(lock),
                                                 writeLock -> mono,
-                                                writeLock -> Mono.fromRunnable(writeLock::release)
+                                                writeLock -> fromRunnable(writeLock::release)
                                         );
                                     }
                                 }),
-                        lock -> Mono.fromRunnable(lock::release)
+                        lock -> fromRunnable(lock::release)
                 );
             }
         };
