@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 
+import static io.github.pellse.util.ObjectUtils.also;
 import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 class LockManager {
@@ -49,21 +50,15 @@ class LockManager {
     }
 
     void releaseReadLock() {
-        long currentState = lockState.get();
-        while (!lockState.compareAndSet(currentState, currentState - 1)) {
-            currentState = lockState.get();
-        }
-        drainQueues();
+        releaseLock(this::doReleaseReadLock);
     }
 
     void releaseWriteLock() {
-        lockState.updateAndGet(currentState -> (currentState & WRITE_LOCK_BIT) != 0 ? currentState & READ_LOCK_MASK : currentState); // i.e. noop if calling releaseWriteLock without a corresponding successful tryAcquireWriteLock()
-        drainQueues();
+        releaseLock(this::doReleaseWriteLock);
     }
 
     private Mono<Lock> acquireLock(Lock outerLock, Predicate<Lock> tryAcquireLock, Runnable releaseLock, Queue<LockRequest> queue) {
         Lock innerLock = new Lock(outerLock, releaseLock);
-
         if (tryAcquireLock.test(innerLock)) {
             return Mono.just(innerLock);
         }
@@ -93,24 +88,44 @@ class LockManager {
         return true;
     }
 
+    private void releaseLock(Runnable releaseLockRunnable) {
+        releaseLockRunnable.run();
+        drainQueues();
+    }
+
+    private void doReleaseReadLock() {
+        lockState.updateAndGet(currentState -> currentState > 0 ? currentState - 1 : also(0, __ -> System.out.println("Oops! currentState = " + currentState)));
+    }
+
+    private void doReleaseWriteLock() {
+        lockState.updateAndGet(currentState -> (currentState & WRITE_LOCK_BIT) != 0 ? currentState & READ_LOCK_MASK : currentState); // i.e. noop if calling releaseWriteLock without a corresponding successful tryAcquireWriteLock()
+    }
+
     private void drainQueues() {
-        final var lockRequest = writeQueue.poll();
-        if (lockRequest != null) {
-            if (tryAcquireWriteLock(lockRequest.lock())) {
-                lockRequest.emit();
-            } else {
-                writeQueue.offer(lockRequest);
+        final var nextWriteLock = writeQueue.poll();
+        if (nextWriteLock != null) {
+            if (!unlock(nextWriteLock, this::tryAcquireWriteLock, this::doReleaseWriteLock)) {
+                writeQueue.offer(nextWriteLock);
             }
         }
 
         LockRequest nextReadLock;
         while ((nextReadLock = readQueue.poll()) != null) {
-            if (tryAcquireReadLock(nextReadLock.lock())) {
-                nextReadLock.emit();
-            } else {
+            if (!unlock(nextReadLock, this::tryAcquireReadLock, this::doReleaseReadLock)) {
                 readQueue.offer(nextReadLock);
                 break;
             }
         }
+    }
+
+    private boolean unlock(LockRequest lockRequest, Predicate<Lock> tryAcquireLock, Runnable releaseLock) {
+        if (tryAcquireLock.test(lockRequest.lock())) {
+            if (lockRequest.emit()) {
+                return true;
+            } else {
+                releaseLock.run();
+            }
+        }
+        return false;
     }
 }
