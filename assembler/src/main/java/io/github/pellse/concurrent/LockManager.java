@@ -8,13 +8,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 
-import static io.github.pellse.util.ObjectUtils.also;
 import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 class LockManager {
 
-    private static final long WRITE_LOCK_BIT = 1L << 63;
-    private static final long READ_LOCK_MASK = ~WRITE_LOCK_BIT;
+    private static final long WRITE_LOCK_MASK = 1L << 63; // 1000000000000000000000000000000000000000000000000000000000000000
+    private static final long READ_LOCK_MASK = ~WRITE_LOCK_MASK; // 0111111111111111111111111111111111111111111111111111111111111111
 
     record Lock(Lock outerLock, Runnable releaseLock) {
         public void release() {
@@ -70,11 +69,11 @@ class LockManager {
     }
 
     private boolean tryAcquireReadLock(Lock innerLock) {
-        return tryAcquireLock(innerLock, (__, currentState) -> (currentState & WRITE_LOCK_BIT) == 0, currentState -> currentState + 1);
+        return tryAcquireLock(innerLock, (__, currentState) -> (currentState & WRITE_LOCK_MASK) == 0, currentState -> currentState + 1);
     }
 
     private boolean tryAcquireWriteLock(Lock innerLock) {
-        return tryAcquireLock(innerLock, (lock, currentState) -> lock.outerLock() != null || currentState == 0, currentState -> currentState | WRITE_LOCK_BIT);
+        return tryAcquireLock(innerLock, (lock, currentState) -> (lock.outerLock() != null && (currentState & WRITE_LOCK_MASK) == 0) || currentState == 0, currentState -> currentState | WRITE_LOCK_MASK);
     }
 
     private boolean tryAcquireLock(Lock innerLock, BiFunction<Lock, Long, Boolean> currentStatePredicate, LongUnaryOperator currentStateUpdater) {
@@ -94,11 +93,11 @@ class LockManager {
     }
 
     private void doReleaseReadLock() {
-        lockState.updateAndGet(currentState -> currentState > 0 ? currentState - 1 : also(0, __ -> System.out.println("Oops! currentState = " + currentState)));
+        lockState.updateAndGet(currentState -> currentState > 0 ? currentState - 1 : 0);
     }
 
     private void doReleaseWriteLock() {
-        lockState.updateAndGet(currentState -> (currentState & WRITE_LOCK_BIT) != 0 ? currentState & READ_LOCK_MASK : currentState); // i.e. noop if calling releaseWriteLock without a corresponding successful tryAcquireWriteLock()
+        lockState.updateAndGet(currentState -> (currentState & WRITE_LOCK_MASK) != 0 ? currentState & READ_LOCK_MASK : currentState); // i.e. noop if calling releaseWriteLock without a corresponding successful tryAcquireWriteLock()
     }
 
     private void drainQueues() {
