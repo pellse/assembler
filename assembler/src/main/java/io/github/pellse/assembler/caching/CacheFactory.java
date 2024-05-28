@@ -38,6 +38,7 @@ import java.util.function.Function;
 import static io.github.pellse.assembler.QueryUtils.buildQueryFunction;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.assembler.caching.Cache.*;
+import static io.github.pellse.assembler.caching.DeferCacheFactory.defer;
 import static io.github.pellse.assembler.caching.SortByCacheFactory.sortBy;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
@@ -158,7 +159,7 @@ public interface CacheFactory<ID, EID, R, RRC, CTX extends CacheContext<ID, EID,
             CacheFactory<ID, ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
             Function<CacheFactory<ID, ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
-        return cached(OneToOneCacheContext::new, ruleMapperSource, oneToOneCacheFactory(cacheFactory), delegateCacheFactories);
+        return cached(OneToOneCacheContext::new, ruleMapperSource, oneToOneCacheFactory(defer(cacheFactory)), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -262,7 +263,7 @@ public interface CacheFactory<ID, EID, R, RRC, CTX extends CacheContext<ID, EID,
             Comparator<R> sortComparator,
             Function<CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cached(OneToManyCacheContext::new, ruleMapperSource, oneToManyCacheFactory(sortBy(cacheFactory, sortComparator)), delegateCacheFactories);
+        return cached(OneToManyCacheContext::new, ruleMapperSource, oneToManyCacheFactory(sortBy(defer(cacheFactory), sortComparator)), delegateCacheFactories);
     }
 
     static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> toMono(Consumer<Map<ID, RRC>> consumer) {

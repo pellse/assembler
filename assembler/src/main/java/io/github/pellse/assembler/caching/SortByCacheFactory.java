@@ -27,7 +27,7 @@ public interface SortByCacheFactory {
     private static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy(CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory, Function<OneToManyCacheContext<ID, EID, R, RC>, Comparator<R>> comparatorProvider) {
         return mapper(cacheFactory,
                 cacheContext ->
-                        (id, coll) -> coll.stream()
+                        (__, coll) -> coll.stream()
                                 .sorted(comparatorProvider.apply(cacheContext))
                                 .collect(toCollection(cacheContext.ctx().collectionFactory())));
     }
