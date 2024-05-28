@@ -87,17 +87,14 @@ public interface AssemblerTestUtils {
     }
 
     static <R> Publisher<R> throwSQLException(List<Customer> customerIds) {
-        // throw new IOException("Unable to query database");
         return Flux.error(new SQLException("Unable to query database"));
     }
 
     static Publisher<BillingInfo> errorBillingInfos(List<Customer> customers) {
-        // throw new IOException("Unable to query database");
         return Flux.error(new SQLException("Unable to query database"));
     }
 
     static Publisher<OrderItem> errorOrderItems(List<Customer> customerIds) {
-        // throw new IOException("Unable to query database");
         return Flux.error(new SQLException("Unable to query database"));
     }
 }

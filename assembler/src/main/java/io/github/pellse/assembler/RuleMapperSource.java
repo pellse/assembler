@@ -34,20 +34,20 @@ import static java.util.Objects.requireNonNullElse;
  * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
  */
 @FunctionalInterface
-public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC>
-        extends Function<RuleMapperContext<T, TC, ID, EID, R, RRC>, Function<TC, Publisher<R>>> {
+public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>>
+        extends Function<CTX, Function<TC, Publisher<R>>> {
 
-    RuleMapperSource<?, ? extends Collection<Object>, ?, ?, ?, ?> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
+    RuleMapperSource<?, Collection<Object>, ?, ?, ?, ?, RuleMapperContext<Object, Collection<Object>, Object, Object, Object, Object>> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> toQueryFunction(Function<TC, Publisher<R>> queryFunction) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> toRuleMapperSource(Function<TC, Publisher<R>> queryFunction) {
         return ruleContext -> queryFunction;
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> call(Function<List<ID>, Publisher<R>> queryFunction) {
-        return ruleContext -> RuleMapperSource.<T, TC, ID, EID, R, RRC, ID>call(ruleContext.topLevelIdResolver(), queryFunction).apply(ruleContext);
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> call(Function<List<ID>, Publisher<R>> queryFunction) {
+        return ruleContext -> RuleMapperSource.<T, TC, ID, EID, R, RRC, ID, CTX>call(ruleContext.topLevelIdResolver(), queryFunction).apply(ruleContext);
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC, K> RuleMapperSource<T, TC, ID, EID, R, RRC> call(
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, K, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> call(
             Function<T, K> idResolver,
             Function<List<K>, Publisher<R>> queryFunction) {
 
@@ -55,24 +55,24 @@ public interface RuleMapperSource<T, TC extends Collection<T>, ID, EID, R, RRC>
     }
 
     @SuppressWarnings("unchecked")
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> emptySource() {
-        return (RuleMapperSource<T, TC, ID, EID, R, RRC>) EMPTY_SOURCE;
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> emptySource() {
+        return (RuleMapperSource<T, TC, ID, EID, R, RRC, CTX>) EMPTY_SOURCE;
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> boolean isEmptySource(RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> boolean isEmptySource(RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> ruleMapperSource) {
         return emptySource().equals(nullToEmptySource(ruleMapperSource));
     }
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> nullToEmptySource(
-            RuleMapperSource<T, TC, ID, EID, R, RRC> ruleMapperSource) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> nullToEmptySource(
+            RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> ruleMapperSource) {
 
-        return requireNonNullElse(ruleMapperSource, RuleMapperSource.<T, TC, ID, EID, R, RRC>emptySource());
+        return requireNonNullElse(ruleMapperSource, RuleMapperSource.<T, TC, ID, EID, R, RRC, CTX>emptySource());
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RRC> RuleMapperSource<T, TC, ID, EID, R, RRC> pipe(
-            RuleMapperSource<T, TC, ID, EID, R, RRC> mapper,
-            Function<? super RuleMapperSource<T, TC, ID, EID, R, RRC>, ? extends RuleMapperSource<T, TC, ID, EID, R, RRC>>... mappingFunctions) {
+    static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> pipe(
+            RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> mapper,
+            Function<? super RuleMapperSource<T, TC, ID, EID, R, RRC, CTX>, ? extends RuleMapperSource<T, TC, ID, EID, R, RRC, CTX>>... mappingFunctions) {
 
         return stream(mappingFunctions)
                 .reduce(mapper,

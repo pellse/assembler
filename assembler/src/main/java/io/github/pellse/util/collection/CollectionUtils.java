@@ -18,6 +18,7 @@ package io.github.pellse.util.collection;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -28,7 +29,6 @@ import static io.github.pellse.util.ObjectUtils.ifNotNull;
 import static java.util.Map.entry;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
-import static java.util.stream.Stream.concat;
 import static java.util.stream.StreamSupport.stream;
 
 public interface CollectionUtils {
@@ -37,15 +37,15 @@ public interface CollectionUtils {
         return iterable != null ? stream(iterable.spliterator(), false) : Stream.empty();
     }
 
+    static <T, C extends Iterable<T>> Stream<T> concat(C collection1, C collection2) {
+        return Stream.concat(toStream(collection1), toStream(collection2));
+    }
+
     static boolean isEmpty(Iterable<?> iterable) {
 
         return iterable == null ||
                 (iterable instanceof Collection<?> coll && coll.isEmpty()) ||
                 !iterable.iterator().hasNext();
-    }
-
-    static <T> T first(Iterable<T> coll) {
-        return isNotEmpty(coll) ? coll.iterator().next() : null;
     }
 
     static boolean isNotEmpty(Iterable<?> iterable) {
@@ -58,6 +58,14 @@ public interface CollectionUtils {
 
     static boolean isNotEmpty(Map<?, ?> map) {
         return !isEmpty(map);
+    }
+
+    static <K, V> Map<K, V> nullToEmptyMap(Map<K, V> value) {
+        return nullToEmptyMap(value, Map::of);
+    }
+
+    static <K, V, T extends Map<K, V>> T nullToEmptyMap(T value, Supplier<T> defaultFactory) {
+        return value != null ? value : defaultFactory.get();
     }
 
     static <T, R> List<R> transform(Iterable<? extends T> from, Function<T, R> mappingFunction) {
@@ -81,8 +89,12 @@ public interface CollectionUtils {
     }
 
     static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, Function<V, V1> mappingFunction) {
+        return transformMap(map, (__, value) -> mappingFunction.apply(value));
+    }
+
+    static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, BiFunction<K, V, V1> mappingFunction) {
         return map.entrySet().stream()
-                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getValue()), (u1, u2) -> u1, LinkedHashMap::new));
+                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getKey(), e.getValue()), (u1, u2) -> u1, LinkedHashMap::new));
     }
 
     @SafeVarargs
@@ -122,46 +134,44 @@ public interface CollectionUtils {
     }
 
     static <K, V, V1, M extends Map<K, V1>> Map<K, V1> readAll(Iterable<K> keys, Map<K, V> sourceMap, Supplier<M> mapSupplier, Function<V, V1> mappingFunction) {
-        return newMap(null, mapSupplier, map -> keys.forEach(id -> ifNotNull(sourceMap.get(id), value -> map.put(id, mappingFunction.apply(value)))));
+        return newMap(null, mapSupplier, map -> keys.forEach(key -> ifNotNull(sourceMap.get(key), value -> map.put(key, mappingFunction.apply(value)))));
     }
 
     static <K, V, VC extends Collection<V>> VC removeDuplicates(
             Collection<V> coll,
             Function<? super V, K> keyExtractor,
-            Supplier<VC> collectionFactory) {
+            Function<Collection<V>, VC> collectionConverter) {
 
-        return removeDuplicates(toStream(coll), keyExtractor, collectionFactory);
+        return removeDuplicates(toStream(coll), keyExtractor, collectionConverter);
     }
 
     private static <K, V, VC extends Collection<V>> VC removeDuplicates(
             Stream<V> stream,
             Function<? super V, K> keyExtractor,
-            Supplier<VC> collectionFactory) {
+            Function<Collection<V>, VC> collectionConverter) {
 
-        final var noDuplicateColl = stream
+        return collectionConverter.apply(stream
                 .collect(toMap(keyExtractor, identity(), (o, o2) -> o2, LinkedHashMap::new))
-                .values();
-
-        return also(collectionFactory.get(), c -> c.addAll(noDuplicateColl));
+                .values());
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> removeDuplicates(
             Map<K, VC> map,
             Function<? super V, ID> idResolver,
-            Supplier<VC> collectionFactory) {
+            Function<Collection<V>, VC> collectionConverter) {
 
-        return removeDuplicates(map, idResolver, collectionFactory, true);
+        return removeDuplicates(map, idResolver, collectionConverter, true);
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> removeDuplicates(
             Map<K, VC> map,
             Function<? super V, ID> idResolver,
-            Supplier<VC> collectionFactory,
+            Function<Collection<V>, VC> collectionConverter,
             boolean copyMap) {
 
         final var newMap = copyMap ? new HashMap<>(map) : map;
 
-        newMap.replaceAll((id, coll) -> removeDuplicates(coll, idResolver, collectionFactory));
+        newMap.replaceAll((id, coll) -> removeDuplicates(coll, idResolver, collectionConverter));
         return newMap;
     }
 
@@ -185,11 +195,15 @@ public interface CollectionUtils {
             Map<K, VC> srcMap,
             Map<K, VC> targetMap,
             Function<? super V, ID> idResolver,
-            Supplier<VC> collectionFactory) {
+            Function<Collection<V>, VC> collectionConverter) {
 
-        return newMap(targetMap,
-                m -> m.replaceAll((id, oldList) -> removeDuplicates(concat(toStream(oldList), toStream(srcMap.get(id))), idResolver, collectionFactory)),
-                m -> m.putAll(removeDuplicates(diff(srcMap, m), idResolver, collectionFactory, false)));
+        return concat(targetMap.entrySet(), srcMap.entrySet())
+                .map(entry -> entry(entry.getKey(), removeDuplicates(entry.getValue(), idResolver, collectionConverter)))
+                .collect(toMap(
+                        Entry::getKey,
+                        Entry::getValue,
+                        (coll1, coll2) -> removeDuplicates((concat(coll1, coll2)), idResolver, collectionConverter),
+                        LinkedHashMap::new));
     }
 
     @SafeVarargs

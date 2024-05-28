@@ -32,6 +32,7 @@ import static io.github.pellse.assembler.Rule.withIdResolver;
 import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
+import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 
 public class RuleTest {
@@ -39,14 +40,8 @@ public class RuleTest {
     private final BatchRule<Customer, BillingInfo> billingInfoBatchRule = withIdResolver(Customer::customerId)
             .createRule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)));
 
-//            batchRule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)))
-//                    .withIdResolver(Customer::customerId);
-
     private final BatchRule<Customer, List<OrderItem>> orderItemBatchRule = withIdResolver(Customer::customerId)
-            .createRule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders)));
-
-//            batchRule(OrderItem::customerId, oneToMany(OrderItem::id, cached(this::getAllOrders)))
-//                    .withIdResolver(Customer::customerId);
+            .createRule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders)));
 
     List<Customer> customers = List.of(customer1, customer2, customer3);
 
