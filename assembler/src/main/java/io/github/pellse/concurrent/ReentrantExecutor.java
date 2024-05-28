@@ -25,11 +25,11 @@ public interface ReentrantExecutor {
         return withReadLock(__ -> mono, timeout, defaultValue);
     }
 
-    default <T> Mono<T> withReadLock(Function<WriteLockExecutor, Mono<T>> monoProvider) {
+    default <T> Mono<T> withReadLock(Function<WriteLockExecutor<T>, Mono<T>> monoProvider) {
         return withReadLock(monoProvider, empty());
     }
 
-    default <T> Mono<T> withReadLock(Function<WriteLockExecutor, Mono<T>> monoProvider, Mono<T> defaultValue) {
+    default <T> Mono<T> withReadLock(Function<WriteLockExecutor<T>, Mono<T>> monoProvider, Mono<T> defaultValue) {
         return withReadLock(monoProvider, DEFAULT_TIMEOUT, defaultValue);
     }
 
@@ -41,18 +41,13 @@ public interface ReentrantExecutor {
         return withWriteLock(mono, DEFAULT_TIMEOUT, defaultValue);
     }
 
-    <T> Mono<T> withReadLock(Function<WriteLockExecutor, Mono<T>> monoProvider, Duration timeout, Mono<T> defaultValue);
+    <T> Mono<T> withReadLock(Function<WriteLockExecutor<T>, Mono<T>> monoProvider, Duration timeout, Mono<T> defaultValue);
 
     <T> Mono<T> withWriteLock(Mono<T> mono, Duration timeout, Mono<T> defaultValue);
 
     @FunctionalInterface
-    interface WriteLockExecutor {
-
-        default <U> Mono<U> withWriteLock(Mono<U> mono) {
-            return withWriteLock(mono, empty());
-        }
-
-        <U> Mono<U> withWriteLock(Mono<U> mono, Mono<U> defaultValue);
+    interface WriteLockExecutor<U> {
+        Mono<U> withWriteLock(Mono<U> mono);
     }
 
     static ReentrantExecutor create() {
@@ -62,7 +57,7 @@ public interface ReentrantExecutor {
         return new ReentrantExecutor() {
 
             @Override
-            public <T> Mono<T> withReadLock(Function<WriteLockExecutor, Mono<T>> monoProvider, Duration timeout, Mono<T> defaultValue) {
+            public <T> Mono<T> withReadLock(Function<WriteLockExecutor<T>, Mono<T>> monoProvider, Duration timeout, Mono<T> defaultValue) {
                 return with(monoProvider, LockManager::acquireReadLock, timeout, defaultValue);
             }
 
@@ -71,20 +66,15 @@ public interface ReentrantExecutor {
                 return with(__ -> mono, LockManager::acquireWriteLock, timeout, defaultValue);
             }
 
-            private <T> Mono<T> with(Function<WriteLockExecutor, Mono<T>> monoProvider, Function<LockManager, Mono<Lock>> acquireLockStrategy, Duration timeout, Mono<T> defaultValue) {
+            private <T> Mono<T> with(Function<WriteLockExecutor<T>, Mono<T>> monoProvider, Function<LockManager, Mono<Lock>> acquireLockStrategy, Duration timeout, Mono<T> defaultValue) {
 
                 return usingWhen(
                         acquireLockStrategy.apply(lockManager),
-                        lock -> monoProvider.apply(new WriteLockExecutor() {
-                                    @Override
-                                    public <U> Mono<U> withWriteLock(Mono<U> mono, Mono<U> defaultValue) {
-                                        return usingWhen(
-                                                lockManager.convertToWriteLock(lock),
-                                                writeLock -> mono.timeout(timeout, defaultValue),
-                                                writeLock -> fromRunnable(writeLock::release)
-                                        );
-                                    }
-                                }).timeout(timeout, defaultValue),
+                        lock -> monoProvider.apply(mono -> usingWhen(
+                                lockManager.convertToWriteLock(lock),
+                                writeLock -> mono.timeout(timeout, defaultValue),
+                                writeLock -> fromRunnable(writeLock::release)
+                        )).timeout(timeout, defaultValue),
                         lock -> fromRunnable(lock::release)
                 );
             }
