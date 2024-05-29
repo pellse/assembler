@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.cache.caffeine;
+package io.github.pellse.assembler.caching.caffeine;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;

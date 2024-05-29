@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.cache.caffeine;
+package io.github.pellse.assembler.caching.caffeine;
 
 import io.github.pellse.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.assembler.caching.CacheFactory;
@@ -39,7 +39,7 @@ import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.pipe;
-import static io.github.pellse.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache;
+import static io.github.pellse.assembler.caching.caffeine.CaffeineCacheFactory.caffeineCache;
 import static io.github.pellse.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
 import static io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
