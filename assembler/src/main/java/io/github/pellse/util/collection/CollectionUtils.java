@@ -73,7 +73,11 @@ public interface CollectionUtils {
     }
 
     static <E> Collection<E> asCollection(Iterable<E> iterable) {
-        return iterable instanceof Collection<E> coll ? coll : stream(iterable.spliterator(), false).toList();
+        return asList(iterable);
+    }
+
+    static <E> List<E> asList(Iterable<E> iterable) {
+        return iterable instanceof List<E> list ? list : stream(iterable.spliterator(), false).toList();
     }
 
     static <E, C extends Collection<E>> C translate(Iterable<? extends E> from, Supplier<C> collectionFactory) {
