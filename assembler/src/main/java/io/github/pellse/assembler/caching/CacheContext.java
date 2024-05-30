@@ -10,8 +10,6 @@ import static io.github.pellse.util.ObjectUtils.also;
 
 public sealed interface CacheContext<ID, EID, R, RRC> {
 
-    boolean isEmptySource();
-
     RuleMapperContext<?, ?, ID, EID, R, RRC> ctx();
 
     record OneToOneCacheContext<ID, R>(
