@@ -311,6 +311,10 @@ public interface CacheFactory<ID, EID, R, RRC, CTX extends CacheContext<ID, EID,
             CTX ruleContext) {
 
         return ids -> {
+            if (isEmpty(ids)) {
+                return just(Map.<ID, RRC>of());
+            }
+
             final Set<ID> idSet = new HashSet<>(asCollection(ids));
 
             final var entitiesToQuery = toStream(entities)
