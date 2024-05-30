@@ -41,10 +41,10 @@ class LockManager {
     }
 
     Mono<Lock> acquireWriteLock() {
-        return acquireLock(null, this::tryAcquireWriteLock, this::releaseWriteLock, writeQueue);
+        return toWriteLock(null);
     }
 
-    Mono<Lock> convertToWriteLock(Lock lock) {
+    Mono<Lock> toWriteLock(Lock lock) {
         return acquireLock(lock, this::tryAcquireWriteLock, this::releaseWriteLock, writeQueue);
     }
 
