@@ -88,14 +88,9 @@ public interface AutoCacheFactory {
 
         return cacheFactory -> cacheContext -> {
 
-            final CacheTransformer<ID, EID, R, RRC, CTX> defaultCacheTransformer = switch (cacheContext) {
-                case OneToOneCacheContext<?, ?> __ -> cf -> cf;
-                case OneToManyCacheContext<?, ?, ?, ?> __ -> concurrent();
-            };
-
             final var cache = ofNullable(concurrentCacheTransformer)
                     .map(transformer -> transformer.apply(cacheFactory))
-                    .orElse(defaultCacheTransformer.apply(cacheFactory))
+                    .orElse(ConcurrentCacheFactory.<ID, EID, R, RRC, CTX>concurrent().apply(cacheFactory))
                     .create(cacheContext);
 
             final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
