@@ -9,4 +9,5 @@ rootProject.name = "assembler"
 
 include "assembler",
 //        "assembler-kotlin-extension",
-        "assembler-cache-caffeine"
+        "assembler-cache-caffeine",
+        "assembler-spring-cache"

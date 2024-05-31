@@ -1,0 +1,12 @@
+dependencies {
+
+    implementation project(":assembler")
+
+    implementation("io.projectreactor:reactor-core:${reactorVersion}")
+
+    implementation("org.springframework:spring-context:6.1.8")
+
+    testImplementation project(":assembler").sourceSets.test.output
+    testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
+    testImplementation("io.projectreactor.tools:blockhound:1.0.8.RELEASE")
+}
