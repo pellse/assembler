@@ -168,26 +168,6 @@ public interface CollectionUtils {
                 .values());
     }
 
-    static <K, V, VC extends Collection<V>, ID> Map<K, VC> removeDuplicates(
-            Map<K, VC> map,
-            Function<? super V, ID> idResolver,
-            Function<Collection<V>, VC> collectionConverter) {
-
-        return removeDuplicates(map, idResolver, collectionConverter, true);
-    }
-
-    static <K, V, VC extends Collection<V>, ID> Map<K, VC> removeDuplicates(
-            Map<K, VC> map,
-            Function<? super V, ID> idResolver,
-            Function<Collection<V>, VC> collectionConverter,
-            boolean copyMap) {
-
-        final var newMap = copyMap ? new HashMap<>(map) : map;
-
-        newMap.replaceAll((id, coll) -> removeDuplicates(coll, idResolver, collectionConverter));
-        return newMap;
-    }
-
     static <K, V> LinkedHashMap<K, V> toLinkedHashMap(Map<K, V> map) {
         return map instanceof LinkedHashMap<K, V> lhm ? lhm : new LinkedHashMap<>(map);
     }
