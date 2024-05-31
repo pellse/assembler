@@ -210,20 +210,12 @@ public interface CollectionUtils {
             Function<? super V, ID> idResolver,
             Function<Collection<V>, VC> collectionConverter) {
 
-        if (isEmpty(existingMap)) {
-            return nullToEmptyMap(newMap);
-        }
-
-        if (isEmpty(newMap)) {
-            return nullToEmptyMap(existingMap);
-        }
-
         return concat(existingMap.entrySet(), newMap.entrySet())
                 .map(entry -> entry(entry.getKey(), removeDuplicates(entry.getValue(), idResolver, collectionConverter)))
                 .collect(toMap(
                         Entry::getKey,
                         Entry::getValue,
-                        (coll1, coll2) -> removeDuplicates((concat(coll1, coll2)), idResolver, collectionConverter),
+                        (coll1, coll2) -> removeDuplicates(concat(coll1, coll2), idResolver, collectionConverter),
                         LinkedHashMap::new));
     }
 
