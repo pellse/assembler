@@ -92,7 +92,7 @@ public interface CacheFactory<ID, EID, R, RRC, CTX extends CacheContext<ID, EID,
                         delegateMap.remove(id);
                         sink.tryEmitError(e);
                     }))
-                    .flatMap(__ -> resolve(mergeMaps(transformMap(sinkMap, Empty::asMono), cachedEntitiesMap)));
+                    .flatMap(__ -> resolve(mergeMaps(cachedEntitiesMap, transformMap(sinkMap, Empty::asMono))));
         };
 
         Function<Map<ID, RRC>, Mono<?>> putAll = toMono(map -> also(createSinkMap(map.keySet()), delegateMap::putAll)
@@ -275,12 +275,12 @@ public interface CacheFactory<ID, EID, R, RRC, CTX extends CacheContext<ID, EID,
     }
 
     private static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> oneToManyCacheFactory(CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory) {
-        return cacheContext -> oneToManyCache(cacheContext.ctx(), cacheContext::convert, cacheFactory.create(cacheContext));
+        return cacheContext -> oneToManyCache(cacheContext.ctx(), coll -> cacheContext.ctx().convert(coll), cacheFactory.create(cacheContext));
     }
 
     @SafeVarargs
     private static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>, CACHE_CTX extends CacheContext<ID, EID, R, RRC>> RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> cached(
-            BiFunction<Boolean, CTX, CACHE_CTX> cacheContextProvider,
+            Function<CTX, CACHE_CTX> cacheContextProvider,
             RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> ruleMapperSource,
             CacheFactory<ID, EID, R, RRC, CACHE_CTX> cacheFactory,
             Function<CacheFactory<ID, EID, R, RRC, CACHE_CTX>, CacheFactory<ID, EID, R, RRC, CACHE_CTX>>... delegateCacheFactories) {
@@ -291,7 +291,7 @@ public interface CacheFactory<ID, EID, R, RRC, CTX extends CacheContext<ID, EID,
             final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleContext);
 
             final var cache = delegate(cacheFactory, delegateCacheFactories)
-                    .create(cacheContextProvider.apply(isEmptySource, ruleContext));
+                    .create(cacheContextProvider.apply(ruleContext));
 
             return entities -> then(ids(entities, ruleContext), ids -> isEmptySource ? cache.getAll(ids) : cache.computeAll(ids, buildFetchFunction(entities, nullToEmptySource(ruleMapperSource), ruleContext)))
                     .filter(CollectionUtils::isNotEmpty)

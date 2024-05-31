@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.ifNotNull;
+import static java.util.Collections.emptySet;
 import static java.util.Map.entry;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
@@ -73,11 +74,7 @@ public interface CollectionUtils {
     }
 
     static <E> Collection<E> asCollection(Iterable<E> iterable) {
-        return asList(iterable);
-    }
-
-    static <E> List<E> asList(Iterable<E> iterable) {
-        return iterable instanceof List<E> list ? list : stream(iterable.spliterator(), false).toList();
+        return iterable instanceof Collection<E> coll ? coll : stream(iterable.spliterator(), false).toList();
     }
 
     static <E, C extends Collection<E>> C translate(Iterable<? extends E> from, Supplier<C> collectionFactory) {
@@ -89,7 +86,19 @@ public interface CollectionUtils {
     }
 
     static <E> Set<E> intersect(Iterable<? extends E> iterable1, Iterable<? extends E> iterable2) {
-        return also(new HashSet<>(asCollection(iterable1)), set -> set.removeAll(asCollection(iterable2)));
+        final var coll1 = asCollection(iterable1);
+        if (coll1.isEmpty()) {
+            return emptySet();
+        }
+
+        final var finalSet = new HashSet<E>(coll1);
+
+        final var coll2 = asCollection(iterable2);
+        if (coll2.isEmpty()) {
+            return finalSet;
+        }
+
+        return also(finalSet, set -> set.removeAll(coll2));
     }
 
     static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, Function<V, V1> mappingFunction) {
@@ -98,7 +107,7 @@ public interface CollectionUtils {
 
     static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, BiFunction<K, V, V1> mappingFunction) {
         return map.entrySet().stream()
-                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getKey(), e.getValue()), (u1, u2) -> u1, LinkedHashMap::new));
+                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getKey(), e.getValue()), (v1, v2) -> v2, LinkedHashMap::new));
     }
 
     @SafeVarargs
@@ -155,7 +164,7 @@ public interface CollectionUtils {
             Function<Collection<V>, VC> collectionConverter) {
 
         return collectionConverter.apply(stream
-                .collect(toMap(keyExtractor, identity(), (o, o2) -> o2, LinkedHashMap::new))
+                .collect(toMap(keyExtractor, identity(), (v1, v2) -> v2, LinkedHashMap::new))
                 .values());
     }
 
@@ -184,24 +193,32 @@ public interface CollectionUtils {
     }
 
     static <T, K, V> LinkedHashMap<K, V> toLinkedHashMap(Iterable<T> iterable, Function<T, K> keyExtractor, Function<T, V> valueExtractor) {
-        return toStream(iterable).collect(toMap(keyExtractor, valueExtractor, (u1, u2) -> u1, LinkedHashMap::new));
+        return toStream(iterable).collect(toMap(keyExtractor, valueExtractor, (v1, v2) -> v2, LinkedHashMap::new));
     }
 
     static <K, V, ID> Map<K, List<V>> mergeMaps(
-            Map<K, List<V>> srcMap,
-            Map<K, List<V>> targetMap,
+            Map<K, List<V>> existingMap,
+            Map<K, List<V>> newMap,
             Function<? super V, ID> idResolver) {
 
-        return mergeMaps(srcMap, targetMap, idResolver, ArrayList::new);
+        return mergeMaps(existingMap, newMap, idResolver, ArrayList::new);
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> mergeMaps(
-            Map<K, VC> srcMap,
-            Map<K, VC> targetMap,
+            Map<K, VC> existingMap,
+            Map<K, VC> newMap,
             Function<? super V, ID> idResolver,
             Function<Collection<V>, VC> collectionConverter) {
 
-        return concat(targetMap.entrySet(), srcMap.entrySet())
+        if (isEmpty(existingMap)) {
+            return nullToEmptyMap(newMap);
+        }
+
+        if (isEmpty(newMap)) {
+            return nullToEmptyMap(existingMap);
+        }
+
+        return concat(existingMap.entrySet(), newMap.entrySet())
                 .map(entry -> entry(entry.getKey(), removeDuplicates(entry.getValue(), idResolver, collectionConverter)))
                 .collect(toMap(
                         Entry::getKey,
@@ -214,7 +231,7 @@ public interface CollectionUtils {
     static <K, V> Map<K, V> mergeMaps(Map<K, V>... maps) {
         return Stream.of(maps)
                 .flatMap(map -> map.entrySet().stream())
-                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1, LinkedHashMap::new));
+                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v2, LinkedHashMap::new));
     }
 
     static <K, V, ID> Map<K, List<V>> subtractFromMap(

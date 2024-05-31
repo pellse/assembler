@@ -126,7 +126,7 @@ public interface Cache<ID, RRC> {
                 optimizedCache::computeAll,
                 applyMergeStrategy(
                         optimizedCache,
-                        (existingCacheItems, incomingChanges) -> mergeMaps(incomingChanges, existingCacheItems, ctx.idResolver(), converter),
+                        (existingCacheItems, incomingChanges) -> ctx.mapMerger().apply(existingCacheItems, incomingChanges),
                         Cache::putAll),
                 applyMergeStrategy(
                         optimizedCache,
