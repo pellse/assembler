@@ -9,7 +9,9 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 
+import static io.github.pellse.assembler.caching.spring.SpringCacheFactory.AsyncSupport.DEFAULT;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Map.entry;
@@ -19,20 +21,36 @@ import static reactor.core.publisher.Mono.just;
 
 public interface SpringCacheFactory {
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(CacheManager cacheManager, String cacheName) {
-        return springCache(requireNonNull(cacheManager.getCache(cacheName)));
+    enum AsyncSupport {
+        SYNC, ASYNC, DEFAULT
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(org.springframework.cache.Cache delegateCache) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(CacheManager cacheManager, String cacheName) {
+        return springCache(cacheManager, cacheName, DEFAULT);
+    }
 
-        final var supportAsync = supportAsync(delegateCache);
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(CacheManager cacheManager, String cacheName, AsyncSupport asyncSupport) {
+        return springCache(requireNonNull(cacheManager.getCache(cacheName)), asyncSupport);
+    }
+
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(org.springframework.cache.Cache delegateCache){
+        return springCache(delegateCache, DEFAULT);
+    }
+
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(org.springframework.cache.Cache delegateCache, AsyncSupport asyncSupport) {
 
         return context -> new Cache<>() {
+
+            private final Function<ID, Mono<Entry<ID, RRC>>> cacheGetter = switch(asyncSupport) {
+                case SYNC -> this::get;
+                case ASYNC -> this::retrieve;
+                case DEFAULT -> supportAsync(delegateCache) ? this::retrieve : this::get;
+            };
 
             @Override
             public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
                 return fromIterable(ids)
-                        .flatMap(supportAsync ? this::retrieve : this::get)
+                        .flatMap(cacheGetter)
                         .collectMap(Entry::getKey, Entry::getValue);
             }
 
@@ -77,7 +95,7 @@ public interface SpringCacheFactory {
         try {
             delegateCache.retrieve(new Object());
             return true;
-        } catch (UnsupportedOperationException __) {
+        } catch (Exception __) {
             return false;
         }
     }
