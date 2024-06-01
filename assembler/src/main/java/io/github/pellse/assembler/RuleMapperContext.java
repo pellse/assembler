@@ -29,8 +29,8 @@ import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.QueryUtils.toSupplier;
-import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.collection.CollectionUtils.mergeMaps;
+import static io.github.pellse.util.collection.CollectionUtils.translate;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
@@ -141,7 +141,7 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
 
         @SuppressWarnings("unchecked")
         public RC convert(Collection<R> collection) {
-            return collectionType().isInstance(collection) ? (RC) collection : also(collectionFactory().get(), c -> c.addAll(collection));
+            return collectionType().isInstance(collection) ? (RC) collection : translate(collection, collectionFactory());
         }
     }
 
