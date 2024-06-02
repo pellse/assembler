@@ -22,7 +22,9 @@ import static reactor.core.publisher.Mono.just;
 public interface SpringCacheFactory {
 
     enum AsyncSupport {
-        SYNC, ASYNC, DEFAULT
+        SYNC,
+        ASYNC,
+        DEFAULT // Let the framework detect and use async api if available by the underlying cache
     }
 
     static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(CacheManager cacheManager, String cacheName) {
@@ -33,7 +35,7 @@ public interface SpringCacheFactory {
         return springCache(requireNonNull(cacheManager.getCache(cacheName)), asyncSupport);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(org.springframework.cache.Cache delegateCache){
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(org.springframework.cache.Cache delegateCache) {
         return springCache(delegateCache, DEFAULT);
     }
 
@@ -41,7 +43,7 @@ public interface SpringCacheFactory {
 
         return context -> new Cache<>() {
 
-            private final Function<ID, Mono<Entry<ID, RRC>>> cacheGetter = switch(asyncSupport) {
+            private final Function<ID, Mono<Entry<ID, RRC>>> cacheGetter = switch (asyncSupport) {
                 case SYNC -> this::get;
                 case ASYNC -> this::retrieve;
                 case DEFAULT -> supportAsync(delegateCache) ? this::retrieve : this::get;
@@ -85,7 +87,7 @@ public interface SpringCacheFactory {
                 return just(delegateCache)
                         .mapNotNull(cache -> cache.retrieve(id))
                         .flatMap(Mono::fromFuture)
-                        .mapNotNull(value -> value instanceof ValueWrapper wrapper ? (RRC) wrapper.get() : (RRC) value)
+                        .mapNotNull(value -> (RRC) (value instanceof ValueWrapper wrapper ? wrapper.get() : value))
                         .map(value -> entry(id, value));
             }
         };
