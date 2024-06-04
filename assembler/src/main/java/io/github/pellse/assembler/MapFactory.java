@@ -23,6 +23,6 @@ import java.util.function.Function;
 public interface MapFactory<ID, R> extends Function<Integer, Map<ID, R>> {
 
     static <ID, R> MapFactory<ID, R> defaultMapFactory() {
-        return HashMap::new;
+        return HashMap::newHashMap;
     }
 }
