@@ -1,15 +1,15 @@
 package io.github.pellse.assembler.caching.spring;
 
-import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.CacheContext;
 import io.github.pellse.assembler.caching.CacheFactory;
+import org.springframework.cache.Cache;
 import org.springframework.cache.Cache.ValueWrapper;
 import org.springframework.cache.CacheManager;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import static io.github.pellse.assembler.caching.spring.SpringCacheFactory.AsyncSupport.DEFAULT;
 import static io.github.pellse.util.ObjectUtils.also;
@@ -35,24 +35,24 @@ public interface SpringCacheFactory {
         return springCache(requireNonNull(cacheManager.getCache(cacheName)), asyncSupport);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(org.springframework.cache.Cache delegateCache) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(Cache delegateCache) {
         return springCache(delegateCache, DEFAULT);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(org.springframework.cache.Cache delegateCache, AsyncSupport asyncSupport) {
+    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(Cache delegateCache, AsyncSupport asyncSupport) {
 
-        return context -> new Cache<>() {
+        final BiFunction<Mono<Cache>, ID, Mono<RRC>> cacheGetter = switch (asyncSupport) {
+            case SYNC -> SpringCacheFactory::get;
+            case ASYNC -> SpringCacheFactory::retrieve;
+            case DEFAULT -> cacheGetter(delegateCache);
+        };
 
-            private final Function<ID, Mono<Entry<ID, RRC>>> cacheGetter = switch (asyncSupport) {
-                case SYNC -> this::get;
-                case ASYNC -> this::retrieve;
-                case DEFAULT -> supportAsync(delegateCache) ? this::retrieve : this::get;
-            };
+        return context -> new io.github.pellse.assembler.caching.Cache<>() {
 
             @Override
             public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
                 return fromIterable(ids)
-                        .flatMap(cacheGetter)
+                        .flatMap(this::buildMapEntry)
                         .collectMap(Entry::getKey, Entry::getValue);
             }
 
@@ -74,31 +74,34 @@ public interface SpringCacheFactory {
                 return just(also(map, m -> m.keySet().forEach(delegateCache::evict)));
             }
 
-            @SuppressWarnings("unchecked")
-            private Mono<Entry<ID, RRC>> get(ID id) {
+            private Mono<Entry<ID, RRC>> buildMapEntry(ID id) {
                 return just(delegateCache)
-                        .mapNotNull(cache -> cache.get(id))
-                        .mapNotNull(wrapper -> (RRC) wrapper.get())
+                        .transform(cacheMono -> cacheGetter.apply(cacheMono, id))
                         .map(value -> entry(id, value));
-            }
-
-            @SuppressWarnings("unchecked")
-            private Mono<Entry<ID, RRC>> retrieve(ID id) {
-                return just(delegateCache)
-                        .mapNotNull(cache -> cache.retrieve(id))
-                        .flatMap(Mono::fromFuture)
-                        .mapNotNull(value -> (RRC) (value instanceof ValueWrapper wrapper ? wrapper.get() : value))
-                        .map(value -> entry(id, value));
-            }
-        };
+            }};
     }
 
-    private static boolean supportAsync(org.springframework.cache.Cache delegateCache) {
+    private static <ID, RRC> BiFunction<Mono<Cache>, ID, Mono<RRC>> cacheGetter(Cache delegateCache) {
         try {
             delegateCache.retrieve(new Object());
-            return true;
+            return SpringCacheFactory::retrieve;
         } catch (Exception __) {
-            return false;
+            return SpringCacheFactory::get;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <ID, RRC> Mono<RRC> get(Mono<Cache> delegateCacheMono, ID id) {
+        return delegateCacheMono
+                .mapNotNull(cache -> cache.get(id))
+                .mapNotNull(wrapper -> (RRC) wrapper.get());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <ID, RRC>Mono<RRC> retrieve(Mono<Cache> delegateCacheMono, ID id) {
+        return delegateCacheMono
+                .mapNotNull(cache -> cache.retrieve(id))
+                .flatMap(Mono::fromFuture)
+                .mapNotNull(value -> (RRC) (value instanceof ValueWrapper wrapper ? wrapper.get() : value));
     }
 }
