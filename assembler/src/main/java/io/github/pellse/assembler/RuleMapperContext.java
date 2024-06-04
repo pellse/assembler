@@ -28,7 +28,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
-import static io.github.pellse.assembler.QueryUtils.toSupplier;
+import static io.github.pellse.assembler.QueryUtils.toMapSupplier;
 import static io.github.pellse.util.collection.CollectionUtils.mergeMaps;
 import static io.github.pellse.util.collection.CollectionUtils.translate;
 import static java.util.function.Function.identity;
@@ -75,7 +75,7 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
                     correlationIdResolver(),
                     identity(),
                     (u1, u2) -> u2,
-                    toSupplier(validate(initialMapCapacity), mapFactory()));
+                    toMapSupplier(validate(initialMapCapacity), mapFactory()));
         }
 
         @Override
@@ -125,7 +125,7 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, ID, EID, 
         public IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector() {
             return initialMapCapacity -> groupingBy(
                     correlationIdResolver(),
-                    toSupplier(validate(initialMapCapacity), mapFactory()),
+                    toMapSupplier(validate(initialMapCapacity), mapFactory()),
                     toCollection(collectionFactory));
         }
 

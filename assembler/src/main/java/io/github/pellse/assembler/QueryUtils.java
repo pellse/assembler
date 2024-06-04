@@ -91,7 +91,7 @@ public interface QueryUtils {
         return resultMapCopy;
     }
 
-    static <ID, R> Supplier<Map<ID, R>> toSupplier(int initialCapacity, MapFactory<ID, R> mapFactory) {
+    static <ID, R> Supplier<Map<ID, R>> toMapSupplier(int initialCapacity, MapFactory<ID, R> mapFactory) {
 
         final MapFactory<ID, R> actualMapFactory = requireNonNullElseGet(mapFactory, MapFactory::defaultMapFactory);
         return () -> actualMapFactory.apply(initialCapacity);
