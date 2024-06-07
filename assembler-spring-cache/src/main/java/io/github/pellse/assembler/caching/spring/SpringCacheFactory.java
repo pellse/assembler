@@ -47,7 +47,7 @@ public interface SpringCacheFactory {
             case DEFAULT -> cacheGetter(delegateCache);
         };
 
-        return context -> new io.github.pellse.assembler.caching.Cache<>() {
+        return cacheContext -> new io.github.pellse.assembler.caching.Cache<>() {
 
             @Override
             public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
@@ -61,7 +61,7 @@ public interface SpringCacheFactory {
                 return getAll(ids)
                         .flatMap(cachedData -> fetchFunction.apply(intersect(ids, cachedData.keySet()))
                                 .doOnNext(this::putAll)
-                                .map(fetchedData -> fetchedData.isEmpty() ? cachedData : context.ctx().mapMerger().apply(cachedData, fetchedData)));
+                                .map(fetchedData -> fetchedData.isEmpty() ? cachedData : cacheContext.ctx().mapMerger().apply(cachedData, fetchedData)));
             }
 
             @Override
