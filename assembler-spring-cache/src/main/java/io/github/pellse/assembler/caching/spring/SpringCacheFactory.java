@@ -13,7 +13,7 @@ import java.util.function.BiFunction;
 
 import static io.github.pellse.assembler.caching.spring.SpringCacheFactory.AsyncSupport.DEFAULT;
 import static io.github.pellse.util.ObjectUtils.also;
-import static io.github.pellse.util.collection.CollectionUtils.*;
+import static io.github.pellse.util.collection.CollectionUtils.diff;
 import static java.util.Map.entry;
 import static java.util.Objects.requireNonNull;
 import static reactor.core.publisher.Flux.fromIterable;
@@ -59,7 +59,7 @@ public interface SpringCacheFactory {
             @Override
             public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
                 return getAll(ids)
-                        .flatMap(cachedData -> fetchFunction.apply(intersect(ids, cachedData.keySet()))
+                        .flatMap(cachedData -> fetchFunction.apply(diff(ids, cachedData.keySet()))
                                 .doOnNext(this::putAll)
                                 .map(fetchedData -> fetchedData.isEmpty() ? cachedData : cacheContext.ctx().mapMerger().apply(cachedData, fetchedData)));
             }

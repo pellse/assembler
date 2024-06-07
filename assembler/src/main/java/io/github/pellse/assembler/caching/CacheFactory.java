@@ -75,7 +75,7 @@ public interface CacheFactory<ID, EID, R, RRC, CTX extends CacheContext<ID, EID,
 
             final var cachedEntitiesMap = readAll(ids, delegateMap, Empty::asMono);
 
-            final var missingIds = intersect(ids, cachedEntitiesMap.keySet());
+            final var missingIds = diff(ids, cachedEntitiesMap.keySet());
             if (isEmpty(missingIds)) {
                 return resolve(cachedEntitiesMap);
             }
@@ -344,7 +344,7 @@ public interface CacheFactory<ID, EID, R, RRC, CTX extends CacheContext<ID, EID,
             RuleMapperContext<T, TC, ID, EID, R, RRC> ctx) {
 
         return newMap(queryResultsMap, map ->
-                intersect(ids, map.keySet()).forEach(id ->
+                diff(ids, map.keySet()).forEach(id ->
                         ifNotNull(ctx.defaultResultProvider().apply(id), value -> map.put(id, value))));
     }
 }

@@ -85,22 +85,6 @@ public interface CollectionUtils {
         return iterable == null ? 0 : asCollection(iterable).size();
     }
 
-    static <E> Set<E> intersect(Iterable<? extends E> iterable1, Iterable<? extends E> iterable2) {
-        final var coll1 = asCollection(iterable1);
-        if (coll1.isEmpty()) {
-            return emptySet();
-        }
-
-        final var finalSet = new HashSet<E>(coll1);
-
-        final var coll2 = asCollection(iterable2);
-        if (coll2.isEmpty()) {
-            return finalSet;
-        }
-
-        return also(finalSet, set -> set.removeAll(coll2));
-    }
-
     static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, Function<V, V1> mappingFunction) {
         return transformMap(map, (__, value) -> mappingFunction.apply(value));
     }
@@ -134,8 +118,25 @@ public interface CollectionUtils {
         return copyMap;
     }
 
+    static <E> Set<E> diff(Iterable<? extends E> iterable1, Iterable<? extends E> iterable2) {
+
+        final var coll1 = asCollection(iterable1);
+        if (coll1.isEmpty()) {
+            return emptySet();
+        }
+
+        final var finalSet = new HashSet<E>(coll1);
+
+        final var coll2 = asCollection(iterable2);
+        if (coll2.isEmpty()) {
+            return finalSet;
+        }
+
+        return also(finalSet, set -> set.removeAll(coll2));
+    }
+
     static <K, V> Map<K, V> diff(Map<K, V> map1, Map<K, V> map2) {
-        return readAll(intersect(map1.keySet(), map2.keySet()), map1);
+        return readAll(diff(map1.keySet(), map2.keySet()), map1);
     }
 
     static <K, V> Map<K, V> readAll(Iterable<K> keys, Map<K, V> sourceMap) {
