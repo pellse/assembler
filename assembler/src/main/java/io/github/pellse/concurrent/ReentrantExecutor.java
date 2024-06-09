@@ -11,6 +11,11 @@ import static reactor.core.publisher.Mono.*;
 
 public interface ReentrantExecutor {
 
+    @FunctionalInterface
+    interface WriteLockExecutor<U> {
+        Mono<U> withWriteLock(Mono<U> mono);
+    }
+
     Duration DEFAULT_TIMEOUT = ofSeconds(30);
 
     default <T> Mono<T> withReadLock(Mono<T> mono) {
@@ -44,11 +49,6 @@ public interface ReentrantExecutor {
     <T> Mono<T> withReadLock(Function<WriteLockExecutor<T>, Mono<T>> monoProvider, Duration timeout, Mono<T> defaultValue);
 
     <T> Mono<T> withWriteLock(Mono<T> mono, Duration timeout, Mono<T> defaultValue);
-
-    @FunctionalInterface
-    interface WriteLockExecutor<U> {
-        Mono<U> withWriteLock(Mono<U> mono);
-    }
 
     static ReentrantExecutor create() {
 
