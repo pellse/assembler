@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 
+import static reactor.core.publisher.Mono.fromRunnable;
 import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 class LockManager {
@@ -16,8 +17,8 @@ class LockManager {
     private static final long READ_LOCK_MASK = ~WRITE_LOCK_MASK; // 0111111111111111111111111111111111111111111111111111111111111111
 
     record Lock(Lock outerLock, Runnable releaseLock) {
-        public void release() {
-            releaseLock.run();
+        public Mono<?> release() {
+            return fromRunnable(releaseLock);
         }
     }
 

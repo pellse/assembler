@@ -81,9 +81,9 @@ public interface ReentrantExecutor {
                         lock -> monoProvider.apply(mono -> usingWhen(
                                 lockManager.toWriteLock(lock),
                                 writeLock -> mono.timeout(timeout, defaultMono),
-                                writeLock -> fromRunnable(writeLock::release)
+                                Lock::release
                         )).timeout(timeout, defaultMono),
-                        lock -> fromRunnable(lock::release)
+                        Lock::release
                 );
             }
         };
