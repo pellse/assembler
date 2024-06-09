@@ -21,9 +21,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-import static java.util.Map.of;
-import static reactor.core.publisher.Mono.just;
-
 public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
     static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache) {
@@ -38,12 +35,12 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
             @Override
             public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
-                return executor.withReadLock(delegateCache.getAll(ids), just(of()));
+                return executor.withReadLock(delegateCache.getAll(ids), Map::of);
             }
 
             @Override
             public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
-                return executor.withReadLock(writeLockExecutor -> delegateCache.computeAll(ids, IdsToFetch -> writeLockExecutor.withWriteLock(fetchFunction.apply(IdsToFetch))), just(of()));
+                return executor.withReadLock(writeLockExecutor -> delegateCache.computeAll(ids, IdsToFetch -> writeLockExecutor.withWriteLock(fetchFunction.apply(IdsToFetch))), Map::of);
             }
 
             @Override

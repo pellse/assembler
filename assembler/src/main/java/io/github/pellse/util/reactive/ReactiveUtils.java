@@ -21,12 +21,14 @@ import reactor.core.publisher.Sinks;
 import reactor.util.function.Tuple2;
 
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static io.github.pellse.util.collection.CollectionUtils.toLinkedHashMap;
 import static java.lang.Math.toIntExact;
 import static java.util.List.copyOf;
 import static java.util.function.Function.identity;
 import static reactor.core.publisher.Flux.concat;
+import static reactor.core.publisher.Mono.*;
 
 public interface ReactiveUtils {
 
@@ -42,5 +44,13 @@ public interface ReactiveUtils {
 
     static <T, RRC> Map<T, Sinks.One<RRC>> createSinkMap(Iterable<T> iterable) {
         return toLinkedHashMap(iterable, identity(), __ -> Sinks.one());
+    }
+
+    static <T> Mono<T> nullToEmpty(T value) {
+        return value != null ?  just(value) : empty();
+    }
+
+    static <T> Mono<T> nullToEmpty(Supplier<T> defaultValueProvider) {
+        return defaultValueProvider != null ? fromSupplier(defaultValueProvider) : empty();
     }
 }
