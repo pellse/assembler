@@ -24,7 +24,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 
+import static io.github.pellse.util.ObjectUtils.also;
 import static reactor.core.publisher.Mono.fromRunnable;
+import static reactor.core.publisher.Mono.just;
 import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 class LockManager {
@@ -76,13 +78,10 @@ class LockManager {
     private Mono<Lock> acquireLock(Lock outerLock, Predicate<Lock> tryAcquireLock, Runnable releaseLock, Queue<LockRequest> queue) {
         final var innerLock = new Lock(outerLock, releaseLock);
         if (tryAcquireLock.test(innerLock)) {
-            return Mono.just(innerLock);
+            return just(innerLock);
         }
-        final var sink = Sinks.<Lock>one();
-        queue.offer(new LockRequest(innerLock, sink));
-        drainQueues();
 
-        return sink.asMono();
+        return also(Sinks.<Lock>one(), sink -> queue.offer(new LockRequest(innerLock, sink)), __ -> drainQueues()).asMono();
     }
 
     private boolean tryAcquireReadLock(Lock innerLock) {
