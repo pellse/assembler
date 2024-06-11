@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.util.reactive.ReactiveUtils.nullToEmpty;
+import static java.lang.Long.MAX_VALUE;
 import static java.time.Duration.ofSeconds;
 import static reactor.core.publisher.Mono.*;
 
@@ -69,8 +70,12 @@ public interface ReentrantExecutor {
     <T> Mono<T> withWriteLock(Mono<T> mono, Duration timeout, Supplier<T> defaultValueProvider);
 
     static ReentrantExecutor create() {
+        return create(MAX_VALUE, MAX_VALUE);
+    }
 
-        final var lockManager = new LockManager();
+    static ReentrantExecutor create(long readQueueCapacity, long writeQueueCapacity) {
+
+        final var lockManager = new LockManager(readQueueCapacity, writeQueueCapacity);
 
         return new ReentrantExecutor() {
 
@@ -95,7 +100,7 @@ public interface ReentrantExecutor {
 
             private <T> Mono<T> with(
                     Function<WriteLockExecutor<T>, Mono<T>> writeLockMonoFunction,
-                    Function<LockManager, Mono<Lock>> acquireLockStrategy,
+                    Function<LockManager, Mono<Lock>> lockAcquisitionStrategy,
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
@@ -108,7 +113,7 @@ public interface ReentrantExecutor {
                 );
 
                 return resourceManager.using(
-                        acquireLockStrategy.apply(lockManager),
+                        lockAcquisitionStrategy.apply(lockManager),
                         lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockManager.toWriteLock(lock), mono)));
             }
         };

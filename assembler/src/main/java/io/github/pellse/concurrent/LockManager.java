@@ -16,23 +16,20 @@
 
 package io.github.pellse.concurrent;
 
+import io.github.pellse.util.concurrent.BoundedQueue;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 
-import static io.github.pellse.util.ObjectUtils.also;
+import static io.github.pellse.util.concurrent.BoundedQueue.createBoundedQueue;
+import static java.lang.Long.MAX_VALUE;
 import static reactor.core.publisher.Mono.fromRunnable;
 import static reactor.core.publisher.Mono.just;
 import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 class LockManager {
-
-    private static final long WRITE_LOCK_MASK = 1L << 63; // 1000000000000000000000000000000000000000000000000000000000000000
-    private static final long READ_LOCK_MASK = ~WRITE_LOCK_MASK; // 0111111111111111111111111111111111111111111111111111111111111111
 
     record Lock(Lock outerLock, Runnable releaseLock) {
         public Mono<?> release() {
@@ -50,10 +47,22 @@ class LockManager {
         }
     }
 
+    private static final long WRITE_LOCK_MASK = 1L << 63; // 1000000000000000000000000000000000000000000000000000000000000000
+    private static final long READ_LOCK_MASK = ~WRITE_LOCK_MASK; // 0111111111111111111111111111111111111111111111111111111111111111
+
     private final AtomicLong lockState = new AtomicLong();
 
-    private final Queue<LockRequest> readQueue = new ConcurrentLinkedQueue<>();
-    private final Queue<LockRequest> writeQueue = new ConcurrentLinkedQueue<>();
+    private final BoundedQueue<LockRequest> readQueue;
+    private final BoundedQueue<LockRequest> writeQueue;
+
+    LockManager() {
+        this(MAX_VALUE, MAX_VALUE);
+    }
+
+    LockManager(long readQueueCapacity, long writeQueueCapacity) {
+        readQueue = createBoundedQueue(readQueueCapacity);
+        writeQueue = createBoundedQueue(writeQueueCapacity);
+    }
 
     Mono<Lock> acquireReadLock() {
         return acquireLock(null, this::tryAcquireReadLock, this::releaseReadLock, readQueue);
@@ -75,13 +84,20 @@ class LockManager {
         releaseLock(this::doReleaseWriteLock);
     }
 
-    private Mono<Lock> acquireLock(Lock outerLock, Predicate<Lock> tryAcquireLock, Runnable releaseLock, Queue<LockRequest> queue) {
+    private Mono<Lock> acquireLock(Lock outerLock, Predicate<Lock> tryAcquireLock, Runnable releaseLock, BoundedQueue<LockRequest> queue) {
         final var innerLock = new Lock(outerLock, releaseLock);
         if (tryAcquireLock.test(innerLock)) {
             return just(innerLock);
         }
 
-        return also(Sinks.<Lock>one(), sink -> queue.offer(new LockRequest(innerLock, sink)), __ -> drainQueues()).asMono();
+        final var lockRequest = new LockRequest(innerLock, Sinks.one());
+        boolean succeeded;
+        do {
+            succeeded = queue.offer(lockRequest);
+            drainQueues();
+        } while (!succeeded);
+
+        return lockRequest.sink().asMono();
     }
 
     private boolean tryAcquireReadLock(Lock innerLock) {
