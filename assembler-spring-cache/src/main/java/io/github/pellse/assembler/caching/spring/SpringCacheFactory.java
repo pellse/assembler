@@ -61,7 +61,7 @@ public interface SpringCacheFactory {
                 return getAll(ids)
                         .flatMap(cachedData -> fetchFunction.apply(diff(ids, cachedData.keySet()))
                                 .doOnNext(this::putAll)
-                                .map(fetchedData -> fetchedData.isEmpty() ? cachedData : cacheContext.ctx().mapMerger().apply(cachedData, fetchedData)));
+                                .map(fetchedData -> fetchedData.isEmpty() ? cachedData : cacheContext.mapMerger().apply(cachedData, fetchedData)));
             }
 
             @Override

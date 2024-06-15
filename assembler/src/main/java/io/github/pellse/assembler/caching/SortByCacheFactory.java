@@ -37,7 +37,7 @@ public interface SortByCacheFactory {
     }
 
     static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy(CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory, Comparator<R> comparator) {
-        return sortBy(cacheFactory, cacheContext -> comparator != null ? comparator : cacheContext.ctx().idComparator());
+        return sortBy(cacheFactory, cacheContext -> comparator != null ? comparator : cacheContext.idComparator());
     }
 
     private static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy(CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory, Function<OneToManyCacheContext<ID, EID, R, RC>, Comparator<R>> comparatorProvider) {
@@ -45,6 +45,6 @@ public interface SortByCacheFactory {
                 cacheContext ->
                         (__, coll) -> coll.stream()
                                 .sorted(comparatorProvider.apply(cacheContext))
-                                .collect(toCollection(cacheContext.ctx().collectionFactory())));
+                                .collect(toCollection(cacheContext.collectionFactory())));
     }
 }

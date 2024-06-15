@@ -18,7 +18,6 @@ package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.LifeCycleEventListener;
 import io.github.pellse.assembler.LifeCycleEventSource;
-import io.github.pellse.assembler.RuleMapperContext;
 import io.github.pellse.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
@@ -30,6 +29,7 @@ import java.lang.System.Logger;
 import java.util.List;
 import java.util.Map;
 import java.util.function.*;
+import java.util.stream.Collector;
 
 import static io.github.pellse.assembler.LifeCycleEventSource.concurrentLifeCycleEventListener;
 import static io.github.pellse.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
@@ -85,6 +85,8 @@ public interface AutoCacheFactory {
 
         return cacheFactory -> cacheContext -> {
 
+            final var mapCollector = cacheContext.mapCollector();
+
             final var cache = ofNullable(concurrentCacheTransformer)
                     .map(transformer -> transformer.apply(cacheFactory))
                     .orElse(ConcurrentCacheFactory.<ID, EID, R, RRC, CTX>concurrent().apply(cacheFactory))
@@ -94,7 +96,7 @@ public interface AutoCacheFactory {
                     .transform(scheduleOn(scheduler, Flux::publishOn))
                     .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
-                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), cacheContext.ctx()), toMap(eventMap.get(false), cacheContext.ctx())))
+                    .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), mapCollector), toMap(eventMap.get(false), mapCollector)))
                     .transform(requireNonNullElse(errorHandler, onErrorContinue(AutoCacheFactory::logError)).toFluxErrorHandler());
 
             requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start)
@@ -104,10 +106,10 @@ public interface AutoCacheFactory {
         };
     }
 
-    private static <ID, EID, R, RRC> Map<ID, RRC> toMap(List<? extends CacheEvent<R>> cacheEvents, RuleMapperContext<?, ?, ID, EID, R, RRC> ctx) {
+    private static <ID, R, RRC> Map<ID, RRC> toMap(List<? extends CacheEvent<R>> cacheEvents, IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector) {
         return isEmpty(cacheEvents) ? Map.of() : cacheEvents.stream()
                 .map(CacheEvent::value)
-                .collect(ctx.mapCollector().apply(cacheEvents.size()));
+                .collect(mapCollector.apply(cacheEvents.size()));
     }
 
     private static <T> Function<Flux<T>, Flux<T>> scheduleOn(Scheduler scheduler, BiFunction<Flux<T>, Scheduler, Flux<T>> scheduleFunction) {

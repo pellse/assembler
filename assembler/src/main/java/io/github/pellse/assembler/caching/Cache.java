@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
+import io.github.pellse.assembler.caching.CacheContext.OneToManyCacheContext;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
@@ -115,7 +115,7 @@ public interface Cache<ID, RRC> {
     }
 
     static <ID,  EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
-            OneToManyContext<?, ?, ID, EID, R, RC> ctx,
+            OneToManyCacheContext<ID, EID, R, RC> ctx,
             Cache<ID, RC> delegateCache) {
 
         final var optimizedCache = optimizedCache(delegateCache);

@@ -16,21 +16,42 @@
 
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.assembler.RuleMapperContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
 
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.IntFunction;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 
 public sealed interface CacheContext<ID, EID, R, RRC> {
 
-    RuleMapperContext<?, ?, ID, EID, R, RRC> ctx();
+    IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector();
+
+    BiFunction<Map<ID, RRC>, Map<ID, RRC>, Map<ID, RRC>> mapMerger();
 
     record OneToOneCacheContext<ID, R>(
-            OneToOneContext<?, ?, ID, R> ctx) implements CacheContext<ID, ID, R, R> {
+            IntFunction<Collector<R, ?, Map<ID, R>>> mapCollector,
+            BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger) implements CacheContext<ID, ID, R, R> {
+
+        OneToOneCacheContext(OneToOneContext<?, ?, ID, R> ctx) {
+            this(ctx.mapCollector(), ctx.mapMerger());
+        }
     }
 
     record OneToManyCacheContext<ID, EID, R, RC extends Collection<R>>(
-            OneToManyContext<?, ?, ID, EID, R, RC> ctx) implements CacheContext<ID, EID, R, RC> {
+            Function<R, EID> idResolver,
+            IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector,
+            BiFunction<Map<ID, RC>, Map<ID, RC>, Map<ID, RC>> mapMerger,
+            Comparator<R> idComparator,
+            Supplier<RC> collectionFactory) implements CacheContext<ID, EID, R, RC> {
+
+        OneToManyCacheContext(OneToManyContext<?, ?, ID, EID, R, RC> ctx) {
+            this(ctx.idResolver(), ctx.mapCollector(), ctx.mapMerger(), ctx.idComparator(), ctx.collectionFactory());
+        }
     }
 }

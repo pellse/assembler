@@ -275,7 +275,7 @@ public interface CacheFactory<ID, EID, R, RRC, CTX extends CacheContext<ID, EID,
     }
 
     private static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> oneToManyCacheFactory(CacheFactory<ID, EID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory) {
-        return cacheContext -> oneToManyCache(cacheContext.ctx(), cacheFactory.create(cacheContext));
+        return cacheContext -> oneToManyCache(cacheContext, cacheFactory.create(cacheContext));
     }
 
     @SafeVarargs
