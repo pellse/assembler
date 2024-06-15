@@ -27,11 +27,11 @@ import static io.github.pellse.util.collection.CollectionUtils.transformMap;
 
 public interface MapperCacheFactory {
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> mapper(Function<CTX, BiFunction<ID, RRC, RRC>> mappingFunction) {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheTransformer<ID, R, RRC, CTX> mapper(Function<CTX, BiFunction<ID, RRC, RRC>> mappingFunction) {
         return cacheFactory -> mapper(cacheFactory, mappingFunction);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> mapper(CacheFactory<ID, EID, R, RRC, CTX> cacheFactory, Function<CTX, BiFunction<ID, RRC, RRC>> mappingFunction) {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CTX> mapper(CacheFactory<ID, R, RRC, CTX> cacheFactory, Function<CTX, BiFunction<ID, RRC, RRC>> mappingFunction) {
         return context -> then(cacheFactory.create(context), delegateCache -> adapterCache(
                 delegateCache::getAll,
                 (ids, fetchFunction) -> delegateCache.computeAll(ids, idList -> fetchFunction.apply(idList).map(m -> transformMap(m, mappingFunction.apply(context)))),

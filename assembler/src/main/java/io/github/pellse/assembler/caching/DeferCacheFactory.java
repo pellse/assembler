@@ -23,11 +23,11 @@ import static io.github.pellse.assembler.caching.Cache.adapterCache;
 
 public interface DeferCacheFactory {
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> defer() {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheTransformer<ID, R, RRC, CTX> defer() {
         return DeferCacheFactory::defer;
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> defer(CacheFactory<ID, EID, R, RRC, CTX> cacheFactory) {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CTX> defer(CacheFactory<ID, R, RRC, CTX> cacheFactory) {
         return context -> deferCache(cacheFactory.create(context));
     }
 

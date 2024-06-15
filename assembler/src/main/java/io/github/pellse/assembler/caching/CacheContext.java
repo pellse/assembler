@@ -28,7 +28,7 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-public sealed interface CacheContext<ID, EID, R, RRC> {
+public sealed interface CacheContext<ID, R, RRC> {
 
     IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector();
 
@@ -36,7 +36,7 @@ public sealed interface CacheContext<ID, EID, R, RRC> {
 
     record OneToOneCacheContext<ID, R>(
             IntFunction<Collector<R, ?, Map<ID, R>>> mapCollector,
-            BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger) implements CacheContext<ID, ID, R, R> {
+            BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger) implements CacheContext<ID, R, R> {
 
         OneToOneCacheContext(OneToOneContext<?, ?, ID, R> ctx) {
             this(ctx.mapCollector(), ctx.mapMerger());
@@ -48,7 +48,7 @@ public sealed interface CacheContext<ID, EID, R, RRC> {
             IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector,
             BiFunction<Map<ID, RC>, Map<ID, RC>, Map<ID, RC>> mapMerger,
             Comparator<R> idComparator,
-            Supplier<RC> collectionFactory) implements CacheContext<ID, EID, R, RC> {
+            Supplier<RC> collectionFactory) implements CacheContext<ID, R, RC> {
 
         OneToManyCacheContext(OneToManyContext<?, ?, ID, EID, R, RC> ctx) {
             this(ctx.idResolver(), ctx.mapCollector(), ctx.mapMerger(), ctx.idComparator(), ctx.collectionFactory());

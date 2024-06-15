@@ -27,19 +27,19 @@ public interface SpringCacheFactory {
         DEFAULT // Let the framework detect and use async api if available by the underlying cache
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(CacheManager cacheManager, String cacheName) {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CTX> springCache(CacheManager cacheManager, String cacheName) {
         return springCache(cacheManager, cacheName, DEFAULT);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(CacheManager cacheManager, String cacheName, AsyncSupport asyncSupport) {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CTX> springCache(CacheManager cacheManager, String cacheName, AsyncSupport asyncSupport) {
         return springCache(requireNonNull(cacheManager.getCache(cacheName)), asyncSupport);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(Cache delegateCache) {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CTX> springCache(Cache delegateCache) {
         return springCache(delegateCache, DEFAULT);
     }
 
-    static <ID, EID, R, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheFactory<ID, EID, R, RRC, CTX> springCache(Cache delegateCache, AsyncSupport asyncSupport) {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CTX> springCache(Cache delegateCache, AsyncSupport asyncSupport) {
 
         final BiFunction<Mono<Cache>, ID, Mono<RRC>> cacheGetter = switch (asyncSupport) {
             case SYNC -> SpringCacheFactory::get;

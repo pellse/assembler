@@ -103,7 +103,7 @@ public interface AutoCacheFactoryBuilder {
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
-        <ID, EID, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> build() ;
+        <ID, RRC, CTX extends CacheContext<ID, R, RRC>> CacheTransformer<ID, R, RRC, CTX> build() ;
     }
 
     record Builder<R, U extends CacheEvent<R>>(
@@ -112,7 +112,7 @@ public interface AutoCacheFactoryBuilder {
             ErrorHandler errorHandler,
             Scheduler scheduler,
             LifeCycleEventSource eventSource,
-            CacheTransformer<?, ?, R, ?, ?> concurrentCacheTransformer) implements WindowingStrategyBuilder<R, U> {
+            CacheTransformer<?, R, ?, ?> concurrentCacheTransformer) implements WindowingStrategyBuilder<R, U> {
 
         @Override
         public ConfigBuilder<R> windowingStrategy(WindowingStrategy<U> windowingStrategy) {
@@ -136,8 +136,8 @@ public interface AutoCacheFactoryBuilder {
 
         @SuppressWarnings("unchecked")
         @Override
-        public <ID, EID, RRC, CTX extends CacheContext<ID, EID, R, RRC>> CacheTransformer<ID, EID, R, RRC, CTX> build() {
-            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, EID, R, RRC, CTX>) concurrentCacheTransformer);
+        public <ID, RRC, CTX extends CacheContext<ID, R, RRC>> CacheTransformer<ID, R, RRC, CTX> build() {
+            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC, CTX>) concurrentCacheTransformer);
         }
     }
 }
