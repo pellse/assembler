@@ -232,7 +232,7 @@ public interface CollectionUtils {
                             .collect(toSet());
 
                     final var newColl = toStream(entry.getValue())
-                            .filter(element -> !idsToSubtract.contains((idResolver.apply(element))))
+                            .filter(element -> !idsToSubtract.contains(idResolver.apply(element)))
                             .collect(toCollection(collectionFactory));
 
                     return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
