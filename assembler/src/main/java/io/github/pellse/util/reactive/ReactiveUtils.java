@@ -47,7 +47,7 @@ public interface ReactiveUtils {
     }
 
     static <T> Mono<T> nullToEmpty(T value) {
-        return value != null ?  just(value) : empty();
+        return value != null ? just(value) : empty();
     }
 
     static <T> Mono<T> nullToEmpty(Supplier<T> defaultValueProvider) {
