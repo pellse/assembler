@@ -107,7 +107,7 @@ public class SpringCacheAssemblerTest {
     }
 
     @Test
-    public void testReusableAssemblerBuilderWithCaffeineCache() {
+    public void testReusableAssemblerBuilderWithSpringCache() {
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
@@ -131,7 +131,7 @@ public class SpringCacheAssemblerTest {
     }
 
     @Test
-    public void testReusableAssemblerBuilderWithCaffeineCache2() {
+    public void testReusableAssemblerBuilderWithSpringCache2() {
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
