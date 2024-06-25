@@ -152,9 +152,10 @@ The `cached()` and `cachedMany()` functions include overloaded versions that ena
 
 Below is a compilation of supplementary modules that are available for integration with third-party caching libraries. Additional modules will be incorporated in the future:
 
-| Assembler add-on module | Third party cache library |
-| --- | --- |
-| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-cache-caffeine.svg?label=assembler-cache-caffeine)](https://central.sonatype.com/artifact/io.github.pellse/assembler-cache-caffeine) | [Caffeine](https://github.com/ben-manes/caffeine) |
+| Assembler add-on module                                                                                                                                                                                                      | Third party cache library                               |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
+| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-cache-caffeine.svg?label=assembler-cache-caffeine)](https://central.sonatype.com/artifact/io.github.pellse/assembler-cache-caffeine)     | [Caffeine](https://github.com/ben-manes/caffeine)       |
+| [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler-cache-caffeine.svg?label=assembler-spring-cache)](https://central.sonatype.com/artifact/io.github.pellse/assembler-spring-cache) | [Spring Caching](https://docs.spring.io/spring-boot/reference/io/caching.html) |
 
 Here is a sample implementation of `CacheFactory` that showcases the use of the [Caffeine](https://github.com/ben-manes/caffeine) library, which can be accomplished via the `caffeineCache()` helper method. This helper method is provided as part of the caffeine add-on module:
 
