@@ -716,7 +716,7 @@ public class CacheTest {
     public void testReusableAssemblerBuilderWithAutoCachingEvents() {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
-        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
+        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 1.00);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
 
         Flux<Updated<BillingInfo>> billingInfoEventFlux = Flux.just(

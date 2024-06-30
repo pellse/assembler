@@ -21,35 +21,32 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.RuleMapperSource.nullToEmptySource;
 import static io.github.pellse.util.ObjectUtils.isSafeEqual;
-import static io.github.pellse.util.ObjectUtils.then;
-import static io.github.pellse.util.collection.CollectionUtils.transform;
-import static io.github.pellse.util.collection.CollectionUtils.translate;
+import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Objects.*;
 import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Flux.fromIterable;
 
 public interface QueryUtils {
 
-    static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
-            RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> ruleMapperSource,
-            CTX ruleMapperContext) {
+    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
+            RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,
+            CTX ctx) {
 
-        final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleMapperContext);
+        final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ctx);
 
-        return entityList ->
-                then(translate(entityList, ruleMapperContext.topLevelCollectionFactory()), entities ->
-                        safeApply(entities, queryFunction)
-                                .collect(ruleMapperContext.mapCollector().apply(entities.size()))
-                                .map(map -> toResultMap(entities, map, ruleMapperContext.topLevelIdResolver(), ruleMapperContext.defaultResultProvider())));
+        return entityList -> {
+            var entities = translate(entityList, ctx.topLevelCollectionFactory());
+
+            return safeApply(entities, queryFunction)
+                    .collect(ctx.mapCollector().apply(entities.size()))
+                    .map(map -> toResultMap(entities, map, ctx.outerIdResolver(), ctx.defaultResultProvider()));
+        };
     }
 
     static <T, TC extends Collection<T>, R> Function<TC, Publisher<R>> toPublisher(Function<TC, Iterable<R>> queryFunction) {
@@ -79,8 +76,10 @@ public interface QueryUtils {
 
     static <ID, RRC> Map<ID, RRC> initializeResultMap(Collection<ID> ids, Map<ID, RRC> resultMap, Function<ID, RRC> defaultResultProvider) {
         final Function<ID, RRC> resultProvider = requireNonNullElse(defaultResultProvider, id -> null);
-        final Set<ID> idsFromQueryResult = resultMap.keySet();
-        final Map<ID, RRC> resultMapCopy = new HashMap<>(resultMap);
+
+        final Map<ID, RRC> resultLinkedHashMap = toLinkedHashMap(resultMap);
+        final Set<ID> idsFromQueryResult = resultLinkedHashMap.keySet();
+        final Map<ID, RRC> resultMapCopy = new LinkedHashMap<>(resultLinkedHashMap);
 
         // defaultResultProvider can provide a null value, so we cannot use a Collector here
         // as it would throw a NullPointerException

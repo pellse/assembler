@@ -17,10 +17,7 @@
 package io.github.pellse.assembler.test;
 
 import io.github.pellse.assembler.Assembler;
-import io.github.pellse.assembler.util.BillingInfo;
-import io.github.pellse.assembler.util.Customer;
-import io.github.pellse.assembler.util.OrderItem;
-import io.github.pellse.assembler.util.Transaction;
+import io.github.pellse.assembler.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -37,6 +34,7 @@ import static io.github.pellse.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.RuleMapperSource.toRuleMapperSource;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
@@ -102,6 +100,14 @@ public class AssemblerJavaTest {
 
     private List<Customer> getCustomersNonReactive() {
         return List.of(customer1, customer2, customer3, customer1, customer2, customer3);
+    }
+
+    private Flux<User> getUsers(List<String> userIds) {
+        return Flux.empty();
+    }
+
+    private Flux<Reply> getReplies(List<PostDetails> postDetails) {
+        return Flux.empty();
     }
 
     @BeforeEach
@@ -189,6 +195,18 @@ public class AssemblerJavaTest {
 
         assertEquals(2, billingInvocationCount.get());
         assertEquals(2, ordersInvocationCount.get());
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithFluxWithBuffering2() {
+
+        Assembler<PostDetails, Post> assembler = assemblerOf(Post.class)
+                .withCorrelationIdResolver(PostDetails::id)
+                .withRules(
+                        rule(User::Id, PostDetails::userId, oneToOne(call(this::getUsers))),
+                        rule(Reply::postId, oneToMany(Reply::id, this::getReplies)),
+                        Post::new)
+                .build();
     }
 
     @Test
