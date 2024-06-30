@@ -134,7 +134,7 @@ public class CacheTest {
 //    public void testLongRunningAutoCachingEvents() throws InterruptedException {
     public static void main(String[] args) throws InterruptedException {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540222222222222");
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
 
@@ -578,7 +578,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCaching2() {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, updatedBillingInfo2, billingInfo3);
 
@@ -684,7 +684,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingError() {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, null, "4540111111111111"); // null customerId, will trigger NullPointerException
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, null, "4540111111111111"); // null customerId, will trigger NullPointerException
 
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2Unknown, updatedBillingInfo2, billingInfo3);
 
@@ -715,7 +715,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents() {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540222222222222");
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 1.00);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
 
@@ -818,7 +818,7 @@ public class CacheTest {
                     .doOnComplete(ordersInvocationCount::incrementAndGet);
         };
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, updatedBillingInfo2, billingInfo3)
                 .subscribeOn(parallel());
@@ -862,7 +862,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEventsOnSameThread() {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
         Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
                 updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2));

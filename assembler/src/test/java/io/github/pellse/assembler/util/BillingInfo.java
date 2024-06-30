@@ -16,13 +16,13 @@
 
 package io.github.pellse.assembler.util;
 
-public record BillingInfo(Long id, Long customerId, String creditCardNumber) {
+public record BillingInfo(Integer id, Long customerId, String creditCardNumber) {
 
     public BillingInfo(Long customerId) {
         this(null, customerId);
     }
 
-    public BillingInfo(Long id, Long customerId) {
+    public BillingInfo(Integer id, Long customerId) {
         this(id, customerId, null);
     }
 }

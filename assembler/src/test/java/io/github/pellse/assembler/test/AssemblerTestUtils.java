@@ -30,10 +30,10 @@ import static java.util.Collections.emptySet;
 
 public interface AssemblerTestUtils {
 
-    BillingInfo billingInfo1 = new BillingInfo(1L, 1L, "4540977822220971");
-    BillingInfo billingInfo2 = new BillingInfo(2L, 2L, "4530987722349872");
+    BillingInfo billingInfo1 = new BillingInfo(1, 1L, "4540977822220971");
+    BillingInfo billingInfo2 = new BillingInfo(2, 2L, "4530987722349872");
     BillingInfo billingInfo2Unknown = new BillingInfo(null, 2L);
-    BillingInfo billingInfo3 = new BillingInfo(4L, 3L, "4540987722211234");
+    BillingInfo billingInfo3 = new BillingInfo(4, 3L, "4540987722211234");
 
     OrderItem orderItem11 = new OrderItem("1", 1L, "Sweater", 19.99);
     OrderItem orderItem12 = new OrderItem("2", 1L, "Pants", 39.99);
