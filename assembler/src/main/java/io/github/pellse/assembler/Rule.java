@@ -20,7 +20,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -28,7 +27,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.RuleContext.ruleContext;
+import static io.github.pellse.util.collection.CollectionUtils.size;
 import static io.github.pellse.util.collection.CollectionUtils.toStream;
+import static java.util.LinkedHashMap.newLinkedHashMap;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static reactor.core.publisher.Flux.fromIterable;
@@ -216,13 +217,15 @@ public interface Rule<T, K, RRC> extends Function<Function<T, K>, Function<Itera
         final var queryFunction = rule.apply(idResolver);
 
         return entities -> {
+            final var size = size(entities);
+
             final Map<K, T> entityMap = toStream(entities)
-                    .collect(toMap(idResolver, identity(), (o, o2) -> o2, LinkedHashMap::new));
+                    .collect(toMap(idResolver, identity(), (o, o2) -> o2, () -> newLinkedHashMap(size)));
 
             return queryFunction.apply(entities)
                     .map(resultMap -> resultMap.entrySet()
                             .stream()
-                            .collect(toMap(m -> entityMap.get(m.getKey()), Entry::getValue, (o, o2) -> o2, LinkedHashMap::new)));
+                            .collect(toMap(m -> entityMap.get(m.getKey()), Entry::getValue, (o, o2) -> o2, () -> newLinkedHashMap(size))));
         };
     }
 }

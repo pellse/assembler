@@ -82,7 +82,7 @@ public interface CollectionUtils {
         return asCollection(from).stream().collect(toCollection(collectionFactory));
     }
 
-    static long size(Iterable<?> iterable) {
+    static int size(Iterable<?> iterable) {
         return iterable == null ? 0 : asCollection(iterable).size();
     }
 
