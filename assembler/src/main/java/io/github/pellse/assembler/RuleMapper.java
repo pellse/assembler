@@ -30,7 +30,7 @@ import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.lang.Math.toIntExact;
 import static java.util.Comparator.comparing;
-import static java.util.LinkedHashMap.newLinkedHashMap;
+import static java.util.HashMap.newHashMap;
 import static java.util.stream.Collectors.toMap;
 
 /**
@@ -126,19 +126,21 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
             RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,
             Function<RuleContext<T, TC, K, ID, R, RRC>, CTX> ruleMapperContextProvider) {
 
-        return ctx -> entities -> {
-
-            @SuppressWarnings("unchecked")
-            Function<Map<ID, RRC>, Map<K, RRC>> mappingFunction = ctx.topLevelIdResolver() == ctx.outerIdResolver() ? map -> (Map<K, RRC>) map : map -> {
-                final var lookupTable = toStream(entities)
-                        .collect(toMap(ctx.outerIdResolver(), ctx.topLevelIdResolver(), (v1, v2) -> v2, () -> newLinkedHashMap(toIntExact(size(entities)))));
-
-                return transformMapKeys(map, lookupTable::get);
-            };
-
-            return buildQueryFunction(ruleMapperSource, ruleMapperContextProvider.apply(ctx))
-                    .apply(entities)
-                    .map(mappingFunction);
+        return ctx -> {
+            final var queryFunction = buildQueryFunction(ruleMapperSource, ruleMapperContextProvider.apply(ctx));
+            return entities -> runQueryFunction(queryFunction, entities, ctx);
         };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T, TC extends Collection<T>, K, ID, R, RRC> Mono<Map<K, RRC>> runQueryFunction(Function<Iterable<T>, Mono<Map<ID, RRC>>> queryFunction, Iterable<T> entities, RuleContext<T, TC, K, ID, R, RRC> ctx) {
+
+        final Map<ID, K> lookupTable = toStream(entities)
+                .collect(toMap(ctx.outerIdResolver(), ctx.topLevelIdResolver(), (v1, v2) -> v2, () -> newHashMap(toIntExact(size(entities)))));
+
+        final Function<Map<ID, RRC>, Map<K, RRC>> mappingFunction = ctx.topLevelIdResolver() == ctx.outerIdResolver() ? map -> (Map<K, RRC>) map : map -> transformMapKeys(map, lookupTable::get);
+
+        return queryFunction.apply(entities)
+                .map(mappingFunction);
     }
 }
