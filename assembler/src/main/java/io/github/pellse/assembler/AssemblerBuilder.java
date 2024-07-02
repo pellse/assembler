@@ -36,7 +36,7 @@ public interface AssemblerBuilder {
         return AssemblerBuilder::withCorrelationIdResolver;
     }
 
-    static <T, ID, R> WithRulesBuilder<T, ID, R> withCorrelationIdResolver(Function<T, ID> correlationIdResolver) {
+    static <T, K, R> WithRulesBuilder<T, K, R> withCorrelationIdResolver(Function<T, K> correlationIdResolver) {
 
         return (rules, aggregationFunction) -> assemblerAdapter -> {
 
@@ -44,16 +44,16 @@ public interface AssemblerBuilder {
                     .map(rule -> rule.apply(correlationIdResolver))
                     .toList();
 
-            final Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> subQueryMapperBuilder = topLevelEntities -> queryFunctions.stream()
+            final Function<Iterable<T>, Stream<Publisher<? extends Map<K, ?>>>> subQueryMapperBuilder = topLevelEntities -> queryFunctions.stream()
                     .map(queryFunction -> queryFunction.apply(topLevelEntities));
 
-            final BiFunction<T, List<Map<ID, ?>>, R> joinMapperResultsFunction =
+            final BiFunction<T, List<Map<K, ?>>, R> joinMapperResultsFunction =
                     (topLevelEntity, listOfMapperResults) -> aggregationFunction.apply(topLevelEntity,
                             listOfMapperResults.stream()
                                     .map(mapperResult -> mapperResult.get(correlationIdResolver.apply(topLevelEntity)))
                                     .toArray());
 
-            final BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder =
+            final BiFunction<Iterable<T>, List<Map<K, ?>>, Stream<R>> aggregateStreamBuilder =
                     (topLevelEntities, mapperResults) -> toStream(topLevelEntities)
                             .filter(Objects::nonNull)
                             .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
@@ -65,34 +65,34 @@ public interface AssemblerBuilder {
     @FunctionalInterface
     interface WithCorrelationIdResolverBuilder<R> {
 
-        <T, ID> WithRulesBuilder<T, ID, R> withCorrelationIdResolver(Function<T, ID> correlationIdResolver);
+        <T, K> WithRulesBuilder<T, K, R> withCorrelationIdResolver(Function<T, K> correlationIdResolver);
     }
 
     @FunctionalInterface
-    interface WithRulesBuilder<T, ID, R> {
+    interface WithRulesBuilder<T, K, R> {
 
         @SuppressWarnings("unchecked")
-        default <E1> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule,
+        default <E1> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule,
                 BiFunction<T, E1, R> aggregationFunction) {
 
             return withRules(List.of(rule), (t, s) -> aggregationFunction.apply(t, (E1) s[0]));
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
+        default <E1, E2> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
                 Function3<T, E1, E2, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2), (t, s) -> aggregationFunction.apply(t, (E1) s[0], (E2) s[1]));
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
-                Rule<T, ID, E3> rule3,
+        default <E1, E2, E3> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
+                Rule<T, K, E3> rule3,
                 Function4<T, E1, E2, E3, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2, rule3),
@@ -100,11 +100,11 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
-                Rule<T, ID, E3> rule3,
-                Rule<T, ID, E4> rule4,
+        default <E1, E2, E3, E4> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
+                Rule<T, K, E3> rule3,
+                Rule<T, K, E4> rule4,
                 Function5<T, E1, E2, E3, E4, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2, rule3, rule4),
@@ -112,12 +112,12 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
-                Rule<T, ID, E3> rule3,
-                Rule<T, ID, E4> rule4,
-                Rule<T, ID, E5> rule5,
+        default <E1, E2, E3, E4, E5> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
+                Rule<T, K, E3> rule3,
+                Rule<T, K, E4> rule4,
+                Rule<T, K, E5> rule5,
                 Function6<T, E1, E2, E3, E4, E5, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2, rule3, rule4, rule5),
@@ -125,13 +125,13 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
-                Rule<T, ID, E3> rule3,
-                Rule<T, ID, E4> rule4,
-                Rule<T, ID, E5> rule5,
-                Rule<T, ID, E6> rule6,
+        default <E1, E2, E3, E4, E5, E6> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
+                Rule<T, K, E3> rule3,
+                Rule<T, K, E4> rule4,
+                Rule<T, K, E5> rule5,
+                Rule<T, K, E6> rule6,
                 Function7<T, E1, E2, E3, E4, E5, E6, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6),
@@ -139,14 +139,14 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
-                Rule<T, ID, E3> rule3,
-                Rule<T, ID, E4> rule4,
-                Rule<T, ID, E5> rule5,
-                Rule<T, ID, E6> rule6,
-                Rule<T, ID, E7> rule7,
+        default <E1, E2, E3, E4, E5, E6, E7> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
+                Rule<T, K, E3> rule3,
+                Rule<T, K, E4> rule4,
+                Rule<T, K, E5> rule5,
+                Rule<T, K, E6> rule6,
+                Rule<T, K, E7> rule7,
                 Function8<T, E1, E2, E3, E4, E5, E6, E7, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7),
@@ -155,15 +155,15 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
-                Rule<T, ID, E3> rule3,
-                Rule<T, ID, E4> rule4,
-                Rule<T, ID, E5> rule5,
-                Rule<T, ID, E6> rule6,
-                Rule<T, ID, E7> rule7,
-                Rule<T, ID, E8> rule8,
+        default <E1, E2, E3, E4, E5, E6, E7, E8> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
+                Rule<T, K, E3> rule3,
+                Rule<T, K, E4> rule4,
+                Rule<T, K, E5> rule5,
+                Rule<T, K, E6> rule6,
+                Rule<T, K, E7> rule7,
+                Rule<T, K, E8> rule8,
                 Function9<T, E1, E2, E3, E4, E5, E6, E7, E8, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8),
@@ -172,16 +172,16 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8, E9> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
-                Rule<T, ID, E3> rule3,
-                Rule<T, ID, E4> rule4,
-                Rule<T, ID, E5> rule5,
-                Rule<T, ID, E6> rule6,
-                Rule<T, ID, E7> rule7,
-                Rule<T, ID, E8> rule8,
-                Rule<T, ID, E9> rule9,
+        default <E1, E2, E3, E4, E5, E6, E7, E8, E9> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
+                Rule<T, K, E3> rule3,
+                Rule<T, K, E4> rule4,
+                Rule<T, K, E5> rule5,
+                Rule<T, K, E6> rule6,
+                Rule<T, K, E7> rule7,
+                Rule<T, K, E8> rule8,
+                Rule<T, K, E9> rule9,
                 Function10<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9),
@@ -190,17 +190,17 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
-                Rule<T, ID, E3> rule3,
-                Rule<T, ID, E4> rule4,
-                Rule<T, ID, E5> rule5,
-                Rule<T, ID, E6> rule6,
-                Rule<T, ID, E7> rule7,
-                Rule<T, ID, E8> rule8,
-                Rule<T, ID, E9> rule9,
-                Rule<T, ID, E10> rule10,
+        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
+                Rule<T, K, E3> rule3,
+                Rule<T, K, E4> rule4,
+                Rule<T, K, E5> rule5,
+                Rule<T, K, E6> rule6,
+                Rule<T, K, E7> rule7,
+                Rule<T, K, E8> rule8,
+                Rule<T, K, E9> rule9,
+                Rule<T, K, E10> rule10,
                 Function11<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10),
@@ -209,18 +209,18 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11> Builder<T, ID, R> withRules(
-                Rule<T, ID, E1> rule1,
-                Rule<T, ID, E2> rule2,
-                Rule<T, ID, E3> rule3,
-                Rule<T, ID, E4> rule4,
-                Rule<T, ID, E5> rule5,
-                Rule<T, ID, E6> rule6,
-                Rule<T, ID, E7> rule7,
-                Rule<T, ID, E8> rule8,
-                Rule<T, ID, E9> rule9,
-                Rule<T, ID, E10> rule10,
-                Rule<T, ID, E11> rule11,
+        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11> Builder<T, K, R> withRules(
+                Rule<T, K, E1> rule1,
+                Rule<T, K, E2> rule2,
+                Rule<T, K, E3> rule3,
+                Rule<T, K, E4> rule4,
+                Rule<T, K, E5> rule5,
+                Rule<T, K, E6> rule6,
+                Rule<T, K, E7> rule7,
+                Rule<T, K, E8> rule8,
+                Rule<T, K, E9> rule9,
+                Rule<T, K, E10> rule10,
+                Rule<T, K, E11> rule11,
                 Function12<T, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, R> aggregationFunction) {
 
             return withRules(List.of(rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10, rule11),
@@ -228,11 +228,11 @@ public interface AssemblerBuilder {
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9], (E11) s[10]));
         }
 
-        Builder<T, ID, R> withRules(List<Rule<T, ID, ?>> rules, BiFunction<T, Object[], R> aggregationFunction);
+        Builder<T, K, R> withRules(List<Rule<T, K, ?>> rules, BiFunction<T, Object[], R> aggregationFunction);
     }
 
     @FunctionalInterface
-    interface Builder<T, ID, R> {
+    interface Builder<T, K, R> {
 
         default Assembler<T, R> build() {
             return build(fluxAdapter());
@@ -242,6 +242,6 @@ public interface AssemblerBuilder {
             return build(fluxAdapter(scheduler));
         }
 
-        Assembler<T, R> build(AssemblerAdapter<T, ID, R> adapter);
+        Assembler<T, R> build(AssemblerAdapter<T, K, R> adapter);
     }
 }

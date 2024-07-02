@@ -38,7 +38,7 @@ public sealed interface CacheContext<ID, R, RRC> {
             IntFunction<Collector<R, ?, Map<ID, R>>> mapCollector,
             BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger) implements CacheContext<ID, R, R> {
 
-        OneToOneCacheContext(OneToOneContext<?, ?, ID, R> ctx) {
+        OneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx) {
             this(ctx.mapCollector(), ctx.mapMerger());
         }
     }
@@ -50,7 +50,7 @@ public sealed interface CacheContext<ID, R, RRC> {
             Comparator<R> idComparator,
             Supplier<RC> collectionFactory) implements CacheContext<ID, R, RC> {
 
-        OneToManyCacheContext(OneToManyContext<?, ?, ID, EID, R, RC> ctx) {
+        OneToManyCacheContext(OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
             this(ctx.idResolver(), ctx.mapCollector(), ctx.mapMerger(), ctx.idComparator(), ctx.collectionFactory());
         }
     }

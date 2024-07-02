@@ -114,14 +114,14 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, R> RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> cached(
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
         return cached(cache(), delegateCacheFactories);
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, R> RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> cached(
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
             CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cache,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
@@ -129,7 +129,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, R> RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> cached(
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
             Function<TC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
@@ -137,15 +137,15 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, R> RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> cached(
-            RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> ruleMapperSource,
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
+            RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> ruleMapperSource,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
         return cached(ruleMapperSource, cache(), delegateCacheFactories);
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, R> RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> cached(
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
             Function<TC, Publisher<R>> queryFunction,
             CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
@@ -154,8 +154,8 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, R> RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> cached(
-            RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>> ruleMapperSource,
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
+            RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> ruleMapperSource,
             CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
@@ -163,14 +163,14 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
         return cachedMany(cache(), null, delegateCacheFactories);
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             Comparator<R> sortComparator,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
@@ -178,7 +178,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
@@ -186,7 +186,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Comparator<R> sortComparator,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
@@ -195,7 +195,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             Function<TC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
@@ -203,7 +203,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             Function<TC, Publisher<R>> queryFunction,
             Comparator<R> sortComparator,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
@@ -212,16 +212,16 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
-            RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> ruleMapperSource,
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
         return cachedMany(ruleMapperSource, (Comparator<R>) null, delegateCacheFactories);
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
-            RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> ruleMapperSource,
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
             Comparator<R> sortComparator,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
@@ -229,7 +229,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             Function<TC, Publisher<R>> queryFunction,
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
@@ -238,7 +238,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             Function<TC, Publisher<R>> queryFunction,
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Comparator<R> sortComparator,
@@ -248,8 +248,8 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
-            RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> ruleMapperSource,
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
@@ -257,8 +257,8 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> cachedMany(
-            RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>> ruleMapperSource,
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Comparator<R> sortComparator,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
@@ -279,9 +279,9 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    private static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>, CACHE_CTX extends CacheContext<ID, R, RRC>> RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> cached(
+    private static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>, CACHE_CTX extends CacheContext<ID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> cached(
             Function<CTX, CACHE_CTX> cacheContextProvider,
-            RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> ruleMapperSource,
+            RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,
             CacheFactory<ID, R, RRC, CACHE_CTX> cacheFactory,
             Function<CacheFactory<ID, R, RRC, CACHE_CTX>, CacheFactory<ID, R, RRC, CACHE_CTX>>... delegateCacheFactories) {
 
@@ -301,13 +301,13 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
         };
     }
 
-    private static <T, TC extends Collection<T>, ID, EID, R, RRC> List<ID> ids(TC entities, RuleMapperContext<T, TC, ID, EID, R, RRC> ruleContext) {
-        return transform(entities, ruleContext.topLevelIdResolver());
+    private static <T, TC extends Collection<T>, K, ID, EID, R, RRC> List<ID> ids(TC entities, RuleMapperContext<T, TC, K, ID, EID, R, RRC> ruleContext) {
+        return transform(entities, ruleContext.outerIdResolver());
     }
 
-    private static <T, TC extends Collection<T>, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, ID, EID, R, RRC>> FetchFunction<ID, RRC> buildFetchFunction(
+    private static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> FetchFunction<ID, RRC> buildFetchFunction(
             TC entities,
-            RuleMapperSource<T, TC, ID, EID, R, RRC, CTX> ruleMapperSource,
+            RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,
             CTX ruleContext) {
 
         return ids -> {
@@ -315,10 +315,10 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
                 return just(Map.<ID, RRC>of());
             }
 
-            final Set<ID> idSet = new HashSet<>(asCollection(ids));
+            final var idSet = new HashSet<>(asCollection(ids));
 
             final var entitiesToQuery = toStream(entities)
-                    .filter(e -> idSet.contains(ruleContext.topLevelIdResolver().apply(e)))
+                    .filter(e -> idSet.contains(ruleContext.outerIdResolver().apply(e)))
                     .toList();
 
             return buildQueryFunction(ruleMapperSource, ruleContext).apply(entitiesToQuery)
@@ -338,10 +338,10 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
                         (previousCacheFactory, decoratedCacheFactory) -> decoratedCacheFactory);
     }
 
-    private static <T, TC extends Collection<T>, ID, EID, R, RRC> Map<ID, RRC> buildCacheFragment(
+    private static <T, TC extends Collection<T>, K, ID, EID, R, RRC> Map<ID, RRC> buildCacheFragment(
             Iterable<? extends ID> ids,
             Map<ID, RRC> queryResultsMap,
-            RuleMapperContext<T, TC, ID, EID, R, RRC> ctx) {
+            RuleMapperContext<T, TC, K, ID, EID, R, RRC> ctx) {
 
         return newMap(queryResultsMap, map ->
                 diff(ids, map.keySet()).forEach(id ->

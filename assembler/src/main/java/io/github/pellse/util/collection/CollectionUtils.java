@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.ObjectUtils.ifNotNull;
 import static java.util.Collections.emptySet;
+import static java.util.LinkedHashMap.newLinkedHashMap;
 import static java.util.Map.entry;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
@@ -81,8 +82,12 @@ public interface CollectionUtils {
         return asCollection(from).stream().collect(toCollection(collectionFactory));
     }
 
-    static long size(Iterable<?> iterable) {
+    static int size(Iterable<?> iterable) {
         return iterable == null ? 0 : asCollection(iterable).size();
+    }
+
+    static <K, K1, V> Map<K1, V> transformMapKeys(Map<K, V> sourceMap, Function<K, K1> keyMapper) {
+        return newMap(map -> sourceMap.forEach((k, v) -> map.put(keyMapper.apply(k), v)));
     }
 
     static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, Function<V, V1> mappingFunction) {
@@ -91,7 +96,7 @@ public interface CollectionUtils {
 
     static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, BiFunction<K, V, V1> mappingFunction) {
         return map.entrySet().stream()
-                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getKey(), e.getValue()), (v1, v2) -> v2, LinkedHashMap::new));
+                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getKey(), e.getValue()), (v1, v2) -> v2, () -> newLinkedHashMap(map.size())));
     }
 
     @SafeVarargs

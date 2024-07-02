@@ -17,10 +17,7 @@
 package io.github.pellse.assembler.test;
 
 import io.github.pellse.assembler.Assembler;
-import io.github.pellse.assembler.util.BillingInfo;
-import io.github.pellse.assembler.util.Customer;
-import io.github.pellse.assembler.util.OrderItem;
-import io.github.pellse.assembler.util.Transaction;
+import io.github.pellse.assembler.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;

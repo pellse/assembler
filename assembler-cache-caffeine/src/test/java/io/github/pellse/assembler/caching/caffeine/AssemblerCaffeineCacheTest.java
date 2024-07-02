@@ -304,7 +304,7 @@ public class AssemblerCaffeineCacheTest {
         record CDCDelete(OrderItem item) implements CDC {
         }
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
         Flux<Updated<BillingInfo>> billingInfoEventFlux = Flux.just(
                         updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2))

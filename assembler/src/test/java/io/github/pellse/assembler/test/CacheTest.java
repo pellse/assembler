@@ -26,6 +26,7 @@ import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.assembler.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -129,12 +130,12 @@ public class CacheTest {
         });
     }
 
-    //    @Test
-//    @Timeout(60)
-//    public void testLongRunningAutoCachingEvents() throws InterruptedException {
-    public static void main(String[] args) throws InterruptedException {
+    @Test
+    @Timeout(60)
+    public void testLongRunningAutoCachingEvents() throws InterruptedException {
+//    public static void main(String[] args) throws InterruptedException {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540222222222222");
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
 
@@ -218,17 +219,6 @@ public class CacheTest {
                 }));
         latch.await();
 
-//        AtomicInteger counter = new AtomicInteger(0);
-//        for (int i = 0; i < 50; i++) {
-//            transactionFlux.subscribe(
-//                    value -> counter.incrementAndGet(),
-//                    error -> System.err.println("Error: " + error),
-//                    () -> System.out.println("Completed, counter = " + counter.get())
-//            );
-//        }
-//        transactionFlux.blockLast();
-//
-//        System.out.println("counter = " + counter.get());
         System.out.println("getBillingInfo invocation count: " + billingInvocationCount.get() + ", getOrderItems invocation count: " + ordersInvocationCount.get());
     }
 
@@ -578,7 +568,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCaching2() {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, updatedBillingInfo2, billingInfo3);
 
@@ -684,7 +674,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingError() {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, null, "4540111111111111"); // null customerId, will trigger NullPointerException
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, null, "4540111111111111"); // null customerId, will trigger NullPointerException
 
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2Unknown, updatedBillingInfo2, billingInfo3);
 
@@ -715,8 +705,8 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEvents() {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540222222222222");
-        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540222222222222");
+        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 1.00);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
 
         Flux<Updated<BillingInfo>> billingInfoEventFlux = Flux.just(
@@ -818,7 +808,7 @@ public class CacheTest {
                     .doOnComplete(ordersInvocationCount::incrementAndGet);
         };
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, updatedBillingInfo2, billingInfo3)
                 .subscribeOn(parallel());
@@ -862,7 +852,7 @@ public class CacheTest {
     @Test
     public void testReusableAssemblerBuilderWithAutoCachingEventsOnSameThread() {
 
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2L, 2L, "4540111111111111");
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
         Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
                 updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2));
