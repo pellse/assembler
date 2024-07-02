@@ -13,7 +13,7 @@ subprojects {
     apply plugin: "maven-publish"
     apply plugin: "signing"
 
-    version = "0.7.4"
+    version = "0.7.5"
     group = "io.github.pellse"
 
     repositories {
