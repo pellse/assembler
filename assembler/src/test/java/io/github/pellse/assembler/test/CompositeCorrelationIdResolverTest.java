@@ -17,8 +17,6 @@
 package io.github.pellse.assembler.test;
 
 import io.github.pellse.assembler.Assembler;
-import io.github.pellse.assembler.util.*;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -33,6 +31,18 @@ import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 
 public class CompositeCorrelationIdResolverTest {
+
+    record Post(PostDetails post, User author, List<Reply> replies) {
+    }
+
+    record PostDetails(Long id, String userId, String content) {
+    }
+
+    record User(String Id, String username) {
+    }
+
+    record Reply(Long id, Long postId, String userId, String content) {
+    }
 
     // Creating PostDetails records
     PostDetails postDetails1 = new PostDetails(1L, "user1", "Content of post 1");
@@ -128,10 +138,6 @@ public class CompositeCorrelationIdResolverTest {
                         reply8_1
                 )
                 .filter(r -> postDetailsIds.contains(r.postId()));
-    }
-
-    @BeforeEach
-    void setup() {
     }
 
     /**
