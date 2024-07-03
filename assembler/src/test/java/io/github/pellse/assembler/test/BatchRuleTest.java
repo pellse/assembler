@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.test;
 
-import io.github.pellse.assembler.Rule.BatchRule;
+import io.github.pellse.assembler.BatchRule;
 import io.github.pellse.assembler.util.BillingInfo;
 import io.github.pellse.assembler.util.Customer;
 import io.github.pellse.assembler.util.OrderItem;
@@ -28,14 +28,14 @@ import reactor.test.StepVerifier;
 import java.util.List;
 import java.util.Map;
 
-import static io.github.pellse.assembler.Rule.withIdResolver;
+import static io.github.pellse.assembler.BatchRule.withIdResolver;
 import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 
-public class RuleTest {
+public class BatchRuleTest {
 
     private final BatchRule<Customer, BillingInfo> billingInfoBatchRule = withIdResolver(Customer::customerId)
             .createRule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo)));
