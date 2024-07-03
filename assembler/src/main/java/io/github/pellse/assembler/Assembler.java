@@ -19,8 +19,14 @@ package io.github.pellse.assembler;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
+import static reactor.core.publisher.Flux.fromIterable;
+
 @FunctionalInterface
 public interface Assembler<T, R> {
+
+    default Flux<R> assemble(Iterable<T> topLevelEntities) {
+        return assemble(fromIterable(topLevelEntities));
+    }
 
     Flux<R> assemble(Publisher<T> topLevelEntities);
 }

@@ -39,6 +39,10 @@ public interface RuleMapperSource<T, TC extends Collection<T>, K, ID, EID, R, RR
 
     RuleMapperSource<?, Collection<Object>, ?, ?, ?, ?, ?, RuleMapperContext<Object, Collection<Object>, Object, Object, Object, Object, Object>> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
 
+    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> from(Assembler<T, R> assembler) {
+        return __ -> assembler::assemble;
+    }
+
     static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> toRuleMapperSource(Function<TC, Publisher<R>> queryFunction) {
         return __ -> queryFunction;
     }
