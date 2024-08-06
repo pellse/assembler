@@ -30,26 +30,26 @@ import static reactor.core.scheduler.Schedulers.parallel;
 
 public interface FluxAdapter {
 
-    static <T, ID, R> AssemblerAdapter<T, ID, R> fluxAdapter() {
+    static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter() {
         return fluxAdapter(parallel());
     }
 
-    static <T, ID, R> AssemblerAdapter<T, ID, R> fluxAdapter(Scheduler scheduler) {
+    static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter(Scheduler scheduler) {
 
         return (topLevelEntitiesProvider, subQueryMapperBuilder, aggregateStreamBuilder) -> Flux.from(topLevelEntitiesProvider)
                 .collectList()
                 .flatMapMany(entities ->
-                        zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).collect(toList()),
+                        zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).toList(),
                                 mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))))
                 .publishOn(scheduler) // from(publisher) above can itself switch to a different scheduler e.g. AutoCache
                 .flatMapSequential(Flux::fromStream);
     }
 
     @SuppressWarnings("unchecked")
-    private static <ID> List<Map<ID, ?>> toMapperResultList(Object[] mapperResults) {
+    private static <K> List<Map<K, ?>> toMapperResultList(Object[] mapperResults) {
 
         return Stream.of(mapperResults)
-                .map(mapResult -> (Map<ID, ?>) mapResult)
+                .map(mapResult -> (Map<K, ?>) mapResult)
                 .collect(toList());
     }
 }
