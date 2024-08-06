@@ -344,7 +344,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
             RuleMapperContext<T, TC, K, ID, EID, R, RRC> ctx) {
 
         return newMap(queryResultsMap, map ->
-                diff(ids, map.keySet()).forEach(id ->
-                        ifNotNull(ctx.defaultResultProvider().apply(id), value -> map.put(id, value))));
+                diff(ids, map.keySet())
+                        .forEach(id -> ifNotNull(ctx.defaultResultProvider().apply(id), value -> map.put(id, value))));
     }
 }
