@@ -27,10 +27,9 @@ import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.QueryUtils.*;
 import static io.github.pellse.assembler.RuleMapperSource.*;
+import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Comparator.comparing;
-import static java.util.HashMap.newHashMap;
-import static java.util.stream.Collectors.toMap;
 
 /**
  * @param <ID>  Correlation Id type
@@ -131,13 +130,12 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
         };
     }
 
-    @SuppressWarnings("unchecked")
     private static <T, TC extends Collection<T>, K, ID, R, RRC> Mono<Map<K, RRC>> runQueryFunction(Function<Iterable<T>, Mono<Map<ID, RRC>>> queryFunction, Iterable<T> entities, RuleContext<T, TC, K, ID, R, RRC> ctx) {
 
-        final Map<ID, K> lookupTable = toStream(entities)
-                .collect(toMap(ctx.outerIdResolver(), ctx.topLevelIdResolver(), (v1, v2) -> v2, () -> newHashMap(size(entities))));
-
-        final Function<Map<ID, RRC>, Map<K, RRC>> mappingFunction = ctx.topLevelIdResolver() == ctx.outerIdResolver() ? map -> (Map<K, RRC>) map : map -> transformMapKeys(map, lookupTable::get);
+        @SuppressWarnings("unchecked")
+        final Function<Map<ID, RRC>, Map<K, RRC>> mappingFunction = ctx.topLevelIdResolver() == ctx.outerIdResolver()
+                ? map -> (Map<K, RRC>) map
+                : then(toHashMap(entities, ctx.outerIdResolver(), ctx.topLevelIdResolver()), lookupTable -> map -> transformMapKeys(map, lookupTable::get));
 
         return queryFunction.apply(entities)
                 .map(mappingFunction);
