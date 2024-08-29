@@ -127,7 +127,7 @@ public record Reply(Long id, Long postId, Long userId, String content) {}
 
 public record Post(PostDetails post, User author, List<Reply> replies) {}
 ```
-Wthout ID Join, there is no way to express the relationship between e.g. a `PostDetails` and a `User` because `User` doesn't have a `postId` field like `Reply` does:
+Without ID Join, there is no way to express the relationship between e.g. a `PostDetails` and a `User` because `User` doesn't have a `postId` field like `Reply` does:
 ```java
 Assembler<PostDetails, Post> assembler = assemblerOf(Post.class)
   .withCorrelationIdResolver(PostDetails::id)
