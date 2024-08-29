@@ -22,6 +22,7 @@ https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9
 - **[Basic Usage](#basic-usage)**
   - [Default values for missing data](#default-values-for-missing-data)
 - **[Infinite Stream of Data](#infinite-stream-of-data)**
+- **[ID Join](#id-join)**
 - **[Reactive Caching](#reactive-caching)**
   - [Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)
   - [Auto Caching](#auto-caching)
@@ -115,6 +116,60 @@ Flux<Transaction> transactionFlux = getCustomers()
 ```
 [:arrow_up:](#table-of-contents)
 
+## ID Join
+***Assembler*** supports the concept of ID joins, semantically similar to SQL joins, to solve the issue of missing correlation IDs between primary and dependent entities. For example, assuming the following data model:
+```java
+public record PostDetails(Long id, Long userId, String content) {}
+
+public record User(Long Id, String username) {} // No correlation Id back to PostDetails
+
+public record Reply(Long id, Long postId, Long userId, String content) {}
+
+public record Post(PostDetails post, User author, List<Reply> replies) {}
+```
+Wthout ID Join, there was no way to express the relationship between e.g. a `PostDetails` and a `User` because `User` doesn't have a `postId` field like `Reply` does:
+```java
+Assembler<PostDetails, Post> assembler = assemblerOf(Post.class)
+  .withCorrelationIdResolver(PostDetails::id)
+  .withRules(
+    rule(XXXXX, oneToOne(call(PostDetails::userId, this::getUsersById))), // What should XXXXX be?
+    rule(Reply::postId, oneToMany(Reply::id, call(this::getRepliesById))),
+    Post::new)
+  .build();
+```
+With ID Join, this relationship can now be expressed:
+```java
+Assembler<PostDetails, Post> assembler = assemblerOf(Post.class)
+  .withCorrelationIdResolver(PostDetails::id)
+  .withRules(
+    rule(User::Id, PostDetails::userId, oneToOne(call(this::getUsersById))), // ID Join
+    rule(Reply::postId, oneToMany(Reply::id, call(this::getRepliesById))),
+    Post::new)
+  .build();
+```
+This would be semantically equivalent to the following SQL query if all entities were stored in the same relational database:
+```sql
+SELECT 
+    p.id AS post_id,
+    p.userId AS post_userId,
+    p.content AS post_content,
+    u.id AS author_id,
+    u.username AS author_username,
+    r.id AS reply_id,
+    r.postId AS reply_postId,
+    r.userId AS reply_userId,
+    r.content AS reply_content
+FROM 
+    PostDetails p
+JOIN 
+    User u ON p.userId = u.id -- rule(User::Id, PostDetails::userId, ...)
+LEFT JOIN 
+    Reply r ON p.id = r.postId -- rule(Reply::postId, ...)
+WHERE 
+    p.id IN (1, 2, 3); -- withCorrelationIdResolver(PostDetails::id)
+```
+[:arrow_up:](#table-of-contents)
+
 ## Reactive Caching
 Apart from offering convenient helper functions to define mapping semantics such as `oneToOne()` and `oneToMany()`, ***Assembler*** also includes a caching/memoization mechanism for the downstream subqueries via the `cached()` wrapper function:
 
@@ -141,7 +196,6 @@ var transactionFlux = getCustomers()
   .window(3)
   .flatMapSequential(assembler::assemble);
 ```
-
 [:arrow_up:](#table-of-contents)
 
 ### Third Party Reactive Cache Provider Integration
