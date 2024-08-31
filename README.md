@@ -43,12 +43,7 @@ Here is an example of how to use ***Assembler*** to generate transaction informa
 ```java
 public record Customer(Long customerId, String name) {}
 
-public record BillingInfo(Long id, Long customerId, String creditCardNumber) {
-    
-  public BillingInfo(Long customerId) {
-    this(null, customerId, "0000 0000 0000 0000");
-  }
-}
+public record BillingInfo(Long id, Long customerId, String creditCardNumber) {}
 
 public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
 
@@ -93,11 +88,11 @@ The code snippet above demonstrates the process of first retrieving all customer
 ### Default values for missing data
 To provide a default value for each missing values from the result of the API call, a factory function can also be supplied as a 2nd parameter to the `oneToOne()` function. For example, when `getCustomers()` returns 3 `Customer` *[C1, C2, C3]*, and `getBillingInfo([ID1, ID2, ID3])` returns only 2 associated `BillingInfo` *[B1, B2]*, the missing value *B3* can be generated as a default value. By doing so, a `null` `BillingInfo` is never passed to the `Transaction` constructor:
 ```java
-rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), customerId -> new BillingInfo(customerId)))
+rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), customerId -> createDefaultBillingInfo(customerId)))
 ``` 
 or more concisely:
 ```java
-rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), BillingInfo::new))
+rule(BillingInfo::customerId, oneToOne(call(this::getBillingInfo), this::createDefaultBillingInfo))
 ```
 Unlike the `oneToOne()` function, `oneToMany()` will always default to generating an empty collection. Therefore, providing a default factory function is not needed. In the example above, an empty `List<OrderItem>` is passed to the `Transaction` constructor if `getAllOrders([1, 2, 3])` returns `null`.
 
