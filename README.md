@@ -12,10 +12,6 @@ See the [demo app](https://github.com/pellse/assembler-spring-graphql-example) f
 
 https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9e10-ca720ec2f5cd
 
-*The code implementing the whole real-time data aggregation pipeline is as simple as below:*
-
-![Assembler](./images/AssemblerExample.png)
-
 ## Table of Contents
 
 - **[Use Cases](#use-cases)**
