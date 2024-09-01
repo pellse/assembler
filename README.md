@@ -114,7 +114,7 @@ Flux<Transaction> transactionFlux = getCustomers()
 ```java
 public record PostDetails(Long id, Long userId, String content) {}
 
-public record User(Long Id, String username) {} // No correlation Id back to PostDetails
+public record User(Long Id, String username) {} // No postId field i.e. no correlation Id back to PostDetails
 
 public record Reply(Long id, Long postId, Long userId, String content) {}
 
