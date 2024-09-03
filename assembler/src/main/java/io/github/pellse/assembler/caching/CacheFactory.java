@@ -133,7 +133,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
             Function<TC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
-        return cached(toRuleMapperSource(queryFunction), delegateCacheFactories);
+        return cached(from(queryFunction), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -150,7 +150,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
             CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
-        return cached(toRuleMapperSource(queryFunction), cacheFactory, delegateCacheFactories);
+        return cached(from(queryFunction), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -208,7 +208,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
             Comparator<R> sortComparator,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(toRuleMapperSource(queryFunction), sortComparator, delegateCacheFactories);
+        return cachedMany(from(queryFunction), sortComparator, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -244,7 +244,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
             Comparator<R> sortComparator,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(toRuleMapperSource(queryFunction), cacheFactory, sortComparator, delegateCacheFactories);
+        return cachedMany(from(queryFunction), cacheFactory, sortComparator, delegateCacheFactories);
     }
 
     @SafeVarargs

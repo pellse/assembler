@@ -34,7 +34,7 @@ import static io.github.pellse.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
-import static io.github.pellse.assembler.RuleMapperSource.toRuleMapperSource;
+import static io.github.pellse.assembler.RuleMapperSource.from;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.util.Collections.emptyList;
@@ -171,7 +171,7 @@ public class AssemblerJavaTest {
         Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(toRuleMapperSource(this::getBillingInfo), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(from(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                         Transaction::new)
                 .build();
@@ -196,7 +196,7 @@ public class AssemblerJavaTest {
         Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(toRuleMapperSource(this::getBillingInfo), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(from(this::getBillingInfo), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrdersWithErrorOn2ndOrderItemOf1stCustomer)),
                         Transaction::new)
                 .build();
