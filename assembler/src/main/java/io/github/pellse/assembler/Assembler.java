@@ -19,6 +19,9 @@ package io.github.pellse.assembler;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
+import java.util.Collection;
+import java.util.function.Function;
+
 import static reactor.core.publisher.Flux.fromIterable;
 
 @FunctionalInterface
@@ -29,4 +32,8 @@ public interface Assembler<T, R> {
     }
 
     Flux<R> assemble(Publisher<T> topLevelEntities);
+
+    static <T, TC extends Collection<T>, R, V> Function<TC, Publisher<V>> assemble(Function<TC, Publisher<R>> queryFunction, Assembler<R, V> assembler) {
+        return entities -> assembler.assemble(queryFunction.apply(entities));
+    }
 }
