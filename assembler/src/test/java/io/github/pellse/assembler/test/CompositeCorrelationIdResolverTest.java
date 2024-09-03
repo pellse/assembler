@@ -121,12 +121,12 @@ public class CompositeCorrelationIdResolverTest {
 
     private Flux<Reply> getReplies(List<PostDetails> postDetails) {
 
-        return getRepliesById(postDetails.stream()
+        return getRepliesByPostId(postDetails.stream()
                 .map(PostDetails::id)
                 .collect(Collectors.toSet()));
     }
 
-    private Flux<Reply> getRepliesById(Collection<Long> postDetailsIds) {
+    private Flux<Reply> getRepliesByPostId(Collection<Long> postDetailsIds) {
         return Flux.just(
                         reply1_1, reply1_2, reply1_3,
                         reply2_1, reply2_2, reply2_3,
@@ -185,13 +185,13 @@ public class CompositeCorrelationIdResolverTest {
     }
 
     @Test
-    public void testWithGetRepliesById() {
+    public void testWithGetRepliesByPostId() {
 
         Assembler<PostDetails, Post> assembler = assemblerOf(Post.class)
                 .withCorrelationIdResolver(PostDetails::id)
                 .withRules(
                         rule(User::Id, PostDetails::userId, oneToOne(call(this::getUsersById))),
-                        rule(Reply::postId, oneToMany(Reply::id, call(this::getRepliesById))),
+                        rule(Reply::postId, oneToMany(Reply::id, call(this::getRepliesByPostId))),
                         Post::new)
                 .build();
 
