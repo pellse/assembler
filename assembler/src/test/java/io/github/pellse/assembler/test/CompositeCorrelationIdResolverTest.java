@@ -45,16 +45,16 @@ public class CompositeCorrelationIdResolverTest {
     }
 
     // Creating PostDetails records
-    PostDetails postDetails1 = new PostDetails(1L, "user1", "Content of post 1");
-    PostDetails postDetails2 = new PostDetails(2L, "user2", "Content of post 2");
-    PostDetails postDetails3 = new PostDetails(3L, "user3", "Content of post 3");
-    PostDetails postDetails4 = new PostDetails(4L, "user4", "Content of post 4");
-    PostDetails postDetails5 = new PostDetails(5L, "user5", "Content of post 5");
-    PostDetails postDetails6 = new PostDetails(6L, "user6", "Content of post 6");
-    PostDetails postDetails7 = new PostDetails(7L, "user7", "Content of post 7");
-    PostDetails postDetails8 = new PostDetails(8L, "user8", "Content of post 8");
-    PostDetails postDetails9 = new PostDetails(9L, "user9", "Content of post 9");
-    PostDetails postDetails10 = new PostDetails(10L, "user10", "Content of post 10");
+    PostDetails postDetails1 = new PostDetails(100L, "user1", "Content of post 1");
+    PostDetails postDetails2 = new PostDetails(200L, "user2", "Content of post 2");
+    PostDetails postDetails3 = new PostDetails(300L, "user3", "Content of post 3");
+    PostDetails postDetails4 = new PostDetails(400L, "user4", "Content of post 4");
+    PostDetails postDetails5 = new PostDetails(500L, "user5", "Content of post 5");
+    PostDetails postDetails6 = new PostDetails(600L, "user6", "Content of post 6");
+    PostDetails postDetails7 = new PostDetails(700L, "user7", "Content of post 7");
+    PostDetails postDetails8 = new PostDetails(800L, "user8", "Content of post 8");
+    PostDetails postDetails9 = new PostDetails(900L, "user9", "Content of post 9");
+    PostDetails postDetails10 = new PostDetails(1000L, "user10", "Content of post 10");
 
     // Creating User records
     User user1 = new User("user1", "Alice");
@@ -69,32 +69,32 @@ public class CompositeCorrelationIdResolverTest {
     User user10 = new User("user10", "Jack");
 
     // Creating Reply records
-    Reply reply1_1 = new Reply(1L, 1L, "user2", "Reply 1 to post 1");
-    Reply reply1_2 = new Reply(2L, 1L, "user3", "Reply 2 to post 1");
-    Reply reply1_3 = new Reply(3L, 1L, "user4", "Reply 3 to post 1");
+    Reply reply1_1 = new Reply(1L, 100L, "user2", "Reply 1 to post 1");
+    Reply reply1_2 = new Reply(2L, 100L, "user3", "Reply 2 to post 1");
+    Reply reply1_3 = new Reply(3L, 100L, "user4", "Reply 3 to post 1");
 
-    Reply reply2_1 = new Reply(4L, 2L, "user3", "Reply 1 to post 2");
-    Reply reply2_2 = new Reply(5L, 2L, "user4", "Reply 2 to post 2");
-    Reply reply2_3 = new Reply(6L, 2L, "user5", "Reply 3 to post 2");
+    Reply reply2_1 = new Reply(4L, 200L, "user3", "Reply 1 to post 2");
+    Reply reply2_2 = new Reply(5L, 200L, "user4", "Reply 2 to post 2");
+    Reply reply2_3 = new Reply(6L, 200L, "user5", "Reply 3 to post 2");
 
-    Reply reply3_1 = new Reply(7L, 3L, "user4", "Reply 1 to post 3");
-    Reply reply3_2 = new Reply(8L, 3L, "user5", "Reply 2 to post 3");
-    Reply reply3_3 = new Reply(9L, 3L, "user1", "Reply 3 to post 3");
+    Reply reply3_1 = new Reply(7L, 300L, "user4", "Reply 1 to post 3");
+    Reply reply3_2 = new Reply(8L, 300L, "user5", "Reply 2 to post 3");
+    Reply reply3_3 = new Reply(9L, 300L, "user1", "Reply 3 to post 3");
 
-    Reply reply4_1 = new Reply(10L, 4L, "user5", "Reply 1 to post 4");
-    Reply reply4_2 = new Reply(11L, 4L, "user1", "Reply 2 to post 4");
-    Reply reply4_3 = new Reply(12L, 4L, "user2", "Reply 3 to post 4");
+    Reply reply4_1 = new Reply(10L, 400L, "user5", "Reply 1 to post 4");
+    Reply reply4_2 = new Reply(11L, 400L, "user1", "Reply 2 to post 4");
+    Reply reply4_3 = new Reply(12L, 400L, "user2", "Reply 3 to post 4");
 
-    Reply reply5_1 = new Reply(13L, 5L, "user1", "Reply 1 to post 5");
-    Reply reply5_2 = new Reply(14L, 5L, "user2", "Reply 2 to post 5");
-    Reply reply5_3 = new Reply(15L, 5L, "user3", "Reply 3 to post 5");
+    Reply reply5_1 = new Reply(13L, 500L, "user1", "Reply 1 to post 5");
+    Reply reply5_2 = new Reply(14L, 500L, "user2", "Reply 2 to post 5");
+    Reply reply5_3 = new Reply(15L, 500L, "user3", "Reply 3 to post 5");
 
     // Creating additional Reply records
-    Reply reply6_1 = new Reply(16L, 6L, "user2", "Reply 1 to post 6");
-    Reply reply7_1 = new Reply(17L, 7L, "user3", "Reply 1 to post 7");
-    Reply reply8_1 = new Reply(18L, 8L, "user4", "Reply 1 to post 8");
-    Reply reply9_1 = new Reply(19L, 9L, "user5", "Reply 1 to post 9");
-    Reply reply10_1 = new Reply(20L, 10L, "user6", "Reply 1 to post 10");
+    Reply reply6_1 = new Reply(16L, 600L, "user2", "Reply 1 to post 6");
+    Reply reply7_1 = new Reply(17L, 700L, "user3", "Reply 1 to post 7");
+    Reply reply8_1 = new Reply(18L, 800L, "user4", "Reply 1 to post 8");
+    Reply reply9_1 = new Reply(19L, 900L, "user5", "Reply 1 to post 9");
+    Reply reply10_1 = new Reply(20L, 1000L, "user6", "Reply 1 to post 10");
 
     // Creating Post records with corresponding PostDetails, User, and Replies
     Post post1 = new Post(postDetails1, user1, List.of(reply1_1, reply1_2, reply1_3));
