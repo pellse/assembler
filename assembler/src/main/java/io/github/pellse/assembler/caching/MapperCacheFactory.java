@@ -23,7 +23,7 @@ import java.util.function.Function;
 
 import static io.github.pellse.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.util.ObjectUtils.then;
-import static io.github.pellse.util.collection.CollectionUtils.transformMap;
+import static io.github.pellse.util.collection.CollectionUtils.transformMapValues;
 
 public interface MapperCacheFactory {
 
@@ -34,10 +34,10 @@ public interface MapperCacheFactory {
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CTX> mapper(CacheFactory<ID, R, RRC, CTX> cacheFactory, Function<CTX, BiFunction<ID, RRC, RRC>> mappingFunction) {
         return context -> then(cacheFactory.create(context), delegateCache -> adapterCache(
                 delegateCache::getAll,
-                (ids, fetchFunction) -> delegateCache.computeAll(ids, idList -> fetchFunction.apply(idList).map(m -> transformMap(m, mappingFunction.apply(context)))),
-                map -> delegateCache.putAll(transformMap(map, mappingFunction.apply(context))),
+                (ids, fetchFunction) -> delegateCache.computeAll(ids, idList -> fetchFunction.apply(idList).map(m -> transformMapValues(m, mappingFunction.apply(context)))),
+                map -> delegateCache.putAll(transformMapValues(map, mappingFunction.apply(context))),
                 delegateCache::removeAll,
-                (mapToAdd, mapToRemove) -> delegateCache.updateAll(transformMap(mapToAdd, mappingFunction.apply(context)), mapToRemove)
+                (mapToAdd, mapToRemove) -> delegateCache.updateAll(transformMapValues(mapToAdd, mappingFunction.apply(context)), mapToRemove)
         ));
     }
 }

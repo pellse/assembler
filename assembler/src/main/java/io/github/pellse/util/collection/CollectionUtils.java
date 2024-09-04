@@ -83,16 +83,24 @@ public interface CollectionUtils {
         return iterable == null ? 0 : asCollection(iterable).size();
     }
 
-    static <K, K1, V> Map<K1, V> transformMapKeys(Map<K, V> sourceMap, Function<K, K1> keyMapper) {
-        return newMap(map -> sourceMap.forEach((k, v) -> map.put(keyMapper.apply(k), v)));
+    static <K, K1, V> Map<K1, V> transformMapKeys(Map<K, V> map, Function<K, K1> keyMapper) {
+        return transformMapKeys(map, (key, __) -> keyMapper.apply(key));
     }
 
-    static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, Function<V, V1> mappingFunction) {
-        return transformMap(map, (__, value) -> mappingFunction.apply(value));
+    static <K, K1, V> Map<K1, V> transformMapKeys(Map<K, V> map, BiFunction<K, V, K1> keyMapper) {
+        return transformMap(map, keyMapper, (key, value) -> value);
     }
 
-    static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, BiFunction<K, V, V1> mappingFunction) {
-        return toLinkedHashMap(map.entrySet(), Entry::getKey, e -> mappingFunction.apply(e.getKey(), e.getValue()));
+    static <K, V, V1> Map<K, V1> transformMapValues(Map<K, V> map, Function<V, V1> valueMapper) {
+        return transformMapValues(map, (__, value) -> valueMapper.apply(value));
+    }
+
+    static <K, V, V1> Map<K, V1> transformMapValues(Map<K, V> map, BiFunction<K, V, V1> valueMapper) {
+        return transformMap(map, (key, value) -> key, valueMapper);
+    }
+
+    static <K, V, K1, V1> Map<K1, V1> transformMap(Map<K, V> map, BiFunction<K, V, K1> keyMapper, BiFunction<K, V, V1> valueMapper) {
+        return toLinkedHashMap(map.entrySet(), e -> keyMapper.apply(e.getKey(), e.getValue()), e -> valueMapper.apply(e.getKey(), e.getValue()));
     }
 
     @SafeVarargs
@@ -174,7 +182,7 @@ public interface CollectionUtils {
         return map instanceof LinkedHashMap<K, V> lhm ? lhm : new LinkedHashMap<>(map);
     }
 
-    static <T, K> LinkedHashMap<K, T> toLinkedHashMap(Iterable<T> iterable, Function<? super T, K> keyExtractor) {
+    static <T, K> LinkedHashMap<K, T> toLinkedHashMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor) {
         return toLinkedHashMap(iterable, keyExtractor, identity());
     }
 
@@ -182,7 +190,7 @@ public interface CollectionUtils {
         return toJavaMap(iterable, keyExtractor, valueExtractor, LinkedHashMap::newLinkedHashMap);
     }
 
-    static <T, K, V> HashMap<K, V> toHashMap(Iterable<T> iterable, Function<? super T, K> keyExtractor, Function<T, V> valueExtractor) {
+    static <T, K, V> HashMap<K, V> toHashMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor, Function<? super T, ? extends V> valueExtractor) {
         return toJavaMap(iterable, keyExtractor, valueExtractor, HashMap::newHashMap);
     }
 

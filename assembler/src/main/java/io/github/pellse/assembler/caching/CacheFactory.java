@@ -92,7 +92,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
                         delegateMap.remove(id);
                         sink.tryEmitError(e);
                     }))
-                    .flatMap(__ -> resolve(mergeMaps(cachedEntitiesMap, transformMap(sinkMap, Empty::asMono))));
+                    .flatMap(__ -> resolve(mergeMaps(cachedEntitiesMap, transformMapValues(sinkMap, Empty::asMono))));
         };
 
         Function<Map<ID, RRC>, Mono<?>> putAll = toMono(map -> also(createSinkMap(map.keySet()), delegateMap::putAll)
