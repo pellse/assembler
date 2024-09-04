@@ -26,10 +26,10 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 @FunctionalInterface
-public interface AssemblerAdapter<T, ID, R> {
+public interface AssemblerAdapter<T, K, R> {
 
     Flux<R> convertSubQueryMappers(
             Publisher<T> topLevelEntitiesProvider,
-            Function<Iterable<T>, Stream<Publisher<? extends Map<ID, ?>>>> subQueryMapperBuilder,
-            BiFunction<Iterable<T>, List<Map<ID, ?>>, Stream<R>> aggregateStreamBuilder);
+            Function<Iterable<T>, Stream<Publisher<? extends Map<K, ?>>>> subQueryMapperBuilder,
+            BiFunction<Iterable<T>, List<Map<K, ?>>, Stream<R>> aggregateStreamBuilder);
 }

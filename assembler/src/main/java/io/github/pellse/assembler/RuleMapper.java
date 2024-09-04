@@ -27,10 +27,10 @@ import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.QueryUtils.*;
 import static io.github.pellse.assembler.RuleMapperSource.*;
+import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
+import static io.github.pellse.util.lookup.LookupTable.lookupTableFrom;
 import static java.util.Comparator.comparing;
-import static java.util.HashMap.newHashMap;
-import static java.util.stream.Collectors.toMap;
 
 /**
  * @param <ID>  Correlation Id type
@@ -47,7 +47,7 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
     }
 
     static <T, TC extends Collection<T>, K, ID, R> RuleMapper<T, TC, K, ID, R, R> oneToOne(Function<TC, Publisher<R>> queryFunction) {
-        return oneToOne(toRuleMapperSource(queryFunction), id -> null);
+        return oneToOne(from(queryFunction), id -> null);
     }
 
     static <T, TC extends Collection<T>, K, ID, R> RuleMapper<T, TC, K, ID, R, R> oneToOne(RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> ruleMapperSource) {
@@ -58,7 +58,7 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
             Function<TC, Publisher<R>> queryFunction,
             Function<ID, R> defaultResultProvider) {
 
-        return oneToOne(toRuleMapperSource(queryFunction), defaultResultProvider);
+        return oneToOne(from(queryFunction), defaultResultProvider);
     }
 
     static <T, TC extends Collection<T>, K, ID, R> RuleMapper<T, TC, K, ID, R, R> oneToOne(
@@ -78,7 +78,7 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
             Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction) {
 
-        return oneToMany(idResolver, toRuleMapperSource(queryFunction), ArrayList::new);
+        return oneToMany(idResolver, from(queryFunction), ArrayList::new);
     }
 
     static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, K, ID, R, List<R>> oneToMany(
@@ -92,7 +92,7 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
             Function<R, EID> idResolver,
             Function<TC, Publisher<R>> queryFunction) {
 
-        return oneToMany(idResolver, toRuleMapperSource(queryFunction), HashSet::new);
+        return oneToMany(idResolver, from(queryFunction), HashSet::new);
     }
 
     static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, K, ID, R, Set<R>> oneToManyAsSet(
@@ -107,7 +107,7 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
             Function<TC, Publisher<R>> queryFunction,
             Supplier<RC> collectionFactory) {
 
-        return oneToMany(idResolver, toRuleMapperSource(queryFunction), collectionFactory);
+        return oneToMany(idResolver, from(queryFunction), collectionFactory);
     }
 
     static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R, RC extends Collection<R>> RuleMapper<T, TC, K, ID, R, RC> oneToMany(
@@ -131,13 +131,12 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
         };
     }
 
-    @SuppressWarnings("unchecked")
     private static <T, TC extends Collection<T>, K, ID, R, RRC> Mono<Map<K, RRC>> runQueryFunction(Function<Iterable<T>, Mono<Map<ID, RRC>>> queryFunction, Iterable<T> entities, RuleContext<T, TC, K, ID, R, RRC> ctx) {
 
-        final Map<ID, K> lookupTable = toStream(entities)
-                .collect(toMap(ctx.outerIdResolver(), ctx.topLevelIdResolver(), (v1, v2) -> v2, () -> newHashMap(size(entities))));
-
-        final Function<Map<ID, RRC>, Map<K, RRC>> mappingFunction = ctx.topLevelIdResolver() == ctx.outerIdResolver() ? map -> (Map<K, RRC>) map : map -> transformMapKeys(map, lookupTable::get);
+        @SuppressWarnings("unchecked")
+        final Function<Map<ID, RRC>, Map<K, RRC>> mappingFunction = ctx.topLevelIdResolver() == ctx.outerIdResolver()
+                ? map -> (Map<K, RRC>) map
+                : then(lookupTableFrom(entities, ctx.outerIdResolver(), ctx.topLevelIdResolver()), lookupTable -> map -> newMap(m -> map.forEach((id, v) -> lookupTable.get(id).forEach(mappedId -> m.put(mappedId, v)))));
 
         return queryFunction.apply(entities)
                 .map(mappingFunction);

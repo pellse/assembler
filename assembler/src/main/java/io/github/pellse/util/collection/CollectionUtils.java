@@ -18,10 +18,7 @@ package io.github.pellse.util.collection;
 
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.stream.Stream;
 
 import static io.github.pellse.util.ObjectUtils.also;
@@ -86,17 +83,24 @@ public interface CollectionUtils {
         return iterable == null ? 0 : asCollection(iterable).size();
     }
 
-    static <K, K1, V> Map<K1, V> transformMapKeys(Map<K, V> sourceMap, Function<K, K1> keyMapper) {
-        return newMap(map -> sourceMap.forEach((k, v) -> map.put(keyMapper.apply(k), v)));
+    static <K, K1, V> Map<K1, V> transformMapKeys(Map<K, V> map, Function<K, K1> keyMapper) {
+        return transformMapKeys(map, (key, __) -> keyMapper.apply(key));
     }
 
-    static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, Function<V, V1> mappingFunction) {
-        return transformMap(map, (__, value) -> mappingFunction.apply(value));
+    static <K, K1, V> Map<K1, V> transformMapKeys(Map<K, V> map, BiFunction<K, V, K1> keyMapper) {
+        return transformMap(map, keyMapper, (key, value) -> value);
     }
 
-    static <K, V, V1> Map<K, V1> transformMap(Map<K, V> map, BiFunction<K, V, V1> mappingFunction) {
-        return map.entrySet().stream()
-                .collect(toMap(Entry::getKey, e -> mappingFunction.apply(e.getKey(), e.getValue()), (v1, v2) -> v2, () -> newLinkedHashMap(map.size())));
+    static <K, V, V1> Map<K, V1> transformMapValues(Map<K, V> map, Function<V, V1> valueMapper) {
+        return transformMapValues(map, (__, value) -> valueMapper.apply(value));
+    }
+
+    static <K, V, V1> Map<K, V1> transformMapValues(Map<K, V> map, BiFunction<K, V, V1> valueMapper) {
+        return transformMap(map, (key, value) -> key, valueMapper);
+    }
+
+    static <K, V, K1, V1> Map<K1, V1> transformMap(Map<K, V> map, BiFunction<K, V, K1> keyMapper, BiFunction<K, V, V1> valueMapper) {
+        return toLinkedHashMap(map.entrySet(), e -> keyMapper.apply(e.getKey(), e.getValue()), e -> valueMapper.apply(e.getKey(), e.getValue()));
     }
 
     @SafeVarargs
@@ -178,8 +182,21 @@ public interface CollectionUtils {
         return map instanceof LinkedHashMap<K, V> lhm ? lhm : new LinkedHashMap<>(map);
     }
 
-    static <T, K, V> LinkedHashMap<K, V> toLinkedHashMap(Iterable<T> iterable, Function<T, K> keyExtractor, Function<T, V> valueExtractor) {
-        return toStream(iterable).collect(toMap(keyExtractor, valueExtractor, (v1, v2) -> v2, LinkedHashMap::new));
+    static <T, K> LinkedHashMap<K, T> toLinkedHashMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor) {
+        return toLinkedHashMap(iterable, keyExtractor, identity());
+    }
+
+    static <T, K, V> LinkedHashMap<K, V> toLinkedHashMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor, Function<? super T, ? extends V> valueExtractor) {
+        return toJavaMap(iterable, keyExtractor, valueExtractor, LinkedHashMap::newLinkedHashMap);
+    }
+
+    static <T, K, V> HashMap<K, V> toHashMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor, Function<? super T, ? extends V> valueExtractor) {
+        return toJavaMap(iterable, keyExtractor, valueExtractor, HashMap::newHashMap);
+    }
+
+    static <T, K, V, M extends Map<K, V>> M toJavaMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor, Function<? super T, ? extends V> valueExtractor, IntFunction<M> mapFactory) {
+        final int size = size(iterable);
+        return toStream(iterable).collect(toMap(keyExtractor, valueExtractor, (v1, v2) -> v2, () -> mapFactory.apply(size)));
     }
 
     static <K, V, ID> Map<K, List<V>> mergeMaps(
@@ -196,13 +213,15 @@ public interface CollectionUtils {
             Function<? super V, ID> idResolver,
             Function<Collection<V>, VC> collectionConverter) {
 
+        final int size = existingMap.size() + newMap.size();
+
         return concat(existingMap.entrySet(), newMap.entrySet())
                 .map(entry -> entry(entry.getKey(), removeDuplicates(entry.getValue(), idResolver, collectionConverter)))
                 .collect(toMap(
                         Entry::getKey,
                         Entry::getValue,
                         (coll1, coll2) -> removeDuplicates(concat(coll1, coll2), idResolver, collectionConverter),
-                        LinkedHashMap::new));
+                        () -> newLinkedHashMap(size)));
     }
 
     @SafeVarargs
@@ -243,6 +262,6 @@ public interface CollectionUtils {
                     return isNotEmpty(newColl) ? entry(entry.getKey(), newColl) : null;
                 })
                 .filter(Objects::nonNull)
-                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1, LinkedHashMap::new));
+                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v1, () -> newLinkedHashMap(srcMap.size())));
     }
 }
