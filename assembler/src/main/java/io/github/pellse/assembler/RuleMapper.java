@@ -29,6 +29,7 @@ import static io.github.pellse.assembler.QueryUtils.*;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
+import static io.github.pellse.util.lookup.LookupTable.lookupTableFrom;
 import static java.util.Comparator.comparing;
 
 /**
@@ -135,7 +136,7 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
         @SuppressWarnings("unchecked")
         final Function<Map<ID, RRC>, Map<K, RRC>> mappingFunction = ctx.topLevelIdResolver() == ctx.outerIdResolver()
                 ? map -> (Map<K, RRC>) map
-                : then(toHashMap(entities, ctx.outerIdResolver(), ctx.topLevelIdResolver()), lookupTable -> map -> transformMapKeys(map, lookupTable::get));
+                : then(lookupTableFrom(entities, ctx.outerIdResolver(), ctx.topLevelIdResolver()), lookupTable -> map -> newMap(m -> map.forEach((id, v) -> lookupTable.get(id).forEach(mappedId -> m.put(mappedId, v)))));
 
         return queryFunction.apply(entities)
                 .map(mappingFunction);
