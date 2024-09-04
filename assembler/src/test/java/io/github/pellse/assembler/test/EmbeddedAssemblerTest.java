@@ -228,15 +228,13 @@ public class EmbeddedAssemblerTest {
                 userVoteView5_1_1, userVoteView5_1_2, userVoteView5_1_3,
                 userVoteView5_2_1, userVoteView5_2_2, userVoteView5_2_3,
                 userVoteView5_3_1, userVoteView5_3_2, userVoteView5_3_3
-        ).filter(userVoteView -> postCommentIds.contains(userVoteView.commentId()))
-                .doOnNext(userVoteView -> System.out.println("userVoteView = " + userVoteView));
+        ).filter(userVoteView -> postCommentIds.contains(userVoteView.commentId()));
     }
 
 
     Flux<User> getUsersById(List<Long> userIds) {
         return Flux.just(user1, user2, user3, user4, user5, user6)
-                .filter(user -> userIds.contains(user.id()))
-                .doOnNext(user -> System.out.println("user = " + user));
+                .filter(user -> userIds.contains(user.id()));
     }
 
     Flux<PostTag> getPostTag(List<Long> postIds) {
