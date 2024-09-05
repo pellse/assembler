@@ -85,6 +85,8 @@ class LockManager {
     }
 
     private Mono<Lock> acquireLock(Lock outerLock, Predicate<Lock> tryAcquireLock, Runnable releaseLock, BoundedQueue<LockRequest> queue) {
+        drainQueues();
+
         final var innerLock = new Lock(outerLock, releaseLock);
         if (tryAcquireLock.test(innerLock)) {
             return just(innerLock);
@@ -94,7 +96,6 @@ class LockManager {
         boolean succeeded;
         do {
             succeeded = queue.offer(lockRequest);
-            drainQueues();
         } while (!succeeded);
 
         return lockRequest.sink().asMono();
@@ -121,7 +122,6 @@ class LockManager {
 
     private void releaseLock(Runnable releaseLock) {
         releaseLock.run();
-        drainQueues();
     }
 
     private void doReleaseReadLock() {
