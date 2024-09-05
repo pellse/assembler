@@ -26,12 +26,12 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.publisher.Flux.zip;
 import static reactor.core.publisher.Mono.from;
-import static reactor.core.scheduler.Schedulers.parallel;
+import static reactor.core.scheduler.Schedulers.boundedElastic;
 
 public interface FluxAdapter {
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter() {
-        return fluxAdapter(parallel());
+        return fluxAdapter(boundedElastic());
     }
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter(Scheduler scheduler) {
