@@ -443,14 +443,14 @@ public class EmbeddedAssemblerTest {
                 .withRules(
                         rule(User::id, UserVoteView::userId, oneToOne(call(this::getUsersById))),
                         UserVote::new)
-                .build(immediate());
+                .build();
 
         Assembler<PostComment, PostComment> postCommentAssembler = assemblerOf(PostComment.class)
                 .withCorrelationIdResolver(PostComment::id)
                 .withRules(
                         rule(UserVote::commentId, oneToMany(UserVote::id, call(assemble(this::getUserVoteViewsById, userVoteAssembler)))),
                         PostComment::new)
-                .build(immediate());
+                .build();
 
         Assembler<PostDetails, Post> assembler = assemblerOf(Post.class)
                 .withCorrelationIdResolver(PostDetails::id)
@@ -458,7 +458,7 @@ public class EmbeddedAssemblerTest {
                         rule(PostComment::postId, oneToMany(PostComment::id, call(assemble(this::getPostCommentsById, postCommentAssembler)))),
                         rule(PostTag::postId, oneToMany(PostTag::id, call(this::getPostTag))),
                         Post::new)
-                .build(immediate());
+                .build();
 
         StepVerifier.create(assembler.assemble(getPostDetails()))
                 .expectSubscription()
