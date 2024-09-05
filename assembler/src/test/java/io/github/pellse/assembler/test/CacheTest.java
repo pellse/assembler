@@ -151,12 +151,9 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var billingInfoScheduler = newBoundedElastic(4, Integer.MAX_VALUE, "billingInfo", 15, true);
-        var orderItemScheduler = newBoundedElastic(4, Integer.MAX_VALUE, "orderItem", 15, true);
-
         var customerFlux = longRunningFlux(customerList).delayElements(ofMillis(1));
-        var billingInfoFlux = longRunningFlux(billingInfoList, 2000).delayElements(ofMillis(1), billingInfoScheduler).doOnComplete(() -> System.out.println("billingInfo Flux completed"));
-        var orderItemFlux = longRunningFlux(orderItemList, 2000).delayElements(ofMillis(1), orderItemScheduler).doOnComplete(() -> System.out.println("orderItem Flux completed"));
+        var billingInfoFlux = longRunningFlux(billingInfoList, 2000).delayElements(ofMillis(1), boundedElastic()).doOnComplete(() -> System.out.println("billingInfo Flux completed"));
+        var orderItemFlux = longRunningFlux(orderItemList, 2000).delayElements(ofMillis(1), boundedElastic()).doOnComplete(() -> System.out.println("orderItem Flux completed"));
 
         Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
 
@@ -183,21 +180,17 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-//                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, concurrent()))),
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
-//                                concurrent(100, ofMillis(4)),
                                 autoCacheBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(billingInfoScheduler)
+                                        .scheduler(boundedElastic())
                                         .build()))),
-//                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders, concurrent()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders,
-//                                concurrent(100, ofMillis(3)),
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(orderItemScheduler)
+                                        .scheduler(boundedElastic())
                                         .build()))),
                         Transaction::new)
                 .build();
@@ -205,7 +198,6 @@ public class CacheTest {
         var transactionFlux = customerFlux
                 .window(3)
                 .flatMapSequential(assembler::assemble)
-//                .index((i, transaction) -> also(transaction, t -> System.out.println("i = " + i + ", transaction = " + t)))
                 .take(1000)
                 .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
                 .doFinally(run(lifeCycleEventBroadcaster::stop));
