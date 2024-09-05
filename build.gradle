@@ -51,11 +51,14 @@ subprojects {
 
     test {
         useJUnitPlatform {
-            includeEngines "junit-jupiter"
             testLogging {
                 events("passed", "skipped", "failed")
             }
         }
+
+        systemProperty 'reactor.schedulers.defaultBoundedElasticOnVirtualThreads', 'true'
+        systemProperty 'reactor.schedulers.defaultBoundedElasticSize', '1000000'
+        systemProperty 'reactor.schedulers.defaultBoundedElasticQueueSize', '1000000'
     }
 
     publishing {
