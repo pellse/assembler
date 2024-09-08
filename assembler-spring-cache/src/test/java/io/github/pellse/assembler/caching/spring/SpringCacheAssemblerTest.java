@@ -1,6 +1,7 @@
 package io.github.pellse.assembler.caching.spring;
 
 import io.github.pellse.assembler.caching.CacheEvent;
+import io.github.pellse.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.assembler.caching.CacheFactory;
 import io.github.pellse.assembler.util.BillingInfo;
 import io.github.pellse.assembler.util.Customer;
@@ -320,7 +321,7 @@ public class SpringCacheAssemblerTest {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
-        Flux<CacheEvent.Updated<BillingInfo>> billingInfoEventFlux = Flux.just(
+        Flux<Updated<BillingInfo>> billingInfoEventFlux = Flux.just(
                         updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2))
                 .subscribeOn(parallel());
 

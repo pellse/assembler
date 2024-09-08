@@ -162,7 +162,6 @@ public class CacheTest {
             return Flux.just(billingInfo1, billingInfo2, billingInfo3)
                     .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                     .doOnComplete(billingInvocationCount::incrementAndGet);
-//                    .subscribeOn(billingInfoScheduler);
         };
 
         Function<List<Customer>, Publisher<OrderItem>> getAllOrders = customers -> {
@@ -172,7 +171,6 @@ public class CacheTest {
             return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                     .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                     .doOnComplete(ordersInvocationCount::incrementAndGet);
-//                    .subscribeOn(orderItemScheduler);
         };
 
         var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
