@@ -22,6 +22,8 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.Assembler.assemble;
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
@@ -196,57 +198,6 @@ public class EmbeddedAssemblerTest {
     PostTag postTag5_1 = new PostTag(9L, 5L, "DevOps");
     PostTag postTag5_2 = new PostTag(10L, 5L, "CI/CD");
 
-
-    Flux<PostDetails> getPostDetails() {
-        return Flux.just(postDetails1, postDetails2, postDetails3, postDetails4, postDetails5);
-    }
-
-    Flux<PostComment> getPostCommentsById(List<Long> postIds) {
-        return Flux.just(
-                postComment1_1, postComment1_2, postComment1_3,
-                postComment2_1, postComment2_2, postComment2_3,
-                postComment3_1, postComment3_2, postComment3_3,
-                postComment4_1, postComment4_2, postComment4_3,
-                postComment5_1, postComment5_2, postComment5_3
-        ).filter(postComment -> postIds.contains(postComment.postId()));
-    }
-
-    Flux<UserVoteView> getUserVoteViewsById(List<Long> postCommentIds) {
-        return Flux.just(
-                userVoteView1_1_1, userVoteView1_1_2, userVoteView1_1_3,
-                userVoteView1_2_1, userVoteView1_2_2, userVoteView1_2_3,
-                userVoteView1_3_1, userVoteView1_3_2, userVoteView1_3_3,
-                userVoteView2_1_1, userVoteView2_1_2, userVoteView2_1_3,
-                userVoteView2_2_1, userVoteView2_2_2, userVoteView2_2_3,
-                userVoteView2_3_1, userVoteView2_3_2, userVoteView2_3_3,
-                userVoteView3_1_1, userVoteView3_1_2, userVoteView3_1_3,
-                userVoteView3_2_1, userVoteView3_2_2, userVoteView3_2_3,
-                userVoteView3_3_1, userVoteView3_3_2, userVoteView3_3_3,
-                userVoteView4_1_1, userVoteView4_1_2, userVoteView4_1_3,
-                userVoteView4_2_1, userVoteView4_2_2, userVoteView4_2_3,
-                userVoteView4_3_1, userVoteView4_3_2, userVoteView4_3_3,
-                userVoteView5_1_1, userVoteView5_1_2, userVoteView5_1_3,
-                userVoteView5_2_1, userVoteView5_2_2, userVoteView5_2_3,
-                userVoteView5_3_1, userVoteView5_3_2, userVoteView5_3_3
-        ).filter(userVoteView -> postCommentIds.contains(userVoteView.commentId()));
-    }
-
-
-    Flux<User> getUsersById(List<Long> userIds) {
-        return Flux.just(user1, user2, user3, user4, user5, user6)
-                .filter(user -> userIds.contains(user.id()));
-    }
-
-    Flux<PostTag> getPostTag(List<Long> postIds) {
-        return Flux.just(
-                postTag1_1, postTag1_2,
-                postTag2_1, postTag2_2,
-                postTag3_1, postTag3_2,
-                postTag4_1, postTag4_2,
-                postTag5_1, postTag5_2
-        ).filter(postTag -> postIds.contains(postTag.postId()));
-    }
-
     // Expected Posts
 
     // Post 1
@@ -409,6 +360,63 @@ public class EmbeddedAssemblerTest {
             List.of(postTag5_1, postTag5_2)
     );
 
+    List<Post> expectedPosts = IntStream.rangeClosed(1, 100)
+            .boxed()
+            .flatMap(__ -> Stream.of(post1, post2, post3, post4, post5))
+            .toList();
+
+    // API calls
+
+    Flux<PostDetails> getPostDetails() {
+        return Flux.just(postDetails1, postDetails2, postDetails3, postDetails4, postDetails5)
+                .repeat(99);
+    }
+
+    Flux<PostComment> getPostCommentsById(List<Long> postIds) {
+        return Flux.just(
+                postComment1_1, postComment1_2, postComment1_3,
+                postComment2_1, postComment2_2, postComment2_3,
+                postComment3_1, postComment3_2, postComment3_3,
+                postComment4_1, postComment4_2, postComment4_3,
+                postComment5_1, postComment5_2, postComment5_3
+        ).filter(postComment -> postIds.contains(postComment.postId()));
+    }
+
+    Flux<UserVoteView> getUserVoteViewsById(List<Long> postCommentIds) {
+        return Flux.just(
+                userVoteView1_1_1, userVoteView1_1_2, userVoteView1_1_3,
+                userVoteView1_2_1, userVoteView1_2_2, userVoteView1_2_3,
+                userVoteView1_3_1, userVoteView1_3_2, userVoteView1_3_3,
+                userVoteView2_1_1, userVoteView2_1_2, userVoteView2_1_3,
+                userVoteView2_2_1, userVoteView2_2_2, userVoteView2_2_3,
+                userVoteView2_3_1, userVoteView2_3_2, userVoteView2_3_3,
+                userVoteView3_1_1, userVoteView3_1_2, userVoteView3_1_3,
+                userVoteView3_2_1, userVoteView3_2_2, userVoteView3_2_3,
+                userVoteView3_3_1, userVoteView3_3_2, userVoteView3_3_3,
+                userVoteView4_1_1, userVoteView4_1_2, userVoteView4_1_3,
+                userVoteView4_2_1, userVoteView4_2_2, userVoteView4_2_3,
+                userVoteView4_3_1, userVoteView4_3_2, userVoteView4_3_3,
+                userVoteView5_1_1, userVoteView5_1_2, userVoteView5_1_3,
+                userVoteView5_2_1, userVoteView5_2_2, userVoteView5_2_3,
+                userVoteView5_3_1, userVoteView5_3_2, userVoteView5_3_3
+        ).filter(userVoteView -> postCommentIds.contains(userVoteView.commentId()));
+    }
+
+    Flux<User> getUsersById(List<Long> userIds) {
+        return Flux.just(user1, user2, user3, user4, user5, user6)
+                .filter(user -> userIds.contains(user.id()));
+    }
+
+    Flux<PostTag> getPostTag(List<Long> postIds) {
+        return Flux.just(
+                postTag1_1, postTag1_2,
+                postTag2_1, postTag2_2,
+                postTag3_1, postTag3_2,
+                postTag4_1, postTag4_2,
+                postTag5_1, postTag5_2
+        ).filter(postTag -> postIds.contains(postTag.postId()));
+    }
+
     @Test
     public void testUserVoteAssembler() {
 
@@ -460,10 +468,11 @@ public class EmbeddedAssemblerTest {
                         Post::new)
                 .build();
 
-        StepVerifier.create(assembler.assemble(getPostDetails()))
+        StepVerifier.create(getPostDetails()
+                        .window(3)
+                        .flatMapSequential(assembler::assemble))
                 .expectSubscription()
-                .expectNextSequence(List.of(post1, post2, post3, post4, post5))
-                .expectComplete()
-                .verify();
+                .expectNextSequence(expectedPosts)
+                .verifyComplete();
     }
 }
