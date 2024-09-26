@@ -460,7 +460,7 @@ public class EmbeddedAssemblerTest {
                         PostComment::new)
                 .build();
 
-        Assembler<PostDetails, Post> assembler = assemblerOf(Post.class)
+        Assembler<PostDetails, Post> postAssembler = assemblerOf(Post.class)
                 .withCorrelationIdResolver(PostDetails::id)
                 .withRules(
                         rule(PostComment::postId, oneToMany(PostComment::id, call(assemble(this::getPostCommentsById, postCommentAssembler)))),
@@ -470,7 +470,7 @@ public class EmbeddedAssemblerTest {
 
         StepVerifier.create(getPostDetails()
                         .window(3)
-                        .flatMapSequential(assembler::assemble))
+                        .flatMapSequential(postAssembler::assemble))
                 .expectSubscription()
                 .expectNextSequence(expectedPosts)
                 .verifyComplete();
