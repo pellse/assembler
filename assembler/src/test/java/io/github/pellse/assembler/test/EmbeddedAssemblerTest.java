@@ -17,6 +17,8 @@
 package io.github.pellse.assembler.test;
 
 import io.github.pellse.assembler.Assembler;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -39,9 +41,9 @@ record Post(PostDetails postDetails, List<PostComment> comments, List<PostTag> p
 record PostDetails(Long id, String title) {
 }
 
-record PostComment(Long id, Long postId, String review, List<UserVote> userVotes) {
+record PostComment(Long id, Long postId, String review, @Nullable List<UserVote> userVotes) {
 
-    PostComment(PostComment postComment, List<UserVote> userVotes) {
+    PostComment(PostComment postComment, @NonNull List<UserVote> userVotes) {
         this(postComment.id(), postComment.postId(), postComment.review(), userVotes);
     }
 }

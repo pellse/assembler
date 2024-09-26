@@ -31,6 +31,8 @@ subprojects {
     dependencies {
         implementation("io.projectreactor:reactor-core:${reactorVersion}")
 
+        testImplementation("org.jspecify:jspecify:1.0.0")
+
         testImplementation("io.projectreactor:reactor-test:${reactorVersion}")
         testImplementation("io.projectreactor.tools:blockhound:1.0.8.RELEASE")
 
