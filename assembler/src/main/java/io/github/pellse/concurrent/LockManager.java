@@ -20,20 +20,29 @@ import io.github.pellse.util.concurrent.BoundedQueue;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.*;
 
+import static io.github.pellse.concurrent.LockManager.LockType.READ;
+import static io.github.pellse.concurrent.LockManager.LockType.WRITE;
 import static io.github.pellse.util.concurrent.BoundedQueue.createBoundedQueue;
 import static java.lang.Long.MAX_VALUE;
 import static reactor.core.publisher.Mono.fromRunnable;
 import static reactor.core.publisher.Mono.just;
 import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
+import static reactor.core.scheduler.Schedulers.boundedElastic;
 
 class LockManager {
 
-    record Lock(Lock outerLock, Runnable releaseLock) {
+    enum LockType {
+        READ, WRITE
+    }
+
+    record Lock(LockType type, Lock outerLock, Runnable releaseLock) {
         public Mono<?> release() {
-            return fromRunnable(releaseLock);
+            return fromRunnable(releaseLock).subscribeOn(boundedElastic());
         }
     }
 
@@ -51,9 +60,13 @@ class LockManager {
     private static final long READ_LOCK_MASK = ~WRITE_LOCK_MASK; // 0111111111111111111111111111111111111111111111111111111111111111
 
     private final AtomicLong lockState = new AtomicLong();
+    private final AtomicBoolean wip = new AtomicBoolean();
 
     private final BoundedQueue<LockRequest> readQueue;
     private final BoundedQueue<LockRequest> writeQueue;
+
+    private final AtomicLong readCounter = new AtomicLong();
+    private final AtomicLong writeCounter = new AtomicLong();
 
     LockManager() {
         this(MAX_VALUE, MAX_VALUE);
@@ -65,7 +78,7 @@ class LockManager {
     }
 
     Mono<Lock> acquireReadLock() {
-        return acquireLock(null, this::tryAcquireReadLock, this::releaseReadLock, readQueue);
+        return acquireLock(READ, null, this::tryAcquireReadLock, this::releaseReadLock, readQueue);
     }
 
     Mono<Lock> acquireWriteLock() {
@@ -73,7 +86,7 @@ class LockManager {
     }
 
     Mono<Lock> toWriteLock(Lock lock) {
-        return acquireLock(lock, this::tryAcquireWriteLock, this::releaseWriteLock, writeQueue);
+        return acquireLock(WRITE, lock, this::tryAcquireWriteLock, this::releaseWriteLock, writeQueue);
     }
 
     void releaseReadLock() {
@@ -84,10 +97,9 @@ class LockManager {
         releaseLock(this::doReleaseWriteLock);
     }
 
-    private Mono<Lock> acquireLock(Lock outerLock, Predicate<Lock> tryAcquireLock, Runnable releaseLock, BoundedQueue<LockRequest> queue) {
-        drainQueues();
+    private Mono<Lock> acquireLock(LockType type, Lock outerLock, Predicate<Lock> tryAcquireLock, Runnable releaseLock, BoundedQueue<LockRequest> queue) {
 
-        final var innerLock = new Lock(outerLock, releaseLock);
+        final var innerLock = new Lock(type, outerLock, releaseLock);
         if (tryAcquireLock.test(innerLock)) {
             return just(innerLock);
         }
@@ -96,7 +108,12 @@ class LockManager {
         boolean succeeded;
         do {
             succeeded = queue.offer(lockRequest);
+//            if (type.equals(WRITE)) {
+//                System.out.println(counter.incrementAndGet() + "- LockManager - currentThread = " + Thread.currentThread().getName() + ", queueing lock: lock hashcode = " + System.identityHashCode(lockRequest.lock) + ", outerLock hashCode = " + System.identityHashCode(lockRequest.lock.outerLock) + ", lock = " + lockRequest.lock);
+//            }
         } while (!succeeded);
+
+        drainQueues();
 
         return lockRequest.sink().asMono();
     }
@@ -122,6 +139,7 @@ class LockManager {
 
     private void releaseLock(Runnable releaseLock) {
         releaseLock.run();
+        drainQueues();
     }
 
     private void doReleaseReadLock() {
@@ -132,21 +150,52 @@ class LockManager {
         lockState.updateAndGet(currentState -> (currentState & WRITE_LOCK_MASK) != 0 ? currentState & READ_LOCK_MASK : currentState); // i.e. noop if calling releaseWriteLock without a corresponding successful tryAcquireWriteLock()
     }
 
-    private void drainQueues() {
-        final var nextWriteLock = writeQueue.poll();
-        if (nextWriteLock != null) {
-            if (!unlock(nextWriteLock, this::tryAcquireWriteLock, this::doReleaseWriteLock)) {
-                writeQueue.offer(nextWriteLock);
-            }
-        }
+//    private void drainQueues() {
+//        final var nextWriteLock = writeQueue.poll();
+//        if (nextWriteLock != null) {
+//            if (!unlock(nextWriteLock, this::tryAcquireWriteLock, this::doReleaseWriteLock)) {
+//                writeQueue.offer(nextWriteLock);
+//            }
+//        }
+//
+//        LockRequest nextReadLock;
+//        while ((nextReadLock = readQueue.poll()) != null) {
+//            if (!unlock(nextReadLock, this::tryAcquireReadLock, this::doReleaseReadLock)) {
+//                readQueue.offer(nextReadLock);
+//                break;
+//            }
+//        }
+//    }
 
-        LockRequest nextReadLock;
-        while ((nextReadLock = readQueue.poll()) != null) {
-            if (!unlock(nextReadLock, this::tryAcquireReadLock, this::doReleaseReadLock)) {
-                readQueue.offer(nextReadLock);
-                break;
+    private void drainQueues() {
+//        if (wip.compareAndSet(false, true)) {
+            try {
+                LockRequest nextWriteLockRequest, nextReadLockRequest;
+//                do {
+                if ((nextWriteLockRequest = writeQueue.poll()) != null) {
+//                    System.out.println(counter.incrementAndGet() + "- LockManager drainQueue Write - currentThread = " + Thread.currentThread().getName() + ", queueing lock: lock hashcode = " + System.identityHashCode(nextWriteLockRequest.lock) + ", outerLock hashCode = " + System.identityHashCode(nextWriteLockRequest.lock.outerLock) + ", lock = " + nextWriteLockRequest.lock);
+                    while (!unlock(nextWriteLockRequest, this::tryAcquireWriteLock, this::doReleaseWriteLock)) {
+                        System.out.println(writeCounter.incrementAndGet() + "- LockManager drainQueue Write, unlocking failed - currentThread = " + Thread.currentThread().getName() + ", queueing lock: lock hashcode = " + System.identityHashCode(nextWriteLockRequest.lock) + ", outerLock hashCode = " + System.identityHashCode(nextWriteLockRequest.lock.outerLock) + ", lock = " + nextWriteLockRequest.lock);
+                        Thread.onSpinWait();
+                        LockSupport.parkNanos(1_000_000L);
+                    }
+//                    System.out.println(writeCounter.incrementAndGet() + "- LockManager drainQueue Write, unlocked - currentThread = " + Thread.currentThread().getName() + ", queueing lock: lock hashcode = " + System.identityHashCode(nextWriteLockRequest.lock) + ", outerLock hashCode = " + System.identityHashCode(nextWriteLockRequest.lock.outerLock) + ", lock = " + nextWriteLockRequest.lock);
+                }
+
+                while ((nextReadLockRequest = readQueue.poll()) != null) {
+//                    System.out.println(counter.incrementAndGet() + "- LockManager drainQueue Read - currentThread = " + Thread.currentThread().getName() + ", queueing lock: lock hashcode = " + System.identityHashCode(nextReadLockRequest.lock) + ", outerLock hashCode = " + System.identityHashCode(nextReadLockRequest.lock.outerLock) + ", lock = " + nextReadLockRequest.lock);
+                    while (!unlock(nextReadLockRequest, this::tryAcquireReadLock, this::doReleaseReadLock)) {
+                        System.out.println(readCounter.incrementAndGet() + "- LockManager drainQueue Read, unlocking failed - currentThread = " + Thread.currentThread().getName() + ", queueing lock: lock hashcode = " + System.identityHashCode(nextReadLockRequest.lock) + ", outerLock hashCode = " + System.identityHashCode(nextReadLockRequest.lock.outerLock) + ", lock = " + nextReadLockRequest.lock);
+                        Thread.onSpinWait();
+                        LockSupport.parkNanos(1_000_000L);
+                    }
+                    System.out.println(readCounter.incrementAndGet() + "- LockManager drainQueue Read, unlocked - currentThread = " + Thread.currentThread().getName() + ", queueing lock: lock hashcode = " + System.identityHashCode(nextReadLockRequest.lock) + ", outerLock hashCode = " + System.identityHashCode(nextReadLockRequest.lock.outerLock) + ", lock = " + nextReadLockRequest.lock);
+                }
+//                } while (nextWriteLockRequest != null);
+            } finally {
+                wip.set(false);
             }
-        }
+//        }
     }
 
     private boolean unlock(LockRequest lockRequest, Predicate<Lock> tryAcquireLock, Runnable releaseLock) {
