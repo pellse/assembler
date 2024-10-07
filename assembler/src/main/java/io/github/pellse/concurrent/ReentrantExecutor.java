@@ -32,7 +32,11 @@ public interface ReentrantExecutor {
 
     @FunctionalInterface
     interface WriteLockExecutor<U> {
-        Mono<U> withWriteLock(Mono<U> mono);
+        default Mono<U> withLock(Supplier<Mono<U>> monoSupplier) {
+            return withLock(defer(monoSupplier));
+        };
+
+        Mono<U> withLock(Mono<U> mono);
     }
 
     Duration DEFAULT_TIMEOUT = ofSeconds(30);
@@ -85,7 +89,7 @@ public interface ReentrantExecutor {
                     return using(lockProvider, __ -> mono);
                 }
 
-                Mono<T> using(Mono<Lock> lockProvider, Function<Lock, Mono<T>> lockedMonoProducer);
+                Mono<T> using(Mono<Lock> lockProvider, Function<Lock, Mono<T>> monoSupplier);
             }
 
             @Override
@@ -106,9 +110,9 @@ public interface ReentrantExecutor {
 
                 final Mono<T> defaultMono = nullToEmpty(defaultValueProvider);
 
-                final ResourceManager<T> resourceManager = (lockProvider, lockedMonoProducer) -> usingWhen(
+                final ResourceManager<T> resourceManager = (lockProvider, monoSupplier) -> usingWhen(
                         lockProvider,
-                        lock -> lockedMonoProducer.apply(lock).timeout(timeout, defaultMono),
+                        lock -> monoSupplier.apply(lock).timeout(timeout, defaultMono),
                         Lock::release
                 );
 
