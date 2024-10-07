@@ -34,7 +34,7 @@ public interface ReentrantExecutor {
     interface WriteLockExecutor<U> {
         default Mono<U> withLock(Supplier<Mono<U>> monoSupplier) {
             return withLock(defer(monoSupplier));
-        };
+        }
 
         Mono<U> withLock(Mono<U> mono);
     }
