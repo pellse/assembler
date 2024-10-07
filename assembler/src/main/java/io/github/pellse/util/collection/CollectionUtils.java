@@ -152,11 +152,11 @@ public interface CollectionUtils {
         return readAll(keys, sourceMap, identity());
     }
 
-    static <K, V, V1> Map<K, V1> readAll(Iterable<K> keys, Map<K, V> sourceMap, Function<V, V1> mappingFunction) {
+    static <K, V, V1> Map<K, V1> readAll(Iterable<? extends K> keys, Map<K, V> sourceMap, Function<V, V1> mappingFunction) {
         return readAll(keys, sourceMap, LinkedHashMap::new, mappingFunction);
     }
 
-    static <K, V, V1, M extends Map<K, V1>> Map<K, V1> readAll(Iterable<K> keys, Map<K, V> sourceMap, Supplier<M> mapSupplier, Function<V, V1> mappingFunction) {
+    static <K, V, V1, M extends Map<K, V1>> Map<K, V1> readAll(Iterable<? extends K> keys, Map<K, V> sourceMap, Supplier<M> mapSupplier, Function<V, V1> mappingFunction) {
         return newMap(null, mapSupplier, map -> keys.forEach(key -> ifNotNull(sourceMap.get(key), value -> map.put(key, mappingFunction.apply(value)))));
     }
 
