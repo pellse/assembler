@@ -81,15 +81,15 @@ public interface AutoCacheFactory {
             ErrorHandler errorHandler,
             LifeCycleEventSource lifeCycleEventSource,
             Scheduler scheduler,
-            Function<CacheFactory<ID, R, RRC, CTX>, CacheFactory<ID, R, RRC, CTX>> concurrentCacheTransformer) {
+            Function<CacheFactory<ID, R, RRC, CTX>, CacheFactory<ID, R, RRC, CTX>> cacheTransformer) {
 
         return cacheFactory -> cacheContext -> {
 
             final var mapCollector = cacheContext.mapCollector();
 
-            final var cache = ofNullable(concurrentCacheTransformer)
+            final var cache = ofNullable(cacheTransformer)
                     .map(transformer -> transformer.apply(cacheFactory))
-                    .orElseGet(() -> cacheContext.concurrentCacheTransformer().apply(cacheFactory))
+                    .orElseGet(() -> cacheContext.cacheTransformer().apply(cacheFactory))
                     .create(cacheContext);
 
             final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")

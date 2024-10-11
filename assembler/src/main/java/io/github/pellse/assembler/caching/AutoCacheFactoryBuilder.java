@@ -98,12 +98,21 @@ public interface AutoCacheFactoryBuilder {
         SchedulerBuilder<R> lifeCycleEventSource(LifeCycleEventSource eventSource);
     }
 
-    interface SchedulerBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
-        AutoCacheFactoryDelegateBuilder<R> scheduler(Scheduler scheduler);
+    interface SchedulerBuilder<R> extends CacheTransformerBuilder<R> {
+        CacheTransformerBuilder<R> scheduler(Scheduler scheduler);
+    }
+
+    interface CacheTransformerBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
+
+        default AutoCacheFactoryDelegateBuilder<R> concurrent() {
+            return transformer(ConcurrentCacheFactory.concurrent());
+        }
+
+        AutoCacheFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer);
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
-        <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build() ;
+        <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build();
     }
 
     record Builder<R, U extends CacheEvent<R>>(
@@ -130,8 +139,13 @@ public interface AutoCacheFactoryBuilder {
         }
 
         @Override
-        public AutoCacheFactoryDelegateBuilder<R> scheduler(Scheduler scheduler) {
+        public CacheTransformerBuilder<R> scheduler(Scheduler scheduler) {
             return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, null);
+        }
+
+        @Override
+        public AutoCacheFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer) {
+            return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, cacheTransformer);
         }
 
         @SuppressWarnings("unchecked")

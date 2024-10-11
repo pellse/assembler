@@ -37,12 +37,12 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
 
     BiFunction<Map<ID, RRC>, Map<ID, RRC>, Map<ID, RRC>> mapMerger();
 
-    CacheTransformer<ID, R, RRC, CTX> concurrentCacheTransformer();
+    CacheTransformer<ID, R, RRC, CTX> cacheTransformer();
 
     record OneToOneCacheContext<ID, R>(
             IntFunction<Collector<R, ?, Map<ID, R>>> mapCollector,
             BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger,
-            CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> concurrentCacheTransformer) implements CacheContext<ID, R, R, OneToOneCacheContext<ID, R>> {
+            CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> cacheTransformer) implements CacheContext<ID, R, R, OneToOneCacheContext<ID, R>> {
 
         OneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx) {
             this(ctx.mapCollector(),
@@ -57,7 +57,7 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
             BiFunction<Map<ID, RC>, Map<ID, RC>, Map<ID, RC>> mapMerger,
             Comparator<R> idComparator,
             Supplier<RC> collectionFactory,
-            CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> concurrentCacheTransformer) implements CacheContext<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> {
+            CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheTransformer) implements CacheContext<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> {
 
         OneToManyCacheContext(OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
             this(ctx.idResolver(),
