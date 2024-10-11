@@ -51,12 +51,12 @@ import static reactor.core.publisher.Flux.fromStream;
 import static reactor.core.publisher.Mono.just;
 
 @FunctionalInterface
-public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> {
+public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> {
 
     Cache<ID, RRC> create(CTX context);
 
     @FunctionalInterface
-    interface CacheTransformer<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> extends Function<CacheFactory<ID, R, RRC, CTX>, CacheFactory<ID, R, RRC, CTX>> {
+    interface CacheTransformer<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> extends Function<CacheFactory<ID, R, RRC, CTX>, CacheFactory<ID, R, RRC, CTX>> {
     }
 
     class QueryFunctionException extends Exception {
@@ -65,7 +65,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
         }
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CTX> cache() {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> cache() {
 
         final var delegateMap = new ConcurrentHashMap<ID, Sinks.One<RRC>>();
 
@@ -104,7 +104,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
         return cache(getAll, computeAll, putAll, removeAll);
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CTX> cache(
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> cache(
             Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll,
             BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll,
             Function<Map<ID, RRC>, Mono<?>> putAll,
@@ -279,7 +279,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    private static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>, CACHE_CTX extends CacheContext<ID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> cached(
+    private static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>, CACHE_CTX extends CacheContext<ID, R, RRC, CACHE_CTX>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> cached(
             Function<CTX, CACHE_CTX> cacheContextProvider,
             RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,
             CacheFactory<ID, R, RRC, CACHE_CTX> cacheFactory,
@@ -328,7 +328,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> 
     }
 
     @SafeVarargs
-    private static <ID, R, RRC, CACHE_CTX extends CacheContext<ID, R, RRC>> CacheFactory<ID, R, RRC, CACHE_CTX> delegate(
+    private static <ID, R, RRC, CACHE_CTX extends CacheContext<ID, R, RRC, CACHE_CTX>> CacheFactory<ID, R, RRC, CACHE_CTX> delegate(
             CacheFactory<ID, R, RRC, CACHE_CTX> cacheFactory,
             Function<CacheFactory<ID, R, RRC, CACHE_CTX>, CacheFactory<ID, R, RRC, CACHE_CTX>>... delegateCacheFactories) {
 

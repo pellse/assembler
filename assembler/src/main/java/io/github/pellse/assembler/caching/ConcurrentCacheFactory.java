@@ -22,7 +22,7 @@ import static io.github.pellse.assembler.caching.ConcurrentCache.concurrentCache
 
 public interface ConcurrentCacheFactory {
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheTransformer<ID, R, RRC, CTX> concurrent() {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent() {
         return cacheFactory -> context -> concurrentCache(cacheFactory.create(context));
     }
 }

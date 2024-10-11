@@ -51,15 +51,15 @@ public interface AutoCacheFactory {
 
     Logger logger = getLogger(CacheFactory.class.getName());
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheTransformer<ID, R, RRC, CTX> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
         return autoCache(dataSourceSupplier.get());
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>> CacheTransformer<ID, R, RRC, CTX> autoCache(Flux<R> dataSource) {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> autoCache(Flux<R> dataSource) {
         return autoCache(dataSource, __ -> true, identity());
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>, U> CacheTransformer<ID, R, RRC, CTX> autoCache(
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U> CacheTransformer<ID, R, RRC, CTX> autoCache(
             Supplier<Flux<U>> dataSourceSupplier,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
@@ -67,7 +67,7 @@ public interface AutoCacheFactory {
         return autoCache(dataSourceSupplier.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>, U> CacheTransformer<ID, R, RRC, CTX> autoCache(
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U> CacheTransformer<ID, R, RRC, CTX> autoCache(
             Flux<U> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
@@ -75,7 +75,7 @@ public interface AutoCacheFactory {
         return autoCache(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC>, U extends CacheEvent<R>> CacheTransformer<ID, R, RRC, CTX> autoCache(
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U extends CacheEvent<R>> CacheTransformer<ID, R, RRC, CTX> autoCache(
             Flux<U> dataSource,
             WindowingStrategy<U> windowingStrategy,
             ErrorHandler errorHandler,
@@ -89,7 +89,7 @@ public interface AutoCacheFactory {
 
             final var cache = ofNullable(concurrentCacheTransformer)
                     .map(transformer -> transformer.apply(cacheFactory))
-                    .orElse(ConcurrentCacheFactory.<ID, R, RRC, CTX>concurrent().apply(cacheFactory))
+                    .orElseGet(() -> cacheContext.concurrentCacheTransformer().apply(cacheFactory))
                     .create(cacheContext);
 
             final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")

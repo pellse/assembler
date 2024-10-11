@@ -18,6 +18,7 @@ package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
+import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -28,18 +29,25 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-public sealed interface CacheContext<ID, R, RRC> {
+import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
+
+public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> {
 
     IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector();
 
     BiFunction<Map<ID, RRC>, Map<ID, RRC>, Map<ID, RRC>> mapMerger();
 
+    CacheTransformer<ID, R, RRC, CTX> concurrentCacheTransformer();
+
     record OneToOneCacheContext<ID, R>(
             IntFunction<Collector<R, ?, Map<ID, R>>> mapCollector,
-            BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger) implements CacheContext<ID, R, R> {
+            BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger,
+            CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> concurrentCacheTransformer) implements CacheContext<ID, R, R, OneToOneCacheContext<ID, R>> {
 
         OneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx) {
-            this(ctx.mapCollector(), ctx.mapMerger());
+            this(ctx.mapCollector(),
+                    ctx.mapMerger(),
+                    cf -> cf);
         }
     }
 
@@ -48,10 +56,16 @@ public sealed interface CacheContext<ID, R, RRC> {
             IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector,
             BiFunction<Map<ID, RC>, Map<ID, RC>, Map<ID, RC>> mapMerger,
             Comparator<R> idComparator,
-            Supplier<RC> collectionFactory) implements CacheContext<ID, R, RC> {
+            Supplier<RC> collectionFactory,
+            CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> concurrentCacheTransformer) implements CacheContext<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> {
 
         OneToManyCacheContext(OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
-            this(ctx.idResolver(), ctx.mapCollector(), ctx.mapMerger(), ctx.idComparator(), ctx.collectionFactory());
+            this(ctx.idResolver(),
+                    ctx.mapCollector(),
+                    ctx.mapMerger(),
+                    ctx.idComparator(),
+                    ctx.collectionFactory(),
+                    concurrent());
         }
     }
 }

@@ -103,7 +103,7 @@ public interface AutoCacheFactoryBuilder {
     }
 
     interface AutoCacheFactoryDelegateBuilder<R> {
-        <ID, RRC, CTX extends CacheContext<ID, R, RRC>> CacheTransformer<ID, R, RRC, CTX> build() ;
+        <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build() ;
     }
 
     record Builder<R, U extends CacheEvent<R>>(
@@ -136,7 +136,7 @@ public interface AutoCacheFactoryBuilder {
 
         @SuppressWarnings("unchecked")
         @Override
-        public <ID, RRC, CTX extends CacheContext<ID, R, RRC>> CacheTransformer<ID, R, RRC, CTX> build() {
+        public <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build() {
             return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC, CTX>) concurrentCacheTransformer);
         }
     }
