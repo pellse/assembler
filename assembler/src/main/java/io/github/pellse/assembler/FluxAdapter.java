@@ -26,12 +26,12 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.publisher.Flux.zip;
 import static reactor.core.publisher.Mono.from;
-import static reactor.core.scheduler.Schedulers.boundedElastic;
+import static reactor.core.scheduler.Schedulers.*;
 
 public interface FluxAdapter {
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter() {
-        return fluxAdapter(boundedElastic());
+        return fluxAdapter(DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS ? boundedElastic() : parallel());
     }
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter(Scheduler scheduler) {
@@ -41,7 +41,7 @@ public interface FluxAdapter {
                 .flatMapMany(entities ->
                         zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).toList(),
                                 mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))))
-                .publishOn(scheduler) // from(publisher) above can itself switch to a different scheduler e.g. AutoCache
+//                .publishOn(scheduler) // from(publisher) above can itself switch to a different scheduler e.g. AutoCache
                 .flatMapSequential(Flux::fromStream);
     }
 
