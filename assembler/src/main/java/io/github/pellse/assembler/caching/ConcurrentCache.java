@@ -21,21 +21,15 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-import static java.lang.Long.MAX_VALUE;
-
 public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
     static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache) {
-        return concurrentCache(delegateCache, MAX_VALUE, MAX_VALUE);
-    }
-
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, long readQueueCapacity, long writeQueueCapacity) {
 
         if (delegateCache instanceof ConcurrentCache<ID, RRC> concurrentCache) {
             return concurrentCache;
         }
 
-        final var executor = ReentrantExecutor.create(readQueueCapacity, writeQueueCapacity);
+        final var executor = ReentrantExecutor.create();
 
         return new ConcurrentCache<>() {
 

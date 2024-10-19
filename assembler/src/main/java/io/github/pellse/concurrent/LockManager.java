@@ -16,17 +16,16 @@
 
 package io.github.pellse.concurrent;
 
-import io.github.pellse.util.concurrent.BoundedQueue;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.EmitResult;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 
 import static io.github.pellse.concurrent.NoopLock.NOOP_LOCK;
-import static io.github.pellse.util.concurrent.BoundedQueue.createBoundedQueue;
-import static java.lang.Long.MAX_VALUE;
 import static java.lang.Thread.onSpinWait;
 import static reactor.core.publisher.Mono.just;
 import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
@@ -45,17 +44,8 @@ class LockManager {
 
     private final AtomicLong lockState = new AtomicLong();
 
-    private final BoundedQueue<LockRequest> readQueue;
-    private final BoundedQueue<LockRequest> writeQueue;
-
-    LockManager() {
-        this(MAX_VALUE, MAX_VALUE);
-    }
-
-    LockManager(long readQueueCapacity, long writeQueueCapacity) {
-        readQueue = createBoundedQueue(readQueueCapacity);
-        writeQueue = createBoundedQueue(writeQueueCapacity);
-    }
+    private final Queue<LockRequest> readQueue = new ConcurrentLinkedQueue<>();
+    private final Queue<LockRequest> writeQueue = new ConcurrentLinkedQueue<>();
 
     Mono<Lock> acquireReadLock() {
         return acquireLock(ReadLock::new, NOOP_LOCK, this::tryAcquireReadLock, this::releaseReadLock, readQueue);
@@ -82,7 +72,7 @@ class LockManager {
             Lock outerLock,
             Predicate<Lock> tryAcquireLock,
             Consumer<Lock> releaseLock,
-            BoundedQueue<LockRequest> queue) {
+            Queue<LockRequest> queue) {
 
         final var innerLock = lockProvider.apply(outerLock.unwrap(), releaseLock);
 
@@ -148,21 +138,18 @@ class LockManager {
     }
 
     private void drainQueues() {
-        LockRequest writeLockRequest, readLockRequest;
+        LockRequest writeLockRequest;
         while ((writeLockRequest = writeQueue.poll()) != null) {
             if (!unlock(writeLockRequest, this::tryAcquireWriteLock, this::doReleaseWriteLock)) {
                 onSpinWait();
-
-                long size = readQueue.size();
-                long i = 0;
-                while ((readLockRequest = readQueue.poll()) != null && i++ < size) {
-                    while (!unlock(readLockRequest, this::tryAcquireReadLock, this::doReleaseReadLock)) {
-                        onSpinWait();
-                    }
-                }
+                drainReadQueue();
             }
         }
+       drainReadQueue();
+    }
 
+    private void drainReadQueue() {
+        LockRequest readLockRequest;
         while ((readLockRequest = readQueue.poll()) != null) {
             while (!unlock(readLockRequest, this::tryAcquireReadLock, this::doReleaseReadLock)) {
                 onSpinWait();
