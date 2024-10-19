@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
@@ -42,7 +43,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
@@ -92,6 +92,8 @@ public class CacheTest {
 //    static {
 //        BlockHound.install();
 //    }
+
+    private static final Scheduler DEFAULT_SCHEDULER = DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS ? boundedElastic() : parallel();
 
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
@@ -151,9 +153,9 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var customerFlux = longRunningFlux(customerList).delayElements(ofMillis(1));
-        var billingInfoFlux = longRunningFlux(billingInfoList, 2000).delayElements(ofMillis(1), boundedElastic()).doOnComplete(() -> System.out.println("billingInfo Flux completed"));
-        var orderItemFlux = longRunningFlux(orderItemList, 2000).delayElements(ofMillis(1), boundedElastic()).doOnComplete(() -> System.out.println("orderItem Flux completed"));
+        var customerFlux = longRunningFlux(customerList).delayElements(ofMillis(1), DEFAULT_SCHEDULER);
+        var billingInfoFlux = longRunningFlux(billingInfoList, 2000).delayElements(ofMillis(1), DEFAULT_SCHEDULER).doOnComplete(() -> System.out.println("billingInfo Flux completed"));
+        var orderItemFlux = longRunningFlux(orderItemList, 2000).delayElements(ofMillis(1), DEFAULT_SCHEDULER).doOnComplete(() -> System.out.println("orderItem Flux completed"));
 
         Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
 
@@ -181,32 +183,40 @@ public class CacheTest {
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
                                 autoCacheBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
-                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(boundedElastic())
+//                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
+//                                        .scheduler(boundedElastic())
+//                                        .scheduler(newBoundedElastic(4, Integer.MAX_VALUE, "AutoCache"))
                                         .build()))),
+//                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, concurrent()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders,
                                 autoCacheBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
-                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
-                                        .scheduler(boundedElastic())
+//                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
+//                                        .scheduler(boundedElastic())
+//                                        .scheduler(newBoundedElastic(4, Integer.MAX_VALUE, "AutoCache"))
                                         .build()))),
+//                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders, concurrent()))),
                         Transaction::new)
                 .build();
+//                .build(Schedulers.newBoundedElastic(24, Integer.MAX_VALUE, "Assembler"));
 
         var transactionFlux = customerFlux
                 .window(3)
                 .flatMapSequential(assembler::assemble)
-                .take(1000)
-                .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
-                .doFinally(run(lifeCycleEventBroadcaster::stop));
+                .take(1000);
+//                .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
+//                .doFinally(run(lifeCycleEventBroadcaster::stop));
 
         var initialCount = 500;
         var latch = new CountDownLatch(initialCount);
-        IntStream.range(0, initialCount).forEach(__ -> transactionFlux.subscribe(null, error -> run(error, e -> latch.countDown(), e -> System.out.println("e = " + e)),
-                () -> {
-                    latch.countDown();
-                    System.out.println("complete, count = " + latch.getCount() + ", Thread = " + Thread.currentThread().getName());
-                }));
+
+        for (int i = 0; i < initialCount; i++) {
+            int subscriptionId = i + 1;
+            transactionFlux.doFinally(signalType -> {
+                latch.countDown();
+                System.out.println("complete, count = " + latch.getCount() + ", subscriptionId = " + subscriptionId + ", Thread = " + Thread.currentThread().getName());
+            }).subscribe();
+        }
         latch.await();
 
         System.out.println("getBillingInfo invocation count: " + billingInvocationCount.get() + ", getOrderItems invocation count: " + ordersInvocationCount.get());

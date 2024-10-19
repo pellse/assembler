@@ -16,7 +16,6 @@
 
 package io.github.pellse.concurrent;
 
-import io.github.pellse.concurrent.LockManager.Lock;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -39,7 +38,7 @@ public interface ReentrantExecutor {
         Mono<U> withLock(Mono<U> mono);
     }
 
-    Duration DEFAULT_TIMEOUT = ofSeconds(30);
+    Duration DEFAULT_TIMEOUT = ofSeconds(10);
 
     default <T> Mono<T> withReadLock(Mono<T> mono) {
         return withReadLock(mono, null);
@@ -113,8 +112,7 @@ public interface ReentrantExecutor {
                 final ResourceManager<T> resourceManager = (lockProvider, monoSupplier) -> usingWhen(
                         lockProvider,
                         lock -> monoSupplier.apply(lock).timeout(timeout, defaultMono),
-                        Lock::release
-                );
+                        Lock::release);
 
                 return resourceManager.using(
                         lockAcquisitionStrategy.apply(lockManager),

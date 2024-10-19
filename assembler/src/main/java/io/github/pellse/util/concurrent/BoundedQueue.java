@@ -4,18 +4,17 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.lang.Long.MAX_VALUE;
+import static java.lang.Thread.onSpinWait;
 
 public interface BoundedQueue<E> {
 
     E poll();
 
-    boolean offer(E t);
+    void offer(E t);
 
     long size();
 
     boolean isEmpty();
-
-    boolean isFull();
 
     static <E> BoundedQueue<E> createBoundedQueue() {
         return createBoundedQueue(MAX_VALUE);
@@ -38,14 +37,14 @@ public interface BoundedQueue<E> {
             }
 
             @Override
-            public boolean offer(E element) {
-                while (true) {
+            public void offer(E element) {
+                boolean done = false;
+                while (!done) {
                     long currentSize = count.get();
-                    if (currentSize >= capacity) {
-                        return false;
-                    }
-                    if (count.compareAndSet(currentSize, currentSize + 1)) {
-                        return queue.offer(element);
+                    if (currentSize < capacity && count.compareAndSet(currentSize, currentSize + 1)) {
+                        done = queue.offer(element);
+                    } else {
+                        onSpinWait();
                     }
                 }
             }
@@ -58,11 +57,6 @@ public interface BoundedQueue<E> {
             @Override
             public boolean isEmpty() {
                 return queue.isEmpty();
-            }
-
-            @Override
-            public boolean isFull() {
-                return count.get() >= capacity;
             }
         };
     }
