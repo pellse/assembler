@@ -122,7 +122,7 @@ public class AssemblerCaffeineCacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(b -> b.maximumSize(10))), BillingInfo::new)),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, caffeineCache(10)), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, caffeineCache(newBuilder().maximumSize(10))))),
                         Transaction::new)
                 .build();
