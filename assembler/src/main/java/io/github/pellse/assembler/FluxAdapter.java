@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.publisher.Flux.zip;
 import static reactor.core.publisher.Mono.from;
@@ -31,7 +32,11 @@ import static reactor.core.scheduler.Schedulers.*;
 public interface FluxAdapter {
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter() {
-        return fluxAdapter(DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS ? boundedElastic() : parallel());
+        return fluxAdapter(DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS);
+    }
+
+    static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter(boolean useVirtualThreads) {
+        return fluxAdapter(useVirtualThreads ? getVirtualThreadScheduler() : parallel());
     }
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter(Scheduler scheduler) {
@@ -51,5 +56,9 @@ public interface FluxAdapter {
         return Stream.of(mapperResults)
                 .map(mapResult -> (Map<K, ?>) mapResult)
                 .collect(toList());
+    }
+
+    private static Scheduler getVirtualThreadScheduler() {
+        return DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS ? boundedElastic() : fromExecutorService(newVirtualThreadPerTaskExecutor());
     }
 }
