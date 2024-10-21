@@ -409,7 +409,7 @@ public class EmbeddedAssemblerTest {
                 .filter(user -> userIds.contains(user.id()));
     }
 
-    Flux<PostTag> getPostTag(List<Long> postIds) {
+    Flux<PostTag> getPostTagsById(List<Long> postIds) {
         return Flux.just(
                 postTag1_1, postTag1_2,
                 postTag2_1, postTag2_2,
@@ -466,7 +466,7 @@ public class EmbeddedAssemblerTest {
                 .withCorrelationIdResolver(PostDetails::id)
                 .withRules(
                         rule(PostComment::postId, oneToMany(PostComment::id, call(assemble(this::getPostCommentsById, postCommentAssembler)))),
-                        rule(PostTag::postId, oneToMany(PostTag::id, call(this::getPostTag))),
+                        rule(PostTag::postId, oneToMany(PostTag::id, call(this::getPostTagsById))),
                         Post::new)
                 .build();
 
