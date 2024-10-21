@@ -149,9 +149,13 @@ class LockManager {
     }
 
     private void drainReadQueue() {
-        LockRequest readLockRequest;
-        while ((readLockRequest = readQueue.poll()) != null) {
-            while (!unlock(readLockRequest, this::tryAcquireReadLock, this::doReleaseReadLock)) {
+        drainQueue(readQueue, this::tryAcquireReadLock, this::doReleaseReadLock);
+    }
+
+    private static void drainQueue(Queue<LockRequest> queue, Predicate<Lock> tryAcquireLock, Consumer<Lock> releaseLock) {
+        LockRequest lockRequest;
+        while ((lockRequest = queue.poll()) != null) {
+            while (!unlock(lockRequest, tryAcquireLock, releaseLock)) {
                 onSpinWait();
             }
         }
@@ -160,7 +164,7 @@ class LockManager {
     private static boolean unlock(LockRequest lockRequest, Predicate<Lock> tryAcquireLock, Consumer<Lock> releaseLock) {
         final var innerLock = lockRequest.lock();
         if (tryAcquireLock.test(innerLock)) {
-            if (emit(lockRequest.sink(), innerLock) == OK) {
+            if (emit(innerLock, lockRequest.sink()) == OK) {
                 return true;
             } else {
                 releaseLock.accept(innerLock);
@@ -169,7 +173,7 @@ class LockManager {
         return false;
     }
 
-    private static EmitResult emit(Sinks.One<Lock> sink, Lock lock) {
+    private static EmitResult emit(Lock lock, Sinks.One<Lock> sink) {
         EmitResult result;
         while ((result = sink.tryEmitValue(lock)) == FAIL_NON_SERIALIZED) {
             onSpinWait();
