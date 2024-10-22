@@ -169,7 +169,7 @@ The _Cartesian product_ problem in querying databases occurs when multiple data 
 
 This great [article](https://vladmihalcea.com/blaze-persistence-multiset) from [Vlad Mihalcea](https://vladmihalcea.com/), which was the inspiration for the implementation of this feature, explains the _Cartesian Product_ issue in the context of relational databases. But what happens when trying to query a _multi-level hierarchical structure_ over multiple types of data sources?
 
-The ***Assembler*** tackles this problem by aggregating sub-queries through he use of embedded ***Assembler*** instances, enabling the modeling of a complex relationship graph of disparate data sources (e.g., microservices, relational or non-relational databases, message queues, etc.) without triggering either N+1 queries or a _Cartesian Product_.
+The ***Assembler*** tackles this problem by aggregating sub-queries through the use of embedded ***Assembler*** instances, enabling the modeling of a complex relationship graph of disparate data sources (e.g., microservices, relational or non-relational databases, message queues, etc.) without triggering either N+1 queries or a _Cartesian Product_.
 
 For example, assuming the following data model:
 ```java
