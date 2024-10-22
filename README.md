@@ -250,7 +250,7 @@ See [EmbeddedAssemblerTest.java](assembler/src/test/java/io/github/pellse/assemb
 [:arrow_up:](#table-of-contents)
 
 ## Reactive Caching
-Apart from offering convenient helper functions to define mapping semantics such as `oneToOne()` and `oneToMany()`, ***Assembler*** also includes a caching/memoization mechanism for the downstream subqueries via the `cached()` wrapper function:
+Apart from offering convenient helper functions to define mapping semantics such as `oneToOne()` and `oneToMany()`, ***Assembler*** also includes a caching/memoization mechanism for the downstream subqueries via the `cached()` and `cachedMany()` wrapper functions:
 
 ```java
 import io.github.pellse.assembler.Assembler;
