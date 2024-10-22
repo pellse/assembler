@@ -214,6 +214,7 @@ import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.call;
+import static java.time.Duration.ofSeconds;
 
 Assembler<UserVoteView, UserVote> userVoteAssembler = assemblerOf(UserVote.class)
   .withCorrelationIdResolver(UserVoteView::id)
@@ -242,7 +243,7 @@ Flux<Post> postFlux = postAssembler.assemble(getPostDetails());
 
 // If getPostDetails() is a continuous stream
 Flux<Post> postFlux = getPostDetails()
-  .windowTimeout(100, Duration.ofSeconds(5))
+  .windowTimeout(100, ofSeconds(5))
   .flatMapSequential(postAssembler::assemble);
 ```
 See [EmbeddedAssemblerTest.java](assembler/src/test/java/io/github/pellse/assembler/test/EmbeddedAssemblerTest.java) for the complete example of how to use this feature.
