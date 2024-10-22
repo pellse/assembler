@@ -165,7 +165,7 @@ WHERE
 [:arrow_up:](#table-of-contents)
 
 ## Complex Relationship Graph And Cartesian Product
-The _Cartesian product_ problem in querying databases occurs when multiple data sources (e.g., tables in relational databases) are joined in such a way that every row from one table is paired with every row from another, leading to an excessive and inefficient number of rows. This can happen unintentionally, especially with complex joins, causing performance bottlenecks.
+The _Cartesian product_ problem in querying databases occurs when multiple data sources (e.g. tables in relational databases) are joined in such a way that every row from one table is paired with every row from another, leading to an excessive and inefficient number of rows. This can happen unintentionally, especially with complex joins, causing performance bottlenecks.
 
 This great [article](https://vladmihalcea.com/blaze-persistence-multiset) from [Vlad Mihalcea](https://vladmihalcea.com/), which was the inspiration for the implementation of this feature, explains the _Cartesian Product_ issue in the context of relational databases. But what happens when trying to query a _multi-level hierarchical structure_ over multiple types of data sources?
 
