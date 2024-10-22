@@ -19,6 +19,7 @@ https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9
   - [Default values for missing data](#default-values-for-missing-data)
 - **[Infinite Stream of Data](#infinite-stream-of-data)**
 - **[ID Join](#id-join)**
+- **[Complex Relationship Graph And Cartesian Product](#complex-relationship-graph)**
 - **[Reactive Caching](#reactive-caching)**
   - [Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)
   - [Auto Caching](#auto-caching)
@@ -161,6 +162,91 @@ LEFT JOIN
 WHERE 
     p.id IN (1, 2, 3); -- withCorrelationIdResolver(PostDetails::id)
 ```
+[:arrow_up:](#table-of-contents)
+
+## Complex Relationship Graph And Cartesian Product
+The _Cartesian product_ problem in querying databases occurs when multiple data sources (e.g., tables in relational databases) are joined in such a way that every row from one table is paired with every row from another, leading to an excessive and inefficient number of rows. This can happen unintentionally, especially with complex joins, causing performance bottlenecks.
+
+This great [article](https://vladmihalcea.com/blaze-persistence-multiset) from [Vlad Mihalcea](https://vladmihalcea.com/), which was the inspiration for the implementation of this feature, explains the _Cartesian Product_ issue in the context of relational databases. But what happens when trying to query a _multi-level hierarchical structure_ over multiple types of data sources?
+
+The ***Assembler*** tackles this problem by aggregating sub-queries through he use of embedded ***Assembler*** instances, enabling the modeling of a complex relationship graph of disparate data sources (e.g., microservices, relational or non-relational databases, message queues, etc.) without triggering either N+1 queries or a _Cartesian Product_.
+
+For example, assuming the following data model:
+```java
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+record Post(PostDetails postDetails, List<PostComment> comments, List<PostTag> postTags) {
+}
+
+record PostDetails(Long id, String title) {
+}
+
+record PostComment(Long id, Long postId, String review, @Nullable List<UserVote> userVotes) {
+  PostComment(PostComment postComment, @NonNull List<UserVote> userVotes) {
+    this(postComment.id(), postComment.postId(), postComment.review(), userVotes);
+  }
+}
+
+record UserVoteView(Long id, Long commentId, Long userId, int score) {
+}
+
+record UserVote(Long id, Long commentId, User user, int score) {
+  UserVote(UserVoteView userVoteView, User user) {
+    this(userVoteView.id(), userVoteView.commentId(), user, userVoteView.score());
+  }
+}
+
+record User(Long id, String firstName, String lastName) {
+}
+
+record PostTag(Long id, Long postId, String name) {
+}
+```
+Here is how we would connect ***Assembler*** instances together to build our entity graph:
+```java
+import io.github.pellse.assembler.Assembler;
+import reactor.core.publisher.Flux;
+
+import static io.github.pellse.assembler.Assembler.assemble;
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.assembler.Rule.rule;
+import static io.github.pellse.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.assembler.RuleMapperSource.call;
+
+Assembler<UserVoteView, UserVote> userVoteAssembler = assemblerOf(UserVote.class)
+  .withCorrelationIdResolver(UserVoteView::id)
+  .withRules(
+    rule(User::id, UserVoteView::userId, oneToOne(call(this::getUsersById))),
+    UserVote::new)
+  .build();
+
+Assembler<PostComment, PostComment> postCommentAssembler = assemblerOf(PostComment.class)
+  .withCorrelationIdResolver(PostComment::id)
+  .withRules(
+    rule(UserVote::commentId, oneToMany(UserVote::id, call(assemble(this::getUserVoteViewsById, userVoteAssembler)))),
+    PostComment::new)
+  .build();
+
+Assembler<PostDetails, Post> postAssembler = assemblerOf(Post.class)
+  .withCorrelationIdResolver(PostDetails::id)
+  .withRules(
+    rule(PostComment::postId, oneToMany(PostComment::id, call(assemble(this::getPostCommentsById, postCommentAssembler)))),
+    rule(PostTag::postId, oneToMany(PostTag::id, call(this::getPostTagsById))),
+    Post::new)
+  .build();
+
+// If getPostDetails() is a finite sequence
+Flux<Post> postFlux = postAssembler.assemble(getPostDetails());
+
+// If getPostDetails() is a continuous stream
+Flux<Post> postFlux = getPostDetails()
+  .windowTimeout(100, Duration.ofSeconds(5))
+  .flatMapSequential(postAssembler::assemble);
+```
+See [EmbeddedAssemblerTest.java](assembler/src/test/java/io/github/pellse/assembler/test/EmbeddedAssemblerTest.java) for the complete example of how to use this feature.
+
 [:arrow_up:](#table-of-contents)
 
 ## Reactive Caching
