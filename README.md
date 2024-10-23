@@ -73,11 +73,11 @@ classDiagram
         List~OrderItem~ orderItems
     }
 
-    Transaction --> Customer
-    Transaction --> BillingInfo
-    Transaction --> OrderItem
-    BillingInfo --> Customer
-    OrderItem --> Customer
+    Transaction o-- Customer
+    Transaction o-- BillingInfo
+    Transaction o-- OrderItem
+    BillingInfo --> Customer : customerId
+    OrderItem --> Customer : customerId
 
 ```
 ```java
@@ -171,11 +171,12 @@ classDiagram
         List~Reply~ replies
     }
 
-    Post --> PostDetails
-    Post --> User
-    Post --> Reply
-    Reply --> PostDetails
-    Reply --> User
+    Post o-- PostDetails
+    Post o-- User
+    Post o-- Reply
+    Reply --> PostDetails : postId
+    Reply --> User : userId
+    PostDetails --> User : userId
 
 ```
 Without ID Join, there is no way to express the relationship between e.g. a `PostDetails` and a `User` because `User` doesn't have a `postId` field like `Reply` does:
@@ -301,12 +302,12 @@ classDiagram
         String name
     }
 
-    Post --> PostDetails
-    Post --> PostComment
-    Post --> PostTag
-    PostComment --> UserVote
-    UserVote --> User
-    UserVoteView --> UserVote
+    Post o-- PostDetails
+    Post o-- PostComment
+    Post o-- PostTag
+    PostComment o-- UserVote
+    UserVote o-- User
+    UserVote ..> UserVoteView
 
 ```
 Here is how we would connect ***Assembler*** instances together to build our entity graph:
