@@ -50,7 +50,39 @@ public record OrderItem(String id, Long customerId, String orderDescription, Dou
 
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 ```
+```mermaid
+classDiagram
+    class Customer {
+        Long customerId
+        String name
+    }
 
+    class BillingInfo {
+        Long id
+        Long customerId
+        String creditCardNumber
+    }
+
+    class OrderItem {
+        String id
+        Long customerId
+        String orderDescription
+        Double price
+    }
+
+    class Transaction {
+        Customer customer
+        BillingInfo billingInfo
+        List~OrderItem~ orderItems
+    }
+
+    Transaction --> Customer
+    Transaction --> BillingInfo
+    Transaction --> OrderItem
+    BillingInfo --> Customer
+    OrderItem --> Customer
+
+```
 ```java
 Flux<Customer> getCustomers(); // e.g. call to a microservice or a Flux connected to a Kafka source
 
@@ -120,6 +152,39 @@ public record User(Long Id, String username) {} // No postId field i.e. no corre
 public record Reply(Long id, Long postId, Long userId, String content) {}
 
 public record Post(PostDetails post, User author, List<Reply> replies) {}
+```
+```mermaid
+classDiagram
+    class PostDetails {
+        Long id
+        Long userId
+        String content
+    }
+
+    class User {
+        Long Id
+        String username
+    }
+
+    class Reply {
+        Long id
+        Long postId
+        Long userId
+        String content
+    }
+
+    class Post {
+        PostDetails post
+        User author
+        List~Reply~ replies
+    }
+
+    Post --> PostDetails
+    Post --> User
+    Post --> Reply
+    Reply --> PostDetails
+    Reply --> User
+
 ```
 Without ID Join, there is no way to express the relationship between e.g. a `PostDetails` and a `User` because `User` doesn't have a `postId` field like `Reply` does:
 ```java
@@ -202,6 +267,60 @@ record User(Long id, String firstName, String lastName) {
 
 record PostTag(Long id, Long postId, String name) {
 }
+```
+```mermaid
+classDiagram
+    class Post {
+        PostDetails postDetails
+        List~PostComment~ comments
+        List~PostTag~ postTags
+    }
+
+    class PostDetails {
+        Long id
+        String title
+    }
+
+    class PostComment {
+        Long id
+        Long postId
+        String review
+        List~UserVote~ userVotes
+    }
+
+    class UserVoteView {
+        Long id
+        Long commentId
+        Long userId
+        int score
+    }
+
+    class UserVote {
+        Long id
+        Long commentId
+        User user
+        int score
+    }
+
+    class User {
+        Long id
+        String firstName
+        String lastName
+    }
+
+    class PostTag {
+        Long id
+        Long postId
+        String name
+    }
+
+    Post --> PostDetails
+    Post --> PostComment
+    Post --> PostTag
+    PostComment --> UserVote
+    UserVote --> User
+    UserVoteView --> UserVote
+
 ```
 Here is how we would connect ***Assembler*** instances together to build our entity graph:
 ```java
