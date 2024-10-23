@@ -43,11 +43,8 @@ https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9
 Here is an example of how to use ***Assembler*** to generate transaction information from a list of customers of an online store. This example assumes the following fictional data model and API to access different services:
 ```java
 public record Customer(Long customerId, String name) {}
-
 public record BillingInfo(Long id, Long customerId, String creditCardNumber) {}
-
 public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
-
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 ```
 ```mermaid
@@ -85,9 +82,7 @@ classDiagram
 ```
 ```java
 Flux<Customer> getCustomers(); // e.g. call to a microservice or a Flux connected to a Kafka source
-
 Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // e.g. connects to relational database (R2DBC)
-
 Flux<OrderItem> getAllOrders(List<Long> customerIds); // e.g. connects to MongoDB
 ```
 In cases where the `getCustomers()` method returns a substantial number of customers, retrieving the associated `BillingInfo` for each customer would require an additional call per `customerId`. This would result in a considerable increase in network calls, causing the N + 1 queries issue. To mitigate this, we can retrieve all the `BillingInfo` for all the customers returned by `getCustomers()` with a single additional call. The same approach can be used for retrieving OrderItem information.
@@ -146,11 +141,8 @@ Flux<Transaction> transactionFlux = getCustomers()
 ***Assembler*** supports the concept of ID joins, semantically similar to SQL joins, to solve the issue of missing correlation IDs between primary and dependent entities. For example, assuming the following data model:
 ```java
 public record PostDetails(Long id, Long userId, String content) {}
-
 public record User(Long Id, String username) {} // No postId field i.e. no correlation Id back to PostDetails
-
 public record Reply(Long id, Long postId, Long userId, String content) {}
-
 public record Post(PostDetails post, User author, List<Reply> replies) {}
 ```
 ```mermaid
@@ -241,11 +233,9 @@ For example, assuming the following data model:
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-record Post(PostDetails postDetails, List<PostComment> comments, List<PostTag> postTags) {
-}
+record Post(PostDetails postDetails, List<PostComment> comments, List<PostTag> postTags) {}
 
-record PostDetails(Long id, String title) {
-}
+record PostDetails(Long id, String title) {}
 
 record PostComment(Long id, Long postId, String review, @Nullable List<UserVote> userVotes) {
   PostComment(PostComment postComment, @NonNull List<UserVote> userVotes) {
@@ -253,8 +243,7 @@ record PostComment(Long id, Long postId, String review, @Nullable List<UserVote>
   }
 }
 
-record UserVoteView(Long id, Long commentId, Long userId, int score) {
-}
+record UserVoteView(Long id, Long commentId, Long userId, int score) {}
 
 record UserVote(Long id, Long commentId, User user, int score) {
   UserVote(UserVoteView userVoteView, User user) {
@@ -262,11 +251,9 @@ record UserVote(Long id, Long commentId, User user, int score) {
   }
 }
 
-record User(Long id, String firstName, String lastName) {
-}
+record User(Long id, String firstName, String lastName) {}
 
-record PostTag(Long id, Long postId, String name) {
-}
+record PostTag(Long id, Long postId, String name) {}
 ```
 ```mermaid
 classDiagram
