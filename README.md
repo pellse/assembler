@@ -49,6 +49,8 @@ public record Transaction(Customer customer, BillingInfo billingInfo, List<Order
 ```
 ```mermaid
 classDiagram
+    direction LR
+
     class Customer {
         Long customerId
         String name
@@ -78,8 +80,6 @@ classDiagram
     Transaction o-- OrderItem
     BillingInfo --> Customer : customerId
     OrderItem --> Customer : customerId
-
-    style Transaction stroke:#0000FF, stroke-width:2px
 ```
 ```java
 Flux<Customer> getCustomers(); // e.g. call to a microservice or a Flux connected to a Kafka source
@@ -148,6 +148,8 @@ public record Post(PostDetails post, User author, List<Reply> replies) {}
 ```
 ```mermaid
 classDiagram
+    direction LR
+
     class PostDetails {
         Long id
         Long userId
@@ -178,8 +180,6 @@ classDiagram
     Reply --> PostDetails : postId
     Reply --> User : userId
     PostDetails --> User : userId
-
-    style Post stroke:#0000FF, stroke-width:2px
 ```
 Without ID Join, there is no way to express the relationship between e.g. a `PostDetails` and a `User` because `User` doesn't have a `postId` field like `Reply` does:
 ```java
@@ -260,6 +260,8 @@ record PostTag(Long id, Long postId, String name) {}
 ```
 ```mermaid
 classDiagram
+    direction LR
+
     class Post {
         PostDetails postDetails
         List~PostComment~ comments
@@ -318,6 +320,10 @@ classDiagram
     UserVoteView --> User : userId
 
     style Post stroke:#0000FF, stroke-width:2px
+    style PostComment stroke:#0000FF, stroke-width:2px
+    style UserVote stroke:#0000FF, stroke-width:2px
+    style User stroke:#0000FF, stroke-width:2px
+    style PostTag stroke:#0000FF, stroke-width:2px
 ```
 Here is how we would connect ***Assembler*** instances together to build our entity graph:
 ```java
