@@ -79,6 +79,7 @@ classDiagram
     BillingInfo --> Customer : customerId
     OrderItem --> Customer : customerId
 
+    style Transaction stroke:#0000FF, stroke-width:2px
 ```
 ```java
 Flux<Customer> getCustomers(); // e.g. call to a microservice or a Flux connected to a Kafka source
@@ -178,6 +179,7 @@ classDiagram
     Reply --> User : userId
     PostDetails --> User : userId
 
+    style Post stroke:#0000FF, stroke-width:2px
 ```
 Without ID Join, there is no way to express the relationship between e.g. a `PostDetails` and a `User` because `User` doesn't have a `postId` field like `Reply` does:
 ```java
@@ -309,6 +311,13 @@ classDiagram
     UserVote o-- User
     UserVote ..> UserVoteView
 
+    PostComment --> PostDetails : postId
+    PostTag --> PostDetails : postId
+
+    PostComment --> UserVoteView : commentId
+    UserVoteView --> User : userId
+
+    style Post stroke:#0000FF, stroke-width:2px
 ```
 Here is how we would connect ***Assembler*** instances together to build our entity graph:
 ```java
