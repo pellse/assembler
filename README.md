@@ -2,7 +2,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler.svg?label=assembler)](https://central.sonatype.com/artifact/io.github.pellse/assembler) [![Javadocs](http://javadoc.io/badge/io.github.pellse/assembler.svg)](http://javadoc.io/doc/io.github.pellse/assembler)
 [![Twitter Follow](https://img.shields.io/twitter/follow/sebastien_pel?label=@sebastien_pel&style=social)](https://twitter.com/sebastien_pel)
 
-***Assembler*** is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless data aggregation framework for querying and merging data from multiple data sources/services. ***Assembler*** enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) and is also designed to solve the N + 1 query problem in a data polyglot environment. ***Assembler*** is architecture-agnostic, allowing it to be used as part of a monolithic or microservice architecture.
+***Assembler*** is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless data aggregation framework for querying and merging data from multiple data sources/services. ***Assembler*** enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) and is also designed to solve the N + 1 query problem in a data polyglot environment. ***Assembler*** is architecture-agnostic, making it versatile for use in monolithic or microservice architectures, implementing REST or GraphQL endpoints, stream processing, and other scenarios.
 
 Internally, ***Assembler*** leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
 
@@ -19,6 +19,7 @@ https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9
   - [Default values for missing data](#default-values-for-missing-data)
 - **[Infinite Stream of Data](#infinite-stream-of-data)**
 - **[ID Join](#id-join)**
+- **[Complex Relationship Graph And Cartesian Product](#complex-relationship-graph-and-cartesian-product)**
 - **[Reactive Caching](#reactive-caching)**
   - [Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)
   - [Auto Caching](#auto-caching)
@@ -42,19 +43,47 @@ https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9
 Here is an example of how to use ***Assembler*** to generate transaction information from a list of customers of an online store. This example assumes the following fictional data model and API to access different services:
 ```java
 public record Customer(Long customerId, String name) {}
-
 public record BillingInfo(Long id, Long customerId, String creditCardNumber) {}
-
 public record OrderItem(String id, Long customerId, String orderDescription, Double price) {}
-
 public record Transaction(Customer customer, BillingInfo billingInfo, List<OrderItem> orderItems) {}
 ```
+```mermaid
+classDiagram
+    direction LR
 
+    class Customer {
+        Long customerId
+        String name
+    }
+
+    class BillingInfo {
+        Long id
+        Long customerId
+        String creditCardNumber
+    }
+
+    class OrderItem {
+        String id
+        Long customerId
+        String orderDescription
+        Double price
+    }
+
+    class Transaction {
+        Customer customer
+        BillingInfo billingInfo
+        List~OrderItem~ orderItems
+    }
+
+    Transaction o-- Customer
+    Transaction o-- BillingInfo
+    Transaction o-- OrderItem
+    BillingInfo --> Customer : customerId
+    OrderItem --> Customer : customerId
+```
 ```java
 Flux<Customer> getCustomers(); // e.g. call to a microservice or a Flux connected to a Kafka source
-
 Flux<BillingInfo> getBillingInfo(List<Long> customerIds); // e.g. connects to relational database (R2DBC)
-
 Flux<OrderItem> getAllOrders(List<Long> customerIds); // e.g. connects to MongoDB
 ```
 In cases where the `getCustomers()` method returns a substantial number of customers, retrieving the associated `BillingInfo` for each customer would require an additional call per `customerId`. This would result in a considerable increase in network calls, causing the N + 1 queries issue. To mitigate this, we can retrieve all the `BillingInfo` for all the customers returned by `getCustomers()` with a single additional call. The same approach can be used for retrieving OrderItem information.
@@ -113,12 +142,44 @@ Flux<Transaction> transactionFlux = getCustomers()
 ***Assembler*** supports the concept of ID joins, semantically similar to SQL joins, to solve the issue of missing correlation IDs between primary and dependent entities. For example, assuming the following data model:
 ```java
 public record PostDetails(Long id, Long userId, String content) {}
-
 public record User(Long Id, String username) {} // No postId field i.e. no correlation Id back to PostDetails
-
 public record Reply(Long id, Long postId, Long userId, String content) {}
-
 public record Post(PostDetails post, User author, List<Reply> replies) {}
+```
+```mermaid
+classDiagram
+    direction LR
+
+    class PostDetails {
+        Long id
+        Long userId
+        String content
+    }
+
+    class User {
+        Long Id
+        String username
+    }
+
+    class Reply {
+        Long id
+        Long postId
+        Long userId
+        String content
+    }
+
+    class Post {
+        PostDetails post
+        User author
+        List~Reply~ replies
+    }
+
+    Post o-- PostDetails
+    Post o-- User
+    Post o-- Reply
+    Reply --> PostDetails : postId
+    Reply --> User : userId
+    PostDetails --> User : userId
 ```
 Without ID Join, there is no way to express the relationship between e.g. a `PostDetails` and a `User` because `User` doesn't have a `postId` field like `Reply` does:
 ```java
@@ -163,8 +224,158 @@ WHERE
 ```
 [:arrow_up:](#table-of-contents)
 
+## Complex Relationship Graph And Cartesian Product
+The _Cartesian Product_ problem occurs when multiple data sources (e.g. tables in relational databases) are joined in such a way that every row from one table is paired with every row from another, leading to an excessive and inefficient number of rows. This can happen unintentionally, especially with complex joins, causing performance bottlenecks.
+
+This great [article](https://vladmihalcea.com/blaze-persistence-multiset) from [Vlad Mihalcea](https://vladmihalcea.com/), which was the inspiration for the implementation of this feature available since [v0.7.6](https://github.com/pellse/assembler/releases/tag/v0.7.6), explains _how we can fetch multiple JPA entity collections without generating an implicit Cartesian Product_, in the context of relational databases.
+
+But what happens when trying to query, to quote the article, a "_multi-level hierarchical structure_" over multiple types of data sources distributed across multiple servers?
+
+The ***Assembler*** addresses this problem by aggregating sub-queries through the connection of embedded ***Assembler*** instances, enabling the modeling of complex relationship graphs across disparate data sources (e.g., microservices, relational or non-relational databases, message queues, etc.) without triggering N+1 queries or _Cartesian Products_, while maintaining structured concurrency and preserving the system's non-blocking, reactive properties.
+
+For example, assuming the following data model:
+```java
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+record Post(PostDetails postDetails, List<PostComment> comments, List<PostTag> postTags) {}
+
+record PostDetails(Long id, String title) {}
+
+record PostComment(Long id, Long postId, String review, @Nullable List<UserVote> userVotes) {
+  PostComment(PostComment postComment, @NonNull List<UserVote> userVotes) {
+    this(postComment.id(), postComment.postId(), postComment.review(), userVotes);
+  }
+}
+
+record UserVoteView(Long id, Long commentId, Long userId, int score) {}
+
+record UserVote(Long id, Long commentId, User user, int score) {
+  UserVote(UserVoteView userVoteView, User user) {
+    this(userVoteView.id(), userVoteView.commentId(), user, userVoteView.score());
+  }
+}
+
+record User(Long id, String firstName, String lastName) {}
+
+record PostTag(Long id, Long postId, String name) {}
+```
+```mermaid
+classDiagram
+    direction LR
+
+    class Post {
+        PostDetails postDetails
+        List~PostComment~ comments
+        List~PostTag~ postTags
+    }
+
+    class PostDetails {
+        Long id
+        String title
+    }
+
+    class PostComment {
+        Long id
+        Long postId
+        String review
+        List~UserVote~ userVotes
+    }
+
+    class UserVoteView {
+        Long id
+        Long commentId
+        Long userId
+        int score
+    }
+
+    class UserVote {
+        Long id
+        Long commentId
+        User user
+        int score
+    }
+
+    class User {
+        Long id
+        String firstName
+        String lastName
+    }
+
+    class PostTag {
+        Long id
+        Long postId
+        String name
+    }
+
+    Post o-- PostDetails
+    Post o-- PostComment
+    Post o-- PostTag
+    PostComment o-- UserVote
+    UserVote o-- User
+    UserVote ..> UserVoteView
+
+    PostComment --> PostDetails : postId
+    PostTag --> PostDetails : postId
+
+    UserVoteView --> PostComment : commentId
+    UserVoteView --> User : userId
+
+    style Post stroke:#006400, stroke-width:2px
+    style PostComment stroke:#006400, stroke-width:2px
+    style UserVote stroke:#006400, stroke-width:2px
+    style User stroke:#006400, stroke-width:2px
+    style PostTag stroke:#006400, stroke-width:2px
+```
+Here is how we would connect ***Assembler*** instances together to build our entity graph:
+```java
+import io.github.pellse.assembler.Assembler;
+import reactor.core.publisher.Flux;
+
+import static io.github.pellse.assembler.Assembler.assemble;
+import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
+import static io.github.pellse.assembler.Rule.rule;
+import static io.github.pellse.assembler.RuleMapper.oneToMany;
+import static io.github.pellse.assembler.RuleMapper.oneToOne;
+import static io.github.pellse.assembler.RuleMapperSource.call;
+import static java.time.Duration.ofSeconds;
+
+Assembler<UserVoteView, UserVote> userVoteAssembler = assemblerOf(UserVote.class)
+  .withCorrelationIdResolver(UserVoteView::id)
+  .withRules(
+    rule(User::id, UserVoteView::userId, oneToOne(call(this::getUsersById))),
+    UserVote::new)
+  .build();
+
+Assembler<PostComment, PostComment> postCommentAssembler = assemblerOf(PostComment.class)
+  .withCorrelationIdResolver(PostComment::id)
+  .withRules(
+    rule(UserVote::commentId, oneToMany(UserVote::id, call(assemble(this::getUserVoteViewsById, userVoteAssembler)))),
+    PostComment::new)
+  .build();
+
+Assembler<PostDetails, Post> postAssembler = assemblerOf(Post.class)
+  .withCorrelationIdResolver(PostDetails::id)
+  .withRules(
+    rule(PostComment::postId, oneToMany(PostComment::id, call(assemble(this::getPostCommentsById, postCommentAssembler)))),
+    rule(PostTag::postId, oneToMany(PostTag::id, call(this::getPostTagsById))),
+    Post::new)
+  .build();
+
+// If getPostDetails() is a finite sequence
+Flux<Post> postFlux = postAssembler.assemble(getPostDetails());
+
+// If getPostDetails() is a continuous stream
+Flux<Post> postFlux = getPostDetails()
+  .windowTimeout(100, ofSeconds(5))
+  .flatMapSequential(postAssembler::assemble);
+```
+See [EmbeddedAssemblerTest.java](assembler/src/test/java/io/github/pellse/assembler/test/EmbeddedAssemblerTest.java) for the complete example of how to use this feature.
+
+[:arrow_up:](#table-of-contents)
+
 ## Reactive Caching
-Apart from offering convenient helper functions to define mapping semantics such as `oneToOne()` and `oneToMany()`, ***Assembler*** also includes a caching/memoization mechanism for the downstream subqueries via the `cached()` wrapper function:
+Apart from offering convenient helper functions to define mapping semantics such as `oneToOne()` and `oneToMany()`, ***Assembler*** also includes a caching/memoization mechanism for the downstream subqueries via the `cached()` and `cachedMany()` wrapper functions:
 
 ```java
 import io.github.pellse.assembler.Assembler;
