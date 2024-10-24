@@ -1,5 +1,6 @@
 # Assembler
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler.svg?label=assembler)](https://central.sonatype.com/artifact/io.github.pellse/assembler)
+[![Latest release](https://img.shields.io/github/release/io.github.pellse/assembler.svg)](https://github.com/pellse/assembler/releases/latest)
 
 ***Assembler*** is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless data aggregation framework for querying and merging data from multiple data sources/services. ***Assembler*** enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) and is also designed to solve the N + 1 query problem in a data polyglot environment. ***Assembler*** is architecture-agnostic, making it versatile for use in monolithic or microservice architectures, implementing REST or GraphQL endpoints, stream processing, and other scenarios.
 
