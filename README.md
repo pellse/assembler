@@ -316,14 +316,14 @@ classDiagram
     PostComment --> PostDetails : postId
     PostTag --> PostDetails : postId
 
-    PostComment --> UserVoteView : commentId
+    UserVoteView --> PostComment : commentId
     UserVoteView --> User : userId
 
-    style Post stroke:#0000FF, stroke-width:2px
-    style PostComment stroke:#0000FF, stroke-width:2px
-    style UserVote stroke:#0000FF, stroke-width:2px
-    style User stroke:#0000FF, stroke-width:2px
-    style PostTag stroke:#0000FF, stroke-width:2px
+    style Post stroke:#006400, stroke-width:2px
+    style PostComment stroke:#006400, stroke-width:2px
+    style UserVote stroke:#006400, stroke-width:2px
+    style User stroke:#006400, stroke-width:2px
+    style PostTag stroke:#006400, stroke-width:2px
 ```
 Here is how we would connect ***Assembler*** instances together to build our entity graph:
 ```java
