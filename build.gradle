@@ -5,7 +5,7 @@ plugins {
 }
 
 ext {
-    reactorVersion = "3.6.9"
+    reactorVersion = "3.6.11"
 }
 
 subprojects {
