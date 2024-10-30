@@ -16,9 +16,9 @@
 
 package io.github.pellse.assembler.caching;
 
+import io.github.pellse.assembler.ErrorHandler;
 import io.github.pellse.assembler.LifeCycleEventSource;
-import io.github.pellse.assembler.caching.AutoCacheFactory.ErrorHandler;
-import io.github.pellse.assembler.caching.AutoCacheFactory.WindowingStrategy;
+import io.github.pellse.assembler.WindowingStrategy;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
@@ -26,7 +26,7 @@ import reactor.core.scheduler.Scheduler;
 import java.time.Duration;
 import java.util.function.*;
 
-import static io.github.pellse.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
+import static io.github.pellse.assembler.ErrorHandler.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.assembler.caching.AutoCacheFactory.autoCache;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
 

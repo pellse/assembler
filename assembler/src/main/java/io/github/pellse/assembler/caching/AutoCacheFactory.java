@@ -16,13 +16,14 @@
 
 package io.github.pellse.assembler.caching;
 
+import io.github.pellse.assembler.ErrorHandler;
 import io.github.pellse.assembler.LifeCycleEventListener;
 import io.github.pellse.assembler.LifeCycleEventSource;
+import io.github.pellse.assembler.WindowingStrategy;
 import io.github.pellse.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.lang.System.Logger;
@@ -31,11 +32,10 @@ import java.util.Map;
 import java.util.function.*;
 import java.util.stream.Collector;
 
+import static io.github.pellse.assembler.ErrorHandler.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.assembler.LifeCycleEventSource.concurrentLifeCycleEventListener;
 import static io.github.pellse.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
-import static io.github.pellse.assembler.caching.AutoCacheFactory.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
-import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.isEmpty;
 import static java.lang.System.Logger.Level.WARNING;
 import static java.lang.System.getLogger;
@@ -118,87 +118,5 @@ public interface AutoCacheFactory {
 
     private static void logError(Throwable t, Object faultyData) {
         logger.log(WARNING, "Error while updating cache in autoCache() with " + faultyData, t);
-    }
-
-    sealed interface ErrorHandler {
-        <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler();
-    }
-
-    @FunctionalInterface
-    interface WindowingStrategy<R> extends Function<Flux<R>, Flux<Flux<R>>> {
-    }
-
-    record OnErrorContinue<E extends Throwable>(
-            Predicate<E> errorPredicate,
-            BiConsumer<Throwable, Object> errorConsumer) implements ErrorHandler {
-
-        public static OnErrorContinue<?> onErrorContinue() {
-            return onErrorContinue(doNothing());
-        }
-
-        public static OnErrorContinue<?> onErrorContinue(Consumer<Throwable> errorConsumer) {
-            return onErrorContinue((t, o) -> errorConsumer.accept(t));
-        }
-
-        public static OnErrorContinue<?> onErrorContinue(BiConsumer<Throwable, Object> errorConsumer) {
-            return onErrorContinue(e -> true, errorConsumer);
-        }
-
-        public static <E extends Throwable> OnErrorContinue<E> onErrorContinue(Predicate<E> errorPredicate, BiConsumer<Throwable, Object> errorConsumer) {
-            return new OnErrorContinue<>(errorPredicate, errorConsumer);
-        }
-
-        @Override
-        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
-            return flux -> flux.onErrorContinue(errorPredicate(), errorConsumer());
-        }
-    }
-
-    record OnErrorResume(
-            Predicate<Throwable> errorPredicate,
-            Consumer<Throwable> errorConsumer) implements ErrorHandler {
-
-        public static OnErrorResume onErrorResume() {
-            return onErrorResume(doNothing());
-        }
-
-        public static OnErrorResume onErrorResume(Consumer<Throwable> errorConsumer) {
-            return onErrorResume(__ -> true, errorConsumer);
-        }
-
-        public static OnErrorResume onErrorResume(Predicate<Throwable> errorPredicate, Consumer<Throwable> errorConsumer) {
-            return new OnErrorResume(errorPredicate, errorConsumer);
-        }
-
-        @Override
-        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
-            return flux -> flux
-                    .doOnError(errorPredicate(), errorConsumer())
-                    .onErrorResume(errorPredicate(), __ -> Mono.empty());
-        }
-    }
-
-    record OnErrorMap(Function<? super Throwable, ? extends Throwable> mapper) implements ErrorHandler {
-
-        public static OnErrorMap onErrorMap(Function<? super Throwable, ? extends Throwable> mapper) {
-            return new OnErrorMap(mapper);
-        }
-
-        @Override
-        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
-            return flux -> flux.onErrorMap(mapper());
-        }
-    }
-
-    record OnErrorStop() implements ErrorHandler {
-
-        public static OnErrorStop onErrorStop() {
-            return new OnErrorStop();
-        }
-
-        @Override
-        public <T> Function<Flux<T>, Flux<T>> toFluxErrorHandler() {
-            return Flux::onErrorStop;
-        }
     }
 }
