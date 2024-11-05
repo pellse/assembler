@@ -20,9 +20,9 @@ import io.github.pellse.assembler.Rule.rule
 import io.github.pellse.assembler.RuleMapper.oneToMany
 import io.github.pellse.assembler.RuleMapper.oneToOne
 import io.github.pellse.assembler.cache.caffeine.CaffeineCacheFactory.caffeineCache
-import io.github.pellse.assembler.caching.AutoCacheFactory.autoCache
-import io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder
-//import io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents
+import io.github.pellse.assembler.caching.StreamTableFactory.streamTable
+import io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableBuilder
+//import io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableEvents
 //import io.github.pellse.assembler.caching.CacheEvent.*
 //import io.github.pellse.assembler.caching.CacheFactory.cache
 import io.github.pellse.assembler.kotlin.*
@@ -383,13 +383,13 @@ class AssemblerKotlinTest {
 //            .withRules(
 //                rule(
 //                    BillingInfo::customerId,
-//                    oneToOne(::getBillingInfo.cached(autoCacheEvents(billingInfoFlux).maxWindowSize(3).build()))
+//                    oneToOne(::getBillingInfo.cached(streamTableEvents(billingInfoFlux).maxWindowSize(3).build()))
 //                ),
 //                rule(
 //                    OrderItem::customerId,
 //                    oneToMany(
 //                        OrderItem::id,
-//                        getAllOrders.cachedMany(cache(), autoCacheEvents(orderItemFlux).maxWindowSize(3).build())
+//                        getAllOrders.cachedMany(cache(), streamTableEvents(orderItemFlux).maxWindowSize(3).build())
 //                    )
 //                ),
 //                ::Transaction
@@ -438,13 +438,13 @@ class AssemblerKotlinTest {
 //                rule(
 //                    BillingInfo::customerId,
 //                    oneToOne(
-//                        ::getBillingInfo.cached(autoCache(billingInfoFlux, CDCAdd::class::isInstance) { it.item }))),
+//                        ::getBillingInfo.cached(streamTable(billingInfoFlux, CDCAdd::class::isInstance) { it.item }))),
 //                rule(
 //                    OrderItem::customerId,
 //                    oneToMany(
 //                        OrderItem::id,
 //                        ::getAllOrders.cachedMany(
-//                            autoCacheBuilder(orderItemFlux, CDCAdd::class::isInstance, CDC<OrderItem>::item)
+//                            streamTableBuilder(orderItemFlux, CDCAdd::class::isInstance, CDC<OrderItem>::item)
 //                                .maxWindowSize(3)
 //                                .build()))),
 //                ::Transaction

@@ -45,37 +45,37 @@ import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.partitioningBy;
 
-public interface AutoCacheFactory {
+public interface StreamTableFactory {
 
     int MAX_WINDOW_SIZE = 1;
 
-    Logger logger = getLogger(CacheFactory.class.getName());
+    Logger logger = getLogger(StreamTableFactory.class.getName());
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> autoCache(Supplier<Flux<R>> dataSourceSupplier) {
-        return autoCache(dataSourceSupplier.get());
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> streamTable(Supplier<Flux<R>> dataSourceSupplier) {
+        return streamTable(dataSourceSupplier.get());
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> autoCache(Flux<R> dataSource) {
-        return autoCache(dataSource, __ -> true, identity());
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> streamTable(Flux<R> dataSource) {
+        return streamTable(dataSource, __ -> true, identity());
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U> CacheTransformer<ID, R, RRC, CTX> autoCache(
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U> CacheTransformer<ID, R, RRC, CTX> streamTable(
             Supplier<Flux<U>> dataSourceSupplier,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
 
-        return autoCache(dataSourceSupplier.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
+        return streamTable(dataSourceSupplier.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U> CacheTransformer<ID, R, RRC, CTX> autoCache(
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U> CacheTransformer<ID, R, RRC, CTX> streamTable(
             Flux<U> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
 
-        return autoCache(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
+        return streamTable(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U extends CacheEvent<R>> CacheTransformer<ID, R, RRC, CTX> autoCache(
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U extends CacheEvent<R>> CacheTransformer<ID, R, RRC, CTX> streamTable(
             Flux<U> dataSource,
             WindowingStrategy<U> windowingStrategy,
             ErrorHandler errorHandler,
@@ -97,7 +97,7 @@ public interface AutoCacheFactory {
                     .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), mapCollector), toMap(eventMap.get(false), mapCollector)))
-                    .transform(requireNonNullElse(errorHandler, onErrorContinue(AutoCacheFactory::logError)).toFluxErrorHandler());
+                    .transform(requireNonNullElse(errorHandler, onErrorContinue(StreamTableFactory::logError)).toFluxErrorHandler());
 
             requireNonNullElse(lifeCycleEventSource, LifeCycleEventListener::start)
                     .addLifeCycleEventListener(concurrentLifeCycleEventListener(lifeCycleEventAdapter(cacheSourceFlux, Flux::subscribe, Disposable::dispose)));
@@ -117,6 +117,6 @@ public interface AutoCacheFactory {
     }
 
     private static void logError(Throwable t, Object faultyData) {
-        logger.log(WARNING, "Error while updating cache in autoCache() with " + faultyData, t);
+        logger.log(WARNING, "Error while updating cache in streamTable() with " + faultyData, t);
     }
 }

@@ -27,40 +27,40 @@ import java.time.Duration;
 import java.util.function.*;
 
 import static io.github.pellse.assembler.ErrorHandler.OnErrorContinue.onErrorContinue;
-import static io.github.pellse.assembler.caching.AutoCacheFactory.autoCache;
+import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
 
-public interface AutoCacheFactoryBuilder {
+public interface StreamTableFactoryBuilder {
 
-    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> autoCacheBuilder(Supplier<Flux<R>> dataSourceSupplier) {
-        return autoCacheBuilder(dataSourceSupplier.get());
+    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> streamTableBuilder(Supplier<Flux<R>> dataSourceSupplier) {
+        return streamTableBuilder(dataSourceSupplier.get());
     }
 
-    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> autoCacheBuilder(Flux<R> dataSource) {
-        return autoCacheBuilder(dataSource, CacheEvent::updated);
+    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> streamTableBuilder(Flux<R> dataSource) {
+        return streamTableBuilder(dataSource, CacheEvent::updated);
     }
 
-    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCacheBuilder(
+    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> streamTableBuilder(
             Supplier<Flux<U>> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
 
-        return autoCacheBuilder(dataSource.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
+        return streamTableBuilder(dataSource.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
     }
 
-    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> autoCacheBuilder(
+    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> streamTableBuilder(
             Flux<U> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
 
-        return autoCacheEvents(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)));
+        return streamTableEvents(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)));
     }
 
-    static <U, R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> autoCacheBuilder(Flux<U> dataSource, Function<U, T> mapper) {
-        return autoCacheEvents(dataSource.map(mapper));
+    static <U, R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> streamTableBuilder(Flux<U> dataSource, Function<U, T> mapper) {
+        return streamTableEvents(dataSource.map(mapper));
     }
 
-    static <R, U extends CacheEvent<R>> WindowingStrategyBuilder<R, U> autoCacheEvents(Flux<U> dataSource) {
+    static <R, U extends CacheEvent<R>> WindowingStrategyBuilder<R, U> streamTableEvents(Flux<U> dataSource) {
         return new Builder<>(dataSource, null, null, null, null, null);
     }
 
@@ -102,16 +102,16 @@ public interface AutoCacheFactoryBuilder {
         CacheTransformerBuilder<R> scheduler(Scheduler scheduler);
     }
 
-    interface CacheTransformerBuilder<R> extends AutoCacheFactoryDelegateBuilder<R> {
+    interface CacheTransformerBuilder<R> extends StreamTableFactoryDelegateBuilder<R> {
 
-        default AutoCacheFactoryDelegateBuilder<R> concurrent() {
+        default StreamTableFactoryDelegateBuilder<R> concurrent() {
             return transformer(ConcurrentCacheFactory.concurrent());
         }
 
-        AutoCacheFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer);
+        StreamTableFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer);
     }
 
-    interface AutoCacheFactoryDelegateBuilder<R> {
+    interface StreamTableFactoryDelegateBuilder<R> {
         <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build();
     }
 
@@ -144,14 +144,14 @@ public interface AutoCacheFactoryBuilder {
         }
 
         @Override
-        public AutoCacheFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer) {
+        public StreamTableFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer) {
             return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, cacheTransformer);
         }
 
         @SuppressWarnings("unchecked")
         @Override
         public <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build() {
-            return autoCache(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC, CTX>) concurrentCacheTransformer);
+            return streamTable(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC, CTX>) concurrentCacheTransformer);
         }
     }
 }

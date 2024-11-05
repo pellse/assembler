@@ -1,6 +1,5 @@
 package io.github.pellse.assembler.caching.spring;
 
-import io.github.pellse.assembler.caching.CacheEvent;
 import io.github.pellse.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.assembler.caching.CacheFactory;
 import io.github.pellse.assembler.util.BillingInfo;
@@ -30,9 +29,9 @@ import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.pipe;
-import static io.github.pellse.assembler.caching.AutoCacheFactory.autoCache;
-import static io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
-import static io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCacheEvents;
+import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
+import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableBuilder;
+import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableEvents;
 import static io.github.pellse.assembler.caching.CacheEvent.removed;
 import static io.github.pellse.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
@@ -252,8 +251,8 @@ public class SpringCacheAssemblerTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(springCache(cacheManager, BILLING_INFO_CACHE), autoCache(dataSource1)))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(springCache(cacheManager, ORDER_ITEMS_CACHE), autoCache(dataSource2)))),
+                        rule(BillingInfo::customerId, oneToOne(cached(springCache(cacheManager, BILLING_INFO_CACHE), streamTable(dataSource1)))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(springCache(cacheManager, ORDER_ITEMS_CACHE), streamTable(dataSource2)))),
                         Transaction::new)
                 .build();
 
@@ -283,10 +282,10 @@ public class SpringCacheAssemblerTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, springCache(cacheManager, BILLING_INFO_CACHE), autoCacheBuilder(dataSource1).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, springCache(cacheManager, BILLING_INFO_CACHE), streamTableBuilder(dataSource1).build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id,
                                 cachedMany(this::getAllOrders, springCache(cacheManager, ORDER_ITEMS_CACHE),
-                                        autoCacheBuilder(dataSource2)
+                                        streamTableBuilder(dataSource2)
                                                 .maxWindowSize(3)
                                                 .scheduler(boundedElastic())
                                                 .build()))),
@@ -339,12 +338,12 @@ public class SpringCacheAssemblerTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, springCache(cacheManager, BILLING_INFO_CACHE), autoCacheEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(springCache(cacheManager, ORDER_ITEMS_CACHE), autoCacheEvents(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, springCache(cacheManager, BILLING_INFO_CACHE), streamTableEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(springCache(cacheManager, ORDER_ITEMS_CACHE), streamTableEvents(orderItemFlux).maxWindowSize(3).build()))),
                         Transaction::new)
                 .build();
 
-        Thread.sleep(100); // To give enough time to autoCache() calls above to subscribe and consume their flux
+        Thread.sleep(100); // To give enough time to streamTable() calls above to subscribe and consume their flux
 
         StepVerifier.create(getCustomers()
                         .window(3)
