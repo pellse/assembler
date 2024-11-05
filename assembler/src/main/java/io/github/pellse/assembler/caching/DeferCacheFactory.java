@@ -28,10 +28,10 @@ public interface DeferCacheFactory {
     }
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> defer(CacheFactory<ID, R, RRC, CTX> cacheFactory) {
-        return context -> deferCache(cacheFactory.create(context));
+        return context -> defer(cacheFactory.create(context));
     }
 
-    static <ID, RRC> Cache<ID, RRC> deferCache(Cache<ID, RRC> delegateCache) {
+    static <ID, RRC> Cache<ID, RRC> defer(Cache<ID, RRC> delegateCache) {
         return adapterCache(
                 ids -> Mono.defer(() -> delegateCache.getAll(ids)),
                 (ids, fetchFunction) -> Mono.defer(() -> delegateCache.computeAll(ids, fetchFunction)),
