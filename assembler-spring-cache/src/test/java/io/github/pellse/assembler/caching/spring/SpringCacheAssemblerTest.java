@@ -1,6 +1,5 @@
 package io.github.pellse.assembler.caching.spring;
 
-import io.github.pellse.assembler.caching.CacheEvent.Updated;
 import io.github.pellse.assembler.caching.CacheFactory;
 import io.github.pellse.assembler.util.BillingInfo;
 import io.github.pellse.assembler.util.Customer;
@@ -31,9 +30,6 @@ import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.pipe;
 import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableBuilder;
-import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableEvents;
-import static io.github.pellse.assembler.caching.CacheEvent.removed;
-import static io.github.pellse.assembler.caching.CacheEvent.updated;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
 import static io.github.pellse.assembler.caching.spring.SpringCacheFactory.springCache;
@@ -320,8 +316,7 @@ public class SpringCacheAssemblerTest {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
-        Flux<Updated<BillingInfo>> billingInfoEventFlux = Flux.just(
-                        updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2))
+        Flux<BillingInfo> billingInfoEventFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3, updatedBillingInfo2)
                 .subscribeOn(parallel());
 
         var orderItemFlux = Flux.just(
@@ -329,7 +324,6 @@ public class SpringCacheAssemblerTest {
                         new CDCAdd(orderItem21), new CDCAdd(orderItem22), new CDCAdd(orderItem31),
                         new CDCAdd(orderItem32), new CDCAdd(orderItem33), new CDCDelete(orderItem31),
                         new CDCDelete(orderItem32))
-                .map(e -> e instanceof CDCAdd ? updated(e.item()) : removed(e.item()))
                 .subscribeOn(parallel());
 
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, of(orderItem21, orderItem22));
@@ -338,8 +332,14 @@ public class SpringCacheAssemblerTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, springCache(cacheManager, BILLING_INFO_CACHE), streamTableEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(springCache(cacheManager, ORDER_ITEMS_CACHE), streamTableEvents(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, springCache(cacheManager, BILLING_INFO_CACHE),
+                                streamTableBuilder(billingInfoEventFlux)
+                                        .maxWindowSize(3)
+                                        .build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(springCache(cacheManager, ORDER_ITEMS_CACHE),
+                                streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+                                        .maxWindowSize(3)
+                                        .build()))),
                         Transaction::new)
                 .build();
 

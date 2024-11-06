@@ -60,7 +60,7 @@ public interface StreamTableFactoryBuilder {
         return streamTableEvents(dataSource.map(mapper));
     }
 
-    static <R, U extends CacheEvent<R>> WindowingStrategyBuilder<R, U> streamTableEvents(Flux<U> dataSource) {
+    private static <R, U extends CacheEvent<R>> WindowingStrategyBuilder<R, U> streamTableEvents(Flux<U> dataSource) {
         return new Builder<>(dataSource, null, null, null, null, null);
     }
 

@@ -20,7 +20,6 @@ import io.github.pellse.assembler.Assembler;
 import io.github.pellse.assembler.Rule;
 import io.github.pellse.assembler.caching.CacheContext.OneToManyCacheContext;
 import io.github.pellse.assembler.caching.CacheContext.OneToOneCacheContext;
-import io.github.pellse.assembler.caching.CacheEvent;
 import io.github.pellse.assembler.caching.CacheFactory;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.assembler.util.*;
@@ -53,7 +52,6 @@ import static io.github.pellse.assembler.RuleMapper.*;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableBuilder;
-import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableEvents;
 import static io.github.pellse.assembler.caching.CacheEvent.*;
 import static io.github.pellse.assembler.caching.CacheFactory.*;
 import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
@@ -709,8 +707,7 @@ public class CacheTest {
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 1.00);
         OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
 
-        Flux<Updated<BillingInfo>> billingInfoEventFlux = Flux.just(
-                        updated(billingInfo1), updated(billingInfo2), updated(updatedBillingInfo2), updated(billingInfo3))
+        Flux<BillingInfo> billingInfoEventFlux = Flux.just(billingInfo1, billingInfo2, updatedBillingInfo2, billingInfo3)
                 .subscribeOn(parallel());
 
         var orderItemFlux = Flux.just(
@@ -725,7 +722,7 @@ public class CacheTest {
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
         CacheTransformer<Long, BillingInfo, BillingInfo, OneToOneCacheContext<Long, BillingInfo>> billingInfoStreamTable =
-                streamTableEvents(billingInfoEventFlux)
+                streamTableBuilder(billingInfoEventFlux)
                         .maxWindowSize(3)
                         .build();
 
@@ -854,15 +851,13 @@ public class CacheTest {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540111111111111");
 
-        Flux<CacheEvent<BillingInfo>> billingInfoEventFlux = Flux.just(
-                updated(billingInfo1), updated(billingInfo2), updated(billingInfo3), updated(updatedBillingInfo2));
+        Flux<BillingInfo> billingInfoEventFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3, updatedBillingInfo2);
 
         var orderItemFlux = Flux.just(
-                        cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
-                        cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(orderItem31),
-                        cdcAdd(orderItem32), cdcAdd(orderItem33), cdcDelete(orderItem31),
-                        cdcDelete(orderItem32))
-                .map(toCacheEvent(CDCAdd.class::isInstance, CDC::item));
+                cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(orderItem31),
+                cdcAdd(orderItem32), cdcAdd(orderItem33), cdcDelete(orderItem31),
+                cdcDelete(orderItem32));
 
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, orderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
@@ -870,8 +865,14 @@ public class CacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, streamTableEvents(billingInfoEventFlux).maxWindowSize(3).build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, streamTableEvents(orderItemFlux).maxWindowSize(3).build()))),
+                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo,
+                                streamTableBuilder(billingInfoEventFlux)
+                                        .maxWindowSize(3)
+                                        .build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders,
+                                streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+                                        .maxWindowSize(3)
+                                        .build()))),
                         Transaction::new)
                 .build(immediate());
 
