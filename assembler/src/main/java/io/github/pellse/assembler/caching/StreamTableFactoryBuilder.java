@@ -41,14 +41,6 @@ public interface StreamTableFactoryBuilder {
     }
 
     static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> streamTableBuilder(
-            Supplier<Flux<U>> dataSource,
-            Predicate<U> isAddOrUpdateEvent,
-            Function<U, R> cacheEventValueExtractor) {
-
-        return streamTableBuilder(dataSource.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
-    }
-
-    static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> streamTableBuilder(
             Flux<U> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
