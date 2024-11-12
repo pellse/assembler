@@ -32,10 +32,6 @@ import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
 
 public interface StreamTableFactoryBuilder {
 
-    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> streamTableBuilder(Supplier<Flux<R>> dataSourceSupplier) {
-        return streamTableBuilder(dataSourceSupplier.get());
-    }
-
     static <R> WindowingStrategyBuilder<R, CacheEvent<R>> streamTableBuilder(Flux<R> dataSource) {
         return streamTableBuilder(dataSource, CacheEvent::updated);
     }
