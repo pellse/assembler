@@ -29,11 +29,19 @@ import java.util.function.*;
 import static io.github.pellse.assembler.ErrorHandler.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
+import static java.util.function.Function.identity;
 
 public interface StreamTableFactoryBuilder {
 
-    static <R> WindowingStrategyBuilder<R, CacheEvent<R>> streamTableBuilder(Flux<R> dataSource) {
-        return streamTableBuilder(dataSource, CacheEvent::updated);
+    static <R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> streamTableBuilder(Flux<R> dataSource) {
+        return streamTableBuilder(dataSource, __ -> true);
+    }
+
+    static <R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> streamTableBuilder(
+            Flux<R> dataSource,
+            Predicate<R> isAddOrUpdateEvent) {
+
+        return streamTableBuilder(dataSource, isAddOrUpdateEvent, identity());
     }
 
     static <U, R> WindowingStrategyBuilder<R, ? extends CacheEvent<R>> streamTableBuilder(
@@ -41,15 +49,7 @@ public interface StreamTableFactoryBuilder {
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
 
-        return streamTableEvents(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)));
-    }
-
-    static <U, R, T extends CacheEvent<R>> WindowingStrategyBuilder<R, T> streamTableBuilder(Flux<U> dataSource, Function<U, T> mapper) {
-        return streamTableEvents(dataSource.map(mapper));
-    }
-
-    private static <R, U extends CacheEvent<R>> WindowingStrategyBuilder<R, U> streamTableEvents(Flux<U> dataSource) {
-        return new Builder<>(dataSource, null, null, null, null, null);
+        return new Builder<>(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
     interface WindowingStrategyBuilder<R, U extends CacheEvent<R>> extends ConfigBuilder<R> {
@@ -109,7 +109,7 @@ public interface StreamTableFactoryBuilder {
             ErrorHandler errorHandler,
             Scheduler scheduler,
             LifeCycleEventSource eventSource,
-            CacheTransformer<?, R, ?, ?> concurrentCacheTransformer) implements WindowingStrategyBuilder<R, U> {
+            CacheTransformer<?, R, ?, ?> cacheTransformer) implements WindowingStrategyBuilder<R, U> {
 
         @Override
         public ConfigBuilder<R> windowingStrategy(WindowingStrategy<U> windowingStrategy) {
@@ -139,7 +139,7 @@ public interface StreamTableFactoryBuilder {
         @SuppressWarnings("unchecked")
         @Override
         public <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build() {
-            return streamTable(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC, CTX>) concurrentCacheTransformer);
+            return streamTable(dataSource, windowingStrategy, errorHandler, eventSource, scheduler, (CacheTransformer<ID, R, RRC, CTX>) cacheTransformer);
         }
     }
 }

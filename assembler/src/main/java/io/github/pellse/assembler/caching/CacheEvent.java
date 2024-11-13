@@ -19,37 +19,19 @@ package io.github.pellse.assembler.caching;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static java.util.function.Function.identity;
+import static io.github.pellse.util.ObjectUtils.then;
 
 public sealed interface CacheEvent<R> {
-
-    static <R> Updated<R> updated(R value) {
-        return new Updated<>(value);
-    }
-
-    static <R> Removed<R> removed(R value) {
-        return new Removed<>(value);
-    }
-
-    static <T> Function<T, CacheEvent<T>> toCacheEvent(Predicate<T> isAddOrUpdateEvent) {
-        return toCacheEvent(isAddOrUpdateEvent, identity());
-    }
-
-    static <T, R> Function<T, CacheEvent<R>> toCacheEvent(Predicate<T> isAddOrUpdateEvent, Function<T, R> cacheEventValueExtractor) {
-        return source -> toCacheEvent(isAddOrUpdateEvent.test(source), cacheEventValueExtractor.apply(source));
-    }
-
-    static <R> CacheEvent<R> toCacheEvent(boolean isAddOrUpdateEvent, R eventValue) {
-        return isAddOrUpdateEvent ? updated(eventValue) : removed(eventValue);
-    }
-
-    R value();
 
     record Updated<R>(R value) implements CacheEvent<R> {
     }
 
     record Removed<R>(R value) implements CacheEvent<R> {
     }
+
+    R value();
+
+    static <T, R> Function<T, CacheEvent<R>> toCacheEvent(Predicate<T> isAddOrUpdateEvent, Function<T, R> cacheEventValueExtractor) {
+        return event -> then(cacheEventValueExtractor.apply(event), eventValue -> isAddOrUpdateEvent.test(event) ? new Updated<>(eventValue) : new Removed<>(eventValue));
+    }
 }
-
-

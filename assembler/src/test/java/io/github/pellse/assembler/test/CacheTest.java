@@ -52,7 +52,6 @@ import static io.github.pellse.assembler.RuleMapper.*;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableBuilder;
-import static io.github.pellse.assembler.caching.CacheEvent.*;
 import static io.github.pellse.assembler.caching.CacheFactory.*;
 import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
 import static io.github.pellse.assembler.test.CDCAdd.cdcAdd;
@@ -727,7 +726,7 @@ public class CacheTest {
                         .build();
 
         CacheTransformer<Long, OrderItem, List<OrderItem>, OneToManyCacheContext<Long, String, OrderItem, List<OrderItem>>> orderItemStreamTable =
-                streamTableBuilder(orderItemFlux, toCacheEvent(CDCAdd.class::isInstance, CDC::item))
+                streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                         .maxWindowSize(3)
                         .build();
 
