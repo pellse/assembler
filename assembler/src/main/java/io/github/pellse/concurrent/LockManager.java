@@ -101,22 +101,20 @@ class LockManager {
     }
 
     private boolean tryAcquireWriteLock(Lock innerLock) {
-        return tryAcquireLock(
-                innerLock,
-                (lock, currentState) -> switch (lock.outerLock()) {
-                    case ReadLock __ -> (currentState & WRITE_LOCK_MASK) == 0;
-                    case WriteLock __ -> (currentState & WRITE_LOCK_MASK) == WRITE_LOCK_MASK;
-                    case NoopLock __ -> currentState == 0;
-                    case WrapperLock __ -> throw new IllegalStateException("Unexpected lock state: " + lock);
-                },
-                currentState -> currentState | WRITE_LOCK_MASK);
+        BiPredicate<Lock, Long> currentStatePredicate = (lock, currentState) -> switch (lock.outerLock()) {
+            case ReadLock __ -> (currentState & WRITE_LOCK_MASK) == 0;
+            case WriteLock __ -> (currentState & WRITE_LOCK_MASK) == WRITE_LOCK_MASK;
+            case NoopLock __ -> currentState == 0;
+            case WrapperLock __ -> throw new IllegalStateException("Unexpected lock state: " + lock);
+        };
+        return tryAcquireLock(innerLock, currentStatePredicate, currentState -> currentState | WRITE_LOCK_MASK);
     }
 
-    private boolean tryAcquireLock(Lock innerLock, BiFunction<Lock, Long, Boolean> currentStatePredicate, LongUnaryOperator currentStateUpdater) {
+    private boolean tryAcquireLock(Lock innerLock, BiPredicate<Lock, Long> currentStatePredicate, LongUnaryOperator currentStateUpdater) {
         long currentState;
         do {
             currentState = lockState.get();
-            if (!currentStatePredicate.apply(innerLock, currentState)) {
+            if (!currentStatePredicate.test(innerLock, currentState)) {
                 return false;
             }
         } while (!lockState.compareAndSet(currentState, currentStateUpdater.applyAsLong(currentState)));
@@ -145,7 +143,7 @@ class LockManager {
                 drainReadQueue();
             }
         }
-       drainReadQueue();
+        drainReadQueue();
     }
 
     private void drainReadQueue() {
