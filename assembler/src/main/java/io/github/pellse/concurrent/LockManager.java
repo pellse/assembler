@@ -107,7 +107,7 @@ class LockManager {
                     case ReadLock __ -> (currentState & WRITE_LOCK_MASK) == 0;
                     case WriteLock __ -> (currentState & WRITE_LOCK_MASK) == WRITE_LOCK_MASK;
                     case NoopLock __ -> currentState == 0;
-                    default -> throw new IllegalStateException("Unexpected lock state: " + lock);
+                    case WrapperLock __ -> throw new IllegalStateException("Unexpected lock state: " + lock);
                 },
                 currentState -> currentState | WRITE_LOCK_MASK);
     }
