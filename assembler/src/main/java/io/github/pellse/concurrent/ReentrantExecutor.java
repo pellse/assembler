@@ -23,6 +23,8 @@ public interface ReentrantExecutor {
         }
     }
 
+    <T> Mono<T> withReadLock(Mono<T> mono, Duration timeout, Supplier<T> defaultValueProvider);
+
     <T> Mono<T> withReadLock(Function<WriteLockExecutor<T>, Mono<T>> writeLockMonoFunction, Duration timeout, Supplier<T> defaultValueProvider);
 
     <T> Mono<T> withWriteLock(Mono<T> mono, Duration timeout, Supplier<T> defaultValueProvider);
@@ -33,10 +35,6 @@ public interface ReentrantExecutor {
 
     default <T> Mono<T> withReadLock(Mono<T> mono, Supplier<T> defaultValueProvider) {
         return withReadLock(mono, DEFAULT_TIMEOUT, defaultValueProvider);
-    }
-
-    default <T> Mono<T> withReadLock(Mono<T> mono, Duration timeout, Supplier<T> defaultValueProvider) {
-        return withReadLock(__ -> mono, timeout, defaultValueProvider);
     }
 
     default <T> Mono<T> withReadLock(Function<WriteLockExecutor<T>, Mono<T>> writeLockMonoFunction) {
@@ -67,6 +65,11 @@ public interface ReentrantExecutor {
                 default Mono<T> using(Mono<Lock> lockProvider, Mono<T> mono) {
                     return using(lockProvider, __ -> mono);
                 }
+            }
+
+            @Override
+            public <T> Mono<T> withReadLock(Mono<T> mono, Duration timeout, Supplier<T> defaultValueProvider) {
+                return with(mono, LockManager::acquireReadLock, timeout, defaultValueProvider);
             }
 
             @Override
