@@ -28,10 +28,10 @@ import static reactor.core.publisher.Mono.fromRunnable;
 sealed interface Lock {
     Lock outerLock();
 
-    Consumer<Lock> releaseLock();
+    Consumer<Lock> lockReleaser();
 
     default Mono<?> release() {
-        return fromRunnable(() -> releaseLock().accept(this));
+        return fromRunnable(() -> lockReleaser().accept(this));
     }
 
     default Lock unwrap() {
@@ -39,10 +39,10 @@ sealed interface Lock {
     }
 }
 
-record ReadLock(Lock outerLock, Consumer<Lock> releaseLock) implements Lock {
+record ReadLock(Lock outerLock, Consumer<Lock> lockReleaser) implements Lock {
 }
 
-record WriteLock(Lock outerLock, Consumer<Lock> releaseLock) implements Lock {
+record WriteLock(Lock outerLock, Consumer<Lock> lockReleaser) implements Lock {
 }
 
 record NoopLock() implements Lock {
@@ -60,12 +60,12 @@ record NoopLock() implements Lock {
     }
 
     @Override
-    public Consumer<Lock> releaseLock() {
+    public Consumer<Lock> lockReleaser() {
         return doNothing();
     }
 }
 
-record WrapperLock(Lock delegate, UnaryOperator<Consumer<Lock>> releaseLockWrapper) implements Lock {
+record WrapperLock(Lock delegate, UnaryOperator<Consumer<Lock>> lockReleaserWrapper) implements Lock {
 
     @Override
     public Lock outerLock() {
@@ -73,8 +73,8 @@ record WrapperLock(Lock delegate, UnaryOperator<Consumer<Lock>> releaseLockWrapp
     }
 
     @Override
-    public Consumer<Lock> releaseLock() {
-        return releaseLockWrapper.apply(delegate.releaseLock());
+    public Consumer<Lock> lockReleaser() {
+        return lockReleaserWrapper.apply(delegate.lockReleaser());
     }
 
     @Override

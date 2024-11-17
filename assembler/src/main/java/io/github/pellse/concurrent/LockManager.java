@@ -29,7 +29,6 @@ import static io.github.pellse.concurrent.NoopLock.NOOP_LOCK;
 import static java.lang.Thread.onSpinWait;
 import static reactor.core.publisher.Mono.just;
 import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
-import static reactor.core.publisher.Sinks.EmitResult.OK;
 
 class LockManager {
 
@@ -71,10 +70,10 @@ class LockManager {
             BiFunction<? super Lock, ? super Consumer<Lock>, Lock> lockProvider,
             Lock outerLock,
             Predicate<Lock> tryAcquireLock,
-            Consumer<Lock> releaseLock,
+            Consumer<Lock> lockReleaser,
             Queue<LockRequest> queue) {
 
-        final var innerLock = lockProvider.apply(outerLock.unwrap(), releaseLock);
+        final var innerLock = lockProvider.apply(outerLock.unwrap(), lockReleaser);
 
         if (tryAcquireLock.test(innerLock)) {
             return just(new WrapperLock(innerLock, this::releaseAndDrain));
@@ -86,9 +85,9 @@ class LockManager {
         return lockRequest.sink().asMono();
     }
 
-    private Consumer<Lock> releaseAndDrain(Consumer<Lock> releaseLock) {
+    private Consumer<Lock> releaseAndDrain(Consumer<Lock> lockReleaser) {
         return lock -> {
-            releaseLock.accept(lock);
+            lockReleaser.accept(lock);
             drainQueues();
         };
     }
@@ -121,8 +120,8 @@ class LockManager {
         return true;
     }
 
-    private void releaseLock(Lock innerLock, Consumer<Lock> releaseLock) {
-        releaseLock.accept(innerLock);
+    private void releaseLock(Lock innerLock, Consumer<Lock> lockReleaser) {
+        lockReleaser.accept(innerLock);
     }
 
     private void doReleaseReadLock(Lock innerLock) {
@@ -150,22 +149,22 @@ class LockManager {
         drainQueue(readQueue, this::tryAcquireReadLock, this::doReleaseReadLock);
     }
 
-    private static void drainQueue(Queue<LockRequest> queue, Predicate<Lock> tryAcquireLock, Consumer<Lock> releaseLock) {
+    private static void drainQueue(Queue<LockRequest> queue, Predicate<Lock> tryAcquireLock, Consumer<Lock> lockReleaser) {
         LockRequest lockRequest;
         while ((lockRequest = queue.poll()) != null) {
-            while (!unlock(lockRequest, tryAcquireLock, releaseLock)) {
+            while (!unlock(lockRequest, tryAcquireLock, lockReleaser)) {
                 onSpinWait();
             }
         }
     }
 
-    private static boolean unlock(LockRequest lockRequest, Predicate<Lock> tryAcquireLock, Consumer<Lock> releaseLock) {
+    private static boolean unlock(LockRequest lockRequest, Predicate<Lock> tryAcquireLock, Consumer<Lock> lockReleaser) {
         final var innerLock = lockRequest.lock();
         if (tryAcquireLock.test(innerLock)) {
-            if (emit(innerLock, lockRequest.sink()) == OK) {
+            if (emit(innerLock, lockRequest.sink()).isSuccess()) {
                 return true;
             } else {
-                releaseLock.accept(innerLock);
+                lockReleaser.accept(innerLock);
             }
         }
         return false;
