@@ -32,6 +32,15 @@ import static reactor.core.publisher.Mono.*;
 
 public interface Cache<ID, RRC> {
 
+    @FunctionalInterface
+    interface FetchFunction<ID, RRC> extends Function<Iterable<? extends ID>, Mono<Map<ID, RRC>>> {
+    }
+
+    @FunctionalInterface
+    interface CacheUpdater<ID, RRC> {
+        Mono<?> updateCache(Cache<ID, RRC> cache, Map<ID, RRC> existingCacheItems, Map<ID, RRC> incomingChanges);
+    }
+
     Mono<Map<ID, RRC>> getAll(Iterable<ID> ids);
 
     Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction);
@@ -42,15 +51,6 @@ public interface Cache<ID, RRC> {
 
     default Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
         return putAll(mapToAdd).then(removeAll(mapToRemove));
-    }
-
-    @FunctionalInterface
-    interface CacheUpdater<ID, RRC> {
-        Mono<?> updateCache(Cache<ID, RRC> cache, Map<ID, RRC> existingCacheItems, Map<ID, RRC> incomingChanges);
-    }
-
-    @FunctionalInterface
-    interface FetchFunction<ID, RRC> extends Function<Iterable<? extends ID>, Mono<Map<ID, RRC>>> {
     }
 
     static <ID, RRC> Cache<ID, RRC> adapterCache(

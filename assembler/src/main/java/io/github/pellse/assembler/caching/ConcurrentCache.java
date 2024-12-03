@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.concurrent.ReentrantExecutor;
+import io.github.pellse.concurrent.ReactiveGuard;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -29,33 +29,33 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
             return concurrentCache;
         }
 
-        final var executor = ReentrantExecutor.create();
+        final var reactiveGuard = ReactiveGuard.create();
 
         return new ConcurrentCache<>() {
 
             @Override
             public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
-                return executor.withReadLock(delegateCache.getAll(ids), Map::of);
+                return reactiveGuard.withReadLock(delegateCache.getAll(ids), Map::of);
             }
 
             @Override
             public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
-                return executor.withReadLock(x -> delegateCache.computeAll(ids, idsToFetch -> x.withLock(() -> fetchFunction.apply(idsToFetch))), Map::of);
+                return reactiveGuard.withReadLock(writeGuard -> delegateCache.computeAll(ids, idsToFetch -> writeGuard.withLock(() -> fetchFunction.apply(idsToFetch))), Map::of);
             }
 
             @Override
             public Mono<?> putAll(Map<ID, RRC> map) {
-                return executor.withWriteLock(delegateCache.putAll(map));
+                return reactiveGuard.withLock(delegateCache.putAll(map));
             }
 
             @Override
             public Mono<?> removeAll(Map<ID, RRC> map) {
-                return executor.withWriteLock(delegateCache.removeAll(map));
+                return reactiveGuard.withLock(delegateCache.removeAll(map));
             }
 
             @Override
             public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
-                return executor.withWriteLock(delegateCache.updateAll(mapToAdd, mapToRemove));
+                return reactiveGuard.withLock(delegateCache.updateAll(mapToAdd, mapToRemove));
             }
         };
     }
