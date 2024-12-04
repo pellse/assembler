@@ -22,7 +22,6 @@ import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import static io.github.pellse.util.ObjectUtils.doNothing;
-import static reactor.core.publisher.Mono.empty;
 import static reactor.core.publisher.Mono.fromRunnable;
 
 interface Lock<L extends CoreLock<L>> {
@@ -56,11 +55,6 @@ record NoopLock() implements CoreLock<NoopLock> {
     @Override
     public CoreLock<?> outerLock() {
         return NOOP_LOCK;
-    }
-
-    @Override
-    public Mono<?> release() {
-        return empty();
     }
 
     @Override
