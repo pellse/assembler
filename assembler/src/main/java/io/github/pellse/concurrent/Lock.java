@@ -25,32 +25,33 @@ import static io.github.pellse.util.ObjectUtils.doNothing;
 import static reactor.core.publisher.Mono.empty;
 import static reactor.core.publisher.Mono.fromRunnable;
 
-sealed interface Lock {
-    Lock outerLock();
+sealed interface Lock<L extends Lock<L>> {
+    Lock<? extends Lock<?>> outerLock();
 
-    Consumer<Lock> lockReleaser();
+    Consumer<L> lockReleaser();
 
     default Mono<?> release() {
-        return fromRunnable(() -> lockReleaser().accept(this));
+        return fromRunnable(() -> lockReleaser().accept(unwrap()));
     }
 
-    default Lock unwrap() {
-        return this;
+    @SuppressWarnings("unchecked")
+    default L unwrap() {
+        return (L) this;
     }
 }
 
-record ReadLock(Lock outerLock, Consumer<Lock> lockReleaser) implements Lock {
+record ReadLock(Lock<?> outerLock, Consumer<ReadLock> lockReleaser) implements Lock<ReadLock> {
 }
 
-record WriteLock(Lock outerLock, Consumer<Lock> lockReleaser) implements Lock {
+record WriteLock(Lock<?> outerLock, Consumer<WriteLock> lockReleaser) implements Lock<WriteLock> {
 }
 
-record NoopLock() implements Lock {
+record NoopLock() implements Lock<NoopLock> {
 
-    static NoopLock NOOP_LOCK = new NoopLock();
+    static final NoopLock NOOP_LOCK = new NoopLock();
 
     @Override
-    public Lock outerLock() {
+    public Lock<?> outerLock() {
         return NOOP_LOCK;
     }
 
@@ -60,25 +61,25 @@ record NoopLock() implements Lock {
     }
 
     @Override
-    public Consumer<Lock> lockReleaser() {
+    public Consumer<NoopLock> lockReleaser() {
         return doNothing();
     }
 }
 
-record WrapperLock(Lock delegate, UnaryOperator<Consumer<Lock>> lockReleaserWrapper) implements Lock {
+record WrapperLock<L extends Lock<L>>(L delegateLock, UnaryOperator<Consumer<L>> lockReleaserWrapper) implements Lock<L> {
 
     @Override
-    public Lock outerLock() {
-        return delegate.outerLock();
+    public Lock<?> outerLock() {
+        return delegateLock.outerLock();
     }
 
     @Override
-    public Consumer<Lock> lockReleaser() {
-        return lockReleaserWrapper.apply(delegate.lockReleaser());
+    public Consumer<L> lockReleaser() {
+        return lockReleaserWrapper.apply(delegateLock.lockReleaser());
     }
 
     @Override
-    public Lock unwrap() {
-        return delegate;
+    public L unwrap() {
+        return delegateLock;
     }
 }
