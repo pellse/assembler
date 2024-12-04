@@ -25,8 +25,8 @@ import static io.github.pellse.util.ObjectUtils.doNothing;
 import static reactor.core.publisher.Mono.empty;
 import static reactor.core.publisher.Mono.fromRunnable;
 
-sealed interface Lock<L extends Lock<L>> {
-    Lock<? extends Lock<?>> outerLock();
+interface Lock<L extends CoreLock<L>> {
+    CoreLock<?> outerLock();
 
     Consumer<L> lockReleaser();
 
@@ -40,18 +40,21 @@ sealed interface Lock<L extends Lock<L>> {
     }
 }
 
-record ReadLock(Lock<?> outerLock, Consumer<ReadLock> lockReleaser) implements Lock<ReadLock> {
+sealed interface CoreLock<L extends CoreLock<L>> extends Lock<L> {
 }
 
-record WriteLock(Lock<?> outerLock, Consumer<WriteLock> lockReleaser) implements Lock<WriteLock> {
+record ReadLock(CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser) implements CoreLock<ReadLock> {
 }
 
-record NoopLock() implements Lock<NoopLock> {
+record WriteLock(CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser) implements CoreLock<WriteLock> {
+}
+
+record NoopLock() implements CoreLock<NoopLock> {
 
     static final NoopLock NOOP_LOCK = new NoopLock();
 
     @Override
-    public Lock<?> outerLock() {
+    public CoreLock<?> outerLock() {
         return NOOP_LOCK;
     }
 
@@ -66,10 +69,10 @@ record NoopLock() implements Lock<NoopLock> {
     }
 }
 
-record WrapperLock<L extends Lock<L>>(L delegateLock, UnaryOperator<Consumer<L>> lockReleaserWrapper) implements Lock<L> {
+record WrapperLock<L extends CoreLock<L>>(L delegateLock, UnaryOperator<Consumer<L>> lockReleaserWrapper) implements Lock<L> {
 
     @Override
-    public Lock<?> outerLock() {
+    public CoreLock<?> outerLock() {
         return delegateLock.outerLock();
     }
 

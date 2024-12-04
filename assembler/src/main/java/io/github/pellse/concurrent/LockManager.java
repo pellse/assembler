@@ -32,7 +32,7 @@ import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 class LockManager {
 
-    private record LockRequest<L extends Lock<L>>(L lock, Sinks.One<L> sink) {
+    private record LockRequest<L extends CoreLock<L>>(L lock, Sinks.One<L> sink) {
         LockRequest(L lock) {
             this(lock, Sinks.one());
         }
@@ -66,8 +66,8 @@ class LockManager {
         releaseLock(innerLock, this::doReleaseWriteLock);
     }
 
-    private <L extends Lock<L>> Mono<? extends Lock<?>> acquireLock(
-            BiFunction<? super Lock<?>, ? super Consumer<L>, L> lockProvider,
+    private <L extends CoreLock<L>> Mono<? extends Lock<?>> acquireLock(
+            BiFunction<? super CoreLock<?>, ? super Consumer<L>, L> lockProvider,
             Lock<?> outerLock,
             Predicate<L> tryAcquireLock,
             Consumer<L> lockReleaser,
@@ -85,7 +85,7 @@ class LockManager {
         return lockRequest.sink().asMono();
     }
 
-    private <L extends Lock<L>> Consumer<L> releaseAndDrain(Consumer<L> lockReleaser) {
+    private <L extends CoreLock<L>> Consumer<L> releaseAndDrain(Consumer<L> lockReleaser) {
         return lock -> {
             lockReleaser.accept(lock);
             drainQueues();
@@ -104,12 +104,11 @@ class LockManager {
             case ReadLock __ -> (currentState & WRITE_LOCK_MASK) == 0;
             case WriteLock __ -> (currentState & WRITE_LOCK_MASK) == WRITE_LOCK_MASK;
             case NoopLock __ -> currentState == 0;
-            case WrapperLock<?> __ -> throw new IllegalStateException("Unexpected lock state: " + lock);
         };
         return tryAcquireLock(innerLock, currentStatePredicate, currentState -> currentState | WRITE_LOCK_MASK);
     }
 
-    private <L extends Lock<L>> boolean tryAcquireLock(L innerLock, BiPredicate<L, Long> currentStatePredicate, LongUnaryOperator currentStateUpdater) {
+    private <L extends CoreLock<L>> boolean tryAcquireLock(L innerLock, BiPredicate<L, Long> currentStatePredicate, LongUnaryOperator currentStateUpdater) {
         long currentState;
         do {
             currentState = lockState.get();
@@ -120,7 +119,7 @@ class LockManager {
         return true;
     }
 
-    private <L extends Lock<L>> void releaseLock(L innerLock, Consumer<L> lockReleaser) {
+    private <L extends CoreLock<L>> void releaseLock(L innerLock, Consumer<L> lockReleaser) {
         lockReleaser.accept(innerLock);
     }
 
@@ -149,7 +148,7 @@ class LockManager {
         drainQueue(readQueue, this::tryAcquireReadLock, this::doReleaseReadLock);
     }
 
-    private static <L extends Lock<L>> void drainQueue(Queue<LockRequest<L>> queue, Predicate<L> tryAcquireLock, Consumer<L> lockReleaser) {
+    private static <L extends CoreLock<L>> void drainQueue(Queue<LockRequest<L>> queue, Predicate<L> tryAcquireLock, Consumer<L> lockReleaser) {
         LockRequest<L> lockRequest;
         while ((lockRequest = queue.poll()) != null) {
             while (!unlock(lockRequest, tryAcquireLock, lockReleaser)) {
@@ -158,7 +157,7 @@ class LockManager {
         }
     }
 
-    private static <L extends Lock<L>> boolean unlock(LockRequest<L> lockRequest, Predicate<L> tryAcquireLock, Consumer<L> lockReleaser) {
+    private static <L extends CoreLock<L>> boolean unlock(LockRequest<L> lockRequest, Predicate<L> tryAcquireLock, Consumer<L> lockReleaser) {
         final var innerLock = lockRequest.lock();
         if (tryAcquireLock.test(innerLock)) {
             if (emit(innerLock, lockRequest.sink()).isSuccess()) {
@@ -170,7 +169,7 @@ class LockManager {
         return false;
     }
 
-    private static <L extends Lock<L>> EmitResult emit(L lock, Sinks.One<L> sink) {
+    private static <L extends CoreLock<L>> EmitResult emit(L lock, Sinks.One<L> sink) {
         EmitResult result;
         while ((result = sink.tryEmitValue(lock)) == FAIL_NON_SERIALIZED) {
             onSpinWait();
