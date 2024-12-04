@@ -100,9 +100,9 @@ public interface ReactiveGuard {
 
             @FunctionalInterface
             interface ResourceManager<T> {
-                Mono<T> using(Mono<Lock> lockProvider, Function<Lock, Mono<T>> monoProvider);
+                Mono<T> using(Mono<? extends Lock> lockProvider, Function<Lock, Mono<T>> monoProvider);
 
-                default Mono<T> using(Mono<Lock> lockProvider, Mono<T> mono) {
+                default Mono<T> using(Mono<? extends Lock> lockProvider, Mono<T> mono) {
                     return using(lockProvider, __ -> mono);
                 }
             }
@@ -124,7 +124,7 @@ public interface ReactiveGuard {
 
             private <T> Mono<T> with(
                     Mono<T> mono,
-                    Function<LockManager, Mono<Lock>> lockAcquisitionStrategy,
+                    Function<LockManager, Mono<? extends Lock>> lockAcquisitionStrategy,
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
@@ -136,7 +136,7 @@ public interface ReactiveGuard {
 
             private <T> Mono<T> with(
                     Function<ReactiveWriteGuard<T>, Mono<T>> writeLockMonoFunction,
-                    Function<LockManager, Mono<Lock>> lockAcquisitionStrategy,
+                    Function<LockManager, Mono<? extends Lock>> lockAcquisitionStrategy,
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
