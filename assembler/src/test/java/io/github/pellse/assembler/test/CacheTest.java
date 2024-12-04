@@ -150,9 +150,12 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var customerFlux = longRunningFlux(customerList).delayElements(ofMillis(1), DEFAULT_SCHEDULER);
-        var billingInfoFlux = longRunningFlux(billingInfoList, 2000).delayElements(ofMillis(1), DEFAULT_SCHEDULER).doOnComplete(() -> System.out.println("billingInfo Flux completed"));
-        var orderItemFlux = longRunningFlux(orderItemList, 2000).delayElements(ofMillis(1), DEFAULT_SCHEDULER).doOnComplete(() -> System.out.println("orderItem Flux completed"));
+        var delay = ofMillis(1);
+        var maxItems = 20000;
+
+        var customerFlux = longRunningFlux(customerList).delayElements(delay, DEFAULT_SCHEDULER);
+        var billingInfoFlux = longRunningFlux(billingInfoList, maxItems).delayElements(delay, DEFAULT_SCHEDULER).doOnComplete(() -> System.out.println("billingInfo Flux completed"));
+        var orderItemFlux = longRunningFlux(orderItemList, maxItems).delayElements(delay, DEFAULT_SCHEDULER).doOnComplete(() -> System.out.println("orderItem Flux completed"));
 
         Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
 
@@ -172,7 +175,7 @@ public class CacheTest {
                     .doOnComplete(ordersInvocationCount::incrementAndGet);
         };
 
-        var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
+//        var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
