@@ -445,10 +445,10 @@ var assembler = assemblerOf(Transaction.class)
 ```
 [:arrow_up:](#table-of-contents)
 
-### Auto Caching
+### Stream Table
 In addition to the cache mechanism provided by the `cached()` and `cachedMany()` functions, ***Assembler*** also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `streamTable()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `cached()` to fall back to fetch missing data.
 
-The auto caching mechanism in ***Assembler*** (via `streamTable()`) can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value per key from its associated data stream. However, ***Assembler*** is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
+The Stream Table mechanism in ***Assembler*** (via `streamTable()`) can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value per key from its associated data stream. However, ***Assembler*** is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
 
 This is how `streamTable()` connects to a data stream and automatically and asynchronously update the cache in real-time:
 
@@ -483,7 +483,7 @@ var transactionFlux = getCustomers()
   .flatMapSequential(assembler::assemble);
 ```
 
-It is also possible to customize the Auto Caching configuration via `streamTableBuilder()`:
+It is also possible to customize the Stream Table configuration via `streamTableBuilder()`:
 
 ```java
 import reactor.core.publisher.Flux;
@@ -501,7 +501,7 @@ import static io.github.pellse.assembler.caching.StreamTableFactory.OnErrorMap.o
 import static reactor.core.scheduler.Schedulers.newParallel;
 import static java.lang.System.getLogger;
 
-var logger = getLogger("auto-cache-logger");
+var logger = getLogger("stream-table-logger");
 
 Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
@@ -532,7 +532,7 @@ By default, the cache is updated for every element from the incoming stream of d
 
 [:arrow_up:](#table-of-contents)
 
-### Event Based Auto Caching
+### Event Based Stream Table
 Assuming the following custom domain events not known by ***Assembler***:
 ```java
 sealed interface MyEvent<T> {
