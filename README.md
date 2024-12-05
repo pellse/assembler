@@ -446,11 +446,11 @@ var assembler = assemblerOf(Transaction.class)
 [:arrow_up:](#table-of-contents)
 
 ### Auto Caching
-In addition to the cache mechanism provided by the `cached()` and `cachedMany()` functions, ***Assembler*** also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `autoCache()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `cached()` to fall back to fetch missing data.
+In addition to the cache mechanism provided by the `cached()` and `cachedMany()` functions, ***Assembler*** also provides a mechanism to automatically and asynchronously update the cache in real-time as new data becomes available via the `streamTable()` function. This ensures that the cache is always up-to-date and avoids in most cases the need for `cached()` to fall back to fetch missing data.
 
-The auto caching mechanism in ***Assembler*** can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value per key from its associated data stream. However, ***Assembler*** is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
+The auto caching mechanism in ***Assembler*** (via `streamTable()`) can be seen as being conceptually similar to a `KTable` in Kafka. Both mechanisms provide a way to keep a key-value store updated in real-time with the latest value per key from its associated data stream. However, ***Assembler*** is not limited to just Kafka data sources and can work with any data source that can be consumed in a reactive stream.
 
-This is how `autoCache()` connects to a data stream and automatically and asynchronously update the cache in real-time:
+This is how `streamTable()` connects to a data stream and automatically and asynchronously update the cache in real-time:
 
 ```java
 import reactor.core.publisher.Flux;
@@ -463,7 +463,7 @@ import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
-import static io.github.pellse.assembler.caching.AutoCacheFactory;
+import static io.github.pellse.assembler.caching.StreamTableFactory;
 
 Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
@@ -472,9 +472,9 @@ var assembler = assemblerOf(Transaction.class)
   .withCorrelationIdResolver(Customer::customerId)
   .withRules(
     rule(BillingInfo::customerId,
-      oneToOne(cached(call(this::getBillingInfo), caffeineCache(), autoCache(billingInfoFlux)))),
+      oneToOne(cached(call(this::getBillingInfo), caffeineCache(), streamTable(billingInfoFlux)))),
     rule(OrderItem::customerId,
-      oneToMany(OrderItem::id, cachedMany(call(this::getAllOrders), autoCache(orderItemFlux)))),
+      oneToMany(OrderItem::id, cachedMany(call(this::getAllOrders), streamTable(orderItemFlux)))),
     Transaction::new)
   .build();
 
@@ -483,7 +483,7 @@ var transactionFlux = getCustomers()
   .flatMapSequential(assembler::assemble);
 ```
 
-It is also possible to customize the Auto Caching configuration via `autoCacheBuilder()`:
+It is also possible to customize the Auto Caching configuration via `streamTableBuilder()`:
 
 ```java
 import reactor.core.publisher.Flux;
@@ -496,8 +496,8 @@ import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
-import static io.github.pellse.assembler.caching.AutoCacheFactoryBuilder.autoCacheBuilder;
-import static io.github.pellse.assembler.caching.AutoCacheFactory.OnErrorMap.onErrorMap;
+import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableBuilder;
+import static io.github.pellse.assembler.caching.StreamTableFactory.OnErrorMap.onErrorMap;
 import static reactor.core.scheduler.Schedulers.newParallel;
 import static java.lang.System.getLogger;
 
@@ -510,13 +510,13 @@ var assembler = assemblerOf(Transaction.class)
   .withCorrelationIdResolver(Customer::customerId)
   .withRules(
     rule(BillingInfo::customerId, oneToOne(cached(call(this::getBillingInfo),
-      autoCacheBuilder(billingInfoFlux)
+      streamTableBuilder(billingInfoFlux)
         .maxWindowSizeAndTime(100, ofSeconds(5))
-        .errorHandler(error -> logger.log(WARNING, "Error in autoCache", error))
+        .errorHandler(error -> logger.log(WARNING, "Error in streamTable", error))
         .scheduler(newParallel("billing-info"))
         .build()))),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(call(this::getAllOrders),
-      autoCacheBuilder(orderItemFlux)
+      streamTableBuilder(orderItemFlux)
         .maxWindowSize(50)
         .errorHandler(onErrorMap(MyException::new))
         .scheduler(newParallel("order-item"))
@@ -554,7 +554,7 @@ Flux<MyEvent<OrderItem>> orderItemFlux = Flux.just(
   new ItemUpdated<>(orderItem11), new ItemUpdated<>(orderItem12), new ItemUpdated<>(orderItem13),
   new ItemDeleted<>(orderItem31), new ItemDeleted<>(orderItem32), new ItemDeleted<>(orderItem33));
 ```
-Here is how `autoCache()` can be used to adapt those custom domain events to add, update or delete entries from the cache in real-time:
+Here is how `streamTable()` can be used to adapt those custom domain events to add, update or delete entries from the cache in real-time:
 
 ```java
 import io.github.pellse.assembler.Assembler;
@@ -566,15 +566,15 @@ import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.caching.CacheFactory.cached;
 import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
-import static io.github.pellse.assembler.caching.AutoCacheFactory.autoCache;
+import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
 
 Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
   .withCorrelationIdResolver(Customer::customerId)
   .withRules(
     rule(BillingInfo::customerId, oneToOne(cached(call(this::getBillingInfo),
-      autoCache(billingInfoFlux, MyOtherEvent::isAddOrUpdateEvent, MyOtherEvent::value)))),
+      streamTable(billingInfoFlux, MyOtherEvent::isAddOrUpdateEvent, MyOtherEvent::value)))),
     rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(call(this::getAllOrders),
-      autoCache(orderItemFlux, ItemUpdated.class::isInstance, MyEvent::item)))),
+      streamTable(orderItemFlux, ItemUpdated.class::isInstance, MyEvent::item)))),
     Transaction::new)
   .build();
 
