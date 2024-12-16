@@ -37,6 +37,7 @@ import static io.github.pellse.assembler.LifeCycleEventSource.concurrentLifeCycl
 import static io.github.pellse.assembler.LifeCycleEventSource.lifeCycleEventAdapter;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.util.collection.CollectionUtils.isEmpty;
+import static io.github.pellse.util.reactive.ReactiveUtils.publishFluxOn;
 import static java.lang.System.Logger.Level.WARNING;
 import static java.lang.System.getLogger;
 import static java.util.Objects.requireNonNull;
@@ -93,7 +94,7 @@ public interface StreamTableFactory {
                     .create(cacheContext);
 
             final var cacheSourceFlux = requireNonNull(dataSource, "dataSource cannot be null")
-                    .transform(scheduleOn(scheduler, Flux::publishOn))
+                    .transform(publishFluxOn(scheduler))
                     .transform(requireNonNullElse(windowingStrategy, flux -> flux.window(MAX_WINDOW_SIZE)))
                     .flatMap(flux -> flux.collect(partitioningBy(Updated.class::isInstance)))
                     .flatMap(eventMap -> cache.updateAll(toMap(eventMap.get(true), mapCollector), toMap(eventMap.get(false), mapCollector)))
@@ -110,10 +111,6 @@ public interface StreamTableFactory {
         return isEmpty(cacheEvents) ? Map.of() : cacheEvents.stream()
                 .map(CacheEvent::value)
                 .collect(mapCollector.apply(cacheEvents.size()));
-    }
-
-    private static <T> Function<Flux<T>, Flux<T>> scheduleOn(Scheduler scheduler, BiFunction<Flux<T>, Scheduler, Flux<T>> scheduleFunction) {
-        return flux -> scheduler != null ? scheduleFunction.apply(flux, scheduler) : flux;
     }
 
     private static void logError(Throwable t, Object faultyData) {

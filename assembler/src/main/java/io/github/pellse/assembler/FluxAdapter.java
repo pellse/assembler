@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static io.github.pellse.util.reactive.ReactiveUtils.subscribeMonoOn;
 import static java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.publisher.Flux.zip;
@@ -44,7 +45,7 @@ public interface FluxAdapter {
         return (topLevelEntitiesProvider, subQueryMapperBuilder, aggregateStreamBuilder) -> Flux.from(topLevelEntitiesProvider)
                 .collectList()
                 .flatMapMany(entities ->
-                        zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).subscribeOn(scheduler)).toList(),
+                        zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).transform(subscribeMonoOn(scheduler))).toList(),
                                 mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))))
 //                .publishOn(scheduler) // from(publisher) above can itself switch to a different scheduler e.g. StreamTable
                 .flatMapSequential(Flux::fromStream);

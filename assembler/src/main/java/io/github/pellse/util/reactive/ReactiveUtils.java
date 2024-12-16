@@ -16,11 +16,15 @@
 
 package io.github.pellse.util.reactive;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Scheduler;
 import reactor.util.function.Tuple2;
 
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.util.collection.CollectionUtils.toLinkedHashMap;
@@ -52,5 +56,29 @@ public interface ReactiveUtils {
 
     static <T> Mono<T> nullToEmpty(Supplier<T> defaultValueProvider) {
         return defaultValueProvider != null ? fromSupplier(defaultValueProvider) : empty();
+    }
+
+    static <T> Function<Flux<T>, Flux<T>> subscribeFluxOn(Scheduler scheduler) {
+        return scheduleFluxOn(scheduler, Flux::subscribeOn);
+    }
+
+    static <T> Function<Flux<T>, Flux<T>> publishFluxOn(Scheduler scheduler) {
+        return scheduleFluxOn(scheduler, Flux::publishOn);
+    }
+
+    static <T> Function<Flux<T>, Flux<T>> scheduleFluxOn(Scheduler scheduler, BiFunction<Flux<T>, Scheduler, Flux<T>> scheduleFunction) {
+        return flux -> scheduler != null ? scheduleFunction.apply(flux, scheduler) : flux;
+    }
+
+    static <T> Function<Mono<T>, Mono<T>> subscribeMonoOn(Scheduler scheduler) {
+        return scheduleMonoOn(scheduler, Mono::subscribeOn);
+    }
+
+    static <T> Function<Mono<T>, Mono<T>> publishMonoOn(Scheduler scheduler) {
+        return scheduleMonoOn(scheduler, Mono::publishOn);
+    }
+
+    static <T> Function<Mono<T>, Mono<T>> scheduleMonoOn(Scheduler scheduler, BiFunction<Mono<T>, Scheduler, Mono<T>> scheduleFunction) {
+        return mono -> scheduler != null ? scheduleFunction.apply(mono, scheduler) : mono;
     }
 }
