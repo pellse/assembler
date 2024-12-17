@@ -131,7 +131,7 @@ public interface ReactiveGuard {
 
                 return usingWhen(
                         lockAcquisitionStrategy.apply(lockManager),
-                        lock -> executeWithLock(lock, __ -> mono, timeout, defaultValueProvider),
+                        lock -> executeWithTimeout(lock, __ -> mono, timeout, defaultValueProvider),
                         Lock::release);
             }
 
@@ -143,7 +143,7 @@ public interface ReactiveGuard {
 
                 final ResourceManager<T> resourceManager = (lockProvider, monoProvider) -> usingWhen(
                         lockProvider,
-                        lock -> executeWithLock(lock, monoProvider, timeout, defaultValueProvider),
+                        lock -> executeWithTimeout(lock, monoProvider, timeout, defaultValueProvider),
                         Lock::release);
 
                 return resourceManager.using(
@@ -151,7 +151,7 @@ public interface ReactiveGuard {
                         lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockManager.toWriteLock(lock), mono)));
             }
 
-            private <T> Mono<T> executeWithLock(
+            private <T> Mono<T> executeWithTimeout(
                     Lock<?> lock,
                     Function<Lock<?>, Mono<T>> monoProvider,
                     Duration timeout,
@@ -162,7 +162,7 @@ public interface ReactiveGuard {
                             final var executeOnThread = currentThread().getName();
 
                             return mono.timeout(timeout, nullToEmpty(defaultValueProvider)
-                                    .doOnSubscribe(__ -> lockManager.fireLockEvent(new LockTimedOutEvent(lock, lockManager.getLockState(), executeOnThread, currentThread().getName()))));
+                                    .doOnSubscribe(__ -> lockManager.fireConcurrencyMonitoringEvent(new TaskTimedOutEvent(lock, lockManager.getLockState(), executeOnThread, currentThread().getName()))));
                         }));
             }
         };

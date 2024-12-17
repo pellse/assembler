@@ -41,7 +41,7 @@ class LockManager {
     }
 
     @FunctionalInterface
-    interface LockEventFactory<E extends LockEvent> {
+    interface ConcurrencyMonitoringEventFactory<E extends ConcurrencyMonitoringEvent> {
 
         E create(Lock<? extends CoreLock<?>> lock, long lockState, Instant timestamp, String threadName);
 
@@ -66,27 +66,27 @@ class LockManager {
     private final Queue<LockRequest<ReadLock>> readQueue = new ConcurrentLinkedQueue<>();
     private final Queue<LockRequest<WriteLock>> writeQueue = new ConcurrentLinkedQueue<>();
 
-    private final LockEventListener lockEventListeners;
+    private final ConcurrencyMonitoringEventListener concurrencyMonitoringEventListeners;
 
     LockManager() {
         this(__ -> {
         });
     }
 
-    LockManager(LockEventListener lockEventListeners) {
-        this.lockEventListeners = lockEventListeners;
+    LockManager(ConcurrencyMonitoringEventListener concurrencyMonitoringEventListeners) {
+        this.concurrencyMonitoringEventListeners = concurrencyMonitoringEventListeners;
     }
 
     long getLockState() {
         return lockState.get();
     }
 
-    void fireLockEvent(Lock<?> lock, long lockState, LockEventFactory<?> lockEventFactory) {
-        fireLockEvent(lockEventFactory.create(lock, lockState));
+    void fireConcurrencyMonitoringEvent(Lock<?> lock, long lockState, ConcurrencyMonitoringEventFactory<?> concurrencyMonitoringEventFactory) {
+        fireConcurrencyMonitoringEvent(concurrencyMonitoringEventFactory.create(lock, lockState));
     }
 
-    void fireLockEvent(LockEvent lockEvent) {
-        lockEventListeners.onLockEvent(lockEvent);
+    void fireConcurrencyMonitoringEvent(ConcurrencyMonitoringEvent concurrencyMonitoringEvent) {
+        concurrencyMonitoringEventListeners.onLockEvent(concurrencyMonitoringEvent);
     }
 
     Mono<? extends Lock<?>> acquireReadLock() {
@@ -161,12 +161,12 @@ class LockManager {
             newState = currentStateUpdater.applyAsLong(currentState);
         } while (!lockState.compareAndSet(currentState, newState));
 
-        fireLockEvent(innerLock, newState, LockAcquiredEvent::new);
+        fireConcurrencyMonitoringEvent(innerLock, newState, LockAcquiredEvent::new);
         return true;
     }
 
     private <L extends CoreLock<L>> void releaseLock(L innerLock, LockReleaser<L> lockReleaser) {
-        fireLockEvent(innerLock, lockReleaser.release(innerLock), LockReleasedEvent::new);
+        fireConcurrencyMonitoringEvent(innerLock, lockReleaser.release(innerLock), LockReleasedEvent::new);
     }
 
     private long doReleaseReadLock(ReadLock innerLock) {

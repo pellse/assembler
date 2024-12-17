@@ -10,12 +10,11 @@ import static java.util.Map.entry;
 import static java.util.stream.Collectors.joining;
 
 @FunctionalInterface
-interface LockEventListener {
-    void onLockEvent(LockEvent lockEvent);
+interface ConcurrencyMonitoringEventListener {
+    void onLockEvent(ConcurrencyMonitoringEvent concurrencyMonitoringEvent);
 }
 
-sealed interface LockEvent {
-
+sealed interface ConcurrencyMonitoringEvent {
     Lock<? extends CoreLock<?>> lock();
 
     long lockState();
@@ -25,7 +24,7 @@ sealed interface LockEvent {
     String executeOnThread();
 
     @SafeVarargs
-    static String toString(LockEvent e, Entry<String, String>... extraAttributes) {
+    static String toString(ConcurrencyMonitoringEvent e, Entry<String, String>... extraAttributes) {
         return e.getClass().getSimpleName()
                 + "[lock=" + e.lock() + ", lockState=" + toBinaryString(e.lockState()) + ", timestamp=" + e.timestamp() + ", executeOnThread=" + e.executeOnThread() + ", "
                 + (extraAttributes.length > 0 ? stream(extraAttributes).map(entry -> entry.getKey() + "=" + entry.getValue()).collect(joining(",")) : "")
@@ -33,29 +32,29 @@ sealed interface LockEvent {
     }
 }
 
-record LockAcquiredEvent(Lock<?> lock, long lockState, Instant timestamp, String executeOnThread) implements LockEvent {
+record LockAcquiredEvent(Lock<?> lock, long lockState, Instant timestamp, String executeOnThread) implements ConcurrencyMonitoringEvent {
 
     @Override
     public String toString() {
-        return LockEvent.toString(this);
+        return ConcurrencyMonitoringEvent.toString(this);
     }
 }
 
-record LockReleasedEvent(Lock<?> lock, long lockState, Instant timestamp, String executeOnThread) implements LockEvent {
+record LockReleasedEvent(Lock<?> lock, long lockState, Instant timestamp, String executeOnThread) implements ConcurrencyMonitoringEvent {
 
     @Override
     public String toString() {
-        return LockEvent.toString(this);
+        return ConcurrencyMonitoringEvent.toString(this);
     }
 }
 
-record LockTimedOutEvent(Lock<?> lock, long lockState, Instant timestamp, String executeOnThread, String timedOutThread) implements LockEvent {
-    LockTimedOutEvent(Lock<?> lock, long lockState, String executeOnThread, String timedOutThread) {
+record TaskTimedOutEvent(Lock<?> lock, long lockState, Instant timestamp, String executeOnThread, String timedOutThread) implements ConcurrencyMonitoringEvent {
+    TaskTimedOutEvent(Lock<?> lock, long lockState, String executeOnThread, String timedOutThread) {
         this(lock, lockState, now(), executeOnThread, timedOutThread);
     }
 
     @Override
     public String toString() {
-        return LockEvent.toString(this, entry("timedOutThread", timedOutThread));
+        return ConcurrencyMonitoringEvent.toString(this, entry("timedOutThread", timedOutThread));
     }
 }
