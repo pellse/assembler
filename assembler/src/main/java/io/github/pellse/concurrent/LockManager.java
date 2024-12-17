@@ -42,12 +42,16 @@ class LockManager {
 
     @FunctionalInterface
     interface ConcurrencyMonitoringEventFactory<E extends ConcurrencyMonitoringEvent> {
-
         E create(Lock<? extends CoreLock<?>> lock, long lockState, Instant timestamp, String threadName);
 
         default E create(Lock<? extends CoreLock<?>> lock, long lockState) {
             return create(lock, lockState, now(), currentThread().getName());
         }
+    }
+
+    @FunctionalInterface
+    interface ConcurrencyMonitoringEventProvider<E extends ConcurrencyMonitoringEvent> {
+        E create(long lockState);
     }
 
     private record LockRequest<L extends CoreLock<L>>(L lock, Sinks.One<L> sink) {
@@ -77,16 +81,12 @@ class LockManager {
         this.concurrencyMonitoringEventListeners = concurrencyMonitoringEventListeners;
     }
 
-    long getLockState() {
-        return lockState.get();
-    }
-
     void fireConcurrencyMonitoringEvent(Lock<?> lock, long lockState, ConcurrencyMonitoringEventFactory<?> concurrencyMonitoringEventFactory) {
-        fireConcurrencyMonitoringEvent(concurrencyMonitoringEventFactory.create(lock, lockState));
+        concurrencyMonitoringEventListeners.onLockEvent(concurrencyMonitoringEventFactory.create(lock, lockState));
     }
 
-    void fireConcurrencyMonitoringEvent(ConcurrencyMonitoringEvent concurrencyMonitoringEvent) {
-        concurrencyMonitoringEventListeners.onLockEvent(concurrencyMonitoringEvent);
+    void fireConcurrencyMonitoringEvent(ConcurrencyMonitoringEventProvider<?> concurrencyMonitoringEventFactory) {
+        concurrencyMonitoringEventListeners.onLockEvent(concurrencyMonitoringEventFactory.create(lockState.get()));
     }
 
     Mono<? extends Lock<?>> acquireReadLock() {

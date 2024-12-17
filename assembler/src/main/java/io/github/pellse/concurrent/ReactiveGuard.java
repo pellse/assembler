@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.reactive.ReactiveUtils.nullToEmpty;
 import static java.lang.Thread.currentThread;
 import static java.time.Duration.ofSeconds;
@@ -158,12 +159,9 @@ public interface ReactiveGuard {
                     Supplier<T> defaultValueProvider) {
 
                 return monoProvider.apply(lock)
-                        .transform(mono -> defer(() -> {
-                            final var executeOnThread = currentThread().getName();
-
-                            return mono.timeout(timeout, nullToEmpty(defaultValueProvider)
-                                    .doOnSubscribe(__ -> lockManager.fireConcurrencyMonitoringEvent(new TaskTimedOutEvent(lock, lockManager.getLockState(), executeOnThread, currentThread().getName()))));
-                        }));
+                        .transform(mono -> defer(() -> then(currentThread().getName(),
+                                executeOnThread -> mono.timeout(timeout, nullToEmpty(defaultValueProvider)
+                                        .doOnSubscribe(__ -> lockManager.fireConcurrencyMonitoringEvent(lockState -> new TaskTimedOutEvent(lock, lockState, executeOnThread, currentThread().getName())))))));
             }
         };
     }
