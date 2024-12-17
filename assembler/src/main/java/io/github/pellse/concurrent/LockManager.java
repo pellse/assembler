@@ -70,23 +70,23 @@ class LockManager {
     private final Queue<LockRequest<ReadLock>> readQueue = new ConcurrentLinkedQueue<>();
     private final Queue<LockRequest<WriteLock>> writeQueue = new ConcurrentLinkedQueue<>();
 
-    private final ConcurrencyMonitoringEventListener concurrencyMonitoringEventListeners;
+    private final ConcurrencyMonitoringEventListener concurrencyMonitoringEventListener;
 
     LockManager() {
         this(__ -> {
         });
     }
 
-    LockManager(ConcurrencyMonitoringEventListener concurrencyMonitoringEventListeners) {
-        this.concurrencyMonitoringEventListeners = concurrencyMonitoringEventListeners;
+    LockManager(ConcurrencyMonitoringEventListener concurrencyMonitoringEventListener) {
+        this.concurrencyMonitoringEventListener = concurrencyMonitoringEventListener;
     }
 
     void fireConcurrencyMonitoringEvent(Lock<?> lock, long lockState, ConcurrencyMonitoringEventFactory<?> concurrencyMonitoringEventFactory) {
-        concurrencyMonitoringEventListeners.onLockEvent(concurrencyMonitoringEventFactory.create(lock, lockState));
+        concurrencyMonitoringEventListener.onLockEvent(concurrencyMonitoringEventFactory.create(lock, lockState));
     }
 
     void fireConcurrencyMonitoringEvent(ConcurrencyMonitoringEventProvider<?> concurrencyMonitoringEventFactory) {
-        concurrencyMonitoringEventListeners.onLockEvent(concurrencyMonitoringEventFactory.create(lockState.get()));
+        concurrencyMonitoringEventListener.onLockEvent(concurrencyMonitoringEventFactory.create(lockState.get()));
     }
 
     Mono<? extends Lock<?>> acquireReadLock() {
