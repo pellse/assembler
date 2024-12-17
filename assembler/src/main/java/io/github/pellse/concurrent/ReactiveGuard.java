@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.util.reactive.ReactiveUtils.nullToEmpty;
+import static java.lang.Thread.currentThread;
 import static java.time.Duration.ofSeconds;
 import static reactor.core.publisher.Mono.*;
 
@@ -130,7 +131,7 @@ public interface ReactiveGuard {
 
                 return usingWhen(
                         lockAcquisitionStrategy.apply(lockManager),
-                        lock -> mono.timeout(timeout, nullToEmpty(defaultValueProvider)),
+                        lock -> executeWithLock(lock, __ -> mono, timeout, defaultValueProvider),
                         Lock::release);
             }
 
@@ -140,16 +141,29 @@ public interface ReactiveGuard {
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
-                final var defaultMono = nullToEmpty(defaultValueProvider);
-
                 final ResourceManager<T> resourceManager = (lockProvider, monoProvider) -> usingWhen(
                         lockProvider,
-                        lock -> monoProvider.apply(lock).timeout(timeout, defaultMono),
+                        lock -> executeWithLock(lock, monoProvider, timeout, defaultValueProvider),
                         Lock::release);
 
                 return resourceManager.using(
                         lockAcquisitionStrategy.apply(lockManager),
                         lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockManager.toWriteLock(lock), mono)));
+            }
+
+            private <T> Mono<T> executeWithLock(
+                    Lock<?> lock,
+                    Function<Lock<?>, Mono<T>> monoProvider,
+                    Duration timeout,
+                    Supplier<T> defaultValueProvider) {
+
+                return monoProvider.apply(lock)
+                        .transform(mono -> defer(() -> {
+                            final var executeOnThread = currentThread().getName();
+
+                            return mono.timeout(timeout, nullToEmpty(defaultValueProvider)
+                                    .doOnSubscribe(__ -> lockManager.fireLockEvent(new LockTimedOutEvent(lock, lockManager.getLockState(), executeOnThread, currentThread().getName()))));
+                        }));
             }
         };
     }

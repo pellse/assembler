@@ -24,7 +24,14 @@ import java.util.function.UnaryOperator;
 import static io.github.pellse.util.ObjectUtils.doNothing;
 import static reactor.core.publisher.Mono.fromRunnable;
 
+@FunctionalInterface
+interface LockFactory<L extends CoreLock<L>> {
+    L create(long id, CoreLock<?> outerLock, Consumer<L> lockReleaser);
+}
+
 interface Lock<L extends CoreLock<L>> {
+    long id();
+
     CoreLock<?> outerLock();
 
     Consumer<L> lockReleaser();
@@ -42,19 +49,28 @@ interface Lock<L extends CoreLock<L>> {
 sealed interface CoreLock<L extends CoreLock<L>> extends Lock<L> {
 }
 
-record ReadLock(CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser) implements CoreLock<ReadLock> {
+record ReadLock(long id, CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser) implements CoreLock<ReadLock> {
 }
 
-record WriteLock(CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser) implements CoreLock<WriteLock> {
+record WriteLock(long id, CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser) implements CoreLock<WriteLock> {
 }
 
 record NoopLock() implements CoreLock<NoopLock> {
 
-    static final NoopLock NOOP_LOCK = new NoopLock();
+    private static final NoopLock NOOP_LOCK = new NoopLock();
+
+    static NoopLock noopLock() {
+        return NOOP_LOCK;
+    }
+
+    @Override
+    public long id() {
+        return -1;
+    }
 
     @Override
     public CoreLock<?> outerLock() {
-        return NOOP_LOCK;
+        return noopLock();
     }
 
     @Override
@@ -66,13 +82,18 @@ record NoopLock() implements CoreLock<NoopLock> {
 record WrapperLock<L extends CoreLock<L>>(L delegateLock, UnaryOperator<Consumer<L>> lockReleaserWrapper) implements Lock<L> {
 
     @Override
+    public long id() {
+        return unwrap().id();
+    }
+
+    @Override
     public CoreLock<?> outerLock() {
-        return delegateLock.outerLock();
+        return unwrap().outerLock();
     }
 
     @Override
     public Consumer<L> lockReleaser() {
-        return lockReleaserWrapper.apply(delegateLock.lockReleaser());
+        return lockReleaserWrapper.apply(unwrap().lockReleaser());
     }
 
     @Override

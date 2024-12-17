@@ -20,17 +20,35 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.EmitResult;
 
+import java.time.Instant;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 
-import static io.github.pellse.concurrent.NoopLock.NOOP_LOCK;
+import static io.github.pellse.concurrent.NoopLock.noopLock;
+import static java.lang.Thread.currentThread;
 import static java.lang.Thread.onSpinWait;
+import static java.time.Instant.now;
 import static reactor.core.publisher.Mono.just;
 import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 class LockManager {
+
+    @FunctionalInterface
+    interface LockReleaser<L extends CoreLock<L>> {
+        long release(L lock);
+    }
+
+    @FunctionalInterface
+    interface LockEventFactory<E extends LockEvent> {
+
+        E create(Lock<? extends CoreLock<?>> lock, long lockState, Instant timestamp, String threadName);
+
+        default E create(Lock<? extends CoreLock<?>> lock, long lockState) {
+            return create(lock, lockState, now(), currentThread().getName());
+        }
+    }
 
     private record LockRequest<L extends CoreLock<L>>(L lock, Sinks.One<L> sink) {
         LockRequest(L lock) {
@@ -41,17 +59,42 @@ class LockManager {
     private static final long WRITE_LOCK_MASK = 1L << 63; // 1000000000000000000000000000000000000000000000000000000000000000
     private static final long READ_LOCK_MASK = ~WRITE_LOCK_MASK; // 0111111111111111111111111111111111111111111111111111111111111111
 
+    private final AtomicLong idCounter = new AtomicLong();
+
     private final AtomicLong lockState = new AtomicLong();
 
     private final Queue<LockRequest<ReadLock>> readQueue = new ConcurrentLinkedQueue<>();
     private final Queue<LockRequest<WriteLock>> writeQueue = new ConcurrentLinkedQueue<>();
 
+    private final LockEventListener lockEventListeners;
+
+    LockManager() {
+        this(__ -> {
+        });
+    }
+
+    LockManager(LockEventListener lockEventListeners) {
+        this.lockEventListeners = lockEventListeners;
+    }
+
+    long getLockState() {
+        return lockState.get();
+    }
+
+    void fireLockEvent(Lock<?> lock, long lockState, LockEventFactory<?> lockEventFactory) {
+        fireLockEvent(lockEventFactory.create(lock, lockState));
+    }
+
+    void fireLockEvent(LockEvent lockEvent) {
+        lockEventListeners.onLockEvent(lockEvent);
+    }
+
     Mono<? extends Lock<?>> acquireReadLock() {
-        return acquireLock(ReadLock::new, NOOP_LOCK, this::tryAcquireReadLock, this::releaseReadLock, readQueue);
+        return acquireLock(ReadLock::new, noopLock(), this::tryAcquireReadLock, this::releaseReadLock, readQueue);
     }
 
     Mono<? extends Lock<?>> acquireWriteLock() {
-        return toWriteLock(NOOP_LOCK);
+        return toWriteLock(noopLock());
     }
 
     Mono<? extends Lock<?>> toWriteLock(Lock<?> lock) {
@@ -67,13 +110,13 @@ class LockManager {
     }
 
     private <L extends CoreLock<L>> Mono<? extends Lock<?>> acquireLock(
-            BiFunction<? super CoreLock<?>, ? super Consumer<L>, L> lockProvider,
+            LockFactory<L> lockFactory,
             Lock<?> outerLock,
             Predicate<L> tryAcquireLock,
             Consumer<L> lockReleaser,
             Queue<LockRequest<L>> queue) {
 
-        final var innerLock = lockProvider.apply(outerLock.unwrap(), lockReleaser);
+        final var innerLock = lockFactory.create(idCounter.incrementAndGet(), outerLock.unwrap(), lockReleaser);
 
         if (tryAcquireLock.test(innerLock)) {
             return just(new WrapperLock<>(innerLock, this::releaseAndDrain));
@@ -109,28 +152,29 @@ class LockManager {
     }
 
     private <L extends CoreLock<L>> boolean tryAcquireLock(L innerLock, BiPredicate<L, Long> currentStatePredicate, LongUnaryOperator currentStateUpdater) {
-        long currentState;
+        long currentState, newState;
         do {
             currentState = lockState.get();
             if (!currentStatePredicate.test(innerLock, currentState)) {
                 return false;
             }
-        } while (!lockState.compareAndSet(currentState, currentStateUpdater.applyAsLong(currentState)));
+            newState = currentStateUpdater.applyAsLong(currentState);
+        } while (!lockState.compareAndSet(currentState, newState));
+
+        fireLockEvent(innerLock, newState, LockAcquiredEvent::new);
         return true;
     }
 
-    private <L extends CoreLock<L>> void releaseLock(L innerLock, Consumer<L> lockReleaser) {
-        lockReleaser.accept(innerLock);
+    private <L extends CoreLock<L>> void releaseLock(L innerLock, LockReleaser<L> lockReleaser) {
+        fireLockEvent(innerLock, lockReleaser.release(innerLock), LockReleasedEvent::new);
     }
 
-    private void doReleaseReadLock(ReadLock innerLock) {
-        lockState.decrementAndGet();
+    private long doReleaseReadLock(ReadLock innerLock) {
+        return lockState.decrementAndGet();
     }
 
-    private void doReleaseWriteLock(WriteLock innerLock) {
-        if (!(innerLock.outerLock() instanceof WriteLock)) {
-            lockState.updateAndGet(currentState -> currentState & READ_LOCK_MASK);
-        }
+    private long doReleaseWriteLock(WriteLock innerLock) {
+        return !(innerLock.outerLock() instanceof WriteLock) ? lockState.updateAndGet(currentState -> currentState & READ_LOCK_MASK) : lockState.get();
     }
 
     private void drainQueues() {
