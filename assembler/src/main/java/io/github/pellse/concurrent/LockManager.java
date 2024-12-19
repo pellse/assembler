@@ -49,11 +49,6 @@ class LockManager {
         }
     }
 
-    @FunctionalInterface
-    interface ConcurrencyMonitoringEventProvider<E extends ConcurrencyMonitoringEvent> {
-        E create(long lockState);
-    }
-
     private record LockRequest<L extends CoreLock<L>>(L lock, Sinks.One<L> sink) {
         LockRequest(L lock) {
             this(lock, Sinks.one());
@@ -85,8 +80,8 @@ class LockManager {
         concurrencyMonitoringEventListener.onLockEvent(concurrencyMonitoringEventFactory.create(lock, lockState));
     }
 
-    void fireConcurrencyMonitoringEvent(ConcurrencyMonitoringEventProvider<?> concurrencyMonitoringEventFactory) {
-        concurrencyMonitoringEventListener.onLockEvent(concurrencyMonitoringEventFactory.create(lockState.get()));
+    void fireConcurrencyMonitoringEvent(LongFunction<ConcurrencyMonitoringEvent> concurrencyMonitoringEventProvider) {
+        concurrencyMonitoringEventListener.onLockEvent(concurrencyMonitoringEventProvider.apply(lockState.get()));
     }
 
     Mono<? extends Lock<?>> acquireReadLock() {

@@ -16,12 +16,14 @@
 
 package io.github.pellse.concurrent;
 
+import io.github.pellse.util.ObjectUtils;
 import reactor.core.publisher.Mono;
 
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import static io.github.pellse.util.ObjectUtils.doNothing;
+import static java.util.Map.entry;
 import static reactor.core.publisher.Mono.fromRunnable;
 
 @FunctionalInterface
@@ -43,6 +45,10 @@ interface Lock<L extends CoreLock<L>> {
     @SuppressWarnings("unchecked")
     default L unwrap() {
         return (L) this;
+    }
+
+    default String log() {
+        return ObjectUtils.toString(this, entry("id", id()), entry("outerLock", outerLock()));
     }
 }
 
@@ -99,5 +105,10 @@ record WrapperLock<L extends CoreLock<L>>(L delegateLock, UnaryOperator<Consumer
     @Override
     public L unwrap() {
         return delegateLock;
+    }
+
+    @Override
+    public String log() {
+        return ObjectUtils.toString(this, entry("delegate", delegateLock().log()));
     }
 }

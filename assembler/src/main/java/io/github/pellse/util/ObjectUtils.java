@@ -16,13 +16,17 @@
 
 package io.github.pellse.util;
 
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import static io.github.pellse.util.collection.CollectionUtils.isEmpty;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
 
 public interface ObjectUtils {
 
@@ -97,5 +101,15 @@ public interface ObjectUtils {
 
     static <T> Predicate<T> nonNull(Predicate<T> predicate) {
         return predicate != null ? predicate : t -> true;
+    }
+
+    @SafeVarargs
+    static String toString(Object obj, Entry<String, ?>... attributes) {
+        return ObjectUtils.toString(obj, List.of(attributes));
+    }
+
+    static String toString(Object obj, List<Entry<String, ?>> attributes) {
+        return obj.getClass().getSimpleName()
+                + '[' + (!isEmpty(attributes) ? attributes.stream().map(entry -> entry.getKey() + "=" + entry.getValue()).collect(joining(", ")) : "") + ']';
     }
 }
