@@ -17,12 +17,17 @@
 package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import reactor.core.scheduler.Scheduler;
 
 import static io.github.pellse.assembler.caching.ConcurrentCache.concurrentCache;
 
 public interface ConcurrentCacheFactory {
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent() {
-        return cacheFactory -> context -> concurrentCache(cacheFactory.create(context));
+        return concurrent(null);
+    }
+
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(Scheduler timeoutScheduler) {
+        return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), timeoutScheduler);
     }
 }

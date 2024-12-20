@@ -18,18 +18,23 @@ package io.github.pellse.assembler.caching;
 
 import io.github.pellse.concurrent.ReactiveGuard;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.util.Map;
 
 public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
     static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache) {
+        return concurrentCache(delegateCache, null);
+    }
+
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, Scheduler timeoutScheduler) {
 
         if (delegateCache instanceof ConcurrentCache<ID, RRC> concurrentCache) {
             return concurrentCache;
         }
 
-        final var reactiveGuard = ReactiveGuard.create();
+        final var reactiveGuard = ReactiveGuard.create(timeoutScheduler);
 
         return new ConcurrentCache<>() {
 

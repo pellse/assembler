@@ -17,6 +17,7 @@
 package io.github.pellse.concurrent;
 
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
 import java.util.function.Function;
@@ -26,7 +27,9 @@ import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.reactive.ReactiveUtils.nullToEmpty;
 import static java.lang.Thread.currentThread;
 import static java.time.Duration.ofSeconds;
+import static java.util.Objects.requireNonNullElse;
 import static reactor.core.publisher.Mono.*;
+import static reactor.core.scheduler.Schedulers.*;
 
 public interface ReactiveGuard {
 
@@ -96,6 +99,13 @@ public interface ReactiveGuard {
     }
 
     static ReactiveGuard create() {
+        return ReactiveGuard.create(null);
+    }
+
+    static ReactiveGuard create(Scheduler timeoutScheduler) {
+
+        final var scheduler = requireNonNullElse(timeoutScheduler, DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS ? boundedElastic() : parallel());
+
         final var lockManager = new LockManager();
 
         return new ReactiveGuard() {
@@ -160,8 +170,12 @@ public interface ReactiveGuard {
 
                 return monoProvider.apply(lock)
                         .transform(mono -> defer(() -> then(currentThread().getName(),
-                                executeOnThread -> mono.timeout(timeout, nullToEmpty(defaultValueProvider)
-                                        .doOnSubscribe(__ -> lockManager.fireConcurrencyMonitoringEvent(lockState -> new TaskTimedOutEvent(lock, lockState, executeOnThread, currentThread().getName())))))));
+                                executeOnThread -> mono.timeout(timeout, createFallback(defaultValueProvider, lock, executeOnThread), scheduler))));
+            }
+
+            private <T> Mono<T> createFallback(Supplier<T> defaultValueProvider, Lock<?> lock, String executeOnThread) {
+                return nullToEmpty(defaultValueProvider)
+                        .doOnSubscribe(__ -> lockManager.fireConcurrencyMonitoringEvent(lockState -> new TaskTimedOutEvent(lock, lockState, executeOnThread, currentThread().getName())));
             }
         };
     }
