@@ -30,7 +30,7 @@ public interface RuleContext<T, TC extends Collection<T>, K, ID, R, RRC> {
 
     Function<R, ID> innerIdResolver();
 
-    Function<T, ID>  outerIdResolver();
+    Function<T, ID> outerIdResolver();
 
     Supplier<TC> topLevelCollectionFactory();
 
@@ -39,7 +39,7 @@ public interface RuleContext<T, TC extends Collection<T>, K, ID, R, RRC> {
     record DefaultRuleContext<T, TC extends Collection<T>, K, ID, R, RRC>(
             Function<T, K> topLevelIdResolver,
             Function<R, ID> innerIdResolver,
-            Function<T, ID>  outerIdResolver,
+            Function<T, ID> outerIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RRC> mapFactory) implements RuleContext<T, TC, K, ID, R, RRC> {
     }
