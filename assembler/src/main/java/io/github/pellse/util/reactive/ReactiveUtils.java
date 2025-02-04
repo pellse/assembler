@@ -20,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 
 import java.util.Map;
@@ -33,6 +34,7 @@ import static java.util.List.copyOf;
 import static java.util.function.Function.identity;
 import static reactor.core.publisher.Flux.concat;
 import static reactor.core.publisher.Mono.*;
+import static reactor.core.scheduler.Schedulers.*;
 
 public interface ReactiveUtils {
 
@@ -58,6 +60,10 @@ public interface ReactiveUtils {
         return defaultValueProvider != null ? fromSupplier(defaultValueProvider) : empty();
     }
 
+    static boolean isVirtualThreadSupported() {
+        return DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS;
+    }
+
     static <T> Function<Flux<T>, Flux<T>> subscribeFluxOn(Scheduler scheduler) {
         return scheduleFluxOn(scheduler, Flux::subscribeOn);
     }
@@ -80,5 +86,13 @@ public interface ReactiveUtils {
 
     static <T> Function<Mono<T>, Mono<T>> scheduleMonoOn(Scheduler scheduler, BiFunction<Mono<T>, Scheduler, Mono<T>> scheduleFunction) {
         return mono -> scheduler != null ? scheduleFunction.apply(mono, scheduler) : mono;
+    }
+
+    static Scheduler defaultScheduler() {
+        return scheduler(Schedulers::parallel);
+    }
+
+    static  Scheduler scheduler(Supplier<Scheduler> schedulerSupplier) {
+        return isVirtualThreadSupported() ? boundedElastic() : schedulerSupplier.get();
     }
 }

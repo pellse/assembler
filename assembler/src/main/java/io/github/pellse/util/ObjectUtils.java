@@ -30,6 +30,14 @@ import static java.util.stream.Collectors.joining;
 
 public interface ObjectUtils {
 
+    Consumer<?> DO_NOTHING = __ -> {
+    };
+
+    @SuppressWarnings("unchecked")
+    static <T> Consumer<T> doNothing() {
+        return (Consumer<T>) DO_NOTHING;
+    }
+
     static <T, U> boolean isSafeEqual(T t1, T t2, Function<? super T, ? extends U> propertyExtractor) {
         return isSafeEqual(t1, propertyExtractor, t2, propertyExtractor);
     }
@@ -72,11 +80,6 @@ public interface ObjectUtils {
         if (value != null && predicate.test(value)) {
             codeBlock.accept(value);
         }
-    }
-
-    static <T> Consumer<T> doNothing() {
-        return __ -> {
-        };
     }
 
     static <T> Consumer<T> run(Runnable runnable) {

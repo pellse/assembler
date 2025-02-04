@@ -16,6 +16,7 @@
 
 package io.github.pellse.concurrent;
 
+import io.github.pellse.concurrent.LockManager.LockAcquisitionException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
@@ -23,13 +24,15 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.github.pellse.util.ObjectUtils.then;
+import static io.github.pellse.concurrent.LockManager.lockManagerBuilder;
+import static io.github.pellse.util.ObjectUtils.get;
+import static io.github.pellse.util.reactive.ReactiveUtils.defaultScheduler;
 import static io.github.pellse.util.reactive.ReactiveUtils.nullToEmpty;
 import static java.lang.Thread.currentThread;
+import static java.time.Duration.ofNanos;
 import static java.time.Duration.ofSeconds;
 import static java.util.Objects.requireNonNullElse;
 import static reactor.core.publisher.Mono.*;
-import static reactor.core.scheduler.Schedulers.*;
 
 public interface ReactiveGuard {
 
@@ -104,9 +107,12 @@ public interface ReactiveGuard {
 
     static ReactiveGuard create(Scheduler timeoutScheduler) {
 
-        final var scheduler = requireNonNullElse(timeoutScheduler, DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS ? boundedElastic() : parallel());
+        final var lockManager = lockManagerBuilder()
+                .maxRetries(1000)
+                .waitTime(ofNanos(1))
+                .build();
 
-        final var lockManager = new LockManager();
+        final var scheduler = requireNonNullElse(timeoutScheduler, defaultScheduler());
 
         return new ReactiveGuard() {
 
@@ -143,7 +149,8 @@ public interface ReactiveGuard {
                 return usingWhen(
                         lockAcquisitionStrategy.apply(lockManager),
                         lock -> executeWithTimeout(lock, __ -> mono, timeout, defaultValueProvider),
-                        Lock::release);
+                        Lock::release)
+                        .transform(managedMono ->  wrap(managedMono, defaultValueProvider));
             }
 
             private <T> Mono<T> with(
@@ -152,14 +159,19 @@ public interface ReactiveGuard {
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
-                final ResourceManager<T> resourceManager = (lockProvider, monoProvider) -> usingWhen(
-                        lockProvider,
-                        lock -> executeWithTimeout(lock, monoProvider, timeout, defaultValueProvider),
+                final ResourceManager<T> resourceManager = (lockMono, mono) -> usingWhen(
+                        lockMono,
+                        lock -> executeWithTimeout(lock, mono, timeout, defaultValueProvider),
                         Lock::release);
 
                 return resourceManager.using(
                         lockAcquisitionStrategy.apply(lockManager),
-                        lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockManager.toWriteLock(lock), mono)));
+                        lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockManager.toWriteLock(lock), mono)))
+                        .transform(managedMono ->  wrap(managedMono, defaultValueProvider));
+            }
+
+            private <T> Mono<T> wrap(Mono<T> mono, Supplier<T> defaultValueProvider) {
+                return mono.onErrorResume(LockAcquisitionException.class, get(nullToEmpty(defaultValueProvider)));
             }
 
             private <T> Mono<T> executeWithTimeout(
@@ -169,13 +181,16 @@ public interface ReactiveGuard {
                     Supplier<T> defaultValueProvider) {
 
                 return monoProvider.apply(lock)
-                        .transform(mono -> defer(() -> then(currentThread().getName(),
-                                executeOnThread -> mono.timeout(timeout, createFallback(defaultValueProvider, lock, executeOnThread), scheduler))));
+                        .timeout(timeout, createFallback(defaultValueProvider, lock, currentThread().getName()), scheduler);
             }
 
             private <T> Mono<T> createFallback(Supplier<T> defaultValueProvider, Lock<?> lock, String executeOnThread) {
                 return nullToEmpty(defaultValueProvider)
-                        .doOnSubscribe(__ -> lockManager.fireConcurrencyMonitoringEvent(lockState -> new TaskTimedOutEvent(lock, lockState, executeOnThread, currentThread().getName())));
+                        .doOnSubscribe(__ -> fireConcurrencyMonitoringEvent(lock, executeOnThread));
+            }
+
+            private void fireConcurrencyMonitoringEvent(Lock<?> lock, String executeOnThread) {
+                lockManager.fireConcurrencyMonitoringEvent(lockState -> new TaskTimedOutEvent(lock, lockState, executeOnThread, currentThread().getName()));
             }
         };
     }

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.github.pellse.util.reactive.ReactiveUtils.subscribeMonoOn;
+import static io.github.pellse.util.reactive.ReactiveUtils.*;
 import static java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.publisher.Flux.zip;
@@ -33,7 +33,7 @@ import static reactor.core.scheduler.Schedulers.*;
 public interface FluxAdapter {
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter() {
-        return fluxAdapter(DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS);
+        return fluxAdapter(isVirtualThreadSupported());
     }
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter(boolean useVirtualThreads) {
@@ -47,7 +47,6 @@ public interface FluxAdapter {
                 .flatMapMany(entities ->
                         zip(subQueryMapperBuilder.apply(entities).map(publisher -> from(publisher).transform(subscribeMonoOn(scheduler))).toList(),
                                 mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))))
-//                .publishOn(scheduler) // from(publisher) above can itself switch to a different scheduler e.g. StreamTable
                 .flatMapSequential(Flux::fromStream);
     }
 
@@ -60,6 +59,6 @@ public interface FluxAdapter {
     }
 
     private static Scheduler getVirtualThreadScheduler() {
-        return DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS ? boundedElastic() : fromExecutorService(newVirtualThreadPerTaskExecutor());
+        return scheduler(() -> fromExecutorService(newVirtualThreadPerTaskExecutor()));
     }
 }

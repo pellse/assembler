@@ -20,7 +20,6 @@ import io.github.pellse.util.ObjectUtils;
 import reactor.core.publisher.Mono;
 
 import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
 
 import static io.github.pellse.util.ObjectUtils.doNothing;
 import static java.util.Map.entry;
@@ -48,7 +47,7 @@ interface Lock<L extends CoreLock<L>> {
     }
 
     default String log() {
-        return ObjectUtils.toString(this, entry("id", id()), entry("outerLock", outerLock()));
+        return ObjectUtils.toString(this, entry("id", id()), entry("outerLock", outerLock().log()));
     }
 }
 
@@ -61,9 +60,12 @@ record ReadLock(long id, CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser)
 record WriteLock(long id, CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser) implements CoreLock<WriteLock> {
 }
 
-record NoopLock() implements CoreLock<NoopLock> {
+final class NoopLock implements CoreLock<NoopLock> {
 
     private static final NoopLock NOOP_LOCK = new NoopLock();
+
+    private NoopLock() {
+    }
 
     static NoopLock noopLock() {
         return NOOP_LOCK;
@@ -83,32 +85,9 @@ record NoopLock() implements CoreLock<NoopLock> {
     public Consumer<NoopLock> lockReleaser() {
         return doNothing();
     }
-}
-
-record WrapperLock<L extends CoreLock<L>>(L delegateLock, UnaryOperator<Consumer<L>> lockReleaserWrapper) implements Lock<L> {
-
-    @Override
-    public long id() {
-        return unwrap().id();
-    }
-
-    @Override
-    public CoreLock<?> outerLock() {
-        return unwrap().outerLock();
-    }
-
-    @Override
-    public Consumer<L> lockReleaser() {
-        return lockReleaserWrapper.apply(unwrap().lockReleaser());
-    }
-
-    @Override
-    public L unwrap() {
-        return delegateLock;
-    }
 
     @Override
     public String log() {
-        return ObjectUtils.toString(this, entry("delegate", delegateLock().log()));
+        return "NoopLock";
     }
 }

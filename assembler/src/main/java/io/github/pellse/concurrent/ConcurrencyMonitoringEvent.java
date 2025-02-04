@@ -12,15 +12,12 @@ import static java.util.Arrays.stream;
 import static java.util.Map.entry;
 import static java.util.stream.Stream.concat;
 
-@FunctionalInterface
-interface ConcurrencyMonitoringEventListener {
-    void onLockEvent(ConcurrencyMonitoringEvent concurrencyMonitoringEvent);
-}
-
 sealed interface ConcurrencyMonitoringEvent {
     Lock<? extends CoreLock<?>> lock();
 
     long lockState();
+
+    long nbAttempts();
 
     Instant timestamp();
 
@@ -36,6 +33,7 @@ sealed interface ConcurrencyMonitoringEvent {
                 Stream.of(
                         entry("lock", e.lock().log()),
                         entry("lockState", toBinaryString(e.lockState())),
+                        entry("nbAttempts", e.nbAttempts()),
                         entry("timestamp", e.timestamp()),
                         entry("executeOnThread", e.executeOnThread())
                 ), stream(extraAttributes)
@@ -43,15 +41,18 @@ sealed interface ConcurrencyMonitoringEvent {
     }
 }
 
-record LockAcquiredEvent(Lock<?> lock, long lockState, Instant timestamp, String executeOnThread) implements ConcurrencyMonitoringEvent {
+record LockAcquiredEvent(Lock<?> lock, long lockState, long nbAttempts, Instant timestamp, String executeOnThread) implements ConcurrencyMonitoringEvent {
 }
 
-record LockReleasedEvent(Lock<?> lock, long lockState, Instant timestamp, String executeOnThread) implements ConcurrencyMonitoringEvent {
+record LockReleasedEvent(Lock<?> lock, long lockState, long nbAttempts, Instant timestamp, String executeOnThread) implements ConcurrencyMonitoringEvent {
 }
 
-record TaskTimedOutEvent(Lock<?> lock, long lockState, Instant timestamp, String executeOnThread, String timedOutThread) implements ConcurrencyMonitoringEvent {
+record LockAcquisitionFailedEvent(Lock<?> lock, long lockState, long nbAttempts, Instant timestamp, String executeOnThread) implements ConcurrencyMonitoringEvent {
+}
+
+record TaskTimedOutEvent(Lock<?> lock, long lockState, long nbAttempts, Instant timestamp, String executeOnThread, String timedOutThread) implements ConcurrencyMonitoringEvent {
     TaskTimedOutEvent(Lock<?> lock, long lockState, String executeOnThread, String timedOutThread) {
-        this(lock, lockState, now(), executeOnThread, timedOutThread);
+        this(lock, lockState, 0, now(), executeOnThread, timedOutThread);
     }
 
     @Override

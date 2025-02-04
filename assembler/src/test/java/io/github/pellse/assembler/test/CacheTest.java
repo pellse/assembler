@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Scheduler;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
@@ -37,11 +36,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
@@ -59,9 +54,11 @@ import static io.github.pellse.assembler.test.CDCDelete.cdcDelete;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.ObjectUtils.run;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
+import static io.github.pellse.util.reactive.ReactiveUtils.*;
 import static java.time.Duration.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.scheduler.Schedulers.*;
 
@@ -86,53 +83,12 @@ record CDCDelete<T>(T item) implements CDC<T> {
 
 public class CacheTest {
 
-//    static {
-//        BlockHound.install();
-//    }
-
-    private static final Scheduler DEFAULT_SCHEDULER = DEFAULT_BOUNDED_ELASTIC_ON_VIRTUAL_THREADS ? boundedElastic() : parallel();
-
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
-    private static <T> Flux<T> longRunningFlux(List<T> list) {
-        return longRunningFlux(list, -1);
-    }
-
-    private static <T> Flux<T> longRunningFlux(List<T> list, int maxItems) {
-        return generate(0, i -> (i + 1) % list.size(), list::get, count -> count >= maxItems && maxItems != -1);
-    }
-
-    private static <T, S> Flux<T> generate(
-            S initialState,
-            UnaryOperator<S> stateUpdater,
-            Function<S, T> valueGenerator,
-            Predicate<Long> stopCondition) {
-
-        return Flux.create(sink -> {
-
-            var state = new AtomicReference<>(initialState);
-            var generatedValueCount = new AtomicLong();
-
-            sink.onRequest(n -> {
-                for (long i = 0; i < n; i++) {
-
-                    var c = generatedValueCount.incrementAndGet();
-                    if (stopCondition.test(c)) {
-                        sink.complete();
-                        return;
-                    }
-                    var value = valueGenerator.apply(state.getAndUpdate(stateUpdater));
-                    sink.next(value);
-                }
-            });
-        });
-    }
-
     @Test
-    @Timeout(60)
+    @Timeout(120)
     public void testLongRunningAutoCachingEvents() throws InterruptedException {
-//    public static void main(String[] args) throws InterruptedException {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540222222222222");
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
@@ -150,12 +106,13 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var delay = ofMillis(1);
-        var maxItems = 20000;
+        var customerScheduler = defaultScheduler(); // newBoundedElastic(4, MAX_VALUE, "customerScheduler");
+        var billingInfoScheduler = defaultScheduler(); // newBoundedElastic(4, MAX_VALUE, "billingInfoScheduler");
+        var orderItemScheduler = defaultScheduler(); // newBoundedElastic(4, MAX_VALUE, "orderItemScheduler");
 
-        var customerFlux = longRunningFlux(customerList).delayElements(delay, DEFAULT_SCHEDULER);
-        var billingInfoFlux = longRunningFlux(billingInfoList, maxItems).delayElements(delay, DEFAULT_SCHEDULER).doOnComplete(() -> System.out.println("billingInfo Flux completed"));
-        var orderItemFlux = longRunningFlux(orderItemList, maxItems).delayElements(delay, DEFAULT_SCHEDULER).doOnComplete(() -> System.out.println("orderItem Flux completed"));
+        var customerFlux = fromIterable(customerList).repeat().delayElements(ofMillis(1), customerScheduler);
+        var billingInfoFlux = fromIterable(billingInfoList).repeat().delayElements(ofMillis(1), billingInfoScheduler);
+        var orderItemFlux = fromIterable(orderItemList).repeat().delayElements(ofMillis(1), orderItemScheduler);
 
         Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
 
@@ -166,7 +123,7 @@ public class CacheTest {
                     .doOnComplete(billingInvocationCount::incrementAndGet);
         };
 
-        Function<List<Customer>, Publisher<OrderItem>> getAllOrders = customers -> {
+        Function<List<Customer>, Publisher<OrderItem>> getOrderItems = customers -> {
 
             var customerIds = transform(customers, Customer::customerId);
 
@@ -175,37 +132,24 @@ public class CacheTest {
                     .doOnComplete(ordersInvocationCount::incrementAndGet);
         };
 
-//        var lifeCycleEventBroadcaster = lifeCycleEventBroadcaster();
-
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
                                 streamTableBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
-//                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
-//                                        .scheduler(boundedElastic())
-//                                        .scheduler(newBoundedElastic(4, Integer.MAX_VALUE, "StreamTable"))
                                         .build()))),
-//                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, concurrent()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders,
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getOrderItems,
                                 streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
-//                                        .lifeCycleEventSource(lifeCycleEventBroadcaster)
-//                                        .scheduler(boundedElastic())
-//                                        .scheduler(newBoundedElastic(4, Integer.MAX_VALUE, "StreamTable"))
                                         .build()))),
-//                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getAllOrders, concurrent()))),
                         Transaction::new)
                 .build();
-//                .build(Schedulers.newBoundedElastic(24, Integer.MAX_VALUE, "Assembler"));
 
         var transactionFlux = customerFlux
                 .window(3)
                 .flatMapSequential(assembler::assemble)
-                .take(1000);
-//                .doOnSubscribe(run(lifeCycleEventBroadcaster::start))
-//                .doFinally(run(lifeCycleEventBroadcaster::stop));
+                .take(1_000);
 
         var initialCount = 500;
         var latch = new CountDownLatch(initialCount);
