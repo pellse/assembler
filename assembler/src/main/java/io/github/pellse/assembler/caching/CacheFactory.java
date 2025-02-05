@@ -39,7 +39,6 @@ import static io.github.pellse.assembler.QueryUtils.buildQueryFunction;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.assembler.caching.Cache.*;
 import static io.github.pellse.assembler.caching.DeferCacheFactory.defer;
-import static io.github.pellse.assembler.caching.SortByCacheFactory.sortBy;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static io.github.pellse.util.reactive.ReactiveUtils.createSinkMap;
@@ -166,15 +165,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
     static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(cache(), null, delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
-            Comparator<R> sortComparator,
-            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
-
-        return cachedMany(cache(), sortComparator, delegateCacheFactories);
+        return cachedMany(cache(), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -182,16 +173,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(emptySource(), cacheFactory, null, delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
-            CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
-            Comparator<R> sortComparator,
-            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
-
-        return cachedMany(emptySource(), cacheFactory, sortComparator, delegateCacheFactories);
+        return cachedMany(emptySource(), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -199,16 +181,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             Function<TC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(queryFunction, (Comparator<R>) null,  delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
-            Function<TC, Publisher<R>> queryFunction,
-            Comparator<R> sortComparator,
-            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
-
-        return cachedMany(from(queryFunction), sortComparator, delegateCacheFactories);
+        return cachedMany(from(queryFunction), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -216,16 +189,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(ruleMapperSource, (Comparator<R>) null, delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
-            RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
-            Comparator<R> sortComparator,
-            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
-
-        return cachedMany(ruleMapperSource, cache(), sortComparator, delegateCacheFactories);
+        return cachedMany(ruleMapperSource, cache(), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -234,17 +198,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(queryFunction, cacheFactory, null, delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
-            Function<TC, Publisher<R>> queryFunction,
-            CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
-            Comparator<R> sortComparator,
-            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
-
-        return cachedMany(from(queryFunction), cacheFactory, sortComparator, delegateCacheFactories);
+        return cachedMany(from(queryFunction), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -253,17 +207,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(ruleMapperSource, cacheFactory, null, delegateCacheFactories);
-    }
-
-    @SafeVarargs
-    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
-            RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
-            CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
-            Comparator<R> sortComparator,
-            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
-
-        return cached(OneToManyCacheContext::new, ruleMapperSource, oneToManyCacheFactory(sortBy(defer(cacheFactory), sortComparator)), delegateCacheFactories);
+        return cached(OneToManyCacheContext::new, ruleMapperSource, oneToManyCacheFactory(defer(cacheFactory)), delegateCacheFactories);
     }
 
     static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> toMono(Consumer<Map<ID, RRC>> consumer) {

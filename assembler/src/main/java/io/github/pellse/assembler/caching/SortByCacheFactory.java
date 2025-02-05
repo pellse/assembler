@@ -28,6 +28,10 @@ import static java.util.stream.Collectors.toCollection;
 
 public interface SortByCacheFactory {
 
+    static <ID, EID, R, RC extends Collection<R>> CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy() {
+        return cacheFactory -> sortBy(cacheFactory, (Comparator<R>) null);
+    }
+
     static <ID, EID, R, RC extends Collection<R>> CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy(Comparator<R> comparator) {
         return cacheFactory -> sortBy(cacheFactory, comparator);
     }
