@@ -7,7 +7,6 @@ import java.util.Map.Entry;
 import java.util.stream.Stream;
 
 import static java.lang.Long.toBinaryString;
-import static java.time.Instant.now;
 import static java.util.Arrays.stream;
 import static java.util.Map.entry;
 import static java.util.stream.Stream.concat;
@@ -48,15 +47,4 @@ record LockReleasedEvent(Lock<?> lock, long lockState, long nbAttempts, Instant 
 }
 
 record LockAcquisitionFailedEvent(Lock<?> lock, long lockState, long nbAttempts, Instant timestamp, String executeOnThread) implements ConcurrencyMonitoringEvent {
-}
-
-record TaskTimedOutEvent(Lock<?> lock, long lockState, long nbAttempts, Instant timestamp, String executeOnThread, String timedOutThread) implements ConcurrencyMonitoringEvent {
-    TaskTimedOutEvent(Lock<?> lock, long lockState, String executeOnThread, String timedOutThread) {
-        this(lock, lockState, 0, now(), executeOnThread, timedOutThread);
-    }
-
-    @Override
-    public String log() {
-        return ConcurrencyMonitoringEvent.log(this, entry("timedOutThread", timedOutThread));
-    }
 }

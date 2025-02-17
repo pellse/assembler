@@ -21,16 +21,10 @@ import reactor.core.publisher.Mono;
 
 import java.util.function.Consumer;
 
-import static io.github.pellse.util.ObjectUtils.doNothing;
 import static java.util.Map.entry;
 import static reactor.core.publisher.Mono.fromRunnable;
 
-@FunctionalInterface
-interface LockFactory<L extends CoreLock<L>> {
-    L create(long id, CoreLock<?> outerLock, Consumer<L> lockReleaser);
-}
-
-interface Lock<L extends CoreLock<L>> {
+public interface Lock<L extends CoreLock<L>> {
     long id();
 
     CoreLock<?> outerLock();
@@ -48,46 +42,5 @@ interface Lock<L extends CoreLock<L>> {
 
     default String log() {
         return ObjectUtils.toString(this, entry("id", id()), entry("outerLock", outerLock().log()));
-    }
-}
-
-sealed interface CoreLock<L extends CoreLock<L>> extends Lock<L> {
-}
-
-record ReadLock(long id, CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser) implements CoreLock<ReadLock> {
-}
-
-record WriteLock(long id, CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser) implements CoreLock<WriteLock> {
-}
-
-final class NoopLock implements CoreLock<NoopLock> {
-
-    private static final NoopLock NOOP_LOCK = new NoopLock();
-
-    private NoopLock() {
-    }
-
-    static NoopLock noopLock() {
-        return NOOP_LOCK;
-    }
-
-    @Override
-    public long id() {
-        return -1;
-    }
-
-    @Override
-    public CoreLock<?> outerLock() {
-        return noopLock();
-    }
-
-    @Override
-    public Consumer<NoopLock> lockReleaser() {
-        return doNothing();
-    }
-
-    @Override
-    public String log() {
-        return "NoopLock";
     }
 }

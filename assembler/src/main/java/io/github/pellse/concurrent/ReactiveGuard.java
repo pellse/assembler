@@ -16,7 +16,7 @@
 
 package io.github.pellse.concurrent;
 
-import io.github.pellse.concurrent.LockManager.LockAcquisitionException;
+import io.github.pellse.concurrent.CASLockManager.LockAcquisitionException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
@@ -24,11 +24,10 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.github.pellse.concurrent.LockManager.lockManagerBuilder;
+import static io.github.pellse.concurrent.CASLockManager.lockManagerBuilder;
 import static io.github.pellse.util.ObjectUtils.get;
 import static io.github.pellse.util.reactive.ReactiveUtils.defaultScheduler;
 import static io.github.pellse.util.reactive.ReactiveUtils.nullToEmpty;
-import static java.lang.Thread.currentThread;
 import static java.time.Duration.ofNanos;
 import static java.time.Duration.ofSeconds;
 import static java.util.Objects.requireNonNullElse;
@@ -150,7 +149,7 @@ public interface ReactiveGuard {
                         lockAcquisitionStrategy.apply(lockManager),
                         lock -> executeWithTimeout(lock, __ -> mono, timeout, defaultValueProvider),
                         Lock::release)
-                        .transform(managedMono ->  wrap(managedMono, defaultValueProvider));
+                        .transform(managedMono ->  errorHandler(managedMono, defaultValueProvider));
             }
 
             private <T> Mono<T> with(
@@ -167,10 +166,10 @@ public interface ReactiveGuard {
                 return resourceManager.using(
                         lockAcquisitionStrategy.apply(lockManager),
                         lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockManager.toWriteLock(lock), mono)))
-                        .transform(managedMono ->  wrap(managedMono, defaultValueProvider));
+                        .transform(managedMono ->  errorHandler(managedMono, defaultValueProvider));
             }
 
-            private <T> Mono<T> wrap(Mono<T> mono, Supplier<T> defaultValueProvider) {
+            private <T> Mono<T> errorHandler(Mono<T> mono, Supplier<T> defaultValueProvider) {
                 return mono.onErrorResume(LockAcquisitionException.class, get(nullToEmpty(defaultValueProvider)));
             }
 
@@ -181,16 +180,7 @@ public interface ReactiveGuard {
                     Supplier<T> defaultValueProvider) {
 
                 return monoProvider.apply(lock)
-                        .timeout(timeout, createFallback(defaultValueProvider, lock, currentThread().getName()), scheduler);
-            }
-
-            private <T> Mono<T> createFallback(Supplier<T> defaultValueProvider, Lock<?> lock, String executeOnThread) {
-                return nullToEmpty(defaultValueProvider)
-                        .doOnSubscribe(__ -> fireConcurrencyMonitoringEvent(lock, executeOnThread));
-            }
-
-            private void fireConcurrencyMonitoringEvent(Lock<?> lock, String executeOnThread) {
-                lockManager.fireConcurrencyMonitoringEvent(lockState -> new TaskTimedOutEvent(lock, lockState, executeOnThread, currentThread().getName()));
+                        .timeout(timeout, nullToEmpty(defaultValueProvider), scheduler);
             }
         };
     }
