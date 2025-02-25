@@ -57,7 +57,7 @@ public class StampedLockStrategy implements LockStrategy {
     @Override
     public Mono<? extends Lock<?>> toWriteLock(Lock<?> lock) {
         return fromSupplier(() -> {
-            final var readLock = lock.unwrap();
+            final var readLock = lock.delegate();
             final var readStamp = readLock.token();
 
             var writeStamp = stampedLock.tryConvertToWriteLock(readStamp);

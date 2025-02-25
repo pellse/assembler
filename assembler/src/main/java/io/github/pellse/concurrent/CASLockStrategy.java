@@ -91,7 +91,7 @@ public class CASLockStrategy implements LockStrategy {
             Consumer<L> lockReleaser) {
 
         return defer(() -> {
-            final var innerLock = lockFactory.create(idCounter.incrementAndGet(), outerLock.unwrap(), lockReleaser);
+            final var innerLock = lockFactory.create(idCounter.incrementAndGet(), outerLock.delegate(), lockReleaser);
             return tryAcquireLock.test(innerLock) ? just(innerLock) : error(LOCK_ACQUISITION_EXCEPTION);
         })
                 .retryWhen(fixedDelay(maxRetries, waitTime).filter(LockAcquisitionException.class::isInstance));

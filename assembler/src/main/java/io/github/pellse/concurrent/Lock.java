@@ -16,6 +16,7 @@
 
 package io.github.pellse.concurrent;
 
+import io.github.pellse.util.DelegateAware;
 import io.github.pellse.util.ObjectUtils;
 import reactor.core.publisher.Mono;
 
@@ -24,7 +25,7 @@ import java.util.function.Consumer;
 import static java.util.Map.entry;
 import static reactor.core.publisher.Mono.fromRunnable;
 
-public interface Lock<L extends CoreLock<L>> {
+public interface Lock<L extends CoreLock<L>> extends DelegateAware<L> {
 
     long token();
 
@@ -35,11 +36,12 @@ public interface Lock<L extends CoreLock<L>> {
     Thread lockedOnThread();
 
     default Mono<?> release() {
-        return fromRunnable(() -> lockReleaser().accept(unwrap()));
+        return fromRunnable(() -> lockReleaser().accept(delegate()));
     }
 
+    @Override
     @SuppressWarnings("unchecked")
-    default L unwrap() {
+    default L delegate() {
         return (L) this;
     }
 
