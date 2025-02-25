@@ -106,7 +106,7 @@ public interface ReactiveGuard {
     static ReactiveGuard createReactiveGuard(LockStrategy lockStrategy, Scheduler timeoutScheduler) {
 
         final var lockingStrategy = requireNonNullElseGet(lockStrategy, CASLockStrategy::new);
-        final var schedulerOptional = ofNullable(timeoutScheduler);
+        final var optionalScheduler = ofNullable(timeoutScheduler);
 
         return new ReactiveGuard() {
 
@@ -171,7 +171,7 @@ public interface ReactiveGuard {
                     Supplier<T> defaultValueProvider) {
 
                 final UnaryOperator<Mono<T>> runWithTimeout = mono ->
-                        schedulerOptional
+                        optionalScheduler
                                 .map(scheduler -> mono.timeout(timeout, nullToEmpty(defaultValueProvider), scheduler))
                                 .orElse(mono);
 
