@@ -21,7 +21,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -29,6 +28,8 @@ import java.util.function.UnaryOperator;
 import static io.github.pellse.util.ObjectUtils.get;
 import static io.github.pellse.util.reactive.ReactiveUtils.nullToEmpty;
 import static java.time.Duration.ofSeconds;
+import static java.util.Objects.requireNonNullElseGet;
+import static java.util.Optional.ofNullable;
 import static reactor.core.Exceptions.isRetryExhausted;
 import static reactor.core.publisher.Mono.*;
 
@@ -91,7 +92,7 @@ public interface ReactiveGuard {
     }
 
     static ReactiveGuard createReactiveGuard() {
-        return createReactiveGuard(new CASLockStrategy());
+        return createReactiveGuard(null, null);
     }
 
     static ReactiveGuard createReactiveGuard(LockStrategy lockStrategy) {
@@ -99,12 +100,13 @@ public interface ReactiveGuard {
     }
 
     static ReactiveGuard createReactiveGuard(Scheduler timeoutScheduler) {
-        return createReactiveGuard(new CASLockStrategy(), timeoutScheduler);
+        return createReactiveGuard(null, timeoutScheduler);
     }
 
     static ReactiveGuard createReactiveGuard(LockStrategy lockStrategy, Scheduler timeoutScheduler) {
 
-        final var schedulerOptional = Optional.ofNullable(timeoutScheduler);
+        final var lockingStrategy = requireNonNullElseGet(lockStrategy, CASLockStrategy::new);
+        final var schedulerOptional = ofNullable(timeoutScheduler);
 
         return new ReactiveGuard() {
 
@@ -139,7 +141,7 @@ public interface ReactiveGuard {
                     Supplier<T> defaultValueProvider) {
 
                 return usingWhen(
-                        lockAcquisitionStrategy.apply(lockStrategy),
+                        lockAcquisitionStrategy.apply(lockingStrategy),
                         lock -> executeWithTimeout(lock, __ -> mono, timeout, defaultValueProvider),
                         ReactiveGuard::releaseLock)
                         .transform(managedMono -> errorHandler(managedMono, defaultValueProvider));
@@ -157,8 +159,8 @@ public interface ReactiveGuard {
                         ReactiveGuard::releaseLock);
 
                 return resourceManager.using(
-                                lockAcquisitionStrategy.apply(lockStrategy),
-                                lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockStrategy.toWriteLock(lock), mono)))
+                                lockAcquisitionStrategy.apply(lockingStrategy),
+                                lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockingStrategy.toWriteLock(lock), mono)))
                         .transform(managedMono -> errorHandler(managedMono, defaultValueProvider));
             }
 

@@ -20,6 +20,7 @@ import io.github.pellse.assembler.ErrorHandler;
 import io.github.pellse.assembler.LifeCycleEventSource;
 import io.github.pellse.assembler.WindowingStrategy;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.concurrent.LockStrategy;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
@@ -93,7 +94,11 @@ public interface StreamTableFactoryBuilder {
     interface CacheTransformerBuilder<R> extends StreamTableFactoryDelegateBuilder<R> {
 
         default StreamTableFactoryDelegateBuilder<R> concurrent() {
-            return transformer(ConcurrentCacheFactory.concurrent());
+            return concurrent(null);
+        }
+
+        default StreamTableFactoryDelegateBuilder<R> concurrent(LockStrategy lockStrategy) {
+            return transformer(ConcurrentCacheFactory.concurrent(lockStrategy));
         }
 
         StreamTableFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer);

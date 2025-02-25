@@ -17,6 +17,7 @@
 package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.concurrent.LockStrategy;
 import reactor.core.scheduler.Scheduler;
 
 import static io.github.pellse.assembler.caching.ConcurrentCache.concurrentCache;
@@ -24,10 +25,18 @@ import static io.github.pellse.assembler.caching.ConcurrentCache.concurrentCache
 public interface ConcurrentCacheFactory {
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent() {
-        return concurrent(null);
+        return concurrent(null, null);
+    }
+
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(LockStrategy lockStrategy) {
+        return concurrent(lockStrategy, null);
     }
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(Scheduler timeoutScheduler) {
-        return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), timeoutScheduler);
+        return concurrent(null, timeoutScheduler);
+    }
+
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(LockStrategy lockStrategy, Scheduler timeoutScheduler) {
+        return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), lockStrategy, timeoutScheduler);
     }
 }
