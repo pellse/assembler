@@ -23,21 +23,15 @@ import io.github.pellse.util.function.BiLongPredicate;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 
 import static io.github.pellse.concurrent.CoreLock.NoopLock.noopLock;
-import static io.github.pellse.util.ObjectUtils.doNothing;
-import static java.lang.Thread.currentThread;
 import static java.time.Duration.ofNanos;
-import static java.time.Instant.now;
-import static java.util.concurrent.locks.LockSupport.parkNanos;
 import static reactor.core.publisher.Mono.*;
+import static reactor.util.retry.Retry.fixedDelay;
 
 public class CASLockManager implements LockManager {
-
-    private static final LockAcquisitionException LOCK_ACQUISITION_EXCEPTION = new LockAcquisitionException();
 
     private static final long WRITE_LOCK_MASK = 1L << 63; // 1000000000000000000000000000000000000000000000000000000000000000
     private static final long READ_LOCK_MASK = ~WRITE_LOCK_MASK; // 0111111111111111111111111111111111111111111111111111111111111111
@@ -46,31 +40,25 @@ public class CASLockManager implements LockManager {
     private final AtomicLong lockState = new AtomicLong();
 
     private final long maxRetries;
-    private final long waitTime;
-    private final Consumer<ConcurrencyMonitoringEvent> concurrencyMonitoringEventListener;
+    private final Duration waitTime;
 
-    CASLockManager(long maxRetries, Duration waitTime, Consumer<ConcurrencyMonitoringEvent> concurrencyMonitoringEventListener) {
+    public CASLockManager() {
+        this(1_000, ofNanos(1));
+    }
+
+    public CASLockManager(long maxRetries, Duration waitTime) {
         this.maxRetries = maxRetries;
-        this.waitTime = waitTime.toNanos();
-        this.concurrencyMonitoringEventListener = concurrencyMonitoringEventListener;
-    }
-
-    static Builder lockManagerBuilder() {
-        return new Builder();
-    }
-
-    static CASLockManager create() {
-        return lockManagerBuilder().build();
+        this.waitTime = waitTime;
     }
 
     @Override
     public Mono<? extends Lock<?>> acquireReadLock() {
-        return acquireLock(ReadLock::new, noopLock(), this::tryAcquireReadLock, this::releaseReadLock);
+        return acquireLock(ReadLock::new, this::tryAcquireReadLock, this::releaseReadLock);
     }
 
     @Override
     public Mono<? extends Lock<?>> acquireWriteLock() {
-        return toWriteLock(noopLock());
+        return acquireLock(WriteLock::new, this::tryAcquireWriteLock, this::releaseWriteLock);
     }
 
     @Override
@@ -79,67 +67,53 @@ public class CASLockManager implements LockManager {
     }
 
     @Override
-    public void releaseReadLock(ReadLock innerLock) {
-        releaseLock(innerLock, this::doReleaseReadLock);
+    public void releaseReadLock(ReadLock readLock) {
+        releaseLock(readLock, this::doReleaseReadLock);
     }
 
     @Override
-    public void releaseWriteLock(WriteLock innerLock) {
-        releaseLock(innerLock, this::doReleaseWriteLock);
+    public void releaseWriteLock(WriteLock writeLock) {
+        releaseLock(writeLock, this::doReleaseWriteLock);
     }
 
-    void fireConcurrencyMonitoringEvent(Lock<?> lock, long lockState, ConcurrencyMonitoringEventFactory<?> concurrencyMonitoringEventFactory) {
-        fireConcurrencyMonitoringEvent(lock, lockState, 1, concurrencyMonitoringEventFactory);
-    }
+    private <L extends CoreLock<L>> Mono<? extends Lock<?>> acquireLock(
+            LockFactory<L> lockFactory,
+            Predicate<L> tryAcquireLock,
+            Consumer<L> lockReleaser) {
 
-    void fireConcurrencyMonitoringEvent(Lock<?> lock, long lockState, long nbAttempts, ConcurrencyMonitoringEventFactory<?> concurrencyMonitoringEventFactory) {
-        concurrencyMonitoringEventListener.accept(concurrencyMonitoringEventFactory.create(lock, lockState, nbAttempts));
-    }
-
-    void fireConcurrencyMonitoringEvent(LongFunction<ConcurrencyMonitoringEvent> concurrencyMonitoringEventProvider) {
-        concurrencyMonitoringEventListener.accept(concurrencyMonitoringEventProvider.apply(lockState.get()));
+        return acquireLock(lockFactory, noopLock(), tryAcquireLock, lockReleaser);
     }
 
     private <L extends CoreLock<L>> Mono<? extends Lock<?>> acquireLock(
             LockFactory<L> lockFactory,
             Lock<?> outerLock,
-            BiPredicate<L, Long> tryAcquireLock,
+            Predicate<L> tryAcquireLock,
             Consumer<L> lockReleaser) {
 
-        final var innerLock = lockFactory.create(idCounter.incrementAndGet(), outerLock.unwrap(), lockReleaser);
-
-        long nbAttempts = 0;
-        boolean lockAcquired;
-
-        while (!(lockAcquired = tryAcquireLock.test(innerLock, ++nbAttempts)) && nbAttempts <= maxRetries) {
-            parkNanos(waitTime);
-        }
-        if (lockAcquired) {
-            return just(innerLock);
-        }
-
-        fireConcurrencyMonitoringEvent(innerLock, lockState.get(), nbAttempts, LockAcquisitionFailedEvent::new);
-        return error(LOCK_ACQUISITION_EXCEPTION);
+        return defer(() -> {
+            final var innerLock = lockFactory.create(idCounter.incrementAndGet(), outerLock.unwrap(), lockReleaser);
+            return tryAcquireLock.test(innerLock) ? just(innerLock) : error(LOCK_ACQUISITION_EXCEPTION);
+        })
+                .retryWhen(fixedDelay(maxRetries, waitTime).filter(LockAcquisitionException.class::isInstance));
     }
 
-    private boolean tryAcquireReadLock(ReadLock innerLock, long nbAttempts) {
+    private boolean tryAcquireReadLock(ReadLock innerLock) {
         return tryAcquireLock(
                 innerLock,
-                nbAttempts,
                 (__, currentState) -> (currentState & WRITE_LOCK_MASK) == 0,
                 currentState -> currentState + 1);
     }
 
-    private boolean tryAcquireWriteLock(WriteLock innerLock, long nbAttempts) {
+    private boolean tryAcquireWriteLock(WriteLock innerLock) {
         BiLongPredicate<WriteLock> currentStatePredicate = (lock, currentState) -> switch (lock.outerLock()) {
             case ReadLock __ -> (currentState & WRITE_LOCK_MASK) == 0; // Nested lock, we try to convert an already acquired read lock to a write lock
             case WriteLock __ -> (currentState & WRITE_LOCK_MASK) == WRITE_LOCK_MASK; // Sanity check, should always be true
             case NoopLock __ -> currentState == 0; // Try to acquire a write lock when no other lock is acquired
         };
-        return tryAcquireLock(innerLock, nbAttempts, currentStatePredicate, currentState -> currentState | WRITE_LOCK_MASK);
+        return tryAcquireLock(innerLock, currentStatePredicate, currentState -> currentState | WRITE_LOCK_MASK);
     }
 
-    private <L extends CoreLock<L>> boolean tryAcquireLock(L innerLock, long nbAttempts,  BiLongPredicate<L> currentStatePredicate, LongUnaryOperator currentStateUpdater) {
+    private <L extends CoreLock<L>> boolean tryAcquireLock(L innerLock, BiLongPredicate<L> currentStatePredicate, LongUnaryOperator currentStateUpdater) {
         long currentState, newState;
         do {
             currentState = lockState.get();
@@ -149,12 +123,11 @@ public class CASLockManager implements LockManager {
             newState = currentStateUpdater.applyAsLong(currentState);
         } while (!lockState.compareAndSet(currentState, newState));
 
-        fireConcurrencyMonitoringEvent(innerLock, newState, nbAttempts, LockAcquiredEvent::new);
         return true;
     }
 
     private <L extends CoreLock<L>> void releaseLock(L innerLock, ToLongFunction<L> lockReleaser) {
-        fireConcurrencyMonitoringEvent(innerLock, lockReleaser.applyAsLong(innerLock), LockReleasedEvent::new);
+        lockReleaser.applyAsLong(innerLock);
     }
 
     private long doReleaseReadLock(ReadLock innerLock) {
@@ -168,45 +141,5 @@ public class CASLockManager implements LockManager {
     @FunctionalInterface
     interface LockFactory<L extends CoreLock<L>> {
         L create(long id, CoreLock<?> outerLock, Consumer<L> lockReleaser);
-    }
-
-    @FunctionalInterface
-    interface ConcurrencyMonitoringEventFactory<E extends ConcurrencyMonitoringEvent> {
-        E create(Lock<? extends CoreLock<?>> lock, long lockState, long nbAttempts, Instant timestamp, String threadName);
-
-        default E create(Lock<? extends CoreLock<?>> lock, long lockState, long nbAttempts) {
-            return create(lock, lockState, nbAttempts, now(), currentThread().getName());
-        }
-    }
-
-    static class LockAcquisitionException extends Exception {
-        LockAcquisitionException() {
-            super(null, null, true, false);
-        }
-    }
-
-    static class Builder {
-        private long maxRetries = 1_000;
-        private Duration waitTime = ofNanos(1);
-        private Consumer<ConcurrencyMonitoringEvent> concurrencyMonitoringEventListener = doNothing();
-
-        public Builder maxRetries(long maxRetries) {
-            this.maxRetries = maxRetries;
-            return this;
-        }
-
-        public Builder waitTime(Duration waitTime) {
-            this.waitTime = waitTime;
-            return this;
-        }
-
-        public Builder concurrencyMonitoringEventListener(Consumer<ConcurrencyMonitoringEvent> listener) {
-            this.concurrencyMonitoringEventListener = listener;
-            return this;
-        }
-
-        public CASLockManager build() {
-            return new CASLockManager(maxRetries, waitTime, concurrencyMonitoringEventListener);
-        }
     }
 }

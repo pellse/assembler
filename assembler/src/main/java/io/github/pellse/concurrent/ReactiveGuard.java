@@ -16,35 +16,25 @@
 
 package io.github.pellse.concurrent;
 
-import io.github.pellse.concurrent.CASLockManager.LockAcquisitionException;
+import io.github.pellse.concurrent.LockManager.LockAcquisitionException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
-import static io.github.pellse.concurrent.CASLockManager.lockManagerBuilder;
 import static io.github.pellse.util.ObjectUtils.get;
-import static io.github.pellse.util.reactive.ReactiveUtils.defaultScheduler;
 import static io.github.pellse.util.reactive.ReactiveUtils.nullToEmpty;
-import static java.time.Duration.ofNanos;
 import static java.time.Duration.ofSeconds;
-import static java.util.Objects.requireNonNullElse;
+import static reactor.core.Exceptions.isRetryExhausted;
 import static reactor.core.publisher.Mono.*;
 
 public interface ReactiveGuard {
 
     Duration DEFAULT_TIMEOUT = ofSeconds(10);
-
-    @FunctionalInterface
-    interface ReactiveWriteGuard<U> {
-        Mono<U> withLock(Mono<U> mono);
-
-        default Mono<U> withLock(Supplier<Mono<U>> monoSupplier) {
-            return withLock(defer(monoSupplier));
-        }
-    }
 
     <T> Mono<T> withReadLock(Mono<T> mono, Duration timeout, Supplier<T> defaultValueProvider);
 
@@ -100,18 +90,21 @@ public interface ReactiveGuard {
         return withLock(defer(monoSupplier), timeout, defaultValueProvider);
     }
 
-    static ReactiveGuard create() {
-        return ReactiveGuard.create(null);
+    static ReactiveGuard createReactiveGuard() {
+        return createReactiveGuard(new CASLockManager());
     }
 
-    static ReactiveGuard create(Scheduler timeoutScheduler) {
+    static ReactiveGuard createReactiveGuard(LockManager lockManager) {
+        return createReactiveGuard(lockManager, null);
+    }
 
-        final var lockManager = lockManagerBuilder()
-                .maxRetries(1000)
-                .waitTime(ofNanos(1))
-                .build();
+    static ReactiveGuard createReactiveGuard(Scheduler timeoutScheduler) {
+        return createReactiveGuard(new CASLockManager(), timeoutScheduler);
+    }
 
-        final var scheduler = requireNonNullElse(timeoutScheduler, defaultScheduler());
+    static ReactiveGuard createReactiveGuard(LockManager lockManager, Scheduler timeoutScheduler) {
+
+        final var schedulerOptional = Optional.ofNullable(timeoutScheduler);
 
         return new ReactiveGuard() {
 
@@ -148,8 +141,8 @@ public interface ReactiveGuard {
                 return usingWhen(
                         lockAcquisitionStrategy.apply(lockManager),
                         lock -> executeWithTimeout(lock, __ -> mono, timeout, defaultValueProvider),
-                        Lock::release)
-                        .transform(managedMono ->  errorHandler(managedMono, defaultValueProvider));
+                        ReactiveGuard::releaseLock)
+                        .transform(managedMono -> errorHandler(managedMono, defaultValueProvider));
             }
 
             private <T> Mono<T> with(
@@ -158,19 +151,15 @@ public interface ReactiveGuard {
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
-                final ResourceManager<T> resourceManager = (lockMono, mono) -> usingWhen(
+                final ResourceManager<T> resourceManager = (lockMono, monoProvider) -> usingWhen(
                         lockMono,
-                        lock -> executeWithTimeout(lock, mono, timeout, defaultValueProvider),
-                        Lock::release);
+                        lock -> executeWithTimeout(lock, monoProvider, timeout, defaultValueProvider),
+                        ReactiveGuard::releaseLock);
 
                 return resourceManager.using(
-                        lockAcquisitionStrategy.apply(lockManager),
-                        lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockManager.toWriteLock(lock), mono)))
-                        .transform(managedMono ->  errorHandler(managedMono, defaultValueProvider));
-            }
-
-            private <T> Mono<T> errorHandler(Mono<T> mono, Supplier<T> defaultValueProvider) {
-                return mono.onErrorResume(LockAcquisitionException.class, get(nullToEmpty(defaultValueProvider)));
+                                lockAcquisitionStrategy.apply(lockManager),
+                                lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockManager.toWriteLock(lock), mono)))
+                        .transform(managedMono -> errorHandler(managedMono, defaultValueProvider));
             }
 
             private <T> Mono<T> executeWithTimeout(
@@ -179,9 +168,35 @@ public interface ReactiveGuard {
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
+                final UnaryOperator<Mono<T>> runWithTimeout = mono ->
+                        schedulerOptional
+                                .map(scheduler -> mono.timeout(timeout, nullToEmpty(defaultValueProvider), scheduler))
+                                .orElse(mono);
+
                 return monoProvider.apply(lock)
-                        .timeout(timeout, nullToEmpty(defaultValueProvider), scheduler);
+                        .transform(runWithTimeout);
             }
         };
+    }
+
+    private static Mono<?> releaseLock(Lock<?> lock) {
+        return lock.release();
+    }
+
+    private static <T> Mono<T> errorHandler(Mono<T> mono, Supplier<T> defaultValueProvider) {
+        return mono.onErrorResume(ReactiveGuard::isLockAcquisitionFailed, get(nullToEmpty(defaultValueProvider)));
+    }
+
+    private static boolean isLockAcquisitionFailed(Throwable t) {
+        return t instanceof LockAcquisitionException || isRetryExhausted(t);
+    }
+
+    @FunctionalInterface
+    interface ReactiveWriteGuard<U> {
+        Mono<U> withLock(Mono<U> mono);
+
+        default Mono<U> withLock(Supplier<Mono<U>> monoSupplier) {
+            return withLock(defer(monoSupplier));
+        }
     }
 }

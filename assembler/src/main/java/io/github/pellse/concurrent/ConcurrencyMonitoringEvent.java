@@ -11,7 +11,7 @@ import static java.util.Arrays.stream;
 import static java.util.Map.entry;
 import static java.util.stream.Stream.concat;
 
-sealed interface ConcurrencyMonitoringEvent {
+public sealed interface ConcurrencyMonitoringEvent {
     Lock<? extends CoreLock<?>> lock();
 
     long lockState();

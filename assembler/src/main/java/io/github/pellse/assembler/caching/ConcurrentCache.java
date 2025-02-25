@@ -16,11 +16,13 @@
 
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.concurrent.ReactiveGuard;
+import io.github.pellse.concurrent.CASLockManager;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.util.Map;
+
+import static io.github.pellse.concurrent.ReactiveGuard.createReactiveGuard;
 
 public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
@@ -34,7 +36,7 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
             return concurrentCache;
         }
 
-        final var reactiveGuard = ReactiveGuard.create(timeoutScheduler);
+        final var reactiveGuard = createReactiveGuard(new CASLockManager(), timeoutScheduler);
 
         return new ConcurrentCache<>() {
 

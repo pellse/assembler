@@ -6,13 +6,21 @@ import reactor.core.publisher.Mono;
 
 public interface LockManager {
 
+    LockAcquisitionException LOCK_ACQUISITION_EXCEPTION = new LockAcquisitionException();
+
     Mono<? extends Lock<?>> acquireReadLock();
 
     Mono<? extends Lock<?>> acquireWriteLock();
 
     Mono<? extends Lock<?>> toWriteLock(Lock<?> lock);
 
-    void releaseReadLock(ReadLock innerLock);
+    void releaseReadLock(ReadLock readLock);
 
-    void releaseWriteLock(WriteLock innerLock);
+    void releaseWriteLock(WriteLock writeLock);
+
+    class LockAcquisitionException extends Exception {
+        LockAcquisitionException() {
+            super(null, null, true, false);
+        }
+    }
 }

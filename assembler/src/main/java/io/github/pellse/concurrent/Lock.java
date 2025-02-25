@@ -25,11 +25,14 @@ import static java.util.Map.entry;
 import static reactor.core.publisher.Mono.fromRunnable;
 
 public interface Lock<L extends CoreLock<L>> {
-    long id();
+
+    long token();
 
     CoreLock<?> outerLock();
 
     Consumer<L> lockReleaser();
+
+    Thread lockedOnThread();
 
     default Mono<?> release() {
         return fromRunnable(() -> lockReleaser().accept(unwrap()));
@@ -41,6 +44,6 @@ public interface Lock<L extends CoreLock<L>> {
     }
 
     default String log() {
-        return ObjectUtils.toString(this, entry("id", id()), entry("outerLock", outerLock().log()));
+        return ObjectUtils.toString(this, entry("token", token()), entry("outerLock", outerLock().log()));
     }
 }

@@ -87,7 +87,7 @@ public class CacheTest {
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
     @Test
-    @Timeout(120)
+    @Timeout(60)
     public void testLongRunningAutoCachingEvents() throws InterruptedException {
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540222222222222");
@@ -106,9 +106,9 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var customerScheduler = defaultScheduler(); // newBoundedElastic(4, MAX_VALUE, "customerScheduler");
-        var billingInfoScheduler = defaultScheduler(); // newBoundedElastic(4, MAX_VALUE, "billingInfoScheduler");
-        var orderItemScheduler = defaultScheduler(); // newBoundedElastic(4, MAX_VALUE, "orderItemScheduler");
+        var customerScheduler = defaultScheduler(); //  scheduler(() -> newBoundedElastic(4, MAX_VALUE, "customerScheduler"));
+        var billingInfoScheduler = defaultScheduler(); // scheduler(() -> newBoundedElastic(4, MAX_VALUE, "billingInfoScheduler"));
+        var orderItemScheduler = defaultScheduler(); // scheduler(() -> newBoundedElastic(4, MAX_VALUE, "orderItemScheduler"));
 
         var customerFlux = fromIterable(customerList).repeat().delayElements(ofMillis(1), customerScheduler);
         var billingInfoFlux = fromIterable(billingInfoList).repeat().delayElements(ofMillis(1), billingInfoScheduler);
@@ -145,6 +145,7 @@ public class CacheTest {
                                         .build()))),
                         Transaction::new)
                 .build();
+//                .build(scheduler(() -> newBoundedElastic(16, MAX_VALUE, "assemblerScheduler")));
 
         var transactionFlux = customerFlux
                 .window(3)
@@ -159,7 +160,9 @@ public class CacheTest {
             transactionFlux.doFinally(signalType -> {
                 latch.countDown();
                 System.out.println("complete, count = " + latch.getCount() + ", subscriptionId = " + subscriptionId + ", Thread = " + Thread.currentThread().getName());
-            }).subscribe();
+            })
+                    .subscribeOn(defaultScheduler())
+                    .subscribe();
         }
         latch.await();
 

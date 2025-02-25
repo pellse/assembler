@@ -2,14 +2,30 @@ package io.github.pellse.concurrent;
 
 import java.util.function.Consumer;
 
+import static io.github.pellse.concurrent.CoreLock.NoopLock.noopLock;
 import static io.github.pellse.util.ObjectUtils.doNothing;
+import static java.lang.Thread.currentThread;
 
 public sealed interface CoreLock<L extends CoreLock<L>> extends Lock<L> {
 
-    record ReadLock(long id, CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser) implements CoreLock<ReadLock> {
+    record ReadLock(long token, CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser, Thread lockedOnThread) implements CoreLock<ReadLock> {
+        ReadLock(long token, Consumer<ReadLock> lockReleaser) {
+            this(token, noopLock(), lockReleaser);
+        }
+
+        ReadLock(long token, CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser) {
+            this(token, outerLock, lockReleaser, currentThread());
+        }
     }
 
-    record WriteLock(long id, CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser) implements CoreLock<WriteLock> {
+    record WriteLock(long token, CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser, Thread lockedOnThread) implements CoreLock<WriteLock> {
+        WriteLock(long token, Consumer<WriteLock> lockReleaser) {
+            this(token, noopLock(), lockReleaser);
+        }
+
+        WriteLock(long token, CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser) {
+            this(token, outerLock, lockReleaser, currentThread());
+        }
     }
 
     final class NoopLock implements CoreLock<NoopLock> {
@@ -24,7 +40,7 @@ public sealed interface CoreLock<L extends CoreLock<L>> extends Lock<L> {
         }
 
         @Override
-        public long id() {
+        public long token() {
             return -1;
         }
 
@@ -36,6 +52,11 @@ public sealed interface CoreLock<L extends CoreLock<L>> extends Lock<L> {
         @Override
         public Consumer<NoopLock> lockReleaser() {
             return doNothing();
+        }
+
+        @Override
+        public Thread lockedOnThread() {
+            return null;
         }
 
         @Override
