@@ -31,16 +31,16 @@ import static java.time.Duration.ofSeconds;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static reactor.core.publisher.Mono.*;
 
-public class StampedLockManager implements LockManager {
+public class StampedLockStrategy implements LockStrategy {
 
     private final StampedLock stampedLock = new StampedLock();
     private final long timeoutValue;
 
-    public StampedLockManager() {
+    public StampedLockStrategy() {
         this(ofSeconds(5));
     }
 
-    public StampedLockManager(Duration timeout) {
+    public StampedLockStrategy(Duration timeout) {
         this.timeoutValue = timeout.toMillis();
     }
 

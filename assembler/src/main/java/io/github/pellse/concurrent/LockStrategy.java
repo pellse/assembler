@@ -4,7 +4,7 @@ import io.github.pellse.concurrent.CoreLock.ReadLock;
 import io.github.pellse.concurrent.CoreLock.WriteLock;
 import reactor.core.publisher.Mono;
 
-public interface LockManager {
+public interface LockStrategy {
 
     LockAcquisitionException LOCK_ACQUISITION_EXCEPTION = new LockAcquisitionException();
 

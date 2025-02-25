@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.concurrent.CASLockManager;
+import io.github.pellse.concurrent.CASLockStrategy;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
@@ -36,7 +36,7 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
             return concurrentCache;
         }
 
-        final var reactiveGuard = createReactiveGuard(new CASLockManager(), timeoutScheduler);
+        final var reactiveGuard = createReactiveGuard(new CASLockStrategy(), timeoutScheduler);
 
         return new ConcurrentCache<>() {
 

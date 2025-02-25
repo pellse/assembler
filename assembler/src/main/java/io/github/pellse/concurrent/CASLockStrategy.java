@@ -31,7 +31,7 @@ import static java.time.Duration.ofNanos;
 import static reactor.core.publisher.Mono.*;
 import static reactor.util.retry.Retry.fixedDelay;
 
-public class CASLockManager implements LockManager {
+public class CASLockStrategy implements LockStrategy {
 
     private static final long WRITE_LOCK_MASK = 1L << 63; // 1000000000000000000000000000000000000000000000000000000000000000
     private static final long READ_LOCK_MASK = ~WRITE_LOCK_MASK; // 0111111111111111111111111111111111111111111111111111111111111111
@@ -42,11 +42,11 @@ public class CASLockManager implements LockManager {
     private final long maxRetries;
     private final Duration waitTime;
 
-    public CASLockManager() {
+    public CASLockStrategy() {
         this(1_000, ofNanos(1));
     }
 
-    public CASLockManager(long maxRetries, Duration waitTime) {
+    public CASLockStrategy(long maxRetries, Duration waitTime) {
         this.maxRetries = maxRetries;
         this.waitTime = waitTime;
     }

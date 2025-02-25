@@ -16,7 +16,7 @@
 
 package io.github.pellse.concurrent;
 
-import io.github.pellse.concurrent.LockManager.LockAcquisitionException;
+import io.github.pellse.concurrent.LockStrategy.LockAcquisitionException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
@@ -91,18 +91,18 @@ public interface ReactiveGuard {
     }
 
     static ReactiveGuard createReactiveGuard() {
-        return createReactiveGuard(new CASLockManager());
+        return createReactiveGuard(new CASLockStrategy());
     }
 
-    static ReactiveGuard createReactiveGuard(LockManager lockManager) {
-        return createReactiveGuard(lockManager, null);
+    static ReactiveGuard createReactiveGuard(LockStrategy lockStrategy) {
+        return createReactiveGuard(lockStrategy, null);
     }
 
     static ReactiveGuard createReactiveGuard(Scheduler timeoutScheduler) {
-        return createReactiveGuard(new CASLockManager(), timeoutScheduler);
+        return createReactiveGuard(new CASLockStrategy(), timeoutScheduler);
     }
 
-    static ReactiveGuard createReactiveGuard(LockManager lockManager, Scheduler timeoutScheduler) {
+    static ReactiveGuard createReactiveGuard(LockStrategy lockStrategy, Scheduler timeoutScheduler) {
 
         final var schedulerOptional = Optional.ofNullable(timeoutScheduler);
 
@@ -119,27 +119,27 @@ public interface ReactiveGuard {
 
             @Override
             public <T> Mono<T> withReadLock(Mono<T> mono, Duration timeout, Supplier<T> defaultValueProvider) {
-                return with(mono, LockManager::acquireReadLock, timeout, defaultValueProvider);
+                return with(mono, LockStrategy::acquireReadLock, timeout, defaultValueProvider);
             }
 
             @Override
             public <T> Mono<T> withReadLock(Function<ReactiveWriteGuard<T>, Mono<T>> writeLockMonoFunction, Duration timeout, Supplier<T> defaultValueProvider) {
-                return with(writeLockMonoFunction, LockManager::acquireReadLock, timeout, defaultValueProvider);
+                return with(writeLockMonoFunction, LockStrategy::acquireReadLock, timeout, defaultValueProvider);
             }
 
             @Override
             public <T> Mono<T> withLock(Mono<T> mono, Duration timeout, Supplier<T> defaultValueProvider) {
-                return with(mono, LockManager::acquireWriteLock, timeout, defaultValueProvider);
+                return with(mono, LockStrategy::acquireWriteLock, timeout, defaultValueProvider);
             }
 
             private <T> Mono<T> with(
                     Mono<T> mono,
-                    Function<LockManager, Mono<? extends Lock<?>>> lockAcquisitionStrategy,
+                    Function<LockStrategy, Mono<? extends Lock<?>>> lockAcquisitionStrategy,
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
                 return usingWhen(
-                        lockAcquisitionStrategy.apply(lockManager),
+                        lockAcquisitionStrategy.apply(lockStrategy),
                         lock -> executeWithTimeout(lock, __ -> mono, timeout, defaultValueProvider),
                         ReactiveGuard::releaseLock)
                         .transform(managedMono -> errorHandler(managedMono, defaultValueProvider));
@@ -147,7 +147,7 @@ public interface ReactiveGuard {
 
             private <T> Mono<T> with(
                     Function<ReactiveWriteGuard<T>, Mono<T>> writeLockMonoFunction,
-                    Function<LockManager, Mono<? extends Lock<?>>> lockAcquisitionStrategy,
+                    Function<LockStrategy, Mono<? extends Lock<?>>> lockAcquisitionStrategy,
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
@@ -157,8 +157,8 @@ public interface ReactiveGuard {
                         ReactiveGuard::releaseLock);
 
                 return resourceManager.using(
-                                lockAcquisitionStrategy.apply(lockManager),
-                                lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockManager.toWriteLock(lock), mono)))
+                                lockAcquisitionStrategy.apply(lockStrategy),
+                                lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockStrategy.toWriteLock(lock), mono)))
                         .transform(managedMono -> errorHandler(managedMono, defaultValueProvider));
             }
 
