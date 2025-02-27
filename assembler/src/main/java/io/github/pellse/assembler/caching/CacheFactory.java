@@ -27,7 +27,6 @@ import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.Empty;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,11 +67,11 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
         final var delegateMap = new ConcurrentHashMap<ID, Sinks.One<RRC>>();
 
-        Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll = ids -> resolve(readAll(ids, delegateMap, Empty::asMono));
+        final Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll = ids -> resolve(readAll(ids, delegateMap, Sinks.One::asMono));
 
-        BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll = (ids, fetchFunction) -> {
+        final BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll = (ids, fetchFunction) -> {
 
-            final var cachedEntitiesMap = readAll(ids, delegateMap, Empty::asMono);
+            final var cachedEntitiesMap = readAll(ids, delegateMap, Sinks.One::asMono);
 
             final var missingIds = diff(ids, cachedEntitiesMap.keySet());
             if (isEmpty(missingIds)) {
@@ -91,14 +90,14 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
                         delegateMap.remove(id);
                         sink.tryEmitError(e);
                     }))
-                    .flatMap(__ -> resolve(mergeMaps(cachedEntitiesMap, transformMapValues(sinkMap, Empty::asMono))));
+                    .flatMap(__ -> resolve(mergeMaps(cachedEntitiesMap, transformMapValues(sinkMap, Sinks.One::asMono))));
         };
 
         Function<Map<ID, RRC>, Mono<?>> putAll = toMono(map -> also(createSinkMap(map.keySet()), delegateMap::putAll)
                 .forEach((id, sink) -> sink.tryEmitValue(map.get(id))));
 
         Function<Map<ID, RRC>, Mono<?>> removeAll = toMono(map -> also(map.keySet(), ids -> delegateMap.keySet().removeAll(ids))
-                .forEach(id -> ofNullable(delegateMap.get(id)).ifPresent(Empty::tryEmitEmpty)));
+                .forEach(id -> ofNullable(delegateMap.get(id)).ifPresent(Sinks.One::tryEmitEmpty)));
 
         return cache(getAll, computeAll, putAll, removeAll);
     }
