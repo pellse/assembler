@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.github.pellse.util.reactive.ReactiveUtils.*;
+import static java.lang.Integer.MAX_VALUE;
+import static java.lang.Runtime.getRuntime;
 import static java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.publisher.Flux.zip;
@@ -37,7 +39,7 @@ public interface FluxAdapter {
     }
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter(boolean useVirtualThreads) {
-        return fluxAdapter(useVirtualThreads ? getVirtualThreadScheduler() : parallel());
+        return fluxAdapter(useVirtualThreads ? getVirtualThreadScheduler() : scheduler(() -> newBoundedElastic(getRuntime().availableProcessors(), MAX_VALUE, "assemblerScheduler")));
     }
 
     static <T, K, R> AssemblerAdapter<T, K, R> fluxAdapter(Scheduler scheduler) {
