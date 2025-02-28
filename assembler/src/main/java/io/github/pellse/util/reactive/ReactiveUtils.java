@@ -45,7 +45,7 @@ public interface ReactiveUtils {
 
         return concat(monoLinkedMap.values())
                 .index()
-                .collectMap(tuple -> keys.get(toIntExact(tuple.getT1())), Tuple2::getT2);
+                .collectMap(tuple2 -> keys.get(toIntExact(tuple2.getT1())), Tuple2::getT2);
     }
 
     static <T, RRC> Map<T, Sinks.One<RRC>> createSinkMap(Iterable<T> iterable) {
