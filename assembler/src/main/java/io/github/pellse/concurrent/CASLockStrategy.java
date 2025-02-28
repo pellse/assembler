@@ -28,8 +28,8 @@ import java.util.function.*;
 
 import static io.github.pellse.concurrent.CoreLock.NoopLock.noopLock;
 import static java.time.Duration.ofNanos;
+import static java.util.concurrent.locks.LockSupport.parkNanos;
 import static reactor.core.publisher.Mono.*;
-import static reactor.util.retry.Retry.fixedDelay;
 
 public class CASLockStrategy implements LockStrategy {
 
@@ -40,7 +40,7 @@ public class CASLockStrategy implements LockStrategy {
     private final AtomicLong lockState = new AtomicLong();
 
     private final long maxRetries;
-    private final Duration waitTime;
+    private final long delay;
 
     public CASLockStrategy() {
         this(1_000, ofNanos(1));
@@ -48,7 +48,7 @@ public class CASLockStrategy implements LockStrategy {
 
     public CASLockStrategy(long maxRetries, Duration waitTime) {
         this.maxRetries = maxRetries;
-        this.waitTime = waitTime;
+        this.delay = waitTime.toNanos();
     }
 
     @Override
@@ -90,11 +90,19 @@ public class CASLockStrategy implements LockStrategy {
             Predicate<L> tryAcquireLock,
             Consumer<L> lockReleaser) {
 
+        // We avoid relying on Mono.retryWhen() to implement the waiting loop to prevent work stealing algo to kick in
+        // under high contention, or thread switching with e.g. fixedDelay(maxRetries, waitTime)
         return defer(() -> {
             final var innerLock = lockFactory.create(idCounter.incrementAndGet(), outerLock.delegate(), lockReleaser);
-            return tryAcquireLock.test(innerLock) ? just(innerLock) : error(LOCK_ACQUISITION_EXCEPTION);
-        })
-                .retryWhen(fixedDelay(maxRetries, waitTime).filter(LockAcquisitionException.class::isInstance));
+
+            long nbAttempts = 0;
+            boolean lockAcquired;
+
+            while (!(lockAcquired = tryAcquireLock.test(innerLock)) && nbAttempts++ < maxRetries) {
+                parkNanos(delay);
+            }
+            return lockAcquired ? just(innerLock) : error(LOCK_ACQUISITION_EXCEPTION);
+        });
     }
 
     private boolean tryAcquireReadLock(ReadLock innerLock) {
