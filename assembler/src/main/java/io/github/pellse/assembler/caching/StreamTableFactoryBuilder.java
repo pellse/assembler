@@ -20,16 +20,22 @@ import io.github.pellse.assembler.ErrorHandler;
 import io.github.pellse.assembler.LifeCycleEventSource;
 import io.github.pellse.assembler.WindowingStrategy;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.concurrent.Lock;
 import io.github.pellse.concurrent.LockStrategy;
+import io.github.pellse.concurrent.ReactiveGuard.ReactiveGuardBuilder;
+import io.github.pellse.concurrent.ReactiveGuardEvent;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.function.*;
 
 import static io.github.pellse.assembler.ErrorHandler.OnErrorContinue.onErrorContinue;
 import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
+import static io.github.pellse.concurrent.ReactiveGuard.reactiveGuardBuilder;
+import static io.github.pellse.concurrent.ReactiveGuardEventListener.reactiveGuardEventAdapter;
 import static java.util.function.Function.identity;
 
 public interface StreamTableFactoryBuilder {
@@ -94,11 +100,23 @@ public interface StreamTableFactoryBuilder {
     interface CacheTransformerBuilder<R> extends StreamTableFactoryDelegateBuilder<R> {
 
         default StreamTableFactoryDelegateBuilder<R> concurrent() {
-            return concurrent(null);
+            return concurrent((LockStrategy) null);
         }
 
         default StreamTableFactoryDelegateBuilder<R> concurrent(LockStrategy lockStrategy) {
-            return transformer(ConcurrentCacheFactory.concurrent(lockStrategy));
+            return concurrent(reactiveGuardBuilder().lockingStrategy(lockStrategy));
+        }
+
+        default StreamTableFactoryDelegateBuilder<R> concurrent(Consumer<ReactiveGuardEvent> eventConsumer) {
+            return concurrent(reactiveGuardBuilder().eventListener(reactiveGuardEventAdapter(eventConsumer)));
+        }
+
+        default StreamTableFactoryDelegateBuilder<R> concurrent(BiConsumer<ReactiveGuardEvent, Optional<Lock<?>>> eventConsumer) {
+            return concurrent(reactiveGuardBuilder().eventListener(reactiveGuardEventAdapter(eventConsumer)));
+        }
+
+        default StreamTableFactoryDelegateBuilder<R> concurrent(ReactiveGuardBuilder reactiveGuardBuilder) {
+            return transformer(ConcurrentCacheFactory.concurrent(reactiveGuardBuilder));
         }
 
         StreamTableFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer);

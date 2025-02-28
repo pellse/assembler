@@ -8,7 +8,7 @@ import static java.lang.Thread.currentThread;
 
 public sealed interface CoreLock<L extends CoreLock<L>> extends Lock<L> {
 
-    record ReadLock(long token, CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser, Thread lockedOnThread) implements CoreLock<ReadLock> {
+    record ReadLock(long token, CoreLock<?> outerLock, Consumer<ReadLock> lockReleaser, Thread acquiredOnThread) implements CoreLock<ReadLock> {
         ReadLock(long token, Consumer<ReadLock> lockReleaser) {
             this(token, noopLock(), lockReleaser);
         }
@@ -18,7 +18,7 @@ public sealed interface CoreLock<L extends CoreLock<L>> extends Lock<L> {
         }
     }
 
-    record WriteLock(long token, CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser, Thread lockedOnThread) implements CoreLock<WriteLock> {
+    record WriteLock(long token, CoreLock<?> outerLock, Consumer<WriteLock> lockReleaser, Thread acquiredOnThread) implements CoreLock<WriteLock> {
         WriteLock(long token, Consumer<WriteLock> lockReleaser) {
             this(token, noopLock(), lockReleaser);
         }
@@ -55,7 +55,7 @@ public sealed interface CoreLock<L extends CoreLock<L>> extends Lock<L> {
         }
 
         @Override
-        public Thread lockedOnThread() {
+        public Thread acquiredOnThread() {
             return null;
         }
 

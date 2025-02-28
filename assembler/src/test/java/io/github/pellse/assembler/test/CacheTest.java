@@ -23,6 +23,8 @@ import io.github.pellse.assembler.caching.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.CacheFactory;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.assembler.util.*;
+import io.github.pellse.concurrent.*;
+import io.github.pellse.concurrent.CoreLock.WriteLock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -31,11 +33,14 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
+import java.lang.System.Logger;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -55,6 +60,10 @@ import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.ObjectUtils.run;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static io.github.pellse.util.reactive.ReactiveUtils.*;
+import static java.lang.Integer.MAX_VALUE;
+import static java.lang.System.Logger.Level.WARNING;
+import static java.lang.System.getLogger;
+import static java.lang.Thread.currentThread;
 import static java.time.Duration.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -83,6 +92,8 @@ record CDCDelete<T>(T item) implements CDC<T> {
 
 public class CacheTest {
 
+    Logger logger = getLogger(CacheTest.class.getName());
+
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
 
@@ -106,9 +117,9 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var customerScheduler = defaultScheduler(); //  scheduler(() -> newBoundedElastic(4, MAX_VALUE, "customerScheduler"));
-        var billingInfoScheduler = defaultScheduler(); // scheduler(() -> newBoundedElastic(4, MAX_VALUE, "billingInfoScheduler"));
-        var orderItemScheduler = defaultScheduler(); // scheduler(() -> newBoundedElastic(4, MAX_VALUE, "orderItemScheduler"));
+        var customerScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "customerScheduler"));
+        var billingInfoScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "billingInfoScheduler"));
+        var orderItemScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "orderItemScheduler"));
 
         var customerFlux = fromIterable(customerList).repeat().delayElements(ofMillis(1), customerScheduler);
         var billingInfoFlux = fromIterable(billingInfoList).repeat().delayElements(ofMillis(1), billingInfoScheduler);
@@ -130,7 +141,14 @@ public class CacheTest {
             return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                     .filter(orderItem -> customerIds.contains(orderItem.customerId()))
                     .doOnComplete(ordersInvocationCount::incrementAndGet);
+//                    .subscribeOn(boundedElastic());
         };
+
+        BiConsumer<ReactiveGuardEvent, Optional<Lock<?>>> checkThreadExecution = (event, lockOpt) -> lockOpt.ifPresent(lock -> {
+            if (!currentThread().equals(lock.acquiredOnThread()) && lock instanceof WriteLock) {
+                logger.log(WARNING, "For event " + event.getClass().getSimpleName() + ", " + lock.log() + " was acquired on thread " + lock.acquiredOnThread().getName() + ", current thread is " + currentThread().getName());
+            }
+        });
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
@@ -142,10 +160,10 @@ public class CacheTest {
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getOrderItems,
                                 streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
+                                        .concurrent(checkThreadExecution)
                                         .build()))),
                         Transaction::new)
                 .build();
-//                .build(scheduler(() -> newBoundedElastic(16, MAX_VALUE, "assemblerScheduler")));
 
         var transactionFlux = customerFlux
                 .window(3)
@@ -158,10 +176,9 @@ public class CacheTest {
         for (int i = 0; i < initialCount; i++) {
             int subscriptionId = i + 1;
             transactionFlux.doFinally(signalType -> {
-                latch.countDown();
-                System.out.println("complete, count = " + latch.getCount() + ", subscriptionId = " + subscriptionId + ", Thread = " + Thread.currentThread().getName());
-            })
-                    .subscribeOn(defaultScheduler())
+                        latch.countDown();
+                        System.out.println("complete, count = " + latch.getCount() + ", subscriptionId = " + subscriptionId + ", Thread = " + currentThread().getName());
+                    })
                     .subscribe();
         }
         latch.await();

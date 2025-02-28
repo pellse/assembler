@@ -18,25 +18,27 @@ package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.concurrent.LockStrategy;
-import reactor.core.scheduler.Scheduler;
+import io.github.pellse.concurrent.ReactiveGuard;
+import io.github.pellse.concurrent.ReactiveGuard.ReactiveGuardBuilder;
 
 import static io.github.pellse.assembler.caching.ConcurrentCache.concurrentCache;
+import static io.github.pellse.concurrent.ReactiveGuard.createReactiveGuard;
 
 public interface ConcurrentCacheFactory {
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent() {
-        return concurrent(null, null);
+        return concurrent((LockStrategy) null);
     }
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(LockStrategy lockStrategy) {
-        return concurrent(lockStrategy, null);
+        return concurrent(createReactiveGuard(lockStrategy));
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(Scheduler timeoutScheduler) {
-        return concurrent(null, timeoutScheduler);
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(ReactiveGuardBuilder reactiveGuardBuilder) {
+        return concurrent(reactiveGuardBuilder.build());
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(LockStrategy lockStrategy, Scheduler timeoutScheduler) {
-        return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), lockStrategy, timeoutScheduler);
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(ReactiveGuard reactiveGuard) {
+        return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), reactiveGuard);
     }
 }

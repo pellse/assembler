@@ -33,7 +33,7 @@ public interface Lock<L extends CoreLock<L>> extends DelegateAware<L> {
 
     Consumer<L> lockReleaser();
 
-    Thread lockedOnThread();
+    Thread acquiredOnThread();
 
     default Mono<?> release() {
         return fromRunnable(() -> lockReleaser().accept(delegate()));
@@ -46,6 +46,9 @@ public interface Lock<L extends CoreLock<L>> extends DelegateAware<L> {
     }
 
     default String log() {
-        return ObjectUtils.toString(this, entry("token", token()), entry("outerLock", outerLock().log()));
+        return ObjectUtils.toString(this,
+                entry("token", token()),
+                entry("outerLock", outerLock().log()),
+                entry("acquiredOnThread", acquiredOnThread().getName()));
     }
 }

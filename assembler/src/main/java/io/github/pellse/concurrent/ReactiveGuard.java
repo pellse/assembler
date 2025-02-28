@@ -16,11 +16,14 @@
 
 package io.github.pellse.concurrent;
 
+import io.github.pellse.concurrent.CoreLock.ReadLock;
+import io.github.pellse.concurrent.CoreLock.WriteLock;
 import io.github.pellse.concurrent.LockStrategy.LockAcquisitionException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -92,32 +95,26 @@ public interface ReactiveGuard {
     }
 
     static ReactiveGuard createReactiveGuard() {
-        return createReactiveGuard(null, null);
+        return createReactiveGuard((LockStrategy) null);
     }
 
     static ReactiveGuard createReactiveGuard(LockStrategy lockStrategy) {
-        return createReactiveGuard(lockStrategy, null);
+        return reactiveGuardBuilder()
+                .lockingStrategy(lockStrategy)
+                .build();
     }
 
-    static ReactiveGuard createReactiveGuard(Scheduler timeoutScheduler) {
-        return createReactiveGuard(null, timeoutScheduler);
+    static ReactiveGuardBuilder reactiveGuardBuilder() {
+        return new ReactiveGuardBuilder();
     }
 
-    static ReactiveGuard createReactiveGuard(LockStrategy lockStrategy, Scheduler timeoutScheduler) {
+    private static ReactiveGuard createReactiveGuard(ReactiveGuardBuilder reactiveGuardBuilder) {
 
-        final var lockingStrategy = requireNonNullElseGet(lockStrategy, CASLockStrategy::new);
-        final var optionalScheduler = ofNullable(timeoutScheduler);
+        final LockStrategy lockStrategy = requireNonNullElseGet(reactiveGuardBuilder.lockingStrategy, CASLockStrategy::new);
+        final ReactiveGuardEventListener<Object> eventListener = requireNonNullElseGet(reactiveGuardBuilder.eventListener, ReactiveGuardEventListener::defaultReactiveGuardListener);
+        final Optional<Scheduler> timeoutScheduler = ofNullable(reactiveGuardBuilder.timeoutScheduler);
 
         return new ReactiveGuard() {
-
-            @FunctionalInterface
-            interface ResourceManager<T> {
-                Mono<T> using(Mono<? extends Lock<?>> lockProvider, Function<Lock<?>, Mono<T>> monoProvider);
-
-                default Mono<T> using(Mono<? extends Lock<?>> lockProvider, Mono<T> mono) {
-                    return using(lockProvider, __ -> mono);
-                }
-            }
 
             @Override
             public <T> Mono<T> withReadLock(Mono<T> mono, Duration timeout, Supplier<T> defaultValueProvider) {
@@ -140,11 +137,7 @@ public interface ReactiveGuard {
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
-                return usingWhen(
-                        lockAcquisitionStrategy.apply(lockingStrategy),
-                        lock -> executeWithTimeout(lock, __ -> mono, timeout, defaultValueProvider),
-                        ReactiveGuard::releaseLock)
-                        .transform(managedMono -> errorHandler(managedMono, defaultValueProvider));
+                return executeWithLock(lockAcquisitionStrategy.apply(lockStrategy), __ -> mono, timeout, defaultValueProvider);
             }
 
             private <T> Mono<T> with(
@@ -153,15 +146,50 @@ public interface ReactiveGuard {
                     Duration timeout,
                     Supplier<T> defaultValueProvider) {
 
-                final ResourceManager<T> resourceManager = (lockMono, monoProvider) -> usingWhen(
-                        lockMono,
-                        lock -> executeWithTimeout(lock, monoProvider, timeout, defaultValueProvider),
-                        ReactiveGuard::releaseLock);
+                @FunctionalInterface
+                interface ResourceManager<T> {
+                    Mono<T> using(Mono<? extends Lock<?>> lockProvider, Function<Lock<?>, Mono<T>> monoProvider);
+
+                    default Mono<T> using(Mono<? extends Lock<?>> lockProvider, Mono<T> mono) {
+                        return using(lockProvider, __ -> mono);
+                    }
+                }
+
+                final ResourceManager<T> resourceManager = (lockMono, monoProvider) -> executeWithLock(lockMono, monoProvider, timeout, defaultValueProvider);
 
                 return resourceManager.using(
-                                lockAcquisitionStrategy.apply(lockingStrategy),
-                                lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockingStrategy.toWriteLock(lock), mono)))
+                        lockAcquisitionStrategy.apply(lockStrategy),
+                        lock -> writeLockMonoFunction.apply(mono -> resourceManager.using(lockStrategy.toWriteLock(lock), mono)));
+            }
+
+            private <T> Mono<T> executeWithLock(
+                    Mono<? extends Lock<?>> lockProvider,
+                    Function<Lock<?>, Mono<T>> monoProvider,
+                    Duration timeout,
+                    Supplier<T> defaultValueProvider) {
+
+                return usingWhen(
+                        lockProvider
+                                .doOnNext(this::onLockAcquired)
+                                .doOnError(eventListener::onLockAcquisitionFailed),
+                        lock -> executeWithTimeout(lock, monoProvider, timeout, defaultValueProvider)
+                                .doOnSubscribe(__ -> eventListener.onBeforeTaskExecution(lock))
+                                .doOnNext(value -> eventListener.onAfterTaskExecution(lock, value))
+                                .doOnError(t -> eventListener.onTaskExecutionFailed(lock, t))
+                                .doOnCancel(() -> eventListener.onTaskExecutionCancelled(lock)),
+                        lock -> lock.release()
+                                .doOnSuccess(__ -> eventListener.onLockReleased(lock))
+                                .doOnError(t -> eventListener.onLockReleaseFailed(lock, t))
+                                .doOnCancel(() -> eventListener.onLockReleaseCancelled(lock)))
                         .transform(managedMono -> errorHandler(managedMono, defaultValueProvider));
+            }
+
+            private void onLockAcquired(Lock<?> lock) {
+                if (lock.delegate() instanceof WriteLock writeLock && lock.outerLock() instanceof ReadLock) {
+                    eventListener.onLockUpgraded(writeLock);
+                } else {
+                    eventListener.onLockAcquired(lock);
+                }
             }
 
             private <T> Mono<T> executeWithTimeout(
@@ -171,8 +199,10 @@ public interface ReactiveGuard {
                     Supplier<T> defaultValueProvider) {
 
                 final UnaryOperator<Mono<T>> runWithTimeout = mono ->
-                        optionalScheduler
-                                .map(scheduler -> mono.timeout(timeout, nullToEmpty(defaultValueProvider), scheduler))
+                        timeoutScheduler
+                                .map(scheduler -> mono.timeout(timeout,
+                                        nullToEmpty(defaultValueProvider)
+                                                .doOnSubscribe(__ -> eventListener.onTaskExecutionTimeout(lock)), scheduler))
                                 .orElse(mono);
 
                 return monoProvider.apply(lock)
@@ -181,16 +211,37 @@ public interface ReactiveGuard {
         };
     }
 
-    private static Mono<?> releaseLock(Lock<?> lock) {
-        return lock.release();
-    }
-
     private static <T> Mono<T> errorHandler(Mono<T> mono, Supplier<T> defaultValueProvider) {
         return mono.onErrorResume(ReactiveGuard::isLockAcquisitionFailed, get(nullToEmpty(defaultValueProvider)));
     }
 
     private static boolean isLockAcquisitionFailed(Throwable t) {
         return t instanceof LockAcquisitionException || isRetryExhausted(t);
+    }
+
+    class ReactiveGuardBuilder {
+        private LockStrategy lockingStrategy;
+        private Scheduler timeoutScheduler;
+        private ReactiveGuardEventListener<Object> eventListener;
+
+        public ReactiveGuardBuilder lockingStrategy(LockStrategy lockingStrategy) {
+            this.lockingStrategy = lockingStrategy;
+            return this;
+        }
+
+        public ReactiveGuardBuilder timeoutScheduler(Scheduler timeoutScheduler) {
+            this.timeoutScheduler = timeoutScheduler;
+            return this;
+        }
+
+        public ReactiveGuardBuilder eventListener(ReactiveGuardEventListener<Object> eventListener) {
+            this.eventListener = eventListener;
+            return this;
+        }
+
+        public ReactiveGuard build() {
+            return createReactiveGuard(this);
+        }
     }
 
     @FunctionalInterface
