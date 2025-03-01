@@ -23,8 +23,6 @@ import io.github.pellse.assembler.caching.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.CacheFactory;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.assembler.util.*;
-import io.github.pellse.concurrent.*;
-import io.github.pellse.concurrent.CoreLock.WriteLock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -33,14 +31,11 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.lang.System.Logger;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -61,8 +56,6 @@ import static io.github.pellse.util.ObjectUtils.run;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static io.github.pellse.util.reactive.ReactiveUtils.*;
 import static java.lang.Integer.MAX_VALUE;
-import static java.lang.System.Logger.Level.WARNING;
-import static java.lang.System.getLogger;
 import static java.lang.Thread.currentThread;
 import static java.time.Duration.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -92,99 +85,8 @@ record CDCDelete<T>(T item) implements CDC<T> {
 
 public class CacheTest {
 
-    Logger logger = getLogger(CacheTest.class.getName());
-
     private final AtomicInteger billingInvocationCount = new AtomicInteger();
     private final AtomicInteger ordersInvocationCount = new AtomicInteger();
-
-    @Test
-    @Timeout(60)
-    public void testLongRunningAutoCachingEvents() throws InterruptedException {
-
-        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540222222222222");
-        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
-        OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
-
-        final AtomicInteger billingInvocationCount = new AtomicInteger();
-        final AtomicInteger ordersInvocationCount = new AtomicInteger();
-
-        var customerList = List.of(customer1, customer2, customer3);
-
-        var billingInfoList = List.of(cdcAdd(billingInfo1), cdcAdd(billingInfo2), cdcAdd(updatedBillingInfo2), cdcAdd(billingInfo3));
-
-        var orderItemList = List.of(cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
-                cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
-                cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
-                cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
-
-        var customerScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "customerScheduler"));
-        var billingInfoScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "billingInfoScheduler"));
-        var orderItemScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "orderItemScheduler"));
-
-        var customerFlux = fromIterable(customerList).repeat().delayElements(ofMillis(1), customerScheduler);
-        var billingInfoFlux = fromIterable(billingInfoList).repeat().delayElements(ofMillis(1), billingInfoScheduler);
-        var orderItemFlux = fromIterable(orderItemList).repeat().delayElements(ofMillis(1), orderItemScheduler);
-
-        Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
-
-            var customerIds = transform(customers, Customer::customerId);
-
-            return Flux.just(billingInfo1, billingInfo2, billingInfo3)
-                    .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
-                    .doOnComplete(billingInvocationCount::incrementAndGet);
-        };
-
-        Function<List<Customer>, Publisher<OrderItem>> getOrderItems = customers -> {
-
-            var customerIds = transform(customers, Customer::customerId);
-
-            return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                    .filter(orderItem -> customerIds.contains(orderItem.customerId()))
-                    .doOnComplete(ordersInvocationCount::incrementAndGet);
-//                    .subscribeOn(boundedElastic());
-        };
-
-        BiConsumer<ReactiveGuardEvent, Optional<Lock<?>>> checkThreadExecution = (event, lockOpt) -> lockOpt.ifPresent(lock -> {
-            if (!currentThread().equals(lock.acquiredOnThread()) && lock instanceof WriteLock) {
-                logger.log(WARNING, "For event " + event.getClass().getSimpleName() + ", " + lock.log() + " was acquired on thread " + lock.acquiredOnThread().getName() + ", current thread is " + currentThread().getName());
-            }
-        });
-
-        var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdResolver(Customer::customerId)
-                .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
-                                streamTableBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
-                                        .maxWindowSize(3)
-                                        .build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getOrderItems,
-                                streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
-                                        .maxWindowSize(3)
-                                        .concurrent(checkThreadExecution)
-                                        .build()))),
-                        Transaction::new)
-                .build();
-
-        var transactionFlux = customerFlux
-                .window(3)
-                .flatMapSequential(assembler::assemble)
-                .take(1_000);
-
-        var initialCount = 500;
-        var latch = new CountDownLatch(initialCount);
-
-        for (int i = 0; i < initialCount; i++) {
-            int subscriptionId = i + 1;
-            transactionFlux.doFinally(signalType -> {
-                        latch.countDown();
-                        System.out.println("complete, count = " + latch.getCount() + ", subscriptionId = " + subscriptionId + ", Thread = " + currentThread().getName());
-                    })
-                    .subscribe();
-        }
-        latch.await();
-
-        System.out.println("getBillingInfo invocation count: " + billingInvocationCount.get() + ", getOrderItems invocation count: " + ordersInvocationCount.get());
-    }
 
     private Publisher<BillingInfo> getBillingInfo(List<Customer> customers) {
 
@@ -254,6 +156,88 @@ public class CacheTest {
     void setup() {
         billingInvocationCount.set(0);
         ordersInvocationCount.set(0);
+    }
+
+    @Test
+    @Timeout(60)
+    public void testLongRunningAutoCachingEvents() throws InterruptedException {
+
+        BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540222222222222");
+        OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
+        OrderItem updatedOrderItem22 = new OrderItem("5", 2L, "Boots", 109.99);
+
+        final AtomicInteger billingInvocationCount = new AtomicInteger();
+        final AtomicInteger ordersInvocationCount = new AtomicInteger();
+
+        var customerList = List.of(customer1, customer2, customer3);
+
+        var billingInfoList = List.of(cdcAdd(billingInfo1), cdcAdd(billingInfo2), cdcAdd(updatedBillingInfo2), cdcAdd(billingInfo3));
+
+        var orderItemList = List.of(cdcAdd(orderItem11), cdcAdd(orderItem12), cdcAdd(orderItem13),
+                cdcAdd(orderItem21), cdcAdd(orderItem22), cdcAdd(updatedOrderItem22),
+                cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
+                cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
+
+        var customerScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "customerScheduler"));
+        var billingInfoScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "billingInfoScheduler"));
+        var orderItemScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "orderItemScheduler"));
+
+        var customerFlux = fromIterable(customerList).repeat().delayElements(ofMillis(1), customerScheduler);
+        var billingInfoFlux = fromIterable(billingInfoList).repeat().delayElements(ofMillis(1), billingInfoScheduler);
+        var orderItemFlux = fromIterable(orderItemList).repeat().delayElements(ofMillis(1), orderItemScheduler);
+
+        Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
+
+            var customerIds = transform(customers, Customer::customerId);
+
+            return Flux.just(billingInfo1, billingInfo2, billingInfo3)
+                    .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                    .doOnComplete(billingInvocationCount::incrementAndGet);
+        };
+
+        Function<List<Customer>, Publisher<OrderItem>> getOrderItems = customers -> {
+
+            var customerIds = transform(customers, Customer::customerId);
+
+            return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
+                    .filter(orderItem -> customerIds.contains(orderItem.customerId()))
+                    .doOnComplete(ordersInvocationCount::incrementAndGet);
+//                    .subscribeOn(boundedElastic());
+        };
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdResolver(Customer::customerId)
+                .withRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
+                                streamTableBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
+                                        .maxWindowSize(3)
+                                        .build()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getOrderItems,
+                                streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+                                        .maxWindowSize(3)
+                                        .build()))),
+                        Transaction::new)
+                .build();
+
+        var transactionFlux = customerFlux
+                .window(3)
+                .flatMapSequential(assembler::assemble)
+                .take(1_000);
+
+        var initialCount = 500;
+        var latch = new CountDownLatch(initialCount);
+
+        for (int i = 0; i < initialCount; i++) {
+            int subscriptionId = i + 1;
+            transactionFlux.doFinally(signalType -> {
+                        latch.countDown();
+                        System.out.println("complete, count = " + latch.getCount() + ", subscriptionId = " + subscriptionId + ", Thread = " + currentThread().getName());
+                    })
+                    .subscribe();
+        }
+        latch.await();
+
+        System.out.println("getBillingInfo invocation count: " + billingInvocationCount.get() + ", getOrderItems invocation count: " + ordersInvocationCount.get());
     }
 
     @Test
