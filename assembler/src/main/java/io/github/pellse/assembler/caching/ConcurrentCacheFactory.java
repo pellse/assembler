@@ -18,11 +18,11 @@ package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.concurrent.LockStrategy;
-import io.github.pellse.concurrent.ReactiveGuard;
 import io.github.pellse.concurrent.ReactiveGuard.ReactiveGuardBuilder;
+import reactor.core.scheduler.Scheduler;
 
 import static io.github.pellse.assembler.caching.ConcurrentCache.concurrentCache;
-import static io.github.pellse.concurrent.ReactiveGuard.createReactiveGuard;
+import static io.github.pellse.concurrent.ReactiveGuard.reactiveGuardBuilder;
 
 public interface ConcurrentCacheFactory {
 
@@ -30,15 +30,23 @@ public interface ConcurrentCacheFactory {
         return concurrent((LockStrategy) null);
     }
 
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(Scheduler fetchFunctionScheduler) {
+        return concurrent((LockStrategy) null, fetchFunctionScheduler);
+    }
+
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(LockStrategy lockStrategy) {
-        return concurrent(createReactiveGuard(lockStrategy));
+        return concurrent(lockStrategy, null);
+    }
+
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(LockStrategy lockStrategy, Scheduler fetchFunctionScheduler) {
+        return concurrent(reactiveGuardBuilder().lockingStrategy(lockStrategy), fetchFunctionScheduler);
     }
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(ReactiveGuardBuilder reactiveGuardBuilder) {
-        return concurrent(reactiveGuardBuilder.build());
+        return concurrent(reactiveGuardBuilder, null);
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(ReactiveGuard reactiveGuard) {
-        return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), reactiveGuard);
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> concurrent(ReactiveGuardBuilder reactiveGuardBuilder, Scheduler fetchFunctionScheduler) {
+        return cacheFactory -> context -> concurrentCache(cacheFactory.create(context), reactiveGuardBuilder, fetchFunctionScheduler);
     }
 }

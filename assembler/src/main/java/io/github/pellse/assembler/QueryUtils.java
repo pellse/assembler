@@ -20,6 +20,7 @@ import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.util.*;
 import java.util.function.Function;
@@ -28,6 +29,7 @@ import java.util.function.Supplier;
 import static io.github.pellse.assembler.RuleMapperSource.nullToEmptySource;
 import static io.github.pellse.util.ObjectUtils.isSafeEqual;
 import static io.github.pellse.util.collection.CollectionUtils.*;
+import static io.github.pellse.util.reactive.ReactiveUtils.subscribeFluxOn;
 import static java.util.Objects.*;
 import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Flux.fromIterable;
@@ -38,12 +40,26 @@ public interface QueryUtils {
             RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,
             CTX ctx) {
 
-        final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ctx);
+        return buildQueryFunction(nullToEmptySource(ruleMapperSource).apply(ctx), null, ctx);
+    }
+
+    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
+            Function<TC, Publisher<R>> queryFunction,
+            CTX ctx) {
+
+        return buildQueryFunction(queryFunction, null, ctx);
+    }
+
+    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
+            Function<TC, Publisher<R>> queryFunction,
+            Scheduler scheduler,
+            CTX ctx) {
 
         return entityList -> {
             var entities = translate(entityList, ctx.topLevelCollectionFactory());
 
             return safeApply(entities, queryFunction)
+                    .transform(subscribeFluxOn(scheduler))
                     .collect(ctx.mapCollector().apply(entities.size()))
                     .map(map -> toResultMap(entities, map, ctx.outerIdResolver(), ctx.defaultResultProvider()));
         };

@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
-import static io.github.pellse.assembler.FluxAdapter.fluxAdapter;
 import static io.github.pellse.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.oneToMany;
@@ -40,6 +39,7 @@ import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.scheduler.Schedulers.immediate;
+import static reactor.core.scheduler.Schedulers.parallel;
 
 public class AssemblerJavaTest {
 
@@ -117,7 +117,7 @@ public class AssemblerJavaTest {
                                         rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
                                         rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                                         Transaction::new)
-                                .build(fluxAdapter())
+                                .build(parallel())
                                 .assemble(getCustomers())
                 )
                 .expectSubscription()
@@ -136,7 +136,7 @@ public class AssemblerJavaTest {
                                         rule(BillingInfo::customerId, oneToOne(AssemblerTestUtils::errorBillingInfos, BillingInfo::new)),
                                         rule(OrderItem::customerId, oneToMany(OrderItem::id, AssemblerTestUtils::errorOrderItems)),
                                         Transaction::new)
-                                .build(fluxAdapter(immediate()))
+                                .build(immediate())
                                 .assemble(getCustomers())
                 )
                 .expectSubscription()
@@ -156,7 +156,7 @@ public class AssemblerJavaTest {
                                                 rule(BillingInfo::customerId, oneToOne(this::getBillingInfo, BillingInfo::new)),
                                                 rule(OrderItem::customerId, oneToMany(OrderItem::id, this::getAllOrders)),
                                                 Transaction::new)
-                                        .build(fluxAdapter())
+                                        .build(parallel())
                                         .assemble(customers))
                 )
                 .expectSubscription()

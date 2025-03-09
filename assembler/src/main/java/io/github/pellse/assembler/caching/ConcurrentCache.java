@@ -20,33 +20,43 @@ import io.github.pellse.concurrent.LockStrategy;
 import io.github.pellse.concurrent.ReactiveGuard;
 import io.github.pellse.concurrent.ReactiveGuard.ReactiveGuardBuilder;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.util.Map;
 
-import static io.github.pellse.concurrent.ReactiveGuard.createReactiveGuard;
+import static io.github.pellse.concurrent.ReactiveGuard.reactiveGuardBuilder;
 import static java.util.Objects.requireNonNullElseGet;
 
 public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
     static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache) {
-        return concurrentCache(delegateCache, (ReactiveGuard) null);
+        return concurrentCache(delegateCache, (ReactiveGuardBuilder) null);
+    }
+
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, Scheduler fetchFunctionScheduler) {
+        return concurrentCache(delegateCache, (ReactiveGuardBuilder) null, fetchFunctionScheduler);
     }
 
     static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, LockStrategy lockStrategy) {
-        return concurrentCache(delegateCache, createReactiveGuard(lockStrategy));
+        return concurrentCache(delegateCache, reactiveGuardBuilder().lockingStrategy(lockStrategy));
+    }
+
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, LockStrategy lockStrategy, Scheduler fetchFunctionScheduler) {
+        return concurrentCache(delegateCache, reactiveGuardBuilder().lockingStrategy(lockStrategy), fetchFunctionScheduler);
     }
 
     static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, ReactiveGuardBuilder reactiveGuardBuilder) {
-        return concurrentCache(delegateCache, reactiveGuardBuilder.build());
+        return concurrentCache(delegateCache, reactiveGuardBuilder, null);
     }
 
-    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, ReactiveGuard reactiveGuard) {
+    static <ID, RRC> ConcurrentCache<ID, RRC> concurrentCache(Cache<ID, RRC> delegateCache, ReactiveGuardBuilder reactiveGuardBuilder, Scheduler fetchFunctionScheduler) {
 
         if (delegateCache instanceof ConcurrentCache<ID, RRC> concurrentCache) {
             return concurrentCache;
         }
 
-        final var guard = requireNonNullElseGet(reactiveGuard, ReactiveGuard::createReactiveGuard);
+        final var guard = requireNonNullElseGet(reactiveGuardBuilder, ReactiveGuard::reactiveGuardBuilder)
+                .build();
 
         return new ConcurrentCache<>() {
 
@@ -57,7 +67,7 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
             @Override
             public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
-                return guard.withReadLock(writeGuard -> delegateCache.computeAll(ids, idsToFetch -> writeGuard.withLock(() -> fetchFunction.apply(idsToFetch))), Map::of);
+                return guard.withReadLock(writeGuard -> delegateCache.computeAll(ids, idsToFetch -> writeGuard.withLock(() -> fetchFunction.apply(idsToFetch, fetchFunctionScheduler))), Map::of);
             }
 
             @Override

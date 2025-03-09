@@ -18,6 +18,7 @@ package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.caching.CacheContext.OneToManyCacheContext;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.util.Collection;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.function.Function;
 
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
+import static io.github.pellse.util.reactive.ReactiveUtils.subscribeMonoOn;
 import static java.util.Map.of;
 import static java.util.Optional.ofNullable;
 import static reactor.core.publisher.Mono.*;
@@ -34,6 +36,10 @@ public interface Cache<ID, RRC> {
 
     @FunctionalInterface
     interface FetchFunction<ID, RRC> extends Function<Iterable<? extends ID>, Mono<Map<ID, RRC>>> {
+
+        default Mono<Map<ID, RRC>> apply(Iterable<? extends ID> ids, Scheduler scheduler) {
+            return apply(ids).transform(subscribeMonoOn(scheduler));
+        }
     }
 
     @FunctionalInterface

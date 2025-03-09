@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -58,6 +60,7 @@ import static io.github.pellse.util.reactive.ReactiveUtils.*;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Thread.currentThread;
 import static java.time.Duration.*;
+import static java.util.concurrent.locks.LockSupport.parkNanos;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static reactor.core.publisher.Flux.fromIterable;
@@ -159,6 +162,22 @@ public class CacheTest {
     }
 
     @Test
+    public void aaa() {
+
+        Function<Integer, Flux<Integer>> f = n -> Flux.just(n * 2)
+                .doOnSubscribe(System.out::println)
+                .subscribeOn(Schedulers.parallel());
+
+        var flux = Flux.just(1, 2, 3, 4)
+                .flatMapSequential(f);
+//                .flatMapSequential(n -> Flux.just(n * 2)
+//                        .doOnSubscribe(System.out::println)
+//                        .subscribeOn(Schedulers.parallel()));
+
+        flux.subscribe(System.out::println);
+    }
+
+    @Test
     @Timeout(60)
     public void testLongRunningAutoCachingEvents() throws InterruptedException {
 
@@ -178,13 +197,18 @@ public class CacheTest {
                 cdcAdd(orderItem31), cdcAdd(orderItem32), cdcAdd(orderItem33),
                 cdcDelete(orderItem31), cdcDelete(orderItem32), cdcAdd(updatedOrderItem11));
 
-        var customerScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "customerScheduler"));
-        var billingInfoScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "billingInfoScheduler"));
-        var orderItemScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "orderItemScheduler"));
+        var customerScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "Customer-Scheduler"));
+        var billingInfoScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "BillingInfo-Write-Scheduler"));
+        var orderItemScheduler = scheduler(() -> newBoundedElastic(4, MAX_VALUE, "OrderItem-Write-Scheduler"));
 
-        var customerFlux = fromIterable(customerList).repeat().delayElements(ofMillis(1), customerScheduler);
+        var customerFlux = fromIterable(customerList).repeat();
         var billingInfoFlux = fromIterable(billingInfoList).repeat().delayElements(ofMillis(1), billingInfoScheduler);
         var orderItemFlux = fromIterable(orderItemList).repeat().delayElements(ofMillis(1), orderItemScheduler);
+
+        Function<String, Consumer<Object>> simulateIO = tag -> __  -> {
+            parkNanos(ofMillis(600).toNanos()); // Simulate blocking I/O
+            System.out.println(currentThread().getName() + ": " + tag);
+        };
 
         Function<List<Customer>, Publisher<BillingInfo>> getBillingInfo = customers -> {
 
@@ -192,6 +216,7 @@ public class CacheTest {
 
             return Flux.just(billingInfo1, billingInfo2, billingInfo3)
                     .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                    .doOnSubscribe(simulateIO.apply("BillingInfo"))
                     .doOnComplete(billingInvocationCount::incrementAndGet);
         };
 
@@ -201,8 +226,8 @@ public class CacheTest {
 
             return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
                     .filter(orderItem -> customerIds.contains(orderItem.customerId()))
+                    .doOnSubscribe(simulateIO.apply("OrderItem"))
                     .doOnComplete(ordersInvocationCount::incrementAndGet);
-//                    .subscribeOn(boundedElastic());
         };
 
         var assembler = assemblerOf(Transaction.class)
@@ -211,15 +236,21 @@ public class CacheTest {
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo,
                                 streamTableBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
+                                        .concurrent()
+//                                        .concurrent(scheduler(() -> newBoundedElastic(4, MAX_VALUE, "BillingInfo-Read-Scheduler")))
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getOrderItems,
                                 streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
+                                        .concurrent()
+//                                        .concurrent(scheduler(() -> newBoundedElastic(4, MAX_VALUE, "OrderItem-Read-Scheduler")))
                                         .build()))),
                         Transaction::new)
                 .build();
+//                .build(scheduler(() -> newBoundedElastic(4, 1_000, "Builder-Scheduler")));
 
         var transactionFlux = customerFlux
+                .delayElements(ofMillis(1), customerScheduler)
                 .window(3)
                 .flatMapSequential(assembler::assemble)
                 .take(1_000);
@@ -228,11 +259,7 @@ public class CacheTest {
         var latch = new CountDownLatch(initialCount);
 
         for (int i = 0; i < initialCount; i++) {
-            int subscriptionId = i + 1;
-            transactionFlux.doFinally(signalType -> {
-                        latch.countDown();
-                        System.out.println("complete, count = " + latch.getCount() + ", subscriptionId = " + subscriptionId + ", Thread = " + currentThread().getName());
-                    })
+            transactionFlux.doFinally(signalType -> latch.countDown())
                     .subscribe();
         }
         latch.await();

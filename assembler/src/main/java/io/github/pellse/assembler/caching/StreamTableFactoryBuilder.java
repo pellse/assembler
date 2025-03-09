@@ -103,8 +103,16 @@ public interface StreamTableFactoryBuilder {
             return concurrent((LockStrategy) null);
         }
 
+        default StreamTableFactoryDelegateBuilder<R> concurrent(Scheduler fetchFunctionScheduler) {
+            return concurrent((LockStrategy) null, fetchFunctionScheduler);
+        }
+
         default StreamTableFactoryDelegateBuilder<R> concurrent(LockStrategy lockStrategy) {
             return concurrent(reactiveGuardBuilder().lockingStrategy(lockStrategy));
+        }
+
+        default StreamTableFactoryDelegateBuilder<R> concurrent(LockStrategy lockStrategy, Scheduler fetchFunctionScheduler) {
+            return concurrent(reactiveGuardBuilder().lockingStrategy(lockStrategy), fetchFunctionScheduler);
         }
 
         default StreamTableFactoryDelegateBuilder<R> concurrent(Consumer<ReactiveGuardEvent> eventConsumer) {
@@ -116,7 +124,11 @@ public interface StreamTableFactoryBuilder {
         }
 
         default StreamTableFactoryDelegateBuilder<R> concurrent(ReactiveGuardBuilder reactiveGuardBuilder) {
-            return transformer(ConcurrentCacheFactory.concurrent(reactiveGuardBuilder));
+            return concurrent(reactiveGuardBuilder, null);
+        }
+
+        default StreamTableFactoryDelegateBuilder<R> concurrent(ReactiveGuardBuilder reactiveGuardBuilder, Scheduler fetchFunctionScheduler) {
+            return transformer(ConcurrentCacheFactory.concurrent(reactiveGuardBuilder, fetchFunctionScheduler));
         }
 
         StreamTableFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer);

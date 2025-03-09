@@ -18,17 +18,24 @@ package io.github.pellse.assembler;
 
 import io.github.pellse.util.function.*;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static io.github.pellse.assembler.FluxAdapter.fluxAdapter;
+import static io.github.pellse.util.ObjectUtils.get;
 import static io.github.pellse.util.collection.CollectionUtils.toStream;
+import static java.util.Objects.requireNonNullElseGet;
+import static java.util.stream.Collectors.toList;
+import static reactor.core.publisher.Flux.zip;
 
 public interface AssemblerBuilder {
 
@@ -38,10 +45,12 @@ public interface AssemblerBuilder {
 
     static <T, K, R> WithRulesBuilder<T, K, R> withCorrelationIdResolver(Function<T, K> correlationIdResolver) {
 
-        return (rules, aggregationFunction) -> assemblerAdapter -> {
+        return (rules, aggregationFunction) -> scheduler -> {
 
             final var queryFunctions = rules.stream()
-                    .map(rule -> rule.apply(correlationIdResolver))
+                    .map(rule -> rule.apply(correlationIdResolver, mono -> mono
+                            .subscribeOn(requireNonNullElseGet(scheduler, Schedulers::immediate))
+                            .onErrorResume(RejectedExecutionException.class, get(Mono::empty))))
                     .toList();
 
             final Function<Iterable<T>, Stream<Publisher<? extends Map<K, ?>>>> subQueryMapperBuilder = topLevelEntities -> queryFunctions.stream()
@@ -58,8 +67,21 @@ public interface AssemblerBuilder {
                             .filter(Objects::nonNull)
                             .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
 
-            return topLevelEntitiesProvider -> assemblerAdapter.convertSubQueryMappers(topLevelEntitiesProvider, subQueryMapperBuilder, aggregateStreamBuilder);
+            return topLevelEntitiesProvider -> Flux.from(topLevelEntitiesProvider)
+                    .collectList()
+                    .flatMapMany(entities ->
+                            zip(subQueryMapperBuilder.apply(entities).toList(),
+                                    mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))))
+                    .flatMapSequential(Flux::fromStream);
         };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <K> List<Map<K, ?>> toMapperResultList(Object[] mapperResults) {
+
+        return Stream.of(mapperResults)
+                .map(mapResult -> (Map<K, ?>) mapResult)
+                .collect(toList());
     }
 
     @FunctionalInterface
@@ -72,7 +94,7 @@ public interface AssemblerBuilder {
     interface WithRulesBuilder<T, K, R> {
 
         @SuppressWarnings("unchecked")
-        default <E1> Builder<T, K, R> withRules(
+        default <E1> Builder<T, R> withRules(
                 Rule<T, K, E1> rule,
                 BiFunction<T, E1, R> aggregationFunction) {
 
@@ -80,7 +102,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2> Builder<T, K, R> withRules(
+        default <E1, E2> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Function3<T, E1, E2, R> aggregationFunction) {
@@ -89,7 +111,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3> Builder<T, K, R> withRules(
+        default <E1, E2, E3> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Rule<T, K, E3> rule3,
@@ -100,7 +122,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4> Builder<T, K, R> withRules(
+        default <E1, E2, E3, E4> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Rule<T, K, E3> rule3,
@@ -112,7 +134,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5> Builder<T, K, R> withRules(
+        default <E1, E2, E3, E4, E5> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Rule<T, K, E3> rule3,
@@ -125,7 +147,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6> Builder<T, K, R> withRules(
+        default <E1, E2, E3, E4, E5, E6> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Rule<T, K, E3> rule3,
@@ -139,7 +161,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7> Builder<T, K, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Rule<T, K, E3> rule3,
@@ -155,7 +177,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8> Builder<T, K, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7, E8> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Rule<T, K, E3> rule3,
@@ -172,7 +194,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8, E9> Builder<T, K, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7, E8, E9> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Rule<T, K, E3> rule3,
@@ -190,7 +212,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10> Builder<T, K, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Rule<T, K, E3> rule3,
@@ -209,7 +231,7 @@ public interface AssemblerBuilder {
         }
 
         @SuppressWarnings("unchecked")
-        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11> Builder<T, K, R> withRules(
+        default <E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11> Builder<T, R> withRules(
                 Rule<T, K, E1> rule1,
                 Rule<T, K, E2> rule2,
                 Rule<T, K, E3> rule3,
@@ -228,20 +250,16 @@ public interface AssemblerBuilder {
                             t, (E1) s[0], (E2) s[1], (E3) s[2], (E4) s[3], (E5) s[4], (E6) s[5], (E7) s[6], (E8) s[7], (E9) s[8], (E10) s[9], (E11) s[10]));
         }
 
-        Builder<T, K, R> withRules(List<Rule<T, K, ?>> rules, BiFunction<T, Object[], R> aggregationFunction);
+        Builder<T, R> withRules(List<Rule<T, K, ?>> rules, BiFunction<T, Object[], R> aggregationFunction);
     }
 
     @FunctionalInterface
-    interface Builder<T, K, R> {
+    interface Builder<T, R> {
 
         default Assembler<T, R> build() {
-            return build(fluxAdapter());
+            return build(null);
         }
 
-        default Assembler<T, R> build(Scheduler scheduler) {
-            return build(fluxAdapter(scheduler));
-        }
-
-        Assembler<T, R> build(AssemblerAdapter<T, K, R> adapter);
+        Assembler<T, R> build(Scheduler scheduler);
     }
 }

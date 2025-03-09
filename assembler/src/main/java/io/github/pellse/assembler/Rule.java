@@ -17,17 +17,29 @@
 package io.github.pellse.assembler;
 
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import static io.github.pellse.assembler.RuleContext.ruleContext;
+import static io.github.pellse.util.reactive.ReactiveUtils.subscribeMonoOn;
 
 @FunctionalInterface
 public interface Rule<T, K, RRC> extends Function<Function<T, K>, Function<Iterable<T>, Mono<Map<K, RRC>>>> {
+
+    default Function<Iterable<T>, Mono<Map<K, RRC>>> apply(Function<T, K> keyMapper, Scheduler scheduler) {
+       return apply(keyMapper, subscribeMonoOn(scheduler));
+    }
+
+    default Function<Iterable<T>, Mono<Map<K, RRC>>> apply(Function<T, K> keyMapper, UnaryOperator<Mono<Map<K, RRC>>> transformer) {
+        var queryFunction = apply(keyMapper);
+        return entities -> queryFunction.apply(entities).transform(transformer);
+    }
 
     static <T, K, R, RRC> Rule<T, K, RRC> rule(
             Function<R, K> correlationIdResolver,

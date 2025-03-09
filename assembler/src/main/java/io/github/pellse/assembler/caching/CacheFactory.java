@@ -232,11 +232,12 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
         return ruleContext -> {
             final var queryFunction = nullToEmptySource(ruleMapperSource).apply(ruleContext);
+            final var cacheQueryFunction = buildQueryFunction(queryFunction, ruleContext);
 
             final var cache = delegate(cacheFactory, delegateCacheFactories)
                     .create(cacheContextProvider.apply(ruleContext));
 
-            return entities -> then(ids(entities, ruleContext), ids -> isEmptySource ? cache.getAll(ids) : cache.computeAll(ids, buildFetchFunction(entities, nullToEmptySource(ruleMapperSource), ruleContext)))
+            return entities -> then(ids(entities, ruleContext), ids -> isEmptySource ? cache.getAll(ids) : cache.computeAll(ids, buildFetchFunction(entities, cacheQueryFunction, ruleContext)))
                     .filter(CollectionUtils::isNotEmpty)
                     .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())))
                     .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))
@@ -250,7 +251,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
     private static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> FetchFunction<ID, RRC> buildFetchFunction(
             TC entities,
-            RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,
+            Function<Iterable<T>, Mono<Map<ID, RRC>>> queryFunction,
             CTX ruleContext) {
 
         return ids -> {
@@ -264,7 +265,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
                     .filter(e -> idSet.contains(ruleContext.outerIdResolver().apply(e)))
                     .toList();
 
-            return buildQueryFunction(ruleMapperSource, ruleContext).apply(entitiesToQuery)
+            return queryFunction.apply(entitiesToQuery)
                     .map(queryResultsMap -> buildCacheFragment(ids, queryResultsMap, ruleContext))
                     .onErrorMap(QueryFunctionException::new);
         };
