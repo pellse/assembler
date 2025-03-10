@@ -8,7 +8,7 @@ public sealed interface ReactiveGuardEvent {
     record LockUpgradedEvent(Lock<?> lock) implements ReactiveGuardEvent {
     }
 
-    record LockAcquisitionFailedEvent(Throwable t) implements ReactiveGuardEvent {
+    record LockAcquisitionFailedEvent(Throwable error) implements ReactiveGuardEvent {
     }
 
     record BeforeTaskExecutionEvent(Lock<?> lock) implements ReactiveGuardEvent {
