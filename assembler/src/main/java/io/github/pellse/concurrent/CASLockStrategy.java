@@ -43,7 +43,7 @@ public class CASLockStrategy implements LockStrategy {
     private final long delay;
 
     public CASLockStrategy() {
-        this(1_000, ofNanos(1));
+        this(50, ofNanos(50));
     }
 
     public CASLockStrategy(long maxRetries, Duration waitTime) {
