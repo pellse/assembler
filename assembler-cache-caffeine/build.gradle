@@ -1,7 +1,7 @@
 dependencies {
 
     implementation project(":assembler")
-    implementation ("com.github.ben-manes.caffeine:caffeine:3.1.8")
+    implementation ("com.github.ben-manes.caffeine:caffeine:3.2.0")
 
     testImplementation project(":assembler").sourceSets.test.output
 }
