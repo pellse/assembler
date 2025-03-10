@@ -58,7 +58,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
     }
 
     class QueryFunctionException extends Exception {
-        QueryFunctionException(Throwable t) {
+        public QueryFunctionException(Throwable t) {
             super(null, t, true, false);
         }
     }
