@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
@@ -162,22 +161,6 @@ public class CacheTest {
     }
 
     @Test
-    public void aaa() {
-
-        Function<Integer, Flux<Integer>> f = n -> Flux.just(n * 2)
-                .doOnSubscribe(System.out::println)
-                .subscribeOn(Schedulers.parallel());
-
-        var flux = Flux.just(1, 2, 3, 4)
-                .flatMapSequential(f);
-//                .flatMapSequential(n -> Flux.just(n * 2)
-//                        .doOnSubscribe(System.out::println)
-//                        .subscribeOn(Schedulers.parallel()));
-
-        flux.subscribe(System.out::println);
-    }
-
-    @Test
     @Timeout(60)
     public void testLongRunningAutoCachingEvents() throws InterruptedException {
 
@@ -237,17 +220,14 @@ public class CacheTest {
                                 streamTableBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .concurrent()
-//                                        .concurrent(scheduler(() -> newBoundedElastic(4, MAX_VALUE, "BillingInfo-Read-Scheduler")))
                                         .build()))),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getOrderItems,
                                 streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .concurrent()
-//                                        .concurrent(scheduler(() -> newBoundedElastic(4, MAX_VALUE, "OrderItem-Read-Scheduler")))
                                         .build()))),
                         Transaction::new)
                 .build();
-//                .build(scheduler(() -> newBoundedElastic(4, 1_000, "Builder-Scheduler")));
 
         var transactionFlux = customerFlux
                 .delayElements(ofMillis(1), customerScheduler)
