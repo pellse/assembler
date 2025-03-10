@@ -37,6 +37,7 @@ import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.transaction1;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
+import static io.github.pellse.util.reactive.ReactiveUtils.defaultScheduler;
 import static java.time.Duration.ofMillis;
 import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -218,7 +219,7 @@ public class SpringCacheAssemblerTest {
                         rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, springCache(cacheManager, BILLING_INFO_CACHE)), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, springCache(cacheManager, ORDER_ITEMS_CACHE)))),
                         Transaction::new)
-                .build();
+                .build(defaultScheduler());
 
         StepVerifier.create(getCustomers()
                         .window(3)
