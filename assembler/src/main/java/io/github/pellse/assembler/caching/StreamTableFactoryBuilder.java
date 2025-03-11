@@ -19,6 +19,8 @@ package io.github.pellse.assembler.caching;
 import io.github.pellse.assembler.ErrorHandler;
 import io.github.pellse.assembler.LifeCycleEventSource;
 import io.github.pellse.assembler.WindowingStrategy;
+import io.github.pellse.assembler.caching.CacheContext.OneToManyCacheContext;
+import io.github.pellse.assembler.caching.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import io.github.pellse.concurrent.Lock;
 import io.github.pellse.concurrent.LockStrategy;
@@ -28,6 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.function.*;
 
@@ -128,10 +131,22 @@ public interface StreamTableFactoryBuilder {
         }
 
         default StreamTableFactoryDelegateBuilder<R> concurrent(ReactiveGuardBuilder reactiveGuardBuilder, Scheduler fetchFunctionScheduler) {
-            return transformer(ConcurrentCacheFactory.concurrent(reactiveGuardBuilder, fetchFunctionScheduler));
+            return cacheTransformer(ConcurrentCacheFactory.concurrent(reactiveGuardBuilder, fetchFunctionScheduler));
         }
 
-        StreamTableFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer);
+        default StreamTableFactoryDelegateBuilder<R> oneToOneCacheTransformer(CacheTransformer<Object, R, R, OneToOneCacheContext<Object, R>> cacheTransformer) {
+            return cacheTransformer(CacheTransformer.oneToOneCacheTransformer(cacheTransformer));
+        }
+
+        default StreamTableFactoryDelegateBuilder<R> oneToManyCacheTransformer(CacheTransformer<Object, R,  Collection<R>, OneToManyCacheContext<Object, Object, R, Collection<R>>> cacheTransformer) {
+            return cacheTransformer(CacheTransformer.oneToManyCacheTransformer(cacheTransformer));
+        }
+
+        default StreamTableFactoryDelegateBuilder<R> defaultCacheTransformer() {
+            return cacheTransformer(CacheTransformer.defaultCacheTransformer());
+        }
+
+        StreamTableFactoryDelegateBuilder<R> cacheTransformer(CacheTransformer<?, R, ?, ?> cacheTransformer);
     }
 
     interface StreamTableFactoryDelegateBuilder<R> {
@@ -167,7 +182,7 @@ public interface StreamTableFactoryBuilder {
         }
 
         @Override
-        public StreamTableFactoryDelegateBuilder<R> transformer(CacheTransformer<?, R, ?, ?> cacheTransformer) {
+        public StreamTableFactoryDelegateBuilder<R> cacheTransformer(CacheTransformer<?, R, ?, ?> cacheTransformer) {
             return new Builder<>(dataSource, windowingStrategy, errorHandler, scheduler, eventSource, cacheTransformer);
         }
 

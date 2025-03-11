@@ -55,6 +55,18 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
     @FunctionalInterface
     interface CacheTransformer<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> extends Function<CacheFactory<ID, R, RRC, CTX>, CacheFactory<ID, R, RRC, CTX>> {
+
+        static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> defaultCacheTransformer() {
+            return cf -> cf;
+        }
+
+        static <ID, R> CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> oneToOneCacheTransformer(CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> cacheTransformer) {
+            return cacheTransformer;
+        }
+
+        static <ID, EID, R, RC extends Collection<R>> CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> oneToManyCacheTransformer(CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheTransformer) {
+            return cacheTransformer;
+        }
     }
 
     class QueryFunctionException extends Exception {

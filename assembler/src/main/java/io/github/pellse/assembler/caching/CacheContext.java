@@ -29,6 +29,7 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
+import static io.github.pellse.assembler.caching.CacheFactory.CacheTransformer.defaultCacheTransformer;
 import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
 
 public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> {
@@ -47,7 +48,7 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
         OneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx) {
             this(ctx.mapCollector(),
                     ctx.mapMerger(),
-                    cf -> cf);
+                    defaultCacheTransformer());
         }
     }
 
