@@ -21,8 +21,8 @@ https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9
 - **[Complex Relationship Graph And Cartesian Product](#complex-relationship-graph-and-cartesian-product)**
 - **[Reactive Caching](#reactive-caching)**
   - [Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)
-  - [Auto Caching](#auto-caching)
-    - *[Event Based Auto Caching](#event-based-auto-caching)*
+  - [Stream Table](#stream-table)
+    - *[Event Based Stream Table](#event-based-stream-table)*
 - **[Integration with non-reactive sources](#integration-with-non-reactive-sources)**
 - **[What's Next?](#whats-next)**
 
