@@ -28,6 +28,7 @@ import java.util.function.*;
 
 import static io.github.pellse.concurrent.CoreLock.NoopLock.noopLock;
 import static java.time.Duration.ofNanos;
+import static java.util.Objects.requireNonNullElse;
 import static java.util.concurrent.locks.LockSupport.parkNanos;
 import static reactor.core.publisher.Mono.*;
 
@@ -43,12 +44,12 @@ public class CASLockStrategy implements LockStrategy {
     private final long delay;
 
     public CASLockStrategy() {
-        this(50, ofNanos(50));
+        this(50, null);
     }
 
     public CASLockStrategy(long maxRetries, Duration waitTime) {
         this.maxRetries = maxRetries;
-        this.delay = waitTime.toNanos();
+        this.delay = requireNonNullElse(waitTime, ofNanos(50)).toNanos();
     }
 
     @Override
@@ -91,7 +92,8 @@ public class CASLockStrategy implements LockStrategy {
             Consumer<L> lockReleaser) {
 
         // We avoid relying on Mono.retryWhen() to implement the waiting loop to prevent work stealing algo to kick in
-        // under high contention, or thread switching with e.g. fixedDelay(maxRetries, waitTime)
+        // under high contention, or thread switching with e.g. fixedDelay(maxRetries, waitTime), which can lead to
+        // out of order task processing
         return defer(() -> {
             final var innerLock = lockFactory.create(idCounter.incrementAndGet(), outerLock.delegate(), lockReleaser);
 
