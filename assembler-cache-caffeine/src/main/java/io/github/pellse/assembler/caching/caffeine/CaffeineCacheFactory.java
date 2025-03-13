@@ -27,47 +27,28 @@ import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
 import static io.github.pellse.assembler.caching.Cache.adapterCache;
 import static io.github.pellse.assembler.caching.CacheFactory.toMono;
 import static io.github.pellse.util.ObjectUtils.also;
-import static io.github.pellse.util.ObjectUtils.then;
-import static io.github.pellse.util.reactive.ReactiveUtils.isVirtualThreadSupported;
 import static java.util.Map.of;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor;
 import static reactor.core.publisher.Mono.fromFuture;
 
 public interface CaffeineCacheFactory {
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> caffeineCache() {
-        return caffeineCache(isVirtualThreadSupported());
-    }
-
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> caffeineCache(boolean useVirtualThreads) {
-        return caffeineCache(defaultBuilder(useVirtualThreads));
+        return caffeineCache(defaultBuilder());
     }
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> caffeineCache(long maxSize) {
-        return caffeineCache(maxSize, isVirtualThreadSupported());
-    }
-
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> caffeineCache(long maxSize, boolean useVirtualThreads) {
-        return caffeineCache(defaultBuilder(useVirtualThreads)
+        return caffeineCache(defaultBuilder()
                 .maximumSize(maxSize));
     }
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> caffeineCache(Duration expireAfterAccessDuration) {
-        return caffeineCache(expireAfterAccessDuration, isVirtualThreadSupported());
-    }
-
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> caffeineCache(Duration expireAfterAccessDuration, boolean useVirtualThreads) {
-        return caffeineCache(defaultBuilder(useVirtualThreads)
+        return caffeineCache(defaultBuilder()
                 .expireAfterAccess(expireAfterAccessDuration));
     }
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> caffeineCache(long maxSize, Duration expireAfterAccessDuration) {
-        return caffeineCache(maxSize, expireAfterAccessDuration, isVirtualThreadSupported());
-    }
-
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> caffeineCache(long maxSize, Duration expireAfterAccessDuration, boolean useVirtualThreads) {
-        return caffeineCache(defaultBuilder(useVirtualThreads)
+        return caffeineCache(defaultBuilder()
                 .maximumSize(maxSize)
                 .expireAfterAccess(expireAfterAccessDuration));
     }
@@ -84,7 +65,7 @@ public interface CaffeineCacheFactory {
         );
     }
 
-    private static Caffeine<Object, Object> defaultBuilder(boolean useVirtualThreads) {
-        return then(newBuilder(), builder -> useVirtualThreads ? builder.executor(newVirtualThreadPerTaskExecutor()) : builder);
+    private static Caffeine<Object, Object> defaultBuilder() {
+        return newBuilder();
     }
 }
