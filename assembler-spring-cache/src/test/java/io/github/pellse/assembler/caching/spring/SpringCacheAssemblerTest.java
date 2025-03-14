@@ -48,6 +48,7 @@ import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Thread.currentThread;
 import static java.time.Duration.ofMillis;
 import static java.util.List.of;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.locks.LockSupport.parkNanos;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static reactor.core.publisher.Flux.fromIterable;
@@ -126,12 +127,16 @@ public class SpringCacheAssemblerTest {
         ordersInvocationCount.set(0);
 
         cacheManager.getCacheNames()
-                .forEach(name -> cacheManager.getCache(name).invalidate());
+                .forEach(name -> requireNonNull(cacheManager.getCache(name)).invalidate());
     }
 
     @Test
     @Timeout(60)
     public void testLongRunningAutoCachingEvents() throws InterruptedException {
+
+        final var cacheManager =  also(new CaffeineCacheManager(),
+                cm -> cm.setAsyncCacheMode(true),
+                cm -> cm.setCacheNames(of(BILLING_INFO_CACHE, ORDER_ITEMS_CACHE)));
 
         BillingInfo updatedBillingInfo2 = new BillingInfo(2, 2L, "4540222222222222");
         OrderItem updatedOrderItem11 = new OrderItem("1", 1L, "Sweater", 25.99);
