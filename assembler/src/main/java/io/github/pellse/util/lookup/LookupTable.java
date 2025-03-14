@@ -16,6 +16,8 @@
 
 package io.github.pellse.util.lookup;
 
+import io.github.pellse.util.ObjectUtils;
+
 import java.util.*;
 import java.util.function.Function;
 
@@ -36,7 +38,7 @@ public interface LookupTable<K, V> {
 
             @Override
             public void put(K key, V value) {
-                map.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
+                map.computeIfAbsent(key, ObjectUtils.get(ArrayList::new)).add(value);
             }
 
             @Override
