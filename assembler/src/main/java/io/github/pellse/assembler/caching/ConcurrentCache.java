@@ -67,9 +67,7 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
 
             @Override
             public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
-                return guard.withReadLock(writeGuard -> delegateCache.computeAll(ids, idsToFetch ->
-                        fetchFunction.apply(idsToFetch, fetchFunctionScheduler)
-                                .flatMap(writeGuard::withLock)), Map::of);
+                return guard.withReadLock(delegateCache.computeAll(ids, idsToFetch -> fetchFunction.apply(idsToFetch, fetchFunctionScheduler)), Map::of);
             }
 
             @Override
