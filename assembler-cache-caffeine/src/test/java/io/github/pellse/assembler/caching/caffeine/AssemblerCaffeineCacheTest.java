@@ -171,12 +171,12 @@ public class AssemblerCaffeineCacheTest {
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, caffeineCache(true),
+                        rule(BillingInfo::customerId, oneToOne(cached(getBillingInfo, caffeineCache(),
                                 streamTableBuilder(billingInfoFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .concurrent()
                                         .build()))),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getOrderItems, caffeineCache(true),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(getOrderItems, caffeineCache(),
                                 streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                                         .maxWindowSize(3)
                                         .concurrent()
