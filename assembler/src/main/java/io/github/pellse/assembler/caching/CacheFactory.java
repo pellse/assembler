@@ -38,6 +38,7 @@ import static io.github.pellse.assembler.QueryUtils.buildQueryFunction;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.assembler.caching.Cache.*;
 import static io.github.pellse.assembler.caching.DeferCacheFactory.defer;
+import static io.github.pellse.assembler.caching.SerializeCacheFactory.serialize;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static io.github.pellse.util.reactive.ReactiveUtils.createSinkMap;
@@ -82,10 +83,9 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
         final Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll = ids -> resolve(readAll(ids, delegateMap, Sinks.One::asMono));
 
         final BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll = (ids, fetchFunction) -> {
-
             final var cachedEntitiesMap = readAll(ids, delegateMap, Sinks.One::asMono);
-
             final var missingIds = diff(ids, cachedEntitiesMap.keySet());
+
             if (isEmpty(missingIds)) {
                 return resolve(cachedEntitiesMap);
             }
@@ -169,7 +169,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
-        return cached(OneToOneCacheContext::new, ruleMapperSource, oneToOneCacheFactory(defer(cacheFactory)), delegateCacheFactories);
+        return cached(OneToOneCacheContext::new, ruleMapperSource, oneToOneCacheFactory(wrap(cacheFactory)), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -218,7 +218,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cached(OneToManyCacheContext::new, ruleMapperSource, oneToManyCacheFactory(defer(cacheFactory)), delegateCacheFactories);
+        return cached(OneToManyCacheContext::new, ruleMapperSource, oneToManyCacheFactory(wrap(cacheFactory)), delegateCacheFactories);
     }
 
     static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> toMono(Consumer<Map<ID, RRC>> consumer) {
@@ -249,11 +249,16 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             final var cache = delegate(cacheFactory, delegateCacheFactories)
                     .create(cacheContextProvider.apply(ruleContext));
 
-            return entities -> then(ids(entities, ruleContext), ids -> isEmptySource ? cache.getAll(ids) : cache.computeAll(ids, buildFetchFunction(entities, cacheQueryFunction, ruleContext)))
-                    .filter(CollectionUtils::isNotEmpty)
-                    .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())))
-                    .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))
-                    .onErrorMap(QueryFunctionException.class, Throwable::getCause);
+            return entities -> {
+                final var ids = ids(entities, ruleContext);
+                final FetchFunction<ID, RRC> fetchFunction = idList -> buildFetchFunction(entities, cacheQueryFunction, ruleContext).apply(idList);
+
+                return (isEmptySource ? cache.getAll(ids) : cache.computeAll(ids, fetchFunction))
+                        .filter(CollectionUtils::isNotEmpty)
+                        .flatMapMany(map -> fromStream(ruleContext.streamFlattener().apply(map.values().stream())))
+                        .onErrorResume(not(QueryFunctionException.class::isInstance), __ -> queryFunction.apply(entities))
+                        .onErrorMap(QueryFunctionException.class, Throwable::getCause);
+            };
         };
     }
 
@@ -281,6 +286,10 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
                     .map(queryResultsMap -> buildCacheFragment(ids, queryResultsMap, ruleContext))
                     .onErrorMap(QueryFunctionException::new);
         };
+    }
+
+    private static  <ID, R, RRC, CACHE_CTX extends CacheContext<ID, R, RRC, CACHE_CTX>> CacheFactory<ID, R, RRC, CACHE_CTX> wrap(CacheFactory<ID, R, RRC, CACHE_CTX> cacheFactory) {
+        return defer(serialize(cacheFactory));
     }
 
     @SafeVarargs
