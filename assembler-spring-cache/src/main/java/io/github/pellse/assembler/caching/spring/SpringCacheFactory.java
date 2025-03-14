@@ -11,9 +11,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiFunction;
 
+import static io.github.pellse.assembler.caching.AsyncCacheFactory.async;
 import static io.github.pellse.assembler.caching.spring.SpringCacheFactory.AsyncSupport.DEFAULT;
 import static io.github.pellse.util.ObjectUtils.also;
-import static io.github.pellse.util.collection.CollectionUtils.diff;
+import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Map.entry;
 import static java.util.Objects.requireNonNull;
 import static reactor.core.publisher.Flux.fromIterable;
@@ -47,7 +48,7 @@ public interface SpringCacheFactory {
             case DEFAULT -> cacheGetter(delegateCache);
         };
 
-        return cacheContext -> new io.github.pellse.assembler.caching.Cache<>() {
+        final CacheFactory<ID, R, RRC, CTX> springCacheFactory = cacheContext -> new io.github.pellse.assembler.caching.Cache<>() {
 
             @Override
             public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
@@ -60,13 +61,13 @@ public interface SpringCacheFactory {
             public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
                 return getAll(ids)
                         .flatMap(cachedData -> fetchFunction.apply(diff(ids, cachedData.keySet()))
-                                .doOnNext(this::putAll)
+                                .doOnNext(this::addAll)
                                 .map(fetchedData -> fetchedData.isEmpty() ? cachedData : cacheContext.mapMerger().apply(cachedData, fetchedData)));
             }
 
             @Override
             public Mono<?> putAll(Map<ID, RRC> map) {
-                return just(also(map, m -> m.forEach(delegateCache::put)));
+                return just(also(map, this::addAll));
             }
 
             @Override
@@ -78,7 +79,14 @@ public interface SpringCacheFactory {
                 return just(delegateCache)
                         .transform(cacheMono -> cacheGetter.apply(cacheMono, id))
                         .map(value -> entry(id, value));
-            }};
+            }
+
+            private void addAll(Map<ID, RRC> map) {
+                map.forEach(delegateCache::put);
+            }
+        };
+
+        return async(springCacheFactory);
     }
 
     private static <ID, RRC> BiFunction<Mono<Cache>, ID, Mono<RRC>> cacheGetter(Cache delegateCache) {
@@ -98,7 +106,7 @@ public interface SpringCacheFactory {
     }
 
     @SuppressWarnings("unchecked")
-    private static <ID, RRC>Mono<RRC> retrieve(Mono<Cache> delegateCacheMono, ID id) {
+    private static <ID, RRC> Mono<RRC> retrieve(Mono<Cache> delegateCacheMono, ID id) {
         return delegateCacheMono
                 .mapNotNull(cache -> cache.retrieve(id))
                 .flatMap(Mono::fromFuture)
