@@ -1,6 +1,7 @@
 package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.caching.Cache.FetchFunction;
+import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -14,7 +15,7 @@ import static java.util.concurrent.ConcurrentHashMap.newKeySet;
 
 public interface AsyncCacheFactory {
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory.CacheTransformer<ID, R, RRC, CTX> async() {
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> async() {
         return AsyncCacheFactory::async;
     }
 
