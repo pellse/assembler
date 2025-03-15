@@ -227,7 +227,7 @@ public class CacheTest {
                                         .concurrent()
                                         .build()))),
                         Transaction::new)
-                .build();
+                .build(1_000);
 
         var transactionFlux = customerFlux
                 .delayElements(ofMillis(1), customerScheduler)

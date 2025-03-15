@@ -33,9 +33,11 @@ import java.util.stream.Stream;
 
 import static io.github.pellse.util.ObjectUtils.get;
 import static io.github.pellse.util.collection.CollectionUtils.toStream;
+import static java.lang.Runtime.getRuntime;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.stream.Collectors.toList;
 import static reactor.core.publisher.Flux.zip;
+import static reactor.core.scheduler.Schedulers.newBoundedElastic;
 
 public interface AssemblerBuilder {
 
@@ -258,6 +260,14 @@ public interface AssemblerBuilder {
 
         default Assembler<T, R> build() {
             return build(null);
+        }
+
+        default Assembler<T, R> build(int queuedRuleAggregationTaskCap) {
+            return build(getRuntime().availableProcessors(), queuedRuleAggregationTaskCap);
+        }
+
+        default Assembler<T, R> build(int ruleAggregationThreadCap, int ruleAggregationQueuedTaskCap) {
+            return build(newBoundedElastic(ruleAggregationThreadCap, ruleAggregationQueuedTaskCap, "Rule-Aggregation-Scheduler"));
         }
 
         Assembler<T, R> build(Scheduler scheduler);
