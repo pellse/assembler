@@ -36,7 +36,9 @@ public interface AsyncCacheFactory {
             idSet.addAll(missingIds);
 
             return delegateCache.computeAll(ids, fetchFunction)
-                    .doOnNext(map -> idSet.removeAll(diff(idSet, map.keySet())));
+                    .doOnNext(map -> idSet.removeAll(diff(idSet, map.keySet())))
+                    .doOnError(error -> idSet.removeAll(missingIds))
+                    .doOnCancel(() -> idSet.removeAll(missingIds));
         };
 
         return adapterCache(
