@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -163,7 +164,7 @@ public interface BatchRule<T, RRC> {
             return queryFunction.apply(entities)
                     .map(resultMap -> resultMap.entrySet()
                             .stream()
-                            .collect(toMap(m -> entityMap.get(m.getKey()), Map.Entry::getValue, (o, o2) -> o2, () -> newLinkedHashMap(size))));
+                            .collect(toMap(m -> entityMap.get(m.getKey()), Entry::getValue, (o, o2) -> o2, () -> newLinkedHashMap(size))));
         };
     }
 }
