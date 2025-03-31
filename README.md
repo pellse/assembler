@@ -1,13 +1,13 @@
 # Assembler
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.pellse/assembler.svg?label=assembler)](https://central.sonatype.com/artifact/io.github.pellse/assembler)
 
-***Assembler*** is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless data aggregation library for querying and merging data from multiple data sources/services. ***Assembler*** enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) and is also designed to solve the N + 1 query problem in a data polyglot environment. ***Assembler*** is architecture-agnostic, making it versatile for use in monolithic or microservice architectures, implementing REST or GraphQL endpoints, stream processing, and other scenarios.
+***Assembler*** is a [reactive](https://www.reactivemanifesto.org), functional, type-safe, and stateless data composition library for querying and merging data from multiple data sources/services. ***Assembler*** enables efficient implementation of the [API Composition Pattern](https://microservices.io/patterns/data/api-composition.html) and is also designed to solve the N + 1 query problem in a data polyglot environment. ***Assembler*** is architecture-agnostic, making it versatile for use in monolithic or microservice architectures, implementing REST or GraphQL endpoints, stream processing, and other scenarios.
 
 Internally, ***Assembler*** leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
 
 See the [demo app](https://github.com/pellse/assembler-spring-graphql-example) for a comprehensive project utilizing ***Assembler***.
 
-*Here is an example from the [demo app GitHub repository ](https://github.com/pellse/assembler-spring-graphql-example) which integrates ***Assembler*** with Spring GraphQL to implement real-time data aggregation of multiple data sources:*
+*Here is an example from the [demo app GitHub repository ](https://github.com/pellse/assembler-spring-graphql-example) which integrates ***Assembler*** with Spring GraphQL to implement real-time data composition of multiple data sources:*
 
 https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9e10-ca720ec2f5cd
 
