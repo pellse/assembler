@@ -17,7 +17,7 @@ https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9
 - **[Basic Usage](#basic-usage)**
   - [Default values for missing data](#default-values-for-missing-data)
 - **[Infinite Stream of Data](#infinite-stream-of-data)**
-- **[ID Join](#id-join)**
+- **[ID Joins](#id-joins)**
 - **[Complex Relationship Graph And Cartesian Product](#complex-relationship-graph-and-cartesian-product)**
 - **[Reactive Caching](#reactive-caching)**
   - [Third Party Reactive Cache Provider Integration](#third-party-reactive-cache-provider-integration)
@@ -137,7 +137,7 @@ Flux<Transaction> transactionFlux = getCustomers()
 ```
 [:arrow_up:](#table-of-contents)
 
-## ID Join
+## ID Joins
 ***Assembler*** supports the concept of ID joins, semantically similar to SQL joins, to solve the issue of missing correlation IDs between primary and dependent entities. For example, assuming the following data model:
 ```java
 public record PostDetails(Long id, Long userId, String content) {}
