@@ -5,11 +5,11 @@
 
 Internally, ***Assembler*** leverages [Project Reactor](https://projectreactor.io) to implement end-to-end reactive stream pipelines and maintain all the reactive stream properties as defined by the [Reactive Manifesto](https://www.reactivemanifesto.org), including responsiveness, resilience, elasticity, message-driven with back-pressure, non-blocking, and more.
 
-See the [demo app](https://github.com/pellse/assembler-spring-graphql-example) for a comprehensive project utilizing ***Assembler***.
+See the [demo app](https://github.com/pellse/assembler-spring-example) for a comprehensive project utilizing ***Assembler***.
 
-*Here is an example from the [demo app GitHub repository ](https://github.com/pellse/assembler-spring-graphql-example) which integrates ***Assembler*** with Spring GraphQL to implement real-time data composition of multiple data sources:*
+*Here is an example from the [demo app GitHub repository ](https://github.com/pellse/assembler-spring-example) which integrates ***Assembler*** with Spring WebFlux and Spring GraphQL to implement real-time data composition of multiple data sources:*
 
-https://github.com/pellse/assembler-example/assets/23351878/388f8a65-bffd-4344-9e10-ca720ec2f5cd
+https://github.com/user-attachments/assets/fd51c1f3-ad37-44bf-8069-4bde9cac9dc9
 
 ## Table of Contents
 
