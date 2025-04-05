@@ -46,6 +46,7 @@ import static io.github.pellse.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.*;
 import static io.github.pellse.assembler.RuleMapperSource.call;
+import static io.github.pellse.assembler.caching.DefaultCache.cache;
 import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.CacheFactory.*;
