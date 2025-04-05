@@ -26,25 +26,20 @@ import io.github.pellse.assembler.caching.CacheContext.OneToOneCacheContext;
 import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.github.pellse.assembler.QueryUtils.buildQueryFunction;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.assembler.caching.Cache.*;
+import static io.github.pellse.assembler.caching.DefaultCache.cache;
 import static io.github.pellse.assembler.caching.DeferCacheFactory.defer;
 import static io.github.pellse.assembler.caching.SerializeCacheFactory.serialize;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
-import static io.github.pellse.util.reactive.ReactiveUtils.createSinkMap;
-import static io.github.pellse.util.reactive.ReactiveUtils.resolve;
 import static java.util.Arrays.stream;
-import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
 import static reactor.core.publisher.Flux.fromStream;
 import static reactor.core.publisher.Mono.just;
@@ -74,53 +69,6 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
         public QueryFunctionException(Throwable t) {
             super(null, t, true, false);
         }
-    }
-
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> cache() {
-
-        final var delegateMap = new ConcurrentHashMap<ID, Sinks.One<RRC>>();
-
-        final Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll = ids -> resolve(readAll(ids, delegateMap, Sinks.One::asMono));
-
-        final BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll = (ids, fetchFunction) -> {
-            final var cachedEntitiesMap = readAll(ids, delegateMap, Sinks.One::asMono);
-            final var missingIds = diff(ids, cachedEntitiesMap.keySet());
-
-            if (isEmpty(missingIds)) {
-                return resolve(cachedEntitiesMap);
-            }
-
-            final var sinkMap = also(createSinkMap(missingIds), delegateMap::putAll);
-
-            return fetchFunction.apply(missingIds)
-                    .doOnNext(resultMap -> sinkMap.forEach((id, sink) -> ofNullable(resultMap.get(id))
-                            .ifPresentOrElse(sink::tryEmitValue, () -> {
-                                delegateMap.remove(id);
-                                sink.tryEmitEmpty();
-                            })))
-                    .doOnError(e -> sinkMap.forEach((id, sink) -> {
-                        delegateMap.remove(id);
-                        sink.tryEmitError(e);
-                    }))
-                    .flatMap(__ -> resolve(mergeMaps(cachedEntitiesMap, transformMapValues(sinkMap, Sinks.One::asMono))));
-        };
-
-        Function<Map<ID, RRC>, Mono<?>> putAll = toMono(map -> also(createSinkMap(map.keySet()), delegateMap::putAll)
-                .forEach((id, sink) -> sink.tryEmitValue(map.get(id))));
-
-        Function<Map<ID, RRC>, Mono<?>> removeAll = toMono(map -> also(map.keySet(), ids -> delegateMap.keySet().removeAll(ids))
-                .forEach(id -> ofNullable(delegateMap.get(id)).ifPresent(Sinks.One::tryEmitEmpty)));
-
-        return cache(getAll, computeAll, putAll, removeAll);
-    }
-
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> cache(
-            Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll,
-            BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll,
-            Function<Map<ID, RRC>, Mono<?>> putAll,
-            Function<Map<ID, RRC>, Mono<?>> removeAll) {
-
-        return __ -> adapterCache(getAll, computeAll, putAll, removeAll);
     }
 
     @SafeVarargs
