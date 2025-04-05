@@ -7,9 +7,11 @@ Internally, ***Assembler*** leverages [Project Reactor](https://projectreactor.i
 
 See the [demo app](https://github.com/pellse/assembler-spring-example) for a comprehensive project utilizing ***Assembler***.
 
-*Here is an example from the [demo app GitHub repository ](https://github.com/pellse/assembler-spring-example) which integrates ***Assembler*** with Spring WebFlux and Spring GraphQL to implement real-time data composition of multiple data sources:*
+Check out this brief presentation for a walkthrough of the ***Assembler*** API for the real-time streaming example from the [demo app](https://github.com/pellse/assembler-spring-example), which integrates ***Assembler*** with Spring WebFlux and Spring GraphQL to implement real-time data composition of multiple data sources:
 
-https://github.com/user-attachments/assets/fd51c1f3-ad37-44bf-8069-4bde9cac9dc9
+https://github.com/user-attachments/assets/5d9efa18-521f-4bcc-b6ec-5bb0d9ca3a59
+
+You can also view the presentation [here](https://snappify.com/view/a113a410-7957-4e39-898e-38bff1ec7982) and go through each slide at your own speed.
 
 ## Table of Contents
 
