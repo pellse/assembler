@@ -34,6 +34,11 @@ import static reactor.core.publisher.Mono.*;
 
 public class CASLockStrategy implements LockStrategy {
 
+    @FunctionalInterface
+    interface LockFactory<L extends CoreLock<L>> {
+        L create(long id, CoreLock<?> outerLock, Consumer<L> lockReleaser);
+    }
+
     private static final long WRITE_LOCK_MASK = 1L << 63; // 1000000000000000000000000000000000000000000000000000000000000000
     private static final long READ_LOCK_MASK = ~WRITE_LOCK_MASK; // 0111111111111111111111111111111111111111111111111111111111111111
 
@@ -146,10 +151,5 @@ public class CASLockStrategy implements LockStrategy {
 
     private long doReleaseWriteLock(WriteLock innerLock) {
         return !(innerLock.outerLock() instanceof WriteLock) ? lockState.updateAndGet(currentState -> currentState & READ_LOCK_MASK) : lockState.get();
-    }
-
-    @FunctionalInterface
-    interface LockFactory<L extends CoreLock<L>> {
-        L create(long id, CoreLock<?> outerLock, Consumer<L> lockReleaser);
     }
 }
