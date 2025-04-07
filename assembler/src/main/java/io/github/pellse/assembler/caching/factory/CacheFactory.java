@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.caching;
+package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.RuleMapperContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
 import io.github.pellse.assembler.RuleMapperSource;
+import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.Cache.FetchFunction;
-import io.github.pellse.assembler.caching.CacheContext.OneToManyCacheContext;
-import io.github.pellse.assembler.caching.CacheContext.OneToOneCacheContext;
+import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
+import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import io.github.pellse.util.collection.CollectionUtils;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
@@ -33,10 +34,11 @@ import java.util.function.Function;
 
 import static io.github.pellse.assembler.QueryUtils.buildQueryFunction;
 import static io.github.pellse.assembler.RuleMapperSource.*;
-import static io.github.pellse.assembler.caching.Cache.*;
 import static io.github.pellse.assembler.caching.DefaultCache.cache;
-import static io.github.pellse.assembler.caching.DeferCacheFactory.defer;
-import static io.github.pellse.assembler.caching.SerializeCacheFactory.serialize;
+import static io.github.pellse.assembler.caching.factory.DeferCacheFactory.defer;
+import static io.github.pellse.assembler.caching.OneToManyCache.oneToManyCache;
+import static io.github.pellse.assembler.caching.OneToOneCache.oneToOneCache;
+import static io.github.pellse.assembler.caching.factory.SerializeCacheFactory.serialize;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Arrays.stream;

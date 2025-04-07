@@ -386,8 +386,8 @@ import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.Rule.rule;
-import static io.github.pellse.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cached;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cachedMany;
 
 var assembler = assemblerOf(Transaction.class)
   .withCorrelationIdResolver(Customer::customerId)
@@ -428,8 +428,8 @@ import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.Rule.rule;
-import static io.github.pellse.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cached;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cachedMany;
 import static io.github.pellse.assembler.caching.caffeine.CaffeineCacheFactory.caffeineCache;
 
 Caffeine<Object, Object> cacheBuilder = newBuilder()
@@ -463,9 +463,9 @@ import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.Rule.rule;
-import static io.github.pellse.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
-import static io.github.pellse.assembler.caching.StreamTableFactory;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cached;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cachedMany;
+import static io.github.pellse.assembler.caching.factory.StreamTableFactory;
 
 Flux<BillingInfo> billingInfoFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
 Flux<OrderItem> orderItemFlux = ... // From e.g. Debezium/Kafka, RabbitMQ, etc.;
@@ -496,10 +496,10 @@ import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.Rule.rule;
-import static io.github.pellse.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
-import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableBuilder;
-import static io.github.pellse.assembler.caching.StreamTableFactory.OnErrorMap.onErrorMap;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cached;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cachedMany;
+import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
+import static io.github.pellse.assembler.caching.factory.StreamTableFactory.OnErrorMap.onErrorMap;
 import static reactor.core.scheduler.Schedulers.newParallel;
 import static java.lang.System.getLogger;
 
@@ -566,9 +566,9 @@ import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.Rule.rule;
-import static io.github.pellse.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
-import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cached;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cachedMany;
+import static io.github.pellse.assembler.caching.factory.StreamTableFactory.streamTable;
 
 Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
   .withCorrelationIdResolver(Customer::customerId)

@@ -16,6 +16,9 @@
 
 package io.github.pellse.assembler.caching;
 
+import io.github.pellse.assembler.caching.Cache.FetchFunction;
+import io.github.pellse.assembler.caching.factory.CacheContext;
+import io.github.pellse.assembler.caching.factory.CacheFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
@@ -24,8 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static io.github.pellse.assembler.caching.Cache.adapterCache;
-import static io.github.pellse.assembler.caching.CacheFactory.toMono;
+import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.toMono;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static io.github.pellse.util.reactive.ReactiveUtils.createSinkMap;
@@ -40,7 +43,7 @@ public interface DefaultCache {
 
         final Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll = ids -> resolve(readAll(ids, delegateMap, Sinks.One::asMono));
 
-        final BiFunction<Iterable<ID>, Cache.FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll = (ids, fetchFunction) -> {
+        final BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll = (ids, fetchFunction) -> {
             final var cachedEntitiesMap = readAll(ids, delegateMap, Sinks.One::asMono);
             final var missingIds = diff(ids, cachedEntitiesMap.keySet());
 
@@ -74,7 +77,7 @@ public interface DefaultCache {
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> cache(
             Function<Iterable<ID>, Mono<Map<ID, RRC>>> getAll,
-            BiFunction<Iterable<ID>, Cache.FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll,
+            BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll,
             Function<Map<ID, RRC>, Mono<?>> putAll,
             Function<Map<ID, RRC>, Mono<?>> removeAll) {
 

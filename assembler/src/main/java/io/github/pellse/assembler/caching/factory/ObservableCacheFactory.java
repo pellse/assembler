@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.caching;
+package io.github.pellse.assembler.caching.factory;
 
-import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -24,7 +24,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static io.github.pellse.assembler.caching.Cache.adapterCache;
+import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 
 public interface ObservableCacheFactory {
 

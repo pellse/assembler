@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.caching;
+package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.ErrorHandler;
 import io.github.pellse.assembler.LifeCycleEventListener;
 import io.github.pellse.assembler.LifeCycleEventSource;
 import io.github.pellse.assembler.WindowingStrategy;
+import io.github.pellse.assembler.caching.CacheEvent;
 import io.github.pellse.assembler.caching.CacheEvent.Updated;
-import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;

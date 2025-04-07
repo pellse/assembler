@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.caching;
+package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.ErrorHandler;
 import io.github.pellse.assembler.LifeCycleEventSource;
 import io.github.pellse.assembler.WindowingStrategy;
-import io.github.pellse.assembler.caching.CacheContext.OneToManyCacheContext;
-import io.github.pellse.assembler.caching.CacheContext.OneToOneCacheContext;
-import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
+import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
+import io.github.pellse.assembler.caching.CacheEvent;
+import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import io.github.pellse.concurrent.Lock;
 import io.github.pellse.concurrent.LockStrategy;
 import io.github.pellse.concurrent.ReactiveGuard.ReactiveGuardBuilder;
@@ -35,7 +36,7 @@ import java.util.Optional;
 import java.util.function.*;
 
 import static io.github.pellse.assembler.ErrorHandler.OnErrorContinue.onErrorContinue;
-import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
+import static io.github.pellse.assembler.caching.factory.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.CacheEvent.toCacheEvent;
 import static io.github.pellse.concurrent.ReactiveGuard.reactiveGuardBuilder;
 import static io.github.pellse.concurrent.ReactiveGuardEventListener.reactiveGuardEventAdapter;

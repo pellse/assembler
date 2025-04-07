@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.caching;
+package io.github.pellse.assembler.caching.factory;
 
-import io.github.pellse.assembler.caching.CacheContext.OneToManyCacheContext;
-import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
+import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.function.Function;
 
-import static io.github.pellse.assembler.caching.MapperCacheFactory.mapper;
+import static io.github.pellse.assembler.caching.factory.MapperCacheFactory.mapper;
 import static java.util.stream.Collectors.toCollection;
 
 public interface SortByCacheFactory {

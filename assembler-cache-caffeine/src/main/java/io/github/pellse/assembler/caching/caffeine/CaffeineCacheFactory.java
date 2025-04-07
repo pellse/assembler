@@ -18,14 +18,14 @@ package io.github.pellse.assembler.caching.caffeine;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.github.pellse.assembler.caching.CacheContext;
-import io.github.pellse.assembler.caching.CacheFactory;
+import io.github.pellse.assembler.caching.factory.CacheContext;
+import io.github.pellse.assembler.caching.factory.CacheFactory;
 
 import java.time.Duration;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
-import static io.github.pellse.assembler.caching.Cache.adapterCache;
-import static io.github.pellse.assembler.caching.CacheFactory.toMono;
+import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.toMono;
 import static io.github.pellse.util.ObjectUtils.also;
 import static java.util.Map.of;
 import static java.util.concurrent.CompletableFuture.completedFuture;

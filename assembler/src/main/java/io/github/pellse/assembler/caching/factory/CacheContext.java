@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package io.github.pellse.assembler.caching;
+package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
-import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -29,8 +29,8 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import static io.github.pellse.assembler.caching.CacheFactory.CacheTransformer.defaultCacheTransformer;
-import static io.github.pellse.assembler.caching.ConcurrentCacheFactory.concurrent;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer.defaultCacheTransformer;
+import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
 
 public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> {
 

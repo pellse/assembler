@@ -16,7 +16,7 @@
 
 package io.github.pellse.assembler.caching.caffeine;
 
-import io.github.pellse.assembler.caching.CacheFactory;
+import io.github.pellse.assembler.caching.factory.CacheFactory;
 import io.github.pellse.assembler.util.BillingInfo;
 import io.github.pellse.assembler.util.Customer;
 import io.github.pellse.assembler.util.OrderItem;
@@ -41,13 +41,13 @@ import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.oneToMany;
 import static io.github.pellse.assembler.RuleMapper.oneToOne;
 import static io.github.pellse.assembler.RuleMapperSource.pipe;
-import static io.github.pellse.assembler.caching.StreamTableFactory.streamTable;
-import static io.github.pellse.assembler.caching.StreamTableFactoryBuilder.streamTableBuilder;
+import static io.github.pellse.assembler.caching.factory.StreamTableFactory.streamTable;
+import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.caffeine.AssemblerCaffeineCacheTest.CDCAdd.cdcAdd;
 import static io.github.pellse.assembler.caching.caffeine.AssemblerCaffeineCacheTest.CDCDelete.cdcDelete;
 import static io.github.pellse.assembler.caching.caffeine.CaffeineCacheFactory.caffeineCache;
-import static io.github.pellse.assembler.caching.CacheFactory.cached;
-import static io.github.pellse.assembler.caching.CacheFactory.cachedMany;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cached;
+import static io.github.pellse.assembler.caching.factory.CacheFactory.cachedMany;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
 import static io.github.pellse.util.reactive.ReactiveUtils.defaultScheduler;

@@ -1,14 +1,15 @@
-package io.github.pellse.assembler.caching;
+package io.github.pellse.assembler.caching.factory;
 
+import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.Cache.FetchFunction;
-import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import static io.github.pellse.assembler.caching.Cache.adapterCache;
+import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.util.collection.CollectionUtils.diff;
 import static io.github.pellse.util.collection.CollectionUtils.isEmpty;
 import static java.util.concurrent.ConcurrentHashMap.newKeySet;

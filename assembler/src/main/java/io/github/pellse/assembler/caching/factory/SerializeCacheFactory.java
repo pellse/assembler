@@ -1,10 +1,11 @@
-package io.github.pellse.assembler.caching;
+package io.github.pellse.assembler.caching.factory;
 
-import io.github.pellse.assembler.caching.CacheFactory.CacheTransformer;
+import io.github.pellse.assembler.caching.Cache;
+import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.github.pellse.assembler.caching.Cache.adapterCache;
+import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.util.lock.LockSupplier.executeWithLock;
 
 public interface SerializeCacheFactory {

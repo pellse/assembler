@@ -1,7 +1,7 @@
 package io.github.pellse.assembler.caching.spring;
 
-import io.github.pellse.assembler.caching.CacheContext;
-import io.github.pellse.assembler.caching.CacheFactory;
+import io.github.pellse.assembler.caching.factory.CacheContext;
+import io.github.pellse.assembler.caching.factory.CacheFactory;
 import org.springframework.cache.Cache;
 import org.springframework.cache.Cache.ValueWrapper;
 import org.springframework.cache.CacheManager;
@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.BiFunction;
 
-import static io.github.pellse.assembler.caching.AsyncCacheFactory.async;
+import static io.github.pellse.assembler.caching.factory.AsyncCacheFactory.async;
 import static io.github.pellse.assembler.caching.spring.SpringCacheFactory.AsyncSupport.DEFAULT;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.collection.CollectionUtils.*;
