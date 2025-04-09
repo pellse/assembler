@@ -21,17 +21,28 @@ import reactor.core.publisher.Flux;
 
 import java.util.Collection;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static reactor.core.publisher.Flux.fromIterable;
+import static reactor.core.publisher.Flux.fromStream;
 
 @FunctionalInterface
 public interface Assembler<T, R> {
+
+    Flux<Stream<R>> assembleStream(Publisher<T> topLevelEntities);
 
     default Flux<R> assemble(Iterable<T> topLevelEntities) {
         return assemble(fromIterable(topLevelEntities));
     }
 
-    Flux<R> assemble(Publisher<T> topLevelEntities);
+    default Flux<R> assemble(Stream<T> topLevelEntities) {
+        return assemble(fromStream(topLevelEntities));
+    }
+
+    default Flux<R> assemble(Publisher<T> topLevelEntities) {
+        return assembleStream(topLevelEntities)
+                .flatMapSequential(Flux::fromStream);
+    }
 
     static <T, TC extends Collection<T>, R, V> Function<TC, Publisher<V>> assemble(Function<TC, Publisher<R>> queryFunction, Assembler<R, V> assembler) {
         return entities -> assembler.assemble(queryFunction.apply(entities));

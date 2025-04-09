@@ -73,8 +73,7 @@ public interface AssemblerBuilder {
                     .collectList()
                     .flatMapMany(entities ->
                             zip(subQueryMapperBuilder.apply(entities).toList(),
-                                    mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))))
-                    .flatMapSequential(Flux::fromStream);
+                                    mapperResults -> aggregateStreamBuilder.apply(entities, toMapperResultList(mapperResults))));
         };
     }
 

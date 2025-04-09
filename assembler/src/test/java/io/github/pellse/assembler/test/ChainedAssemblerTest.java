@@ -102,8 +102,8 @@ public class ChainedAssemblerTest {
 
         StepVerifier.create(heartRateFlux
                         .window(3)
-                        .flatMapSequential(vitalsAssembler::assemble)
-                        .transform(augmentedVitalsAssembler::assemble))
+                        .flatMapSequential(vitalsAssembler::assembleStream)
+                        .flatMapSequential(augmentedVitalsAssembler::assemble))
                 .expectSubscription()
                 .expectNextSequence(expectedAugmentedVitals)
                 .verifyComplete();
