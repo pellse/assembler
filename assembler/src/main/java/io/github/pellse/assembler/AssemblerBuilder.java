@@ -90,6 +90,14 @@ public interface AssemblerBuilder {
     interface WithCorrelationIdResolverBuilder<R> {
 
         <T, K> WithRulesBuilder<T, K, R> withCorrelationIdResolver(Function<T, K> correlationIdResolver);
+
+        default <T, T2, K> WithRulesBuilder<T, K, R> withCorrelationIdResolver(Function<T, T2> mapper, Function<T2, K> correlationIdResolver) {
+            return withCorrelationIdResolver(mapper.andThen(correlationIdResolver));
+        }
+
+        default <T, T2, T3, K> WithRulesBuilder<T, K, R> withCorrelationIdResolver(Function<T, T2> mapper1, Function<T2, T3> mapper2, Function<T3, K> correlationIdResolver) {
+            return withCorrelationIdResolver(mapper1.andThen(mapper2).andThen(correlationIdResolver));
+        }
     }
 
     @FunctionalInterface
