@@ -1,6 +1,6 @@
 plugins {
-    id 'org.springframework.boot' version '3.4.3'
-    id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.springframework.boot' version '3.4.4'
+    id 'io.spring.dependency-management' version '1.1.7'
 }
 
 ['bootJar','bootBuildImage'].each { taskName ->
@@ -21,6 +21,6 @@ dependencies {
 
     testImplementation project(":assembler").sourceSets.test.output
 
-    testImplementation ("com.github.ben-manes.caffeine:caffeine:3.1.8")
+    testImplementation ("com.github.ben-manes.caffeine:caffeine:3.2.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
