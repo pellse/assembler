@@ -17,9 +17,11 @@
 package io.github.pellse.assembler;
 
 import io.github.pellse.util.collection.CollectionUtils;
+import io.github.pellse.util.function.Function3;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -29,8 +31,7 @@ import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.QueryUtils.toMapSupplier;
-import static io.github.pellse.util.collection.CollectionUtils.mergeMaps;
-import static io.github.pellse.util.collection.CollectionUtils.translate;
+import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
@@ -43,8 +44,6 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
     IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector();
 
     Function<Stream<RRC>, Stream<R>> streamFlattener();
-
-    BiFunction<Map<ID, RRC>, Map<ID, RRC>, Map<ID, RRC>> mapMerger();
 
     record OneToOneContext<T, TC extends Collection<T>, K, ID, R>(
             Function<T, K> topLevelIdResolver,
@@ -85,7 +84,10 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
             return identity();
         }
 
-        @Override
+        <U> BiFunction<Map<ID, R>, Map<ID, U>, Map<ID, R>> mapMerger(Function3<ID, R, U, R> mergeFunction) {
+            return (existingMap, newMap) -> mergeMaps(existingMap, newMap, mergeFunction);
+        }
+
         public BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger() {
             return CollectionUtils::mergeMaps;
         }
@@ -138,13 +140,20 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
             return stream -> stream.flatMap(Collection::stream);
         }
 
-        @Override
+        <U> BiFunction<Map<ID, RC>, Map<ID, Collection<U>>, Map<ID, RC>> mapMerger(Function3<ID, RC, Collection<U>, RC> mergeFunction) {
+
+            Function3<ID, RC, Collection<U>, RC> mappingFunction = (id, coll1, coll2) ->
+                    isNotEmpty(coll1) || isNotEmpty(coll2) ? mergeFunction.apply(id, convert(coll1), asCollection(coll2)) : convert(List.of());
+
+            return (existingMap, newMap) -> mergeMaps(existingMap, newMap, mappingFunction);
+        }
+
         public BiFunction<Map<ID, RC>, Map<ID, RC>, Map<ID, RC>> mapMerger() {
             return (existingMap, newMap) -> mergeMaps(existingMap, newMap, idResolver(), this::convert);
         }
 
         @SuppressWarnings("unchecked")
-        public RC convert(Collection<R> collection) {
+        private RC convert(Collection<R> collection) {
             return collectionType().isInstance(collection) ? (RC) collection : translate(collection, collectionFactory());
         }
     }
