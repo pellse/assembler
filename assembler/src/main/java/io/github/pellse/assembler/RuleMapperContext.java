@@ -16,14 +16,9 @@
 
 package io.github.pellse.assembler;
 
-import io.github.pellse.util.collection.CollectionUtils;
-import io.github.pellse.util.function.Function3;
-
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -31,7 +26,6 @@ import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.QueryUtils.toMapSupplier;
-import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
@@ -48,7 +42,7 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
     record OneToOneContext<T, TC extends Collection<T>, K, ID, R>(
             Function<T, K> topLevelIdResolver,
             Function<R, ID> innerIdResolver,
-            Function<T, ID>  outerIdResolver,
+            Function<T, ID> outerIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, R> mapFactory,
             Function<ID, R> defaultResultProvider) implements RuleMapperContext<T, TC, K, ID, ID, R, R> {
@@ -83,14 +77,6 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
         public Function<Stream<R>, Stream<R>> streamFlattener() {
             return identity();
         }
-
-        <U> BiFunction<Map<ID, R>, Map<ID, U>, Map<ID, R>> mapMerger(Function3<ID, R, U, R> mergeFunction) {
-            return (existingMap, newMap) -> mergeMaps(existingMap, newMap, mergeFunction);
-        }
-
-        public BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger() {
-            return CollectionUtils::mergeMaps;
-        }
     }
 
     record OneToManyContext<T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>>(
@@ -105,13 +91,13 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
             Class<RC> collectionType) implements RuleMapperContext<T, TC, K, ID, EID, R, RC> {
 
         @SuppressWarnings("unchecked")
-        public OneToManyContext(
+        public static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> OneToManyContext<T, TC, K, ID, EID, R, RC> oneToManyContext(
                 RuleContext<T, TC, K, ID, R, RC> ruleContext,
                 Function<R, EID> idResolver,
                 Comparator<R> idComparator,
                 Supplier<RC> collectionFactory) {
 
-            this(ruleContext.topLevelIdResolver(),
+            return new OneToManyContext<>(ruleContext.topLevelIdResolver(),
                     ruleContext.innerIdResolver(),
                     ruleContext.outerIdResolver(),
                     ruleContext.topLevelCollectionFactory(),
@@ -138,23 +124,6 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
         @Override
         public Function<Stream<RC>, Stream<R>> streamFlattener() {
             return stream -> stream.flatMap(Collection::stream);
-        }
-
-        <U> BiFunction<Map<ID, RC>, Map<ID, Collection<U>>, Map<ID, RC>> mapMerger(Function3<ID, RC, Collection<U>, RC> mergeFunction) {
-
-            Function3<ID, RC, Collection<U>, RC> mappingFunction = (id, coll1, coll2) ->
-                    isNotEmpty(coll1) || isNotEmpty(coll2) ? mergeFunction.apply(id, convert(coll1), asCollection(coll2)) : convert(List.of());
-
-            return (existingMap, newMap) -> mergeMaps(existingMap, newMap, mappingFunction);
-        }
-
-        public BiFunction<Map<ID, RC>, Map<ID, RC>, Map<ID, RC>> mapMerger() {
-            return (existingMap, newMap) -> mergeMaps(existingMap, newMap, idResolver(), this::convert);
-        }
-
-        @SuppressWarnings("unchecked")
-        private RC convert(Collection<R> collection) {
-            return collectionType().isInstance(collection) ? (RC) collection : translate(collection, collectionFactory());
         }
     }
 

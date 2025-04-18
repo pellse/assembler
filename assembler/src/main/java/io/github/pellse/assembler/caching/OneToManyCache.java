@@ -28,7 +28,7 @@ public interface OneToManyCache {
     }
 
     static <ID,  EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
-            OneToManyCacheContext<ID, EID, R, RC> ctx,
+            OneToManyCacheContext<ID, EID, R, RC, R, RC> ctx,
             Cache<ID, RC> delegateCache) {
 
         final var optimizedCache = optimizedCache(delegateCache);
