@@ -177,7 +177,7 @@ public interface CollectionUtils {
         return removeDuplicates(toStream(coll), keyExtractor, collectionConverter);
     }
 
-    private static <K, V, VC extends Collection<V>> VC removeDuplicates(
+    static <K, V, VC extends Collection<V>> VC removeDuplicates(
             Stream<V> stream,
             Function<? super V, K> keyExtractor,
             Function<Collection<V>, VC> collectionConverter) {
@@ -185,7 +185,7 @@ public interface CollectionUtils {
         return collectionConverter.apply(removeDuplicates(stream, keyExtractor));
     }
 
-    private static <K, V> Collection<V> removeDuplicates(
+    static <K, V> Collection<V> removeDuplicates(
             Stream<V> stream,
             Function<? super V, K> keyExtractor) {
 
@@ -212,32 +212,32 @@ public interface CollectionUtils {
     }
 
     static <K, V, ID> Map<K, List<V>> mergeMaps(
-            Map<K, List<V>> existingMap,
-            Map<K, List<V>> newMap,
+            Map<K, ? extends List<V>> existingMap,
+            Map<K, ? extends List<V>> newMap,
             Function<? super V, ID> idResolver) {
 
         return mergeMaps(existingMap, newMap, idResolver, ArrayList::new);
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> mergeMaps(
-            Map<K, VC> existingMap,
-            Map<K, VC> newMap,
+            Map<K, ? extends VC> existingMap,
+            Map<K, ? extends VC> newMap,
             Function<? super V, ID> idResolver,
             Function<Collection<V>, VC> collectionConverter) {
 
-        return mergeMaps(existingMap, newMap, (k, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), idResolver), collectionConverter);
+        return mergeMaps(existingMap, newMap, (k, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), idResolver, collectionConverter));
     }
 
     static <K, V, VC extends Collection<V>, V2, VC2 extends Collection<V2>> Map<K, VC> mergeMaps(
-            Map<K, VC> existingMap,
-            Map<K, VC2> newMap,
-            Function3<K, VC, Collection<V2>, Collection<V>> mergeFunction,
+            Map<K, ? extends VC> existingMap,
+            Map<K, ? extends VC2> newMap,
+            Function3<K, ? super VC, ? super Collection<V2>, ? extends VC> mergeFunction,
             Function<Collection<V>, VC> collectionConverter) {
 
-        Function3<K, VC, Collection<V2>, Collection<V>> mappingFunction = (k, coll1, coll2) ->
-                isNotEmpty(coll1) || isNotEmpty(coll2) ? mergeFunction.apply(k, collectionConverter.apply(coll1), asCollection(coll2)) : List.of();
+        Function3<K, VC, Collection<V2>, VC> mappingFunction = (k, coll1, coll2) ->
+                isNotEmpty(coll1) || isNotEmpty(coll2) ? mergeFunction.apply(k, collectionConverter.apply(coll1), asCollection(coll2)) : collectionConverter.apply(List.of());
 
-        return mergeMaps(existingMap, newMap, mappingFunction.andThen(collectionConverter));
+        return mergeMaps(existingMap, newMap, mappingFunction);
     }
 
     static <K, V> Map<K, V> mergeMaps(
@@ -247,10 +247,10 @@ public interface CollectionUtils {
         return mergeMaps(existingMap, newMap, (k, v1, v2) -> v2 != null ? v2 : v1);
     }
 
-    static <K, V1, V2, V> Map<K, V> mergeMaps(
-            Map<K, ? extends V1> existingMap,
-            Map<K, ? extends V2> newMap,
-            Function3<K, ? super V1, ? super V2, ? extends V> mergeFunction) {
+    static <K, U, V> Map<K, V> mergeMaps(
+            Map<K, ? extends V> existingMap,
+            Map<K, ? extends U> newMap,
+            Function3<K, ? super V, ? super U, ? extends V> mergeFunction) {
 
         final int size = existingMap.size() + newMap.size();
 
