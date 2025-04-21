@@ -36,8 +36,6 @@ import java.util.function.Function;
 import static io.github.pellse.assembler.QueryUtils.buildQueryFunction;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.assembler.caching.DefaultCache.cache;
-import static io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext.oneToManyCacheContext;
-import static io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext.oneToOneCacheContext;
 import static io.github.pellse.assembler.caching.factory.DeferCacheFactory.defer;
 import static io.github.pellse.assembler.caching.OneToManyCache.oneToManyCache;
 import static io.github.pellse.assembler.caching.OneToOneCache.oneToOneCache;
@@ -167,7 +165,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
-        return cached(OneToOneCacheContext::oneToOneCacheContext, ruleMapperSource, oneToOneCacheFactory(wrap(cacheFactory)), delegateCacheFactories);
+        return cached((k, r1, r2) -> r2 != null ? r2 : r1, ruleMapperSource, cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -177,7 +175,13 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
-        return cached(ctx -> oneToOneCacheContext(ctx, mergeFunction), ruleMapperSource, oneToOneCacheFactory(wrap(cacheFactory)), delegateCacheFactories);
+        final var wrappedCacheFactory = wrap(cacheFactory);
+
+        return cached(
+                OneToOneCacheContext::oneToOneCacheContext,
+                ruleMapperSource,
+                ctx -> oneToOneCache(mergeFunction, wrappedCacheFactory.create(ctx)),
+                delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -209,7 +213,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(mergeFunction, emptySource(), cacheFactory, delegateCacheFactories);
+        return cachedMany(ctx -> mergeFunction, emptySource(), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -243,7 +247,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(mergeFunction, ruleMapperSource, cache(), delegateCacheFactories);
+        return cachedMany(ctx -> mergeFunction, ruleMapperSource, cache(), delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -262,7 +266,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cachedMany(mergeFunction, from(queryFunction), cacheFactory, delegateCacheFactories);
+        return cachedMany(ctx -> mergeFunction, from(queryFunction), cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -271,29 +275,35 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cached(OneToManyCacheContext::oneToManyCacheContext, ruleMapperSource, oneToManyCacheFactory(wrap(cacheFactory)), delegateCacheFactories);
+        return cachedMany(CacheFactory::removeDuplicate, ruleMapperSource, cacheFactory, delegateCacheFactories);
     }
 
     @SafeVarargs
     static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
-            Function3<ID, RC, RC, RC> mergeFunction,
+            Function<OneToManyCacheContext<ID, EID, R, RC>, Function3<ID, RC, RC, RC>> mergeFunctionProvider,
             RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cached(ctx -> oneToManyCacheContext(ctx, mergeFunction), ruleMapperSource, oneToManyCacheFactory(wrap(cacheFactory)), delegateCacheFactories);
+        final var wrappedCacheFactory = wrap(cacheFactory);
+
+        return cached(
+                OneToManyCacheContext::oneToManyCacheContext,
+                ruleMapperSource,
+                ctx -> oneToManyCache(mergeFunctionProvider.apply(ctx), ctx, wrappedCacheFactory.create(ctx)),
+                delegateCacheFactories);
     }
 
     static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> toMono(Consumer<Map<ID, RRC>> consumer) {
         return map -> just(also(map, consumer));
     }
 
-    private static <ID, R> CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> oneToOneCacheFactory(CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory) {
-        return cacheContext -> oneToOneCache(cacheContext, cacheFactory.create(cacheContext));
+    private static <ID, R> CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> oneToOneCacheFactory(Function3<ID, R, R, R> mergeFunction, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory) {
+        return ctx -> oneToOneCache(mergeFunction, cacheFactory.create(ctx));
     }
 
-    private static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> oneToManyCacheFactory(CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory) {
-        return cacheContext -> oneToManyCache(cacheContext, cacheFactory.create(cacheContext));
+    private static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> oneToManyCacheFactory(Function3<ID, RC, RC, RC> mergeFunction, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory) {
+        return ctx -> oneToManyCache(mergeFunction, ctx, cacheFactory.create(ctx));
     }
 
     @SafeVarargs
@@ -374,5 +384,13 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
         return newMap(queryResultsMap, map ->
                 diff(ids, map.keySet())
                         .forEach(id -> ifNotNull(ctx.defaultResultProvider().apply(id), value -> map.put(id, value))));
+    }
+
+    private static <ID, EID, R, RC extends Collection<R>> Function3<ID, RC, RC, RC> removeDuplicate(OneToManyCacheContext<ID, EID, R, RC> ctx) {
+        return (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), ctx.idResolver(), rc -> convert(rc, ctx));
+    }
+
+    private static <ID, EID, R, RC extends Collection<R>> RC convert(Collection<R> collection, OneToManyCacheContext<ID, EID, R, RC> ctx) {
+        return CollectionUtils.convert(collection, ctx.collectionType(), ctx.collectionFactory());
     }
 }

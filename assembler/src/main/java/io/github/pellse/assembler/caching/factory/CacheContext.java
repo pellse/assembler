@@ -19,6 +19,7 @@ package io.github.pellse.assembler.caching.factory;
 import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
+import io.github.pellse.util.collection.CollectionUtils;
 import io.github.pellse.util.function.Function3;
 
 import java.util.*;
@@ -30,7 +31,6 @@ import java.util.stream.Collector;
 
 import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
 import static io.github.pellse.util.collection.CollectionUtils.*;
-import static io.github.pellse.util.collection.CollectionUtils.mergeMaps;
 
 public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> {
 
@@ -49,18 +49,18 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
             Function3<ID, R, R, R> mergeFunction,
             CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> cacheTransformer) implements CacheContext<ID, R, R, OneToOneCacheContext<ID, R>> {
 
-        static<ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx) {
+        static <ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx) {
             return oneToOneCacheContext(ctx, (k, r1, r2) -> r2 != null ? r2 : r1);
         }
 
-        static<ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx, Function3<ID, R, R, R> mergeFunction) {
+        static <ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx, Function3<ID, R, R, R> mergeFunction) {
             return new OneToOneCacheContext<>(ctx.mapCollector(),
                     mergeFunction,
-                   concurrent());
+                    concurrent());
         }
     }
 
-    record OneToManyCacheContext<ID, EID, R, RC extends Collection<R>> (
+    record OneToManyCacheContext<ID, EID, R, RC extends Collection<R>>(
             Function<R, EID> idResolver,
             IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector,
             Comparator<R> idComparator,
@@ -82,26 +82,16 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
                     ctx.idComparator(),
                     ctx.collectionFactory(),
                     ctx.collectionType(),
-                    (id, coll1, coll2) ->
-                            isNotEmpty(coll1) || isNotEmpty(coll2) ? mergeFunction.apply(id, convert(coll1, ctx), convert(coll2, ctx)) : convert(List.of(), ctx),
+                    (id, coll1, coll2) -> isNotEmpty(coll1) || isNotEmpty(coll2) ? mergeFunction.apply(id, convert(coll1, ctx), convert(coll2, ctx)) : convert(List.of(), ctx),
                     concurrent());
         }
 
-        private RC convert(Collection<R> collection) {
-            return convert(collection, collectionType, collectionFactory);
-        }
-
-        private static <ID, EID, R, RC extends Collection<R>> Function3<ID, RC, RC, RC> removeDuplicate(OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
+        public static <ID, EID, R, RC extends Collection<R>> Function3<ID, RC, RC, RC> removeDuplicate(OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
             return (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), ctx.idResolver(), rc -> convert(rc, ctx));
         }
 
         private static <ID, EID, R, RC extends Collection<R>> RC convert(Collection<R> collection, OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
-            return convert(collection, ctx.collectionType(), ctx.collectionFactory());
-        }
-
-        @SuppressWarnings("unchecked")
-        private static <R, RC extends Collection<R>> RC convert(Collection<R> collection, Class<RC> collectionType, Supplier<RC> collectionFactory) {
-            return collectionType.isInstance(collection) ? (RC) collection : translate(collection, collectionFactory);
+            return CollectionUtils.convert(collection, ctx.collectionType(), ctx.collectionFactory());
         }
     }
 }

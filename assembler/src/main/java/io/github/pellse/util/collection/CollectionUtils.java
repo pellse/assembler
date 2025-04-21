@@ -198,6 +198,11 @@ public interface CollectionUtils {
                 .values();
     }
 
+    @SuppressWarnings("unchecked")
+    static <T, C extends Collection<T>> C convert(Collection<T> collection, Class<C> collectionType, Supplier<C> collectionFactory) {
+        return collectionType.isInstance(collection) ? (C) collection : translate(collection, collectionFactory);
+    }
+
     static <K, V> LinkedHashMap<K, V> toLinkedHashMap(Map<K, V> map) {
         return map instanceof LinkedHashMap<K, V> lhm ? lhm : new LinkedHashMap<>(map);
     }

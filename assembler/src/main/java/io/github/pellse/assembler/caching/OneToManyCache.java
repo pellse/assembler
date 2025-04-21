@@ -1,6 +1,7 @@
 package io.github.pellse.assembler.caching;
 
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
+import io.github.pellse.util.function.Function3;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
@@ -31,6 +32,14 @@ public interface OneToManyCache {
             OneToManyCacheContext<ID, EID, R, RC> ctx,
             Cache<ID, RC> delegateCache) {
 
+        return oneToManyCache(removeDuplicate(ctx), ctx, delegateCache);
+    }
+
+    static <ID,  EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
+            Function3<ID, RC, RC, RC> mergeFunction,
+            OneToManyCacheContext<ID, EID, R, RC> ctx,
+            Cache<ID, RC> delegateCache) {
+
         final var optimizedCache = optimizedCache(delegateCache);
 
         return adapterCache(
@@ -38,7 +47,7 @@ public interface OneToManyCache {
                 optimizedCache::computeAll,
                 applyMergeStrategy(
                         optimizedCache,
-                        (existingCacheItems, incomingChanges) -> ctx.mapMerger().apply(existingCacheItems, incomingChanges),
+                        (existingCacheItems, incomingChanges)  -> mergeMaps(existingCacheItems, incomingChanges, mergeFunction),
                         Cache::putAll),
                 applyMergeStrategy(
                         optimizedCache,
@@ -72,5 +81,9 @@ public interface OneToManyCache {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : delegateCache.getAll(incomingChanges.keySet())
                 .flatMap(existingCacheItems -> cacheUpdater.updateCache(delegateCache, existingCacheItems, incomingChanges));
+    }
+
+    private static <ID, EID, R, RC extends Collection<R>> Function3<ID, RC, RC, RC> removeDuplicate(OneToManyCacheContext<ID, EID, R, RC> ctx) {
+        return (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), ctx.idResolver(), rc -> convert(rc, ctx.collectionType(), ctx.collectionFactory()));
     }
 }
