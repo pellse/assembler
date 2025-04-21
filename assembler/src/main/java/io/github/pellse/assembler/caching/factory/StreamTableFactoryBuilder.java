@@ -135,11 +135,11 @@ public interface StreamTableFactoryBuilder {
             return cacheTransformer(ConcurrentCacheFactory.concurrent(reactiveGuardBuilder, fetchFunctionScheduler));
         }
 
-        default StreamTableFactoryDelegateBuilder<R> oneToOneCacheTransformer(CacheTransformer<Object, R, R, OneToOneCacheContext<Object, R, R>> cacheTransformer) {
+        default StreamTableFactoryDelegateBuilder<R> oneToOneCacheTransformer(CacheTransformer<Object, R, R, OneToOneCacheContext<Object, R>> cacheTransformer) {
             return cacheTransformer(CacheTransformer.oneToOneCacheTransformer(cacheTransformer));
         }
 
-        default StreamTableFactoryDelegateBuilder<R> oneToManyCacheTransformer(CacheTransformer<Object, R,  Collection<R>, OneToManyCacheContext<Object, Object, R, Collection<R>, R, Collection<R>>> cacheTransformer) {
+        default StreamTableFactoryDelegateBuilder<R> oneToManyCacheTransformer(CacheTransformer<Object, R,  Collection<R>, OneToManyCacheContext<Object, Object, R, Collection<R>>> cacheTransformer) {
             return cacheTransformer(CacheTransformer.oneToManyCacheTransformer(cacheTransformer));
         }
 

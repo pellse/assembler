@@ -19,13 +19,9 @@ package io.github.pellse.assembler.caching.factory;
 import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
-import io.github.pellse.util.collection.CollectionUtils;
 import io.github.pellse.util.function.Function3;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -40,82 +36,71 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
 
     IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector();
 
-    BiFunction<Map<ID, RRC>, Map<ID, RRC>, Map<ID, RRC>> mapMerger();
+    Function3<ID, RRC, RRC, RRC> mergeFunction();
 
     CacheTransformer<ID, R, RRC, CTX> cacheTransformer();
 
-    record OneToOneCacheContext<ID, R, U>(
-            IntFunction<Collector<R, ?, Map<ID, R>>> mapCollector,
-            Function3<ID, R, U, R> mergeFunction,
-            CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R, U>> cacheTransformer) implements CacheContext<ID, R, R, OneToOneCacheContext<ID, R, U>> {
+    default BiFunction<Map<ID, RRC>, Map<ID, RRC>, Map<ID, RRC>> mapMerger() {
+        return (existingMap, newMap) -> mergeMaps(existingMap, newMap, mergeFunction());
+    }
 
-        static<ID, R> OneToOneCacheContext<ID, R, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx) {
+    record OneToOneCacheContext<ID, R>(
+            IntFunction<Collector<R, ?, Map<ID, R>>> mapCollector,
+            Function3<ID, R, R, R> mergeFunction,
+            CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> cacheTransformer) implements CacheContext<ID, R, R, OneToOneCacheContext<ID, R>> {
+
+        static<ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx) {
             return oneToOneCacheContext(ctx, (k, r1, r2) -> r2 != null ? r2 : r1);
         }
 
-        static<ID, R> OneToOneCacheContext<ID, R, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx, Function3<ID, R, R, R> mergeFunction) {
+        static<ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx, Function3<ID, R, R, R> mergeFunction) {
             return new OneToOneCacheContext<>(ctx.mapCollector(),
                     mergeFunction,
-                    concurrent());
-        }
-
-        public BiFunction<Map<ID, R>, Map<ID, U>, Map<ID, R>> mapMerger(Function3<ID, R, U, R> mergeFunction) {
-            return (existingMap, newMap) -> mergeMaps(existingMap, newMap, mergeFunction);
-        }
-
-        public BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger() {
-            return CollectionUtils::mergeMaps;
+                   concurrent());
         }
     }
 
-    record OneToManyCacheContext<ID, EID, R, RC extends Collection<R>, U, UC extends Collection<U>> (
+    record OneToManyCacheContext<ID, EID, R, RC extends Collection<R>> (
             Function<R, EID> idResolver,
             IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector,
             Comparator<R> idComparator,
             Supplier<RC> collectionFactory,
             Class<RC> collectionType,
-            Function3<ID, RC, UC, RC> mergeFunction,
-            CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC, U, UC>> cacheTransformer) implements CacheContext<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC, U, UC>> {
+            Function3<ID, RC, RC, RC> mergeFunction,
+            CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheTransformer) implements CacheContext<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> {
 
-        static <ID, EID, R, RC extends Collection<R>> OneToManyCacheContext<ID, EID, R, RC, R, RC> oneToManyCacheContext(OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
-
-            return oneToManyCacheContext(
-                    ctx,
-                    (k, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), ctx.idResolver(), rc -> convert(rc, ctx.collectionType(), ctx.collectionFactory())));
+        static <ID, EID, R, RC extends Collection<R>> OneToManyCacheContext<ID, EID, R, RC> oneToManyCacheContext(OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
+            return oneToManyCacheContext(ctx, removeDuplicate(ctx));
         }
 
-        static <ID, EID, R, RC extends Collection<R>, U, UC extends Collection<U>> OneToManyCacheContext<ID, EID, R, RC, U, UC> oneToManyCacheContext(
+        static <ID, EID, R, RC extends Collection<R>> OneToManyCacheContext<ID, EID, R, RC> oneToManyCacheContext(
                 OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx,
-                Function3<ID, RC, UC, RC> mergeFunction) {
+                Function3<ID, RC, RC, RC> mergeFunction) {
 
             return new OneToManyCacheContext<>(ctx.idResolver(),
                     ctx.mapCollector(),
                     ctx.idComparator(),
                     ctx.collectionFactory(),
                     ctx.collectionType(),
-                    mergeFunction,
+                    (id, coll1, coll2) ->
+                            isNotEmpty(coll1) || isNotEmpty(coll2) ? mergeFunction.apply(id, convert(coll1, ctx), convert(coll2, ctx)) : convert(List.of(), ctx),
                     concurrent());
         }
 
-        BiFunction<Map<ID, RC>, Map<ID, Collection<U>>, Map<ID, RC>> mapMerger(Function3<ID, RC, Collection<U>, RC> mergeFunction) {
-
-            Function3<ID, RC, Collection<U>, RC> mappingFunction = (id, coll1, coll2) ->
-                    isNotEmpty(coll1) || isNotEmpty(coll2) ? mergeFunction.apply(id, convert(coll1), asCollection(coll2)) : convert(List.of());
-
-            return (existingMap, newMap) -> mergeMaps(existingMap, newMap, mappingFunction);
-        }
-
-        public BiFunction<Map<ID, RC>, Map<ID, RC>, Map<ID, RC>> mapMerger() {
-            return (existingMap, newMap) -> mergeMaps(existingMap, newMap, idResolver(), this::convert);
-        }
-
-        @SuppressWarnings("unchecked")
         private RC convert(Collection<R> collection) {
-            return collectionType().isInstance(collection) ? (RC) collection : translate(collection, collectionFactory());
+            return convert(collection, collectionType, collectionFactory);
+        }
+
+        private static <ID, EID, R, RC extends Collection<R>> Function3<ID, RC, RC, RC> removeDuplicate(OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
+            return (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), ctx.idResolver(), rc -> convert(rc, ctx));
+        }
+
+        private static <ID, EID, R, RC extends Collection<R>> RC convert(Collection<R> collection, OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
+            return convert(collection, ctx.collectionType(), ctx.collectionFactory());
         }
 
         @SuppressWarnings("unchecked")
-        public static <R, RC extends Collection<R>> RC convert(Collection<R> collection, Class<RC> collectionType, Supplier<RC> collectionFactory) {
+        private static <R, RC extends Collection<R>> RC convert(Collection<R> collection, Class<RC> collectionType, Supplier<RC> collectionFactory) {
             return collectionType.isInstance(collection) ? (RC) collection : translate(collection, collectionFactory);
         }
     }

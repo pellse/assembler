@@ -73,6 +73,10 @@ public interface CollectionUtils {
         return toStream(from).map(mappingFunction).toList();
     }
 
+    static <E> List<E> asList(Iterable<E> iterable) {
+        return iterable != null ? (iterable instanceof List<E> list ? list : stream(iterable.spliterator(), false).toList()) : List.of();
+    }
+
     static <E> Collection<E> asCollection(Iterable<E> iterable) {
         return iterable != null ? (iterable instanceof Collection<E> coll ? coll : stream(iterable.spliterator(), false).toList()) : List.of();
     }

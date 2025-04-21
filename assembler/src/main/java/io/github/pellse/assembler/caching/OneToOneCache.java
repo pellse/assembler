@@ -8,7 +8,7 @@ import static io.github.pellse.assembler.caching.OptimizedCache.optimizedCache;
 public interface OneToOneCache {
 
     static <ID, R> Cache<ID, R> oneToOneCache(
-            CacheContext.OneToOneCacheContext<ID, R, R> ctx,
+            CacheContext.OneToOneCacheContext<ID, R> ctx,
             Cache<ID, R> delegateCache) {
 
         final var optimizedCache = optimizedCache(delegateCache);
