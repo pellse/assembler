@@ -1,6 +1,6 @@
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.util.function.Function3;
+import io.github.pellse.assembler.caching.Cache.MergeFunction;
 
 import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.assembler.caching.OptimizedCache.optimizedCache;
@@ -13,7 +13,7 @@ public interface OneToOneCache {
     }
 
     static <ID, R> Cache<ID, R> oneToOneCache(
-            Function3<ID, R, R, R> mergeFunction,
+            MergeFunction<ID, R> mergeFunction,
             Cache<ID, R> delegateCache) {
 
         final var optimizedCache = optimizedCache(delegateCache);

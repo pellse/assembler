@@ -1,7 +1,7 @@
 package io.github.pellse.assembler.caching;
 
+import io.github.pellse.assembler.caching.Cache.MergeFunction;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
-import io.github.pellse.util.function.Function3;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
@@ -36,7 +36,7 @@ public interface OneToManyCache {
     }
 
     static <ID,  EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
-            Function3<ID, RC, RC, RC> mergeFunction,
+            MergeFunction<ID, RC> mergeFunction,
             OneToManyCacheContext<ID, EID, R, RC> ctx,
             Cache<ID, RC> delegateCache) {
 
@@ -83,7 +83,7 @@ public interface OneToManyCache {
                 .flatMap(existingCacheItems -> cacheUpdater.updateCache(delegateCache, existingCacheItems, incomingChanges));
     }
 
-    private static <ID, EID, R, RC extends Collection<R>> Function3<ID, RC, RC, RC> removeDuplicate(OneToManyCacheContext<ID, EID, R, RC> ctx) {
+    private static <ID, EID, R, RC extends Collection<R>> MergeFunction<ID, RC> removeDuplicate(OneToManyCacheContext<ID, EID, R, RC> ctx) {
         return (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), ctx.idResolver(), rc -> convert(rc, ctx.collectionType(), ctx.collectionFactory()));
     }
 }
