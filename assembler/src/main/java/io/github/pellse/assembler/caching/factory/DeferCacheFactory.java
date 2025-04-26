@@ -20,7 +20,7 @@ import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Mono;
 
-import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
+import java.util.Map;
 
 public interface DeferCacheFactory {
 
@@ -33,11 +33,33 @@ public interface DeferCacheFactory {
     }
 
     static <ID, RRC> Cache<ID, RRC> defer(Cache<ID, RRC> delegateCache) {
-        return adapterCache(
-                ids -> Mono.defer(() -> delegateCache.getAll(ids)),
-                (ids, fetchFunction) -> Mono.defer(() -> delegateCache.computeAll(ids, fetchFunction)),
-                map -> Mono.defer(() -> delegateCache.putAll(map)),
-                map -> Mono.defer(() -> delegateCache.removeAll(map)),
-                (mapToAdd, mapToRemove) -> Mono.defer(() -> delegateCache.updateAll(mapToAdd, mapToRemove)));
+
+        return new Cache<>() {
+
+            @Override
+            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
+                return Mono.defer(() -> delegateCache.getAll(ids));
+            }
+
+            @Override
+            public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
+                return Mono.defer(() -> delegateCache.computeAll(ids, fetchFunction));
+            }
+
+            @Override
+            public Mono<?> putAll(Map<ID, RRC> map) {
+                return Mono.defer(() -> delegateCache.putAll(map));
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, RRC> map) {
+                return Mono.defer(() -> delegateCache.removeAll(map));
+            }
+
+            @Override
+            public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
+                return Mono.defer(() -> delegateCache.updateAll(mapToAdd, mapToRemove));
+            }
+        };
     }
 }

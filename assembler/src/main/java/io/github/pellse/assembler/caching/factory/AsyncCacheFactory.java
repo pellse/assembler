@@ -1,15 +1,12 @@
 package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.caching.Cache;
-import io.github.pellse.assembler.caching.Cache.FetchFunction;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 
-import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.util.collection.CollectionUtils.diff;
 import static io.github.pellse.util.collection.CollectionUtils.isEmpty;
 import static java.util.concurrent.ConcurrentHashMap.newKeySet;
@@ -28,25 +25,43 @@ public interface AsyncCacheFactory {
 
         final Set<ID> idSet = newKeySet();
 
-        BiFunction<Iterable<ID>, FetchFunction<ID, RRC>, Mono<Map<ID, RRC>>> computeAll = (ids, fetchFunction) -> {
-            final var missingIds = diff(ids, idSet);
-            if (isEmpty(missingIds)) {
+        return new Cache<>() {
+
+            @Override
+            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
                 return delegateCache.getAll(ids);
             }
 
-            idSet.addAll(missingIds);
+            @Override
+            public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
 
-            return delegateCache.computeAll(ids, fetchFunction)
-                    .doOnNext(map -> idSet.removeAll(diff(idSet, map.keySet())))
-                    .doOnError(error -> idSet.removeAll(missingIds))
-                    .doOnCancel(() -> idSet.removeAll(missingIds));
+                final var missingIds = diff(ids, idSet);
+                if (isEmpty(missingIds)) {
+                    return delegateCache.getAll(ids);
+                }
+
+                idSet.addAll(missingIds);
+
+                return delegateCache.computeAll(ids, fetchFunction)
+                        .doOnNext(map -> idSet.removeAll(diff(idSet, map.keySet())))
+                        .doOnError(error -> idSet.removeAll(missingIds))
+                        .doOnCancel(() -> idSet.removeAll(missingIds));
+            }
+
+            @Override
+            public Mono<?> putAll(Map<ID, RRC> map) {
+                return delegateCache.putAll(map);
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, RRC> map) {
+                return delegateCache.removeAll(map);
+            }
+
+            @Override
+            public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
+                return delegateCache.updateAll(mapToAdd, mapToRemove);
+            }
         };
-
-        return adapterCache(
-                delegateCache::getAll,
-                computeAll,
-                delegateCache::putAll,
-                delegateCache::removeAll,
-                delegateCache::updateAll);
     }
 }

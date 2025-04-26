@@ -379,10 +379,6 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
     }
 
     private static <ID, EID, R, RC extends Collection<R>> MergeFunction<ID, RC> removeDuplicate(OneToManyCacheContext<ID, EID, R, RC> ctx) {
-        return (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), ctx.idResolver(), rc -> convert(rc, ctx));
-    }
-
-    private static <ID, EID, R, RC extends Collection<R>> RC convert(Collection<R> collection, OneToManyCacheContext<ID, EID, R, RC> ctx) {
-        return CollectionUtils.convert(collection, ctx.collectionType(), ctx.collectionFactory());
+        return (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), ctx.idResolver(), rc -> convert(rc, ctx.collectionType(), ctx.collectionFactory()));
     }
 }

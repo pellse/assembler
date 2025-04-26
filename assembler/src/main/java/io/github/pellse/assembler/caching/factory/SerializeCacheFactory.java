@@ -2,10 +2,11 @@ package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
+import reactor.core.publisher.Mono;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.util.lock.LockSupplier.executeWithLock;
 
 public interface SerializeCacheFactory {
@@ -22,11 +23,32 @@ public interface SerializeCacheFactory {
 
         final var lock = new AtomicBoolean();
 
-        return adapterCache(
-                delegateCache::getAll,
-                (ids, fetchFunction) -> executeWithLock(() -> delegateCache.computeAll(ids, fetchFunction), lock),
-                delegateCache::putAll,
-                delegateCache::removeAll,
-                delegateCache::updateAll);
+        return new Cache<>() {
+
+            @Override
+            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
+                return delegateCache.getAll(ids);
+            }
+
+            @Override
+            public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
+                return executeWithLock(() -> delegateCache.computeAll(ids, fetchFunction), lock);
+            }
+
+            @Override
+            public Mono<?> putAll(Map<ID, RRC> map) {
+                return delegateCache.putAll(map);
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, RRC> map) {
+                return delegateCache.removeAll(map);
+            }
+
+            @Override
+            public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
+                return delegateCache.updateAll(mapToAdd, mapToRemove);
+            }
+        };
     }
 }

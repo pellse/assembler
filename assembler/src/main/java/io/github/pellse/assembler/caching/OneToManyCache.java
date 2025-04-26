@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.assembler.caching.OptimizedCache.optimizedCache;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
@@ -28,40 +27,51 @@ public interface OneToManyCache {
         Mono<?> updateCache(Cache<ID, RRC> cache, Map<ID, RRC> existingCacheItems, Map<ID, RRC> incomingChanges);
     }
 
-    static <ID,  EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
+    static <ID, EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
             OneToManyCacheContext<ID, EID, R, RC> ctx,
             Cache<ID, RC> delegateCache) {
 
         return oneToManyCache(removeDuplicate(ctx), ctx, delegateCache);
     }
 
-    static <ID,  EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
+    static <ID, EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
             MergeFunction<ID, RC> mergeFunction,
             OneToManyCacheContext<ID, EID, R, RC> ctx,
             Cache<ID, RC> delegateCache) {
 
         final var optimizedCache = optimizedCache(delegateCache);
 
-        return adapterCache(
-                optimizedCache::getAll,
-                optimizedCache::computeAll,
-                applyMergeStrategy(
+        return new Cache<>() {
+
+            @Override
+            public Mono<Map<ID, RC>> getAll(Iterable<ID> ids) {
+                return optimizedCache.getAll(ids);
+            }
+
+            @Override
+            public Mono<Map<ID, RC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RC> fetchFunction) {
+                return optimizedCache.computeAll(ids, fetchFunction);
+            }
+
+            @Override
+            public Mono<?> putAll(Map<ID, RC> map) {
+                return applyMergeStrategy(
                         optimizedCache,
-                        (existingCacheItems, incomingChanges)  -> mergeMaps(existingCacheItems, incomingChanges, mergeFunction),
-                        Cache::putAll),
-                applyMergeStrategy(
+                        (existingCacheItems, incomingChanges) -> mergeMaps(existingCacheItems, incomingChanges, mergeFunction),
+                        Cache::putAll)
+                        .apply(map);
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, RC> map) {
+                return applyMergeStrategy(
                         optimizedCache,
                         (cache, existingCacheItems, incomingChanges) ->
                                 then(subtractFromMap(incomingChanges, existingCacheItems, ctx.idResolver(), ctx.collectionFactory()),
                                         updatedMap -> cache.updateAll(updatedMap, diff(existingCacheItems, updatedMap))))
-//                (incomingChangesToAdd, incomingChangesToRemove) -> {
-//                    delegateCache.getAll(Stream.concat(incomingChangesToAdd.keySet().stream(), incomingChangesToRemove.keySet().stream()).distinct().toList())
-//                            .flatMap(existingCacheItems -> )
-//
-//
-//                    return just(of());
-//                }
-        );
+                        .apply(map);
+            }
+        };
     }
 
     private static <ID, R, RC extends Collection<R>> Function<Map<ID, RC>, Mono<?>> applyMergeStrategy(

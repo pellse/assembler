@@ -18,13 +18,15 @@ package io.github.pellse.assembler.caching.caffeine;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.factory.CacheContext;
 import io.github.pellse.assembler.caching.factory.CacheFactory;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.Map;
 
 import static com.github.benmanes.caffeine.cache.Caffeine.newBuilder;
-import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.toMono;
 import static io.github.pellse.util.ObjectUtils.also;
 import static java.util.Map.of;
@@ -57,12 +59,28 @@ public interface CaffeineCacheFactory {
 
         final AsyncCache<ID, RRC> delegateCache = caffeine.buildAsync();
 
-        return __ -> adapterCache(
-                ids -> fromFuture(delegateCache.getAll(ids, keys -> of())),
-                (ids, fetchFunction) -> fromFuture(delegateCache.getAll(ids, (keys, executor) -> fetchFunction.apply(keys).toFuture())),
-                toMono(map -> map.forEach((id, results) -> delegateCache.put(id, completedFuture(results)))),
-                toMono(map -> also(delegateCache.asMap(), cache -> map.keySet().forEach(cache::remove)))
-        );
+        return __ -> new Cache<>() {
+
+            @Override
+            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
+                return fromFuture(delegateCache.getAll(ids, keys -> of()));
+            }
+
+            @Override
+            public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
+                return fromFuture(delegateCache.getAll(ids, (keys, executor) -> fetchFunction.apply(keys).toFuture()));
+            }
+
+            @Override
+            public Mono<?> putAll(Map<ID, RRC> newMap) {
+                return toMono((Map<ID, RRC> map) -> map.forEach((id, results) -> delegateCache.put(id, completedFuture(results)))).apply(newMap);
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, RRC> newMap) {
+                return toMono((Map<ID, RRC> map) -> also(delegateCache.asMap(), cache -> map.keySet().forEach(cache::remove))).apply(newMap);
+            }
+        };
     }
 
     private static Caffeine<Object, Object> defaultBuilder() {

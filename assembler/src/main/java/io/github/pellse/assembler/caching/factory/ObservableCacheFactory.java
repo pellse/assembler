@@ -16,6 +16,7 @@
 
 package io.github.pellse.assembler.caching.factory;
 
+import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import reactor.core.publisher.Mono;
 
@@ -23,8 +24,6 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
-import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 
 public interface ObservableCacheFactory {
 
@@ -39,13 +38,33 @@ public interface ObservableCacheFactory {
 
             final var cache = cacheFactory.create(cacheContext);
 
-            return adapterCache(
-                    ids -> cache.getAll(ids).transform(call(onGetAll)),
-                    (ids, fetchFunction) -> cache.computeAll(ids, fetchFunction).transform(call(onComputeAll)),
-                    map -> cache.putAll(map).transform(call(map, onPutAll)),
-                    map -> cache.removeAll(map).transform(call(map, onRemoveAll)),
-                    (mapToAdd, mapToRemove) -> cache.updateAll(mapToAdd, mapToRemove).transform(call(mapToAdd, mapToRemove, onUpdateAll))
-            );
+            return new Cache<>() {
+
+                @Override
+                public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
+                    return cache.getAll(ids).transform(call(onGetAll));
+                }
+
+                @Override
+                public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
+                    return cache.computeAll(ids, fetchFunction).transform(call(onComputeAll));
+                }
+
+                @Override
+                public Mono<?> putAll(Map<ID, RRC> map) {
+                    return cache.putAll(map).transform(call(map, onPutAll));
+                }
+
+                @Override
+                public Mono<?> removeAll(Map<ID, RRC> map) {
+                    return cache.removeAll(map).transform(call(map, onRemoveAll));
+                }
+
+                @Override
+                public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
+                    return cache.updateAll(mapToAdd, mapToRemove).transform(call(mapToAdd, mapToRemove, onUpdateAll));
+                }
+            };
         };
     }
 
