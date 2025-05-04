@@ -100,10 +100,11 @@ public class ChainedAssemblerTest {
                         AugmentedVitals::new)
                 .build();
 
+        var combinedAssembler = vitalsAssembler.pipeWith(augmentedVitalsAssembler);
+
         StepVerifier.create(heartRateFlux
                         .window(3)
-                        .flatMapSequential(vitalsAssembler::assembleStream)
-                        .flatMapSequential(augmentedVitalsAssembler::assemble))
+                        .flatMapSequential(combinedAssembler::assemble))
                 .expectSubscription()
                 .expectNextSequence(expectedAugmentedVitals)
                 .verifyComplete();
