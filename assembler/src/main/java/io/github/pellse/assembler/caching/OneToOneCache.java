@@ -1,24 +1,15 @@
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.assembler.caching.Cache.MergeFunction;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
 import static io.github.pellse.assembler.caching.OptimizedCache.optimizedCache;
-import static io.github.pellse.util.collection.CollectionUtils.mergeMaps;
 
 public interface OneToOneCache {
 
     static <ID, R> Cache<ID, R> oneToOneCache(OneToOneCacheContext<ID, R> ctx, Cache<ID, R> delegateCache) {
-        return oneToOneCache(ctx.mergeFunction(), delegateCache);
-    }
-
-    static <ID, R> Cache<ID, R> oneToOneCache(
-            MergeFunction<ID, R> mergeFunction,
-            Cache<ID, R> delegateCache) {
-
         final var optimizedCache = optimizedCache(delegateCache);
 
         return new Cache<>() {
@@ -35,7 +26,7 @@ public interface OneToOneCache {
             @Override
             public Mono<?> putAll(Map<ID, R> map) {
                 return optimizedCache.getAll(map.keySet())
-                        .map(existingMap -> mergeMaps(existingMap, map, mergeFunction))
+                        .map(existingMap -> ctx.mapMerger().apply(existingMap, map))
                         .flatMap(optimizedCache::putAll);
             }
 

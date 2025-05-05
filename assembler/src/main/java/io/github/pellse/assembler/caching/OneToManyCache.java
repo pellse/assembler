@@ -1,6 +1,5 @@
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.assembler.caching.Cache.MergeFunction;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
 import reactor.core.publisher.Mono;
 
@@ -31,14 +30,6 @@ public interface OneToManyCache {
             OneToManyCacheContext<ID, EID, R, RC> ctx,
             Cache<ID, RC> delegateCache) {
 
-        return oneToManyCache(ctx.mergeFunction(), ctx, delegateCache);
-    }
-
-    static <ID, EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
-            MergeFunction<ID, RC> mergeFunction,
-            OneToManyCacheContext<ID, EID, R, RC> ctx,
-            Cache<ID, RC> delegateCache) {
-
         final var optimizedCache = optimizedCache(delegateCache);
 
         return new Cache<>() {
@@ -57,7 +48,7 @@ public interface OneToManyCache {
             public Mono<?> putAll(Map<ID, RC> map) {
                 return applyMergeStrategy(
                         optimizedCache,
-                        (existingCacheItems, incomingChanges) -> mergeMaps(existingCacheItems, incomingChanges, mergeFunction),
+                        (existingCacheItems, incomingChanges) -> ctx.mapMerger().apply(existingCacheItems, incomingChanges),
                         Cache::putAll)
                         .apply(map);
             }
