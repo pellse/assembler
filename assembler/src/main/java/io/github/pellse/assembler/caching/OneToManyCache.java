@@ -31,7 +31,7 @@ public interface OneToManyCache {
             OneToManyCacheContext<ID, EID, R, RC> ctx,
             Cache<ID, RC> delegateCache) {
 
-        return oneToManyCache(removeDuplicate(ctx), ctx, delegateCache);
+        return oneToManyCache(ctx.mergeFunction(), ctx, delegateCache);
     }
 
     static <ID, EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
@@ -91,9 +91,5 @@ public interface OneToManyCache {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : delegateCache.getAll(incomingChanges.keySet())
                 .flatMap(existingCacheItems -> cacheUpdater.updateCache(delegateCache, existingCacheItems, incomingChanges));
-    }
-
-    private static <ID, EID, R, RC extends Collection<R>> MergeFunction<ID, RC> removeDuplicate(OneToManyCacheContext<ID, EID, R, RC> ctx) {
-        return (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), ctx.idResolver(), rc -> convert(rc, ctx.collectionType(), ctx.collectionFactory()));
     }
 }
