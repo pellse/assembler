@@ -21,7 +21,6 @@ import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
 import io.github.pellse.assembler.caching.Cache.MergeFunction;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import io.github.pellse.util.collection.CollectionUtils;
-import io.github.pellse.util.function.Function3;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -37,7 +36,7 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
 
     IntFunction<Collector<R, ?, Map<ID, RRC>>> mapCollector();
 
-    Function3<ID, RRC, RRC, RRC> mergeFunction();
+    MergeFunction<ID, RRC> mergeFunction();
 
     CacheTransformer<ID, R, RRC, CTX> cacheTransformer();
 
