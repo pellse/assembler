@@ -18,7 +18,6 @@ package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.RuleMapperContext.OneToManyContext;
 import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
-import io.github.pellse.assembler.caching.Cache.MergeFunction;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 
 import java.util.*;

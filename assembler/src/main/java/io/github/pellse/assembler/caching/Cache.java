@@ -16,7 +16,6 @@
 
 package io.github.pellse.assembler.caching;
 
-import io.github.pellse.util.function.Function3;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
@@ -26,9 +25,6 @@ import java.util.function.Function;
 import static io.github.pellse.util.reactive.ReactiveUtils.subscribeMonoOn;
 
 public interface Cache<ID, RRC> {
-
-    @FunctionalInterface
-    interface MergeFunction<ID, RRC> extends Function3<ID, RRC, RRC, RRC> {}
 
     @FunctionalInterface
     interface FetchFunction<ID, RRC> extends Function<Iterable<? extends ID>, Mono<Map<ID, RRC>>> {
