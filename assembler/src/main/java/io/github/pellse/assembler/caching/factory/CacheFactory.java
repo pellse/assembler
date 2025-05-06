@@ -22,6 +22,7 @@ import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
 import io.github.pellse.assembler.RuleMapperSource;
 import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.Cache.FetchFunction;
+import io.github.pellse.assembler.caching.merge.MergeFunction;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import io.github.pellse.util.collection.CollectionUtils;

@@ -1,4 +1,4 @@
-package io.github.pellse.assembler.caching.factory;
+package io.github.pellse.assembler.caching.merge;
 
 import io.github.pellse.util.function.Function3;
 
