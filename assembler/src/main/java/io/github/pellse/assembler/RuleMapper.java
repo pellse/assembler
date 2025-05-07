@@ -26,6 +26,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.QueryUtils.*;
+import static io.github.pellse.assembler.RuleMapperContext.OneToManyContext.oneToManyContext;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.*;
@@ -117,9 +118,8 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> new OneToManyContext<>(ctx, idResolver, comparing(idResolver), collectionFactory));
+                ctx -> oneToManyContext(ctx, idResolver, comparing(idResolver), collectionFactory));
     }
-
 
     private static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapper<T, TC, K, ID, R, RRC> createRuleMapper(
             RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,

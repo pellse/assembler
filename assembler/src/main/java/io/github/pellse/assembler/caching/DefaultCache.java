@@ -27,7 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.toMono;
 import static io.github.pellse.util.ObjectUtils.also;
 import static io.github.pellse.util.collection.CollectionUtils.*;
@@ -81,6 +80,27 @@ public interface DefaultCache {
             Function<Map<ID, RRC>, Mono<?>> putAll,
             Function<Map<ID, RRC>, Mono<?>> removeAll) {
 
-        return __ -> adapterCache(getAll, computeAll, putAll, removeAll);
+        return __ -> new Cache<>() {
+
+            @Override
+            public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
+                return getAll.apply(ids);
+            }
+
+            @Override
+            public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
+                return computeAll.apply(ids, fetchFunction);
+            }
+
+            @Override
+            public Mono<?> putAll(Map<ID, RRC> map) {
+                return putAll.apply(map);
+            }
+
+            @Override
+            public Mono<?> removeAll(Map<ID, RRC> map) {
+                return removeAll.apply(map);
+            }
+        };
     }
 }

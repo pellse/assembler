@@ -23,13 +23,14 @@ import java.util.Collection;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static java.util.function.Function.identity;
 import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Flux.fromStream;
 
 @FunctionalInterface
 public interface Assembler<T, R> {
 
-    Flux<Stream<R>> assembleStream(Publisher<T> topLevelEntities);
+    Flux<Flux<R>> assemblerWindow(Publisher<T> topLevelEntities);
 
     default Flux<R> assemble(Iterable<T> topLevelEntities) {
         return assemble(fromIterable(topLevelEntities));
@@ -40,8 +41,13 @@ public interface Assembler<T, R> {
     }
 
     default Flux<R> assemble(Publisher<T> topLevelEntities) {
-        return assembleStream(topLevelEntities)
-                .flatMapSequential(Flux::fromStream);
+        return assemblerWindow(topLevelEntities)
+                .flatMapSequential(identity());
+    }
+
+    default <U> Assembler<T, U> pipeWith(Assembler<R, U> after) {
+        return entities -> assemblerWindow(entities)
+                .flatMapSequential(after::assemblerWindow);
     }
 
     static <T, TC extends Collection<T>, R, V> Function<TC, Publisher<V>> assemble(Function<TC, Publisher<R>> queryFunction, Assembler<R, V> assembler) {

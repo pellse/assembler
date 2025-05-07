@@ -22,6 +22,7 @@ import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
 import io.github.pellse.assembler.RuleMapperSource;
 import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.Cache.FetchFunction;
+import io.github.pellse.assembler.caching.merge.MergeFunction;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import io.github.pellse.util.collection.CollectionUtils;
@@ -35,6 +36,8 @@ import java.util.function.Function;
 import static io.github.pellse.assembler.QueryUtils.buildQueryFunction;
 import static io.github.pellse.assembler.RuleMapperSource.*;
 import static io.github.pellse.assembler.caching.DefaultCache.cache;
+import static io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext.oneToManyCacheContext;
+import static io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext.oneToOneCacheContext;
 import static io.github.pellse.assembler.caching.factory.DeferCacheFactory.defer;
 import static io.github.pellse.assembler.caching.OneToManyCache.oneToManyCache;
 import static io.github.pellse.assembler.caching.OneToOneCache.oneToOneCache;
@@ -82,10 +85,27 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
     @SafeVarargs
     static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
+            MergeFunction<ID, R> mergeFunction,
+            Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
+
+        return cached(cache(), mergeFunction, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
             CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cache,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
         return cached(emptySource(), cache, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
+            CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cache,
+            MergeFunction<ID, R> mergeFunction,
+            Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
+
+        return cached(emptySource(), cache, mergeFunction, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -98,10 +118,28 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
     @SafeVarargs
     static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
+            Function<TC, Publisher<R>> queryFunction,
+            MergeFunction<ID, R> mergeFunction,
+            Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
+
+        return cached(from(queryFunction), mergeFunction, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
             RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> ruleMapperSource,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
         return cached(ruleMapperSource, cache(), delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
+            RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> ruleMapperSource,
+            MergeFunction<ID, R> mergeFunction,
+            Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
+
+        return cached(ruleMapperSource, cache(), mergeFunction, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -115,11 +153,37 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
     @SafeVarargs
     static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
+            Function<TC, Publisher<R>> queryFunction,
+            CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
+            MergeFunction<ID, R> mergeFunction,
+            Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
+
+        return cached(from(queryFunction), cacheFactory, mergeFunction, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
             RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> ruleMapperSource,
             CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
             Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
 
-        return cached(OneToOneCacheContext::new, ruleMapperSource, oneToOneCacheFactory(wrap(cacheFactory)), delegateCacheFactories);
+        return cached(ruleMapperSource, cacheFactory, null, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, R> RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> cached(
+            RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> ruleMapperSource,
+            CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory,
+            MergeFunction<ID, R> mergeFunction,
+            Function<CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>, CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>>>... delegateCacheFactories) {
+
+        final var wrappedCacheFactory = wrap(cacheFactory);
+
+        return cached(
+                ctx -> oneToOneCacheContext(ctx, mergeFunction),
+                ruleMapperSource,
+                cacheCtx -> oneToOneCache(cacheCtx, wrappedCacheFactory.create(cacheCtx)),
+                delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -127,6 +191,14 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
         return cachedMany(cache(), delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            MergeFunction<ID, RC> mergeFunction,
+            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
+
+        return cachedMany(cache(), mergeFunction, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -139,6 +211,15 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
     @SafeVarargs
     static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
+            MergeFunction<ID, RC> mergeFunction,
+            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
+
+        return cachedMany(emptySource(), cacheFactory, mergeFunction, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             Function<TC, Publisher<R>> queryFunction,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
@@ -147,10 +228,28 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
     @SafeVarargs
     static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            Function<TC, Publisher<R>> queryFunction,
+            MergeFunction<ID, RC> mergeFunction,
+            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
+
+        return cachedMany(from(queryFunction), mergeFunction, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
         return cachedMany(ruleMapperSource, cache(), delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
+            MergeFunction<ID, RC> mergeFunction,
+            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
+
+        return cachedMany(ruleMapperSource, cache(), mergeFunction, delegateCacheFactories);
     }
 
     @SafeVarargs
@@ -164,23 +263,41 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
     @SafeVarargs
     static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            Function<TC, Publisher<R>> queryFunction,
+            CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
+            MergeFunction<ID, RC> mergeFunction,
+            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
+
+        return cachedMany(from(queryFunction), cacheFactory, mergeFunction, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
             RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
             CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
             Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
 
-        return cached(OneToManyCacheContext::new, ruleMapperSource, oneToManyCacheFactory(wrap(cacheFactory)), delegateCacheFactories);
+        return cachedMany(ruleMapperSource, cacheFactory, null, delegateCacheFactories);
+    }
+
+    @SafeVarargs
+    static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> cachedMany(
+            RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
+            CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
+            MergeFunction<ID, RC> mergeFunction,
+            Function<CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>, CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>>>... delegateCacheFactories) {
+
+        final var wrappedCacheFactory = wrap(cacheFactory);
+
+        return cached(
+                ctx -> oneToManyCacheContext(ctx, mergeFunction),
+                ruleMapperSource,
+                cacheCtx -> oneToManyCache(cacheCtx, wrappedCacheFactory.create(cacheCtx)),
+                delegateCacheFactories);
     }
 
     static <ID, RRC> Function<Map<ID, RRC>, Mono<?>> toMono(Consumer<Map<ID, RRC>> consumer) {
         return map -> just(also(map, consumer));
-    }
-
-    private static <ID, R> CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> oneToOneCacheFactory(CacheFactory<ID, R, R, OneToOneCacheContext<ID, R>> cacheFactory) {
-        return cacheContext -> oneToOneCache(cacheFactory.create(cacheContext));
-    }
-
-    private static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> oneToManyCacheFactory(CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory) {
-        return cacheContext -> oneToManyCache(cacheContext, cacheFactory.create(cacheContext));
     }
 
     @SafeVarargs
@@ -238,7 +355,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
         };
     }
 
-    private static  <ID, R, RRC, CACHE_CTX extends CacheContext<ID, R, RRC, CACHE_CTX>> CacheFactory<ID, R, RRC, CACHE_CTX> wrap(CacheFactory<ID, R, RRC, CACHE_CTX> cacheFactory) {
+    private static <ID, R, RRC, CACHE_CTX extends CacheContext<ID, R, RRC, CACHE_CTX>> CacheFactory<ID, R, RRC, CACHE_CTX> wrap(CacheFactory<ID, R, RRC, CACHE_CTX> cacheFactory) {
         return defer(serialize(cacheFactory));
     }
 

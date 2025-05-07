@@ -16,13 +16,14 @@
 
 package io.github.pellse.assembler.caching.factory;
 
+import io.github.pellse.assembler.caching.Cache;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
+import reactor.core.publisher.Mono;
 
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static io.github.pellse.assembler.caching.AdapterCache.adapterCache;
-import static io.github.pellse.util.ObjectUtils.then;
 import static io.github.pellse.util.collection.CollectionUtils.transformMapValues;
 
 public interface MapperCacheFactory {
@@ -32,12 +33,38 @@ public interface MapperCacheFactory {
     }
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheFactory<ID, R, RRC, CTX> mapper(CacheFactory<ID, R, RRC, CTX> cacheFactory, Function<CTX, BiFunction<ID, RRC, RRC>> mappingFunction) {
-        return context -> then(cacheFactory.create(context), delegateCache -> adapterCache(
-                delegateCache::getAll,
-                (ids, fetchFunction) -> delegateCache.computeAll(ids, idList -> fetchFunction.apply(idList).map(m -> transformMapValues(m, mappingFunction.apply(context)))),
-                map -> delegateCache.putAll(transformMapValues(map, mappingFunction.apply(context))),
-                delegateCache::removeAll,
-                (mapToAdd, mapToRemove) -> delegateCache.updateAll(transformMapValues(mapToAdd, mappingFunction.apply(context)), mapToRemove)
-        ));
+
+        return context -> {
+
+            final var delegateCache = cacheFactory.create(context);
+
+            return new Cache<>() {
+
+                @Override
+                public Mono<Map<ID, RRC>> getAll(Iterable<ID> ids) {
+                    return delegateCache.getAll(ids);
+                }
+
+                @Override
+                public Mono<Map<ID, RRC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RRC> fetchFunction) {
+                    return delegateCache.computeAll(ids, idList -> fetchFunction.apply(idList).map(m -> transformMapValues(m, mappingFunction.apply(context))));
+                }
+
+                @Override
+                public Mono<?> putAll(Map<ID, RRC> map) {
+                    return delegateCache.putAll(transformMapValues(map, mappingFunction.apply(context)));
+                }
+
+                @Override
+                public Mono<?> removeAll(Map<ID, RRC> map) {
+                    return delegateCache.removeAll(map);
+                }
+
+                @Override
+                public Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
+                    return delegateCache.updateAll(transformMapValues(mapToAdd, mappingFunction.apply(context)), mapToRemove);
+                }
+            };
+        };
     }
 }

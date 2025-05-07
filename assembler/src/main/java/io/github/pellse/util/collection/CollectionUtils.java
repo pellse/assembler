@@ -16,6 +16,8 @@
 
 package io.github.pellse.util.collection;
 
+import io.github.pellse.util.function.Function3;
+
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.*;
@@ -71,8 +73,12 @@ public interface CollectionUtils {
         return toStream(from).map(mappingFunction).toList();
     }
 
+    static <E> List<E> asList(Iterable<E> iterable) {
+        return iterable != null ? (iterable instanceof List<E> list ? list : stream(iterable.spliterator(), false).toList()) : List.of();
+    }
+
     static <E> Collection<E> asCollection(Iterable<E> iterable) {
-        return iterable instanceof Collection<E> coll ? coll : stream(iterable.spliterator(), false).toList();
+        return iterable != null ? (iterable instanceof Collection<E> coll ? coll : stream(iterable.spliterator(), false).toList()) : List.of();
     }
 
     static <E, C extends Collection<E>> C translate(Iterable<? extends E> from, Supplier<C> collectionFactory) {
@@ -160,6 +166,13 @@ public interface CollectionUtils {
         return newMap(null, mapSupplier, map -> keys.forEach(key -> ifNotNull(sourceMap.get(key), value -> map.put(key, mappingFunction.apply(value)))));
     }
 
+    static <K, V> Collection<V> removeDuplicates(
+            Collection<V> coll,
+            Function<? super V, K> keyExtractor) {
+
+        return removeDuplicates(toStream(coll), keyExtractor);
+    }
+
     static <K, V, VC extends Collection<V>> VC removeDuplicates(
             Collection<V> coll,
             Function<? super V, K> keyExtractor,
@@ -168,30 +181,38 @@ public interface CollectionUtils {
         return removeDuplicates(toStream(coll), keyExtractor, collectionConverter);
     }
 
-    private static <K, V, VC extends Collection<V>> VC removeDuplicates(
+    static <K, V, VC extends Collection<V>> VC removeDuplicates(
             Stream<V> stream,
             Function<? super V, K> keyExtractor,
             Function<Collection<V>, VC> collectionConverter) {
 
-        return collectionConverter.apply(stream
+        return collectionConverter.apply(removeDuplicates(stream, keyExtractor));
+    }
+
+    static <K, V> Collection<V> removeDuplicates(
+            Stream<V> stream,
+            Function<? super V, K> keyExtractor) {
+
+        return stream
                 .collect(toMap(keyExtractor, identity(), (v1, v2) -> v2, LinkedHashMap::new))
-                .values());
+                .values();
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T, C extends Collection<T>> C convert(Collection<T> collection, Class<C> collectionType, Supplier<C> collectionFactory) {
+        return collectionType.isInstance(collection) ? (C) collection : translate(collection, collectionFactory);
     }
 
     static <K, V> LinkedHashMap<K, V> toLinkedHashMap(Map<K, V> map) {
         return map instanceof LinkedHashMap<K, V> lhm ? lhm : new LinkedHashMap<>(map);
     }
 
-    static <T, K> LinkedHashMap<K, T> toLinkedHashMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor) {
+    static <T, K> LinkedHashMap<? super K, ? extends T> toLinkedHashMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor) {
         return toLinkedHashMap(iterable, keyExtractor, identity());
     }
 
     static <T, K, V> LinkedHashMap<K, V> toLinkedHashMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor, Function<? super T, ? extends V> valueExtractor) {
         return toJavaMap(iterable, keyExtractor, valueExtractor, LinkedHashMap::newLinkedHashMap);
-    }
-
-    static <T, K, V> HashMap<K, V> toHashMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor, Function<? super T, ? extends V> valueExtractor) {
-        return toJavaMap(iterable, keyExtractor, valueExtractor, HashMap::newHashMap);
     }
 
     static <T, K, V, M extends Map<K, V>> M toJavaMap(Iterable<T> iterable, Function<? super T, ? extends K> keyExtractor, Function<? super T, ? extends V> valueExtractor, IntFunction<M> mapFactory) {
@@ -200,35 +221,52 @@ public interface CollectionUtils {
     }
 
     static <K, V, ID> Map<K, List<V>> mergeMaps(
-            Map<K, List<V>> existingMap,
-            Map<K, List<V>> newMap,
+            Map<K, ? extends List<V>> existingMap,
+            Map<K, ? extends List<V>> newMap,
             Function<? super V, ID> idResolver) {
 
         return mergeMaps(existingMap, newMap, idResolver, ArrayList::new);
     }
 
     static <K, V, VC extends Collection<V>, ID> Map<K, VC> mergeMaps(
-            Map<K, VC> existingMap,
-            Map<K, VC> newMap,
+            Map<K, ? extends VC> existingMap,
+            Map<K, ? extends VC> newMap,
             Function<? super V, ID> idResolver,
             Function<Collection<V>, VC> collectionConverter) {
 
-        final int size = existingMap.size() + newMap.size();
-
-        return concat(existingMap.entrySet(), newMap.entrySet())
-                .map(entry -> entry(entry.getKey(), removeDuplicates(entry.getValue(), idResolver, collectionConverter)))
-                .collect(toMap(
-                        Entry::getKey,
-                        Entry::getValue,
-                        (coll1, coll2) -> removeDuplicates(concat(coll1, coll2), idResolver, collectionConverter),
-                        () -> newLinkedHashMap(size)));
+        return mergeMaps(existingMap, newMap, (k, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), idResolver, collectionConverter));
     }
 
-    @SafeVarargs
-    static <K, V> Map<K, V> mergeMaps(Map<K, V>... maps) {
-        return Stream.of(maps)
-                .flatMap(map -> map.entrySet().stream())
-                .collect(toMap(Entry::getKey, Entry::getValue, (v1, v2) -> v2, LinkedHashMap::new));
+    static <K, V, VC extends Collection<V>, V2, VC2 extends Collection<V2>> Map<K, VC> mergeMaps(
+            Map<K, ? extends VC> existingMap,
+            Map<K, ? extends VC2> newMap,
+            Function3<K, ? super VC, ? super Collection<V2>, ? extends VC> mergeFunction,
+            Function<Collection<V>, VC> collectionConverter) {
+
+        Function3<K, VC, Collection<V2>, VC> mappingFunction = (k, coll1, coll2) ->
+                isNotEmpty(coll1) || isNotEmpty(coll2) ? mergeFunction.apply(k, collectionConverter.apply(coll1), asCollection(coll2)) : collectionConverter.apply(List.of());
+
+        return mergeMaps(existingMap, newMap, mappingFunction);
+    }
+
+    static <K, V> Map<K, V> mergeMaps(
+            Map<K, ? extends V> existingMap,
+            Map<K, ? extends V> newMap) {
+
+        return mergeMaps(existingMap, newMap, (k, v1, v2) -> v2 != null ? v2 : v1);
+    }
+
+    static <K, U, V> Map<K, V> mergeMaps(
+            Map<K, ? extends V> existingMap,
+            Map<K, ? extends U> newMap,
+            Function3<K, ? super V, ? super U, ? extends V> mergeFunction) {
+
+        final int size = existingMap.size() + newMap.size();
+
+        final Set<K> allKeys = concat(existingMap.keySet(), newMap.keySet())
+                .collect(toCollection(() -> new LinkedHashSet<>(size)));
+
+        return toLinkedHashMap(allKeys, identity(), key -> mergeFunction.apply(key, existingMap.get(key), newMap.get(key)));
     }
 
     static <K, V, ID> Map<K, List<V>> subtractFromMap(

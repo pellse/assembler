@@ -32,10 +32,10 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static io.github.pellse.util.ObjectUtils.get;
-import static io.github.pellse.util.collection.CollectionUtils.toStream;
 import static java.lang.Runtime.getRuntime;
 import static java.util.Objects.requireNonNullElseGet;
 import static java.util.stream.Collectors.toList;
+import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Flux.zip;
 import static reactor.core.scheduler.Schedulers.newBoundedElastic;
 
@@ -64,8 +64,8 @@ public interface AssemblerBuilder {
                                     .map(mapperResult -> mapperResult.get(correlationIdResolver.apply(topLevelEntity)))
                                     .toArray());
 
-            final BiFunction<Iterable<T>, List<Map<K, ?>>, Stream<R>> aggregateStreamBuilder =
-                    (topLevelEntities, mapperResults) -> toStream(topLevelEntities)
+            final BiFunction<Iterable<T>, List<Map<K, ?>>, Flux<R>> aggregateStreamBuilder =
+                    (topLevelEntities, mapperResults) -> fromIterable(topLevelEntities)
                             .filter(Objects::nonNull)
                             .map(topLevelEntity -> joinMapperResultsFunction.apply(topLevelEntity, mapperResults));
 

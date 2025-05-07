@@ -16,12 +16,9 @@
 
 package io.github.pellse.assembler;
 
-import io.github.pellse.util.collection.CollectionUtils;
-
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -29,8 +26,6 @@ import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 import static io.github.pellse.assembler.QueryUtils.toMapSupplier;
-import static io.github.pellse.util.collection.CollectionUtils.mergeMaps;
-import static io.github.pellse.util.collection.CollectionUtils.translate;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
@@ -44,12 +39,10 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
 
     Function<Stream<RRC>, Stream<R>> streamFlattener();
 
-    BiFunction<Map<ID, RRC>, Map<ID, RRC>, Map<ID, RRC>> mapMerger();
-
     record OneToOneContext<T, TC extends Collection<T>, K, ID, R>(
             Function<T, K> topLevelIdResolver,
             Function<R, ID> innerIdResolver,
-            Function<T, ID>  outerIdResolver,
+            Function<T, ID> outerIdResolver,
             Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, R> mapFactory,
             Function<ID, R> defaultResultProvider) implements RuleMapperContext<T, TC, K, ID, ID, R, R> {
@@ -84,11 +77,6 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
         public Function<Stream<R>, Stream<R>> streamFlattener() {
             return identity();
         }
-
-        @Override
-        public BiFunction<Map<ID, R>, Map<ID, R>, Map<ID, R>> mapMerger() {
-            return CollectionUtils::mergeMaps;
-        }
     }
 
     record OneToManyContext<T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>>(
@@ -103,13 +91,13 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
             Class<RC> collectionType) implements RuleMapperContext<T, TC, K, ID, EID, R, RC> {
 
         @SuppressWarnings("unchecked")
-        public OneToManyContext(
+        public static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> OneToManyContext<T, TC, K, ID, EID, R, RC> oneToManyContext(
                 RuleContext<T, TC, K, ID, R, RC> ruleContext,
                 Function<R, EID> idResolver,
                 Comparator<R> idComparator,
                 Supplier<RC> collectionFactory) {
 
-            this(ruleContext.topLevelIdResolver(),
+            return new OneToManyContext<>(ruleContext.topLevelIdResolver(),
                     ruleContext.innerIdResolver(),
                     ruleContext.outerIdResolver(),
                     ruleContext.topLevelCollectionFactory(),
@@ -136,16 +124,6 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
         @Override
         public Function<Stream<RC>, Stream<R>> streamFlattener() {
             return stream -> stream.flatMap(Collection::stream);
-        }
-
-        @Override
-        public BiFunction<Map<ID, RC>, Map<ID, RC>, Map<ID, RC>> mapMerger() {
-            return (existingMap, newMap) -> mergeMaps(existingMap, newMap, idResolver(), this::convert);
-        }
-
-        @SuppressWarnings("unchecked")
-        public RC convert(Collection<R> collection) {
-            return collectionType().isInstance(collection) ? (RC) collection : translate(collection, collectionFactory());
         }
     }
 
