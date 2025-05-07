@@ -5,7 +5,7 @@ plugins {
 }
 
 ext {
-    reactorVersion = "3.7.4"
+    reactorVersion = "3.7.5"
 }
 
 subprojects {
@@ -13,7 +13,7 @@ subprojects {
     apply plugin: "maven-publish"
     apply plugin: "signing"
 
-    version = "0.7.10"
+    version = "0.7.11"
     group = "io.github.pellse"
 
     repositories {
