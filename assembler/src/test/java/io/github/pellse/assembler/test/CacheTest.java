@@ -18,7 +18,6 @@ package io.github.pellse.assembler.test;
 
 import io.github.pellse.assembler.Assembler;
 import io.github.pellse.assembler.Rule;
-import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.factory.CacheFactory;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
@@ -45,7 +44,6 @@ import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.*;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.caching.DefaultCache.cache;
-import static io.github.pellse.assembler.caching.factory.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.*;
 import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
@@ -169,7 +167,7 @@ public class CacheTest {
         var billingInfoFlux = fromIterable(billingInfoList).repeat().delayElements(ofMillis(1), billingInfoScheduler);
         var orderItemFlux = fromIterable(orderItemList).repeat().delayElements(ofMillis(1), orderItemScheduler);
 
-        Function<String, Consumer<Object>> simulateIO = tag -> __  -> {
+        Function<String, Consumer<Object>> simulateIO = tag -> __ -> {
             parkNanos(ofMillis(600).toNanos()); // Simulate blocking I/O
             System.out.println(currentThread().getName() + ": " + tag);
         };
@@ -612,15 +610,13 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
-        CacheTransformer<Long, BillingInfo, BillingInfo, OneToOneCacheContext<Long, BillingInfo>> billingInfoStreamTable =
-                streamTableBuilder(billingInfoEventFlux)
-                        .maxWindowSize(3)
-                        .build();
+        var billingInfoStreamTable = streamTableBuilder(billingInfoEventFlux)
+                .maxWindowSize(3)
+                .build(Long.class);
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>, OneToManyCacheContext<Long, String, OrderItem>> orderItemStreamTable =
-                streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
-                        .maxWindowSize(3)
-                        .build();
+        var orderItemStreamTable = streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+                .maxWindowSize(3)
+                .build(Long.class, String.class);
 
         var billingInfoRule = Rule.<Customer, Long, BillingInfo, BillingInfo>rule(BillingInfo::customerId, oneToOne(cached(billingInfoStreamTable)));
         var orderItemRule = Rule.<Customer, Long, OrderItem, List<OrderItem>>rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(cache(), orderItemStreamTable)));
@@ -656,11 +652,11 @@ public class CacheTest {
                 new CDCAdd<>(orderItem31), new CDCAdd<>(orderItem32), new CDCAdd<>(orderItem33),
                 new CDCDelete<>(orderItem31), new CDCDelete<>(orderItem32), new CDCDelete<>(orderItem33));
 
-        CacheTransformer<Long, BillingInfo, BillingInfo, OneToOneCacheContext<Long, BillingInfo>> billingInfoStreamTable =
-                streamTable(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value);
+        var billingInfoStreamTable = streamTableBuilder(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value)
+                .build(Long.class);
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>, OneToManyCacheContext<Long, String, OrderItem>> orderItemStreamTable =
-                streamTable(orderItemFlux, CDCAdd.class::isInstance, CDC::item);
+        var orderItemStreamTable = streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+                .build(Long.class, String.class);
 
         Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)

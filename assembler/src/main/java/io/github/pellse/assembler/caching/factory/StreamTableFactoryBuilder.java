@@ -151,7 +151,16 @@ public interface StreamTableFactoryBuilder {
     }
 
     interface StreamTableFactoryDelegateBuilder<R> {
+
         <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build();
+
+        default <ID> CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> build(Class<ID> idClass) {
+            return build();
+        }
+
+        default <ID, EID> CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> build(Class<ID> idClass, Class<EID> elementIdClass) {
+            return build();
+        }
     }
 
     record Builder<R, U extends CacheEvent<R>>(
