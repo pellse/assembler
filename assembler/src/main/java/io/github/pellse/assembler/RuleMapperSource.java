@@ -32,6 +32,14 @@ public interface RuleMapperSource<T, K, ID, EID, R, RRC, CTX extends RuleMapperC
 
     RuleMapperSource<?, ?, ?, ?, ?, ?, RuleMapperContext<Object, Object, Object, Object, Object, Object>> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
 
+    @SuppressWarnings("unchecked")
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapperSource<T, K, ID, EID, R, RRC, CTX> resolve(
+            RuleMapperSource<T, ?, ID, EID, R, RRC, CTX> ruleMapperSource,
+            @SuppressWarnings("unused") Class<K> keyType) {
+
+        return (RuleMapperSource<T, K, ID, EID, R, RRC, CTX>) ruleMapperSource;
+    }
+
     static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapperSource<T, K, ID, EID, R, RRC, CTX> from(Function<List<T>, Publisher<R>> queryFunction) {
         return __ -> queryFunction;
     }

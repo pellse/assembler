@@ -43,7 +43,9 @@ import static io.github.pellse.assembler.QueryUtils.toPublisher;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.*;
 import static io.github.pellse.assembler.RuleMapperSource.call;
+import static io.github.pellse.assembler.RuleMapperSource.resolve;
 import static io.github.pellse.assembler.caching.DefaultCache.cache;
+import static io.github.pellse.assembler.caching.factory.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.*;
 import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
@@ -52,7 +54,7 @@ import static io.github.pellse.assembler.test.CDCDelete.cdcDelete;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.ObjectUtils.run;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
-import static io.github.pellse.util.reactive.ReactiveUtils.*;
+import static io.github.pellse.util.reactive.ReactiveUtils.scheduler;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Thread.currentThread;
 import static java.time.Duration.*;
@@ -658,11 +660,14 @@ public class CacheTest {
         var orderItemStreamTable = streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                 .build(Long.class, String.class);
 
+        var cachedBillingInfos = resolve(cached(this::getBillingInfo, billingInfoStreamTable), Long.class);
+        var cachedOrderItems = resolve(cachedMany(this::getAllOrders, orderItemStreamTable), Long.class);
+
         Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, billingInfoStreamTable), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, orderItemStreamTable))),
+                        rule(BillingInfo::customerId, oneToOne(cachedBillingInfos, BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedOrderItems)),
                         Transaction::new)
                 .build();
 
