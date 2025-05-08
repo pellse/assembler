@@ -53,11 +53,11 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
                 mergeFunction = requireNonNullElse(mergeFunction, (k, r1, r2) -> r2 != null ? r2 : r1);
         }
 
-        static <ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx) {
+        static <ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ID, R> ctx) {
             return oneToOneCacheContext(ctx, null);
         }
 
-        static <ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ?, ID, R> ctx, MergeFunction<ID, R> mergeFunction) {
+        static <ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ID, R> ctx, MergeFunction<ID, R> mergeFunction) {
             return new OneToOneCacheContext<>(ctx.mapCollector(), mergeFunction, concurrent());
         }
     }
@@ -76,12 +76,12 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
             mergeFunction = (id, coll1, coll2) -> isNotEmpty(coll1) || isNotEmpty(coll2) ? mf.apply(id, coll1, coll2) : convert(List.of(), collectionType(), collectionFactory());
         }
 
-        static <ID, EID, R, RC extends Collection<R>> OneToManyCacheContext<ID, EID, R, RC> oneToManyCacheContext(OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx) {
+        static <ID, EID, R, RC extends Collection<R>> OneToManyCacheContext<ID, EID, R, RC> oneToManyCacheContext(OneToManyContext<?, ?, ID, EID, R, RC> ctx) {
             return oneToManyCacheContext(ctx, null);
         }
 
         static <ID, EID, R, RC extends Collection<R>> OneToManyCacheContext<ID, EID, R, RC> oneToManyCacheContext(
-                OneToManyContext<?, ?, ?, ID, EID, R, RC> ctx,
+                OneToManyContext<?, ?, ID, EID, R, RC> ctx,
                 MergeFunction<ID, RC> mergeFunction) {
 
             return new OneToManyCacheContext<>(ctx.idResolver(),

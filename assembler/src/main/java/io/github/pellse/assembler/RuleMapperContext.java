@@ -29,7 +29,7 @@ import static io.github.pellse.assembler.QueryUtils.toMapSupplier;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.*;
 
-public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EID, R, RRC> extends RuleContext<T, TC, K, ID, R, RRC> {
+public sealed interface RuleMapperContext<T, K, ID, EID, R, RRC> extends RuleContext<T, K, ID, R, RRC> {
 
     Function<R, EID> idResolver();
 
@@ -39,22 +39,20 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
 
     Function<Stream<RRC>, Stream<R>> streamFlattener();
 
-    record OneToOneContext<T, TC extends Collection<T>, K, ID, R>(
+    record OneToOneContext<T, K, ID, R>(
             Function<T, K> topLevelIdResolver,
             Function<R, ID> innerIdResolver,
             Function<T, ID> outerIdResolver,
-            Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, R> mapFactory,
-            Function<ID, R> defaultResultProvider) implements RuleMapperContext<T, TC, K, ID, ID, R, R> {
+            Function<ID, R> defaultResultProvider) implements RuleMapperContext<T, K, ID, ID, R, R> {
 
         public OneToOneContext(
-                RuleContext<T, TC, K, ID, R, R> ruleContext,
+                RuleContext<T, K, ID, R, R> ruleContext,
                 Function<ID, R> defaultResultProvider) {
 
             this(ruleContext.topLevelIdResolver(),
                     ruleContext.innerIdResolver(),
                     ruleContext.outerIdResolver(),
-                    ruleContext.topLevelCollectionFactory(),
                     ruleContext.mapFactory(),
                     defaultResultProvider);
         }
@@ -79,20 +77,19 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
         }
     }
 
-    record OneToManyContext<T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>>(
+    record OneToManyContext<T, K, ID, EID, R, RC extends Collection<R>>(
             Function<T, K> topLevelIdResolver,
             Function<R, ID> innerIdResolver,
             Function<T, ID> outerIdResolver,
-            Supplier<TC> topLevelCollectionFactory,
             MapFactory<ID, RC> mapFactory,
             Function<R, EID> idResolver,
             Comparator<R> idComparator,
             Supplier<RC> collectionFactory,
-            Class<RC> collectionType) implements RuleMapperContext<T, TC, K, ID, EID, R, RC> {
+            Class<RC> collectionType) implements RuleMapperContext<T, K, ID, EID, R, RC> {
 
         @SuppressWarnings("unchecked")
-        public static <T, TC extends Collection<T>, K, ID, EID, R, RC extends Collection<R>> OneToManyContext<T, TC, K, ID, EID, R, RC> oneToManyContext(
-                RuleContext<T, TC, K, ID, R, RC> ruleContext,
+        public static <T, K, ID, EID, R, RC extends Collection<R>> OneToManyContext<T, K, ID, EID, R, RC> oneToManyContext(
+                RuleContext<T, K, ID, R, RC> ruleContext,
                 Function<R, EID> idResolver,
                 Comparator<R> idComparator,
                 Supplier<RC> collectionFactory) {
@@ -100,7 +97,6 @@ public sealed interface RuleMapperContext<T, TC extends Collection<T>, K, ID, EI
             return new OneToManyContext<>(ruleContext.topLevelIdResolver(),
                     ruleContext.innerIdResolver(),
                     ruleContext.outerIdResolver(),
-                    ruleContext.topLevelCollectionFactory(),
                     ruleContext.mapFactory(),
                     idResolver,
                     idComparator,

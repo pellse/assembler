@@ -31,9 +31,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -101,24 +99,6 @@ public class CacheTest {
     }
 
     private Publisher<OrderItem> getAllOrders(List<Customer> customers) {
-
-        var customerIds = transform(customers, Customer::customerId);
-
-        return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                .filter(orderItem -> customerIds.contains(orderItem.customerId()))
-                .doOnComplete(ordersInvocationCount::incrementAndGet);
-    }
-
-    private Publisher<BillingInfo> getBillingInfoWithIdSet(Set<Customer> customers) {
-
-        var customerIds = transform(customers, Customer::customerId);
-
-        return Flux.just(billingInfo1, billingInfo3)
-                .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
-                .doOnComplete(billingInvocationCount::incrementAndGet);
-    }
-
-    private Publisher<OrderItem> getAllOrdersWithIdSet(Set<Customer> customers) {
 
         var customerIds = transform(customers, Customer::customerId);
 
@@ -422,53 +402,6 @@ public class CacheTest {
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, cache()), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, cache()))),
-                        Transaction::new)
-                .build();
-
-        StepVerifier.create(getCustomers()
-                        .window(2)
-                        .delayElements(ofMillis(100))
-                        .flatMapSequential(assembler::assemble))
-                .expectSubscription()
-                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
-                .expectComplete()
-                .verify();
-
-        assertEquals(2, billingInvocationCount.get());
-        assertEquals(2, ordersInvocationCount.get());
-    }
-
-    @Test
-    public void testReusableAssemblerBuilderWithCachingSet() {
-
-        var assembler = assemblerOf(TransactionSet.class)
-                .withCorrelationIdResolver(Customer::customerId)
-                .withRules(
-                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
-                        rule(OrderItem::customerId, HashSet::new, oneToManyAsSet(OrderItem::id, cachedMany(this::getAllOrdersWithIdSet))),
-                        TransactionSet::new)
-                .build(immediate());
-
-        StepVerifier.create(getCustomers()
-                        .window(3)
-                        .flatMapSequential(assembler::assemble))
-                .expectSubscription()
-                .expectNext(transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3)
-                .expectComplete()
-                .verify();
-
-        assertEquals(1, billingInvocationCount.get());
-        assertEquals(1, ordersInvocationCount.get());
-    }
-
-    @Test
-    public void testReusableAssemblerBuilderWithCachingWithIDsAsSet() {
-
-        var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdResolver(Customer::customerId)
-                .withRules(
-                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
-                        rule(OrderItem::customerId, HashSet::new, oneToMany(OrderItem::id, cachedMany(this::getAllOrdersWithIdSet))),
                         Transaction::new)
                 .build();
 

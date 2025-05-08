@@ -19,12 +19,9 @@ package io.github.pellse.assembler;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.Rule.ruleBuilder;
 import static io.github.pellse.assembler.RuleContext.ruleContext;
@@ -49,36 +46,23 @@ public interface BatchRule<T, RRC> {
 
         <R, RRC> BatchRule<T, RRC> createRule(
                 Function<R, K> correlationIdResolver,
-                RuleMapper<T, List<T>, K, K, R, RRC> mapper);
+                RuleMapper<T, K, K, R, RRC> mapper);
 
-        <TC extends Collection<T>, R, RRC> BatchRule<T, RRC> createRule(
+        <R, RRC> BatchRule<T, RRC> createRule(
                 Function<R, K> correlationIdResolver,
-                Supplier<TC> topLevelCollectionFactory,
-                RuleMapper<T, TC, K, K, R, RRC> mapper);
-
-        <TC extends Collection<T>, R, RRC> BatchRule<T, RRC> createRule(
-                Function<R, K> correlationIdResolver,
-                Supplier<TC> topLevelCollectionFactory,
                 MapFactory<K, RRC> mapFactory,
-                RuleMapper<T, TC, K, K, R, RRC> mapper);
+                RuleMapper<T, K, K, R, RRC> mapper);
 
         <ID, R, RRC> BatchRule<T, RRC> createRule(
                 Function<R, ID> innerIdResolver,
                 Function<T, ID> outerIdResolver,
-                RuleMapper<T, List<T>, K, ID, R, RRC> mapper);
+                RuleMapper<T, K, ID, R, RRC> mapper);
 
-        <TC extends Collection<T>, ID, R, RRC> BatchRule<T, RRC> createRule(
+        <ID, R, RRC> BatchRule<T, RRC> createRule(
                 Function<R, ID> innerIdResolver,
                 Function<T, ID> outerIdResolver,
-                Supplier<TC> topLevelCollectionFactory,
-                RuleMapper<T, TC, K, ID, R, RRC> mapper);
-
-        <TC extends Collection<T>, ID, R, RRC> BatchRule<T, RRC> createRule(
-                Function<R, ID> innerIdResolver,
-                Function<T, ID> outerIdResolver,
-                Supplier<TC> topLevelCollectionFactory,
                 MapFactory<ID, RRC> mapFactory,
-                RuleMapper<T, TC, K, ID, R, RRC> mapper);
+                RuleMapper<T, K, ID, R, RRC> mapper);
     }
 
     static <T, K> BatchRuleBuilder<T, K> withIdResolver(Function<T, K> idResolver) {
@@ -88,63 +72,42 @@ public interface BatchRule<T, RRC> {
             @Override
             public <R, RRC> BatchRule<T, RRC> createRule(
                     Function<R, K> correlationIdResolver,
-                    RuleMapper<T, List<T>, K, K, R, RRC> mapper) {
+                    RuleMapper<T, K, K, R, RRC> mapper) {
 
                 return createBatchRule(ruleContext(correlationIdResolver), mapper);
             }
 
             @Override
-            public <TC extends Collection<T>, R, RRC> BatchRule<T, RRC> createRule(
+            public <R, RRC> BatchRule<T, RRC> createRule(
                     Function<R, K> correlationIdResolver,
-                    Supplier<TC> topLevelCollectionFactory,
-                    RuleMapper<T, TC, K, K, R, RRC> mapper) {
-
-                return createBatchRule(ruleContext(correlationIdResolver, topLevelCollectionFactory), mapper);
-            }
-
-            @Override
-            public <TC extends Collection<T>, R, RRC> BatchRule<T, RRC> createRule(
-                    Function<R, K> correlationIdResolver,
-                    Supplier<TC> topLevelCollectionFactory,
                     MapFactory<K, RRC> mapFactory,
-                    RuleMapper<T, TC, K, K, R, RRC> mapper) {
+                    RuleMapper<T, K, K, R, RRC> mapper) {
 
-                return createBatchRule(ruleContext(correlationIdResolver, topLevelCollectionFactory, mapFactory), mapper);
+                return createBatchRule(ruleContext(correlationIdResolver, mapFactory), mapper);
             }
 
             @Override
             public <ID, R, RRC> BatchRule<T, RRC> createRule(
                     Function<R, ID> innerIdResolver,
                     Function<T, ID> outerIdResolver,
-                    RuleMapper<T, List<T>, K, ID, R, RRC> mapper) {
+                    RuleMapper<T, K, ID, R, RRC> mapper) {
 
                 return createBatchRule(ruleContext(innerIdResolver, outerIdResolver), mapper);
             }
 
             @Override
-            public <TC extends Collection<T>, ID, R, RRC> BatchRule<T, RRC> createRule(
+            public <ID, R, RRC> BatchRule<T, RRC> createRule(
                     Function<R, ID> innerIdResolver,
                     Function<T, ID> outerIdResolver,
-                    Supplier<TC> topLevelCollectionFactory,
-                    RuleMapper<T, TC, K, ID, R, RRC> mapper) {
-
-                return createBatchRule(ruleContext(innerIdResolver, outerIdResolver, topLevelCollectionFactory), mapper);
-            }
-
-            @Override
-            public <TC extends Collection<T>, ID, R, RRC> BatchRule<T, RRC> createRule(
-                    Function<R, ID> innerIdResolver,
-                    Function<T, ID> outerIdResolver,
-                    Supplier<TC> topLevelCollectionFactory,
                     MapFactory<ID, RRC> mapFactory,
-                    RuleMapper<T, TC, K, ID, R, RRC> mapper) {
+                    RuleMapper<T, K, ID, R, RRC> mapper) {
 
-                return createBatchRule(ruleContext(innerIdResolver, outerIdResolver, topLevelCollectionFactory, mapFactory), mapper);
+                return createBatchRule(ruleContext(innerIdResolver, outerIdResolver, mapFactory), mapper);
             }
 
-            private <TC extends Collection<T>, ID, R, RRC> BatchRule<T, RRC> createBatchRule(
-                    Function<Function<T, K>, RuleContext<T, TC, K, ID, R, RRC>> ruleContextBuilder,
-                    RuleMapper<T, TC, K, ID, R, RRC> mapper) {
+            private <ID, R, RRC> BatchRule<T, RRC> createBatchRule(
+                    Function<Function<T, K>, RuleContext<T, K, ID, R, RRC>> ruleContextBuilder,
+                    RuleMapper<T, K, ID, R, RRC> mapper) {
 
                 return wrap(idResolver, ruleBuilder(ruleContextBuilder, mapper));
             }

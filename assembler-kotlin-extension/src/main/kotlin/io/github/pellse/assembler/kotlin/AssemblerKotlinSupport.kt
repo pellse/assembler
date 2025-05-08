@@ -31,20 +31,20 @@ inline fun <reified T> assembler(): WithCorrelationIdResolverBuilder<T> = assemb
 
 fun <T, TC : Collection<T>, R> ((TC) -> Iterable<R>).toPublisher(): (TC) -> Publisher<R> = { ids -> fromIterable(this(ids)) }
 
-fun <T, TC: Collection<T>, ID, R> ((TC) -> Publisher<R>).oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<T, TC, ID, R, R> =
+fun <T, TC: Collection<T>, ID, R> ((TC) -> Publisher<R>).oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<T, ID, R, R> =
     oneToOne(this, defaultResultProvider)
 
-fun <T, TC: Collection<T>, ID, R> RuleMapperSource<T, TC, ID, ID, R, R, OneToOneContext<T, TC, ID, R>>.oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<T, TC, ID, R, R> =
+fun <T, TC: Collection<T>, ID, R> RuleMapperSource<T, ID, ID, R, R, OneToOneContext<T, ID, R>>.oneToOne(defaultResultProvider: (ID) -> R): RuleMapper<T, ID, R, R> =
     oneToOne(this, defaultResultProvider)
 
-fun <T, TC : Collection<T>, ID, EID, R> ((TC) -> Publisher<R>).oneToMany(idResolver: (R) -> EID): RuleMapper<T, TC, ID, R, List<R>> =
+fun <T, TC : Collection<T>, ID, EID, R> ((TC) -> Publisher<R>).oneToMany(idResolver: (R) -> EID): RuleMapper<T, ID, R, List<R>> =
     oneToMany(idResolver, this)
 
-fun <T, TC : Collection<T>, ID, EID, R> RuleMapperSource<T, TC, ID, EID, R, List<R>, OneToManyContext<T, TC, ID, EID, R, List<R>>>.oneToMany(idResolver: (R) -> EID): RuleMapper<T, TC, ID, R, List<R>> =
+fun <T, TC : Collection<T>, ID, EID, R> RuleMapperSource<T, ID, EID, R, List<R>, OneToManyContext<T, ID, EID, R, List<R>>>.oneToMany(idResolver: (R) -> EID): RuleMapper<T, ID, R, List<R>> =
     oneToMany(idResolver, this)
 
-fun <T, TC : Collection<T>, ID, EID, R, RC : Collection<R>> ((TC) -> Publisher<R>).oneToMany(idResolver: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, TC, ID, R, RC> =
+fun <T, TC : Collection<T>, ID, EID, R, RC : Collection<R>> ((TC) -> Publisher<R>).oneToMany(idResolver: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, ID, R, RC> =
     oneToMany(idResolver, this, collectionFactory)
 
-fun <T, TC : Collection<T>, ID, EID, R, RC : Collection<R>> RuleMapperSource<T, TC, ID, EID, R, RC, OneToManyContext<T, TC, ID, EID, R, RC>>.oneToMany(idResolver: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, TC, ID, R, RC> =
+fun <T, TC : Collection<T>, ID, EID, R, RC : Collection<R>> RuleMapperSource<T, ID, EID, R, RC, OneToManyContext<T, ID, EID, R, RC>>.oneToMany(idResolver: (R) -> EID, collectionFactory: () -> RC): RuleMapper<T, ID, R, RC> =
     oneToMany(idResolver, this, collectionFactory)
