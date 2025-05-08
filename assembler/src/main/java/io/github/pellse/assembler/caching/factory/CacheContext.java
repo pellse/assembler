@@ -25,7 +25,6 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
-import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
@@ -62,33 +61,29 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
         }
     }
 
-    record OneToManyCacheContext<ID, EID, R, RC extends Collection<R>>(
+    record OneToManyCacheContext<ID, EID, R>(
             Function<R, EID> idResolver,
-            IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector,
+            IntFunction<Collector<R, ?, Map<ID, List<R>>>> mapCollector,
             Comparator<R> idComparator,
-            Supplier<RC> collectionFactory,
-            Class<RC> collectionType,
-            MergeFunction<ID, RC> mergeFunction,
-            CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheTransformer) implements CacheContext<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> {
+            MergeFunction<ID, List<R>> mergeFunction,
+            CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> cacheTransformer) implements CacheContext<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> {
 
         public OneToManyCacheContext {
-            final var mf = requireNonNullElse(mergeFunction, (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), idResolver(), rc -> convert(rc, collectionType(), collectionFactory())));
-            mergeFunction = (id, coll1, coll2) -> isNotEmpty(coll1) || isNotEmpty(coll2) ? mf.apply(id, coll1, coll2) : convert(List.of(), collectionType(), collectionFactory());
+            final var mf = requireNonNullElse(mergeFunction, (id, coll1, coll2) -> removeDuplicates(concat(coll1, coll2), idResolver()));
+            mergeFunction = (id, coll1, coll2) -> isNotEmpty(coll1) || isNotEmpty(coll2) ? mf.apply(id, coll1, coll2) : List.of();
         }
 
-        static <ID, EID, R, RC extends Collection<R>> OneToManyCacheContext<ID, EID, R, RC> oneToManyCacheContext(OneToManyContext<?, ?, ID, EID, R, RC> ctx) {
+        static <ID, EID, R> OneToManyCacheContext<ID, EID, R> oneToManyCacheContext(OneToManyContext<?, ?, ID, EID, R> ctx) {
             return oneToManyCacheContext(ctx, null);
         }
 
-        static <ID, EID, R, RC extends Collection<R>> OneToManyCacheContext<ID, EID, R, RC> oneToManyCacheContext(
-                OneToManyContext<?, ?, ID, EID, R, RC> ctx,
-                MergeFunction<ID, RC> mergeFunction) {
+        static <ID, EID, R> OneToManyCacheContext<ID, EID, R> oneToManyCacheContext(
+                OneToManyContext<?, ?, ID, EID, R> ctx,
+                MergeFunction<ID, List<R>> mergeFunction) {
 
             return new OneToManyCacheContext<>(ctx.idResolver(),
                     ctx.mapCollector(),
                     ctx.idComparator(),
-                    ctx.collectionFactory(),
-                    ctx.collectionType(),
                     mergeFunction,
                     concurrent());
         }

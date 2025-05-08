@@ -16,12 +16,9 @@
 
 package io.github.pellse.assembler;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.IntFunction;
-import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
@@ -77,48 +74,42 @@ public sealed interface RuleMapperContext<T, K, ID, EID, R, RRC> extends RuleCon
         }
     }
 
-    record OneToManyContext<T, K, ID, EID, R, RC extends Collection<R>>(
+    record OneToManyContext<T, K, ID, EID, R>(
             Function<T, K> topLevelIdResolver,
             Function<R, ID> innerIdResolver,
             Function<T, ID> outerIdResolver,
-            MapFactory<ID, RC> mapFactory,
+            MapFactory<ID, List<R>> mapFactory,
             Function<R, EID> idResolver,
-            Comparator<R> idComparator,
-            Supplier<RC> collectionFactory,
-            Class<RC> collectionType) implements RuleMapperContext<T, K, ID, EID, R, RC> {
-
-        @SuppressWarnings("unchecked")
-        public static <T, K, ID, EID, R, RC extends Collection<R>> OneToManyContext<T, K, ID, EID, R, RC> oneToManyContext(
-                RuleContext<T, K, ID, R, RC> ruleContext,
+            Comparator<R> idComparator) implements RuleMapperContext<T, K, ID, EID, R, List<R>> {
+        
+        public static <T, K, ID, EID, R> OneToManyContext<T, K, ID, EID, R> oneToManyContext(
+                RuleContext<T, K, ID, R, List<R>> ruleContext,
                 Function<R, EID> idResolver,
-                Comparator<R> idComparator,
-                Supplier<RC> collectionFactory) {
+                Comparator<R> idComparator) {
 
             return new OneToManyContext<>(ruleContext.topLevelIdResolver(),
                     ruleContext.innerIdResolver(),
                     ruleContext.outerIdResolver(),
                     ruleContext.mapFactory(),
                     idResolver,
-                    idComparator,
-                    collectionFactory,
-                    (Class<RC>) collectionFactory.get().getClass());
+                    idComparator);
         }
 
         @Override
-        public Function<ID, RC> defaultResultProvider() {
-            return id -> collectionFactory.get();
+        public Function<ID, List<R>> defaultResultProvider() {
+            return id -> new ArrayList<>();
         }
 
         @Override
-        public IntFunction<Collector<R, ?, Map<ID, RC>>> mapCollector() {
+        public IntFunction<Collector<R, ?, Map<ID, List<R>>>> mapCollector() {
             return initialMapCapacity -> groupingBy(
                     innerIdResolver(),
                     toMapSupplier(validate(initialMapCapacity), mapFactory()),
-                    toCollection(collectionFactory));
+                    toList());
         }
 
         @Override
-        public Function<Stream<RC>, Stream<R>> streamFlattener() {
+        public Function<Stream<List<R>>, Stream<R>> streamFlattener() {
             return stream -> stream.flatMap(Collection::stream);
         }
     }

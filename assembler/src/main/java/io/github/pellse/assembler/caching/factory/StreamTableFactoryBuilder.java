@@ -31,7 +31,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.*;
 
@@ -139,7 +139,7 @@ public interface StreamTableFactoryBuilder {
             return cacheTransformer(CacheTransformer.oneToOneCacheTransformer(cacheTransformer));
         }
 
-        default StreamTableFactoryDelegateBuilder<R> oneToManyCacheTransformer(CacheTransformer<Object, R,  Collection<R>, OneToManyCacheContext<Object, Object, R, Collection<R>>> cacheTransformer) {
+        default StreamTableFactoryDelegateBuilder<R> oneToManyCacheTransformer(CacheTransformer<Object, R, List<R>, OneToManyCacheContext<Object, Object, R>> cacheTransformer) {
             return cacheTransformer(CacheTransformer.oneToManyCacheTransformer(cacheTransformer));
         }
 

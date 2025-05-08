@@ -3,7 +3,7 @@ package io.github.pellse.assembler.caching;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -26,26 +26,26 @@ public interface OneToManyCache {
         Mono<?> updateCache(Cache<ID, RRC> cache, Map<ID, RRC> existingCacheItems, Map<ID, RRC> incomingChanges);
     }
 
-    static <ID, EID, R, RC extends Collection<R>> Cache<ID, RC> oneToManyCache(
-            OneToManyCacheContext<ID, EID, R, RC> ctx,
-            Cache<ID, RC> delegateCache) {
+    static <ID, EID, R> Cache<ID, List<R>> oneToManyCache(
+            OneToManyCacheContext<ID, EID, R> ctx,
+            Cache<ID, List<R>> delegateCache) {
 
         final var optimizedCache = optimizedCache(delegateCache);
 
         return new Cache<>() {
 
             @Override
-            public Mono<Map<ID, RC>> getAll(Iterable<ID> ids) {
+            public Mono<Map<ID, List<R>>> getAll(Iterable<ID> ids) {
                 return optimizedCache.getAll(ids);
             }
 
             @Override
-            public Mono<Map<ID, RC>> computeAll(Iterable<ID> ids, FetchFunction<ID, RC> fetchFunction) {
+            public Mono<Map<ID, List<R>>> computeAll(Iterable<ID> ids, FetchFunction<ID, List<R>> fetchFunction) {
                 return optimizedCache.computeAll(ids, fetchFunction);
             }
 
             @Override
-            public Mono<?> putAll(Map<ID, RC> map) {
+            public Mono<?> putAll(Map<ID, List<R>> map) {
                 return applyMergeStrategy(
                         optimizedCache,
                         (existingCacheItems, incomingChanges) -> ctx.mapMerger().apply(existingCacheItems, incomingChanges),
@@ -54,21 +54,21 @@ public interface OneToManyCache {
             }
 
             @Override
-            public Mono<?> removeAll(Map<ID, RC> map) {
+            public Mono<?> removeAll(Map<ID, List<R>> map) {
                 return applyMergeStrategy(
                         optimizedCache,
                         (cache, existingCacheItems, incomingChanges) ->
-                                then(subtractFromMap(incomingChanges, existingCacheItems, ctx.idResolver(), ctx.collectionFactory()),
+                                then(subtractFromMap(incomingChanges, existingCacheItems, ctx.idResolver()),
                                         updatedMap -> cache.updateAll(updatedMap, diff(existingCacheItems, updatedMap))))
                         .apply(map);
             }
         };
     }
 
-    private static <ID, R, RC extends Collection<R>> Function<Map<ID, RC>, Mono<?>> applyMergeStrategy(
-            Cache<ID, RC> delegateCache,
-            MergeStrategy<ID, RC> mergeStrategy,
-            BiFunction<Cache<ID, RC>, Map<ID, RC>, Mono<?>> cacheUpdater) {
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+            Cache<ID, List<R>> delegateCache,
+            MergeStrategy<ID, List<R>> mergeStrategy,
+            BiFunction<Cache<ID, List<R>>, Map<ID, List<R>>, Mono<?>> cacheUpdater) {
 
         return applyMergeStrategy(
                 delegateCache,
@@ -76,9 +76,9 @@ public interface OneToManyCache {
                         cacheUpdater.apply(cache, mergeStrategy.merge(existingCacheItems, incomingChanges)));
     }
 
-    private static <ID, R, RC extends Collection<R>> Function<Map<ID, RC>, Mono<?>> applyMergeStrategy(
-            Cache<ID, RC> delegateCache,
-            CacheUpdater<ID, RC> cacheUpdater) {
+    private static <ID, R> Function<Map<ID, List<R>>, Mono<?>> applyMergeStrategy(
+            Cache<ID, List<R>> delegateCache,
+            CacheUpdater<ID, List<R>> cacheUpdater) {
 
         return incomingChanges -> isEmpty(incomingChanges) ? just(of()) : delegateCache.getAll(incomingChanges.keySet())
                 .flatMap(existingCacheItems -> cacheUpdater.updateCache(delegateCache, existingCacheItems, incomingChanges));

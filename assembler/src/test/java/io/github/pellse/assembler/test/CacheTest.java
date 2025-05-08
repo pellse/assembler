@@ -617,7 +617,7 @@ public class CacheTest {
                         .maxWindowSize(3)
                         .build();
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>, OneToManyCacheContext<Long, String, OrderItem, List<OrderItem>>> orderItemStreamTable =
+        CacheTransformer<Long, OrderItem, List<OrderItem>, OneToManyCacheContext<Long, String, OrderItem>> orderItemStreamTable =
                 streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                         .maxWindowSize(3)
                         .build();
@@ -659,7 +659,7 @@ public class CacheTest {
         CacheTransformer<Long, BillingInfo, BillingInfo, OneToOneCacheContext<Long, BillingInfo>> billingInfoStreamTable =
                 streamTable(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value);
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>, OneToManyCacheContext<Long, String, OrderItem, List<OrderItem>>> orderItemStreamTable =
+        CacheTransformer<Long, OrderItem, List<OrderItem>, OneToManyCacheContext<Long, String, OrderItem>> orderItemStreamTable =
                 streamTable(orderItemFlux, CDCAdd.class::isInstance, CDC::item);
 
         Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)

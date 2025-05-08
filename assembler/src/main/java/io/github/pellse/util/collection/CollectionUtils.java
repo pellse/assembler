@@ -189,13 +189,13 @@ public interface CollectionUtils {
         return collectionConverter.apply(removeDuplicates(stream, keyExtractor));
     }
 
-    static <K, V> Collection<V> removeDuplicates(
+    static <K, V> List<V> removeDuplicates(
             Stream<V> stream,
             Function<? super V, K> keyExtractor) {
 
-        return stream
+        return asList(stream
                 .collect(toMap(keyExtractor, identity(), (v1, v2) -> v2, LinkedHashMap::new))
-                .values();
+                .values());
     }
 
     @SuppressWarnings("unchecked")
