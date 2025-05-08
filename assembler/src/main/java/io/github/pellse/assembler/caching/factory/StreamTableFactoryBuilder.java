@@ -154,11 +154,14 @@ public interface StreamTableFactoryBuilder {
 
         <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build();
 
-        default <ID> CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> build(Class<ID> idClass) {
+        default <ID> CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> build(@SuppressWarnings("unused") Class<ID> idClass) {
             return build();
         }
 
-        default <ID, EID> CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> build(Class<ID> idClass, Class<EID> elementIdClass) {
+        default <ID, EID> CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> build(
+                @SuppressWarnings("unused") Class<ID> idClass,
+                @SuppressWarnings("unused") Class<EID> elementIdClass) {
+
             return build();
         }
     }
