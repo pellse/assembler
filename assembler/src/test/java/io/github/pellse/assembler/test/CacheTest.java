@@ -40,12 +40,12 @@ import java.util.stream.Stream;
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.LifeCycleEventBroadcaster.lifeCycleEventBroadcaster;
 import static io.github.pellse.assembler.QueryUtils.toPublisher;
+import static io.github.pellse.assembler.Rule.RuleResolver.with;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.*;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.RuleMapperSource.resolve;
 import static io.github.pellse.assembler.caching.DefaultCache.cache;
-import static io.github.pellse.assembler.caching.factory.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.*;
 import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
@@ -620,8 +620,11 @@ public class CacheTest {
                 .maxWindowSize(3)
                 .build(Long.class, String.class);
 
-        var billingInfoRule = Rule.<Customer, Long, BillingInfo, BillingInfo>rule(BillingInfo::customerId, oneToOne(cached(billingInfoStreamTable)));
-        var orderItemRule = Rule.<Customer, Long, OrderItem, List<OrderItem>>rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(cache(), orderItemStreamTable)));
+        var billingInfoRule = with(Customer.class)
+                .resolve(rule(BillingInfo::customerId, oneToOne(cached(billingInfoStreamTable))));
+
+        var orderItemRule = with(Customer.class)
+                .resolve(rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(cache(), orderItemStreamTable))));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
@@ -663,12 +666,14 @@ public class CacheTest {
         var cachedBillingInfos = resolve(cached(this::getBillingInfo, billingInfoStreamTable), Long.class);
         var cachedOrderItems = resolve(cachedMany(this::getAllOrders, orderItemStreamTable), Long.class);
 
+        var billingInfoRule = with(Customer.class)
+                .resolve(rule(BillingInfo::customerId, oneToOne(cachedBillingInfos, BillingInfo::new)));
+
+        var orderItemRule = Rule.resolve(rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedOrderItems)), Customer.class);
+
         Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
-                .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cachedBillingInfos, BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedOrderItems)),
-                        Transaction::new)
+                .withRules(billingInfoRule, orderItemRule, Transaction::new)
                 .build();
 
         StepVerifier.create(getCustomers()

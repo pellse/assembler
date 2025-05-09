@@ -76,4 +76,23 @@ public interface Rule<T, K, RRC> extends Function<Function<T, K>, Function<Itera
 
         return topLevelIdResolver -> mapper.apply(ruleContextBuilder.apply(topLevelIdResolver));
     }
+
+    @SuppressWarnings("unchecked")
+    static <T, K, RRC> Rule<T, K, RRC> resolve(Rule<?, K, RRC> rule, @SuppressWarnings("unused") Class<T> entityClass) {
+        return (Rule<T, K, RRC>) rule;
+    }
+
+    interface RuleResolver<T> {
+        <K, RRC> Rule<T, K, RRC> resolve(Rule<?, K, RRC> rule);
+
+        static <T> RuleResolver<T> with(@SuppressWarnings("unused") Class<T> entityClass) {
+            return new RuleResolver<>() {
+
+                @Override
+                public <K, RRC> Rule<T, K, RRC> resolve(Rule<?, K, RRC> rule) {
+                    return Rule.resolve(rule, entityClass);
+                }
+            };
+        }
+    }
 }
