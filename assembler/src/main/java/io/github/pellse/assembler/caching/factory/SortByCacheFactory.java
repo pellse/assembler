@@ -17,7 +17,6 @@
 package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
-import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 
 import java.util.Comparator;
 import java.util.List;

@@ -21,7 +21,7 @@ import io.github.pellse.assembler.Rule;
 import io.github.pellse.assembler.RuleMapperSource;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.factory.CacheFactory;
-import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
+import io.github.pellse.assembler.caching.factory.CacheTransformer;
 import io.github.pellse.assembler.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

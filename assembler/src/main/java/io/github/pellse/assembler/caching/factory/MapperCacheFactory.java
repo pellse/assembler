@@ -17,7 +17,7 @@
 package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.caching.Cache;
-import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
+
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
