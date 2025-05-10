@@ -18,6 +18,7 @@ package io.github.pellse.assembler.test;
 
 import io.github.pellse.assembler.Assembler;
 import io.github.pellse.assembler.Rule;
+import io.github.pellse.assembler.RuleMapperSource;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.factory.CacheFactory;
 import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
@@ -40,12 +41,12 @@ import java.util.stream.Stream;
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.LifeCycleEventBroadcaster.lifeCycleEventBroadcaster;
 import static io.github.pellse.assembler.QueryUtils.toPublisher;
-import static io.github.pellse.assembler.Rule.RuleResolver.with;
+import static io.github.pellse.assembler.Rule.RuleResolver.withType;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.*;
 import static io.github.pellse.assembler.RuleMapperSource.call;
-import static io.github.pellse.assembler.RuleMapperSource.resolve;
 import static io.github.pellse.assembler.caching.DefaultCache.cache;
+import static io.github.pellse.assembler.caching.factory.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.*;
 import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
@@ -620,10 +621,10 @@ public class CacheTest {
                 .maxWindowSize(3)
                 .build(Long.class, String.class);
 
-        var billingInfoRule = with(Customer.class)
+        var billingInfoRule = withType(Customer.class)
                 .resolve(rule(BillingInfo::customerId, oneToOne(cached(billingInfoStreamTable))));
 
-        var orderItemRule = with(Customer.class)
+        var orderItemRule = withType(Customer.class)
                 .resolve(rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(cache(), orderItemStreamTable))));
 
         var assembler = assemblerOf(Transaction.class)
@@ -657,19 +658,17 @@ public class CacheTest {
                 new CDCAdd<>(orderItem31), new CDCAdd<>(orderItem32), new CDCAdd<>(orderItem33),
                 new CDCDelete<>(orderItem31), new CDCDelete<>(orderItem32), new CDCDelete<>(orderItem33));
 
-        var billingInfoStreamTable = streamTableBuilder(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value)
-                .build(Long.class);
+        var billingInfoStreamTable = CacheTransformer.resolve(streamTable(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value), Long.class);
+        var orderItemStreamTable = CacheTransformer.resolve(streamTable(orderItemFlux, CDCAdd.class::isInstance, CDC::item), Long.class, String.class);
 
-        var orderItemStreamTable = streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
-                .build(Long.class, String.class);
+        var cachedBillingInfos = RuleMapperSource.resolve(cached(this::getBillingInfo, billingInfoStreamTable), Long.class);
+        var cachedOrderItems = RuleMapperSource.resolve(cachedMany(this::getAllOrders, orderItemStreamTable), Long.class);
 
-        var cachedBillingInfos = resolve(cached(this::getBillingInfo, billingInfoStreamTable), Long.class);
-        var cachedOrderItems = resolve(cachedMany(this::getAllOrders, orderItemStreamTable), Long.class);
+        var billingInfoRuleMapper = oneToOne(cachedBillingInfos, BillingInfo::new);
+        var orderItemsRuleMapper = oneToMany(OrderItem::id, cachedOrderItems);
 
-        var billingInfoRule = with(Customer.class)
-                .resolve(rule(BillingInfo::customerId, oneToOne(cachedBillingInfos, BillingInfo::new)));
-
-        var orderItemRule = Rule.resolve(rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedOrderItems)), Customer.class);
+        var billingInfoRule = Rule.resolve(rule(BillingInfo::customerId, billingInfoRuleMapper), Customer.class);
+        var orderItemRule = Rule.resolve(rule(OrderItem::customerId, orderItemsRuleMapper), Customer.class);
 
         Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)

@@ -68,6 +68,21 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
         static <ID, EID, R> CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> oneToManyCacheTransformer(CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> cacheTransformer) {
             return cacheTransformer;
         }
+
+        static <ID, R> CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> resolve(
+                CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> cacheTransformer,
+                @SuppressWarnings("unused") Class<ID> idClass) {
+
+            return cacheTransformer;
+        }
+
+        static <ID, EID, R> CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> resolve(
+                CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> cacheTransformer,
+                @SuppressWarnings("unused") Class<ID> idClass,
+                @SuppressWarnings("unused") Class<EID> elementIdClass) {
+
+            return cacheTransformer;
+        }
     }
 
     class QueryFunctionException extends Exception {
