@@ -46,6 +46,7 @@ import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.*;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.caching.DefaultCache.cache;
+import static io.github.pellse.assembler.caching.factory.CacheTransformer.withIDType;
 import static io.github.pellse.assembler.caching.factory.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.*;
@@ -617,9 +618,11 @@ public class CacheTest {
                 .maxWindowSize(3)
                 .build(Long.class);
 
-        var orderItemStreamTable = streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
-                .maxWindowSize(3)
-                .build(Long.class, String.class);
+        var orderItemStreamTable = withIDType(Long.class)
+                .andElementIDType(String.class)
+                .resolve(streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+                        .maxWindowSize(3)
+                        .build());
 
         var billingInfoRule = withType(Customer.class)
                 .resolve(rule(BillingInfo::customerId, oneToOne(cached(billingInfoStreamTable))));
