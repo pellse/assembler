@@ -17,46 +17,44 @@
 package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
-import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 
-import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 import java.util.function.Function;
 
 import static io.github.pellse.assembler.caching.factory.MapperCacheFactory.mapper;
-import static java.util.stream.Collectors.toCollection;
 
 public interface SortByCacheFactory {
 
-    static <ID, EID, R, RC extends Collection<R>> CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy() {
+    static <ID, EID, R> CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> sortBy() {
         return cacheFactory -> sortBy(cacheFactory, (Comparator<R>) null);
     }
 
-    static <ID, EID, R, RC extends Collection<R>> CacheTransformer<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy(Comparator<R> comparator) {
+    static <ID, EID, R> CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> sortBy(Comparator<R> comparator) {
         return cacheFactory -> sortBy(cacheFactory, comparator);
     }
 
-    static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy(
-            CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory) {
+    static <ID, EID, R> CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> sortBy(
+            CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> cacheFactory) {
 
         return sortBy(cacheFactory, (Comparator<R>) null);
     }
 
-    static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy(
-            CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
+    static <ID, EID, R> CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> sortBy(
+            CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> cacheFactory,
             Comparator<R> comparator) {
 
         return sortBy(cacheFactory, cacheContext -> comparator != null ? comparator : cacheContext.idComparator());
     }
 
-    private static <ID, EID, R, RC extends Collection<R>> CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> sortBy(
-            CacheFactory<ID, R, RC, OneToManyCacheContext<ID, EID, R, RC>> cacheFactory,
-            Function<OneToManyCacheContext<ID, EID, R, RC>, Comparator<R>> comparatorProvider) {
+    private static <ID, EID, R> CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> sortBy(
+            CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> cacheFactory,
+            Function<OneToManyCacheContext<ID, EID, R>, Comparator<R>> comparatorProvider) {
 
         return mapper(cacheFactory,
                 cacheContext ->
                         (__, coll) -> coll.stream()
                                 .sorted(comparatorProvider.apply(cacheContext))
-                                .collect(toCollection(cacheContext.collectionFactory())));
+                                .toList());
     }
 }

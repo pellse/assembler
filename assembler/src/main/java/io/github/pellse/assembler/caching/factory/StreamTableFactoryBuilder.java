@@ -22,7 +22,6 @@ import io.github.pellse.assembler.WindowingStrategy;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.CacheEvent;
-import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import io.github.pellse.concurrent.Lock;
 import io.github.pellse.concurrent.LockStrategy;
 import io.github.pellse.concurrent.ReactiveGuard.ReactiveGuardBuilder;
@@ -31,7 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
 import java.time.Duration;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.*;
 
@@ -139,7 +138,7 @@ public interface StreamTableFactoryBuilder {
             return cacheTransformer(CacheTransformer.oneToOneCacheTransformer(cacheTransformer));
         }
 
-        default StreamTableFactoryDelegateBuilder<R> oneToManyCacheTransformer(CacheTransformer<Object, R,  Collection<R>, OneToManyCacheContext<Object, Object, R, Collection<R>>> cacheTransformer) {
+        default StreamTableFactoryDelegateBuilder<R> oneToManyCacheTransformer(CacheTransformer<Object, R, List<R>, OneToManyCacheContext<Object, Object, R>> cacheTransformer) {
             return cacheTransformer(CacheTransformer.oneToManyCacheTransformer(cacheTransformer));
         }
 
@@ -151,7 +150,19 @@ public interface StreamTableFactoryBuilder {
     }
 
     interface StreamTableFactoryDelegateBuilder<R> {
+
         <ID, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> build();
+
+        default <ID> CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> build(@SuppressWarnings("unused") Class<ID> idClass) {
+            return build();
+        }
+
+        default <ID, EID> CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> build(
+                @SuppressWarnings("unused") Class<ID> idClass,
+                @SuppressWarnings("unused") Class<EID> elementIdClass) {
+
+            return build();
+        }
     }
 
     record Builder<R, U extends CacheEvent<R>>(

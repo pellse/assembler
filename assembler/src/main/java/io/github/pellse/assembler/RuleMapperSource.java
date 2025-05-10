@@ -19,7 +19,6 @@ package io.github.pellse.assembler;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
@@ -27,27 +26,29 @@ import static io.github.pellse.util.collection.CollectionUtils.toStream;
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNullElse;
 
-/**
- * @param <ID>  Correlation Id type
- * @param <TC>  Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
- * @param <R>   Type of the publisher elements returned from {@code queryFunction}
- * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
- */
 @FunctionalInterface
-public interface RuleMapperSource<T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>>
-        extends Function<CTX, Function<TC, Publisher<R>>> {
+public interface RuleMapperSource<T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>>
+        extends Function<CTX, Function<List<T>, Publisher<R>>> {
 
-    RuleMapperSource<?, Collection<Object>, ?, ?, ?, ?, ?, RuleMapperContext<Object, Collection<Object>, Object, Object, Object, Object, Object>> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
+    RuleMapperSource<?, ?, ?, ?, ?, ?, RuleMapperContext<Object, Object, Object, Object, Object, Object>> EMPTY_SOURCE = ruleContext -> ids -> Mono.empty();
 
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> from(Function<TC, Publisher<R>> queryFunction) {
+    @SuppressWarnings("unchecked")
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapperSource<T, K, ID, EID, R, RRC, CTX> resolve(
+            RuleMapperSource<T, ?, ID, EID, R, RRC, CTX> ruleMapperSource,
+            @SuppressWarnings("unused") Class<K> keyType) {
+
+        return (RuleMapperSource<T, K, ID, EID, R, RRC, CTX>) ruleMapperSource;
+    }
+
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapperSource<T, K, ID, EID, R, RRC, CTX> from(Function<List<T>, Publisher<R>> queryFunction) {
         return __ -> queryFunction;
     }
 
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> call(Function<List<ID>, Publisher<R>> queryFunction) {
-        return ruleContext -> RuleMapperSource.<T, TC, K, ID, EID, R, RRC, CTX>call(ruleContext.outerIdResolver(), queryFunction).apply(ruleContext);
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapperSource<T, K, ID, EID, R, RRC, CTX> call(Function<List<ID>, Publisher<R>> queryFunction) {
+        return ruleContext -> RuleMapperSource.<T, K, ID, EID, R, RRC, CTX>call(ruleContext.outerIdResolver(), queryFunction).apply(ruleContext);
     }
 
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> call(
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapperSource<T, K, ID, EID, R, RRC, CTX> call(
             Function<T, ID> idResolver,
             Function<List<ID>, Publisher<R>> queryFunction) {
 
@@ -55,24 +56,24 @@ public interface RuleMapperSource<T, TC extends Collection<T>, K, ID, EID, R, RR
     }
 
     @SuppressWarnings("unchecked")
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> emptySource() {
-        return (RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX>) EMPTY_SOURCE;
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapperSource<T, K, ID, EID, R, RRC, CTX> emptySource() {
+        return (RuleMapperSource<T, K, ID, EID, R, RRC, CTX>) EMPTY_SOURCE;
     }
 
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> boolean isEmptySource(RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource) {
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> boolean isEmptySource(RuleMapperSource<T, K, ID, EID, R, RRC, CTX> ruleMapperSource) {
         return emptySource().equals(nullToEmptySource(ruleMapperSource));
     }
 
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> nullToEmptySource(
-            RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource) {
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapperSource<T, K, ID, EID, R, RRC, CTX> nullToEmptySource(
+            RuleMapperSource<T, K, ID, EID, R, RRC, CTX> ruleMapperSource) {
 
-        return requireNonNullElse(ruleMapperSource, RuleMapperSource.<T, TC, K, ID, EID, R, RRC, CTX>emptySource());
+        return requireNonNullElse(ruleMapperSource, RuleMapperSource.<T, K, ID, EID, R, RRC, CTX>emptySource());
     }
 
     @SafeVarargs
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> pipe(
-            RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> mapper,
-            Function<? super RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX>, ? extends RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX>>... mappingFunctions) {
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapperSource<T, K, ID, EID, R, RRC, CTX> pipe(
+            RuleMapperSource<T, K, ID, EID, R, RRC, CTX> mapper,
+            Function<? super RuleMapperSource<T, K, ID, EID, R, RRC, CTX>, ? extends RuleMapperSource<T, K, ID, EID, R, RRC, CTX>>... mappingFunctions) {
 
         return stream(mappingFunctions)
                 .reduce(mapper,

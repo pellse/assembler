@@ -36,27 +36,27 @@ import static reactor.core.publisher.Flux.fromIterable;
 
 public interface QueryUtils {
 
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
-            RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
+            RuleMapperSource<T, K, ID, EID, R, RRC, CTX> ruleMapperSource,
             CTX ctx) {
 
         return buildQueryFunction(nullToEmptySource(ruleMapperSource).apply(ctx), null, ctx);
     }
 
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
-            Function<TC, Publisher<R>> queryFunction,
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
+            Function<List<T>, Publisher<R>> queryFunction,
             CTX ctx) {
 
         return buildQueryFunction(queryFunction, null, ctx);
     }
 
-    static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
-            Function<TC, Publisher<R>> queryFunction,
+    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> Function<Iterable<T>, Mono<Map<ID, RRC>>> buildQueryFunction(
+            Function<List<T>, Publisher<R>> queryFunction,
             Scheduler scheduler,
             CTX ctx) {
 
         return entityList -> {
-            var entities = translate(entityList, ctx.topLevelCollectionFactory());
+            var entities = asList(entityList);
 
             return safeApply(entities, queryFunction)
                     .transform(subscribeFluxOn(scheduler))
@@ -65,7 +65,7 @@ public interface QueryUtils {
         };
     }
 
-    static <T, TC extends Collection<T>, R> Function<TC, Publisher<R>> toPublisher(Function<TC, Iterable<R>> queryFunction) {
+    static <T, R> Function<List<T>, Publisher<R>> toPublisher(Function<List<T>, Iterable<R>> queryFunction) {
         return entities -> fromIterable(queryFunction.apply(entities));
     }
 

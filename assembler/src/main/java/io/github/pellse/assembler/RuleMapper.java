@@ -23,7 +23,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static io.github.pellse.assembler.QueryUtils.*;
 import static io.github.pellse.assembler.RuleMapperContext.OneToManyContext.oneToManyContext;
@@ -33,37 +32,31 @@ import static io.github.pellse.util.collection.CollectionUtils.*;
 import static io.github.pellse.util.lookup.LookupTable.lookupTableFrom;
 import static java.util.Comparator.comparing;
 
-/**
- * @param <ID>  Correlation Id type
- * @param <TC>  Collection of correlation ids type (e.g. {@code List<ID>}, {@code Set<ID>})
- * @param <R>   Type of the publisher elements returned from {@code queryFunction}
- * @param <RRC> Either R or collection of R (e.g. R vs. {@code List<R>})
- */
 @FunctionalInterface
-public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
-        extends Function<RuleContext<T, TC, K, ID, R, RRC>, Function<Iterable<T>, Mono<Map<K, RRC>>>> {
+public interface RuleMapper<T, K, ID, R, RRC>
+        extends Function<RuleContext<T, K, ID, R, RRC>, Function<Iterable<T>, Mono<Map<K, RRC>>>> {
 
-    static <T, TC extends Collection<T>, K, ID, R> RuleMapper<T, TC, K, ID, R, R> oneToOne() {
+    static <T, K, ID, R> RuleMapper<T, K, ID, R, R> oneToOne() {
         return oneToOne(emptySource(), id -> null);
     }
 
-    static <T, TC extends Collection<T>, K, ID, R> RuleMapper<T, TC, K, ID, R, R> oneToOne(Function<TC, Publisher<R>> queryFunction) {
+    static <T, K, ID, R> RuleMapper<T, K, ID, R, R> oneToOne(Function<List<T>, Publisher<R>> queryFunction) {
         return oneToOne(from(queryFunction), id -> null);
     }
 
-    static <T, TC extends Collection<T>, K, ID, R> RuleMapper<T, TC, K, ID, R, R> oneToOne(RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> ruleMapperSource) {
+    static <T, K, ID, R> RuleMapper<T, K, ID, R, R> oneToOne(RuleMapperSource<T, K, ID, ID, R, R, OneToOneContext<T, K, ID, R>> ruleMapperSource) {
         return oneToOne(ruleMapperSource, id -> null);
     }
 
-    static <T, TC extends Collection<T>, K, ID, R> RuleMapper<T, TC, K, ID, R, R> oneToOne(
-            Function<TC, Publisher<R>> queryFunction,
+    static <T, K, ID, R> RuleMapper<T, K, ID, R, R> oneToOne(
+            Function<List<T>, Publisher<R>> queryFunction,
             Function<ID, R> defaultResultProvider) {
 
         return oneToOne(from(queryFunction), defaultResultProvider);
     }
 
-    static <T, TC extends Collection<T>, K, ID, R> RuleMapper<T, TC, K, ID, R, R> oneToOne(
-            RuleMapperSource<T, TC, K, ID, ID, R, R, OneToOneContext<T, TC, K, ID, R>> ruleMapperSource,
+    static <T, K, ID, R> RuleMapper<T, K, ID, R, R> oneToOne(
+            RuleMapperSource<T, K, ID, ID, R, R, OneToOneContext<T, K, ID, R>> ruleMapperSource,
             Function<ID, R> defaultResultProvider) {
 
         return createRuleMapper(
@@ -71,59 +64,29 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
                 ctx -> new OneToOneContext<>(ctx, defaultResultProvider));
     }
 
-    static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, K, ID, R, List<R>> oneToMany(Function<R, EID> idResolver) {
-        return oneToMany(idResolver, emptySource(), ArrayList::new);
+    static <T, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, K, ID, R, List<R>> oneToMany(Function<R, EID> idResolver) {
+        return oneToMany(idResolver, emptySource());
     }
 
-    static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, K, ID, R, List<R>> oneToMany(
+    static <T, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, K, ID, R, List<R>> oneToMany(
             Function<R, EID> idResolver,
-            Function<TC, Publisher<R>> queryFunction) {
+            Function<List<T>, Publisher<R>> queryFunction) {
 
-        return oneToMany(idResolver, from(queryFunction), ArrayList::new);
+        return oneToMany(idResolver, from(queryFunction));
     }
 
-    static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, K, ID, R, List<R>> oneToMany(
+    static <T, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, K, ID, R, List<R>> oneToMany(
             Function<R, EID> idResolver,
-            RuleMapperSource<T, TC, K, ID, EID, R, List<R>, OneToManyContext<T, TC, K, ID, EID, R, List<R>>> ruleMapperSource) {
-
-        return oneToMany(idResolver, ruleMapperSource, ArrayList::new);
-    }
-
-    static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, K, ID, R, Set<R>> oneToManyAsSet(
-            Function<R, EID> idResolver,
-            Function<TC, Publisher<R>> queryFunction) {
-
-        return oneToMany(idResolver, from(queryFunction), HashSet::new);
-    }
-
-    static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R> RuleMapper<T, TC, K, ID, R, Set<R>> oneToManyAsSet(
-            Function<R, EID> idResolver,
-            RuleMapperSource<T, TC, K, ID, EID, R, Set<R>, OneToManyContext<T, TC, K, ID, EID, R, Set<R>>> ruleMapperSource) {
-
-        return oneToMany(idResolver, ruleMapperSource, HashSet::new);
-    }
-
-    static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R, RC extends Collection<R>> RuleMapper<T, TC, K, ID, R, RC> oneToMany(
-            Function<R, EID> idResolver,
-            Function<TC, Publisher<R>> queryFunction,
-            Supplier<RC> collectionFactory) {
-
-        return oneToMany(idResolver, from(queryFunction), collectionFactory);
-    }
-
-    static <T, TC extends Collection<T>, K, ID, EID extends Comparable<EID>, R, RC extends Collection<R>> RuleMapper<T, TC, K, ID, R, RC> oneToMany(
-            Function<R, EID> idResolver,
-            RuleMapperSource<T, TC, K, ID, EID, R, RC, OneToManyContext<T, TC, K, ID, EID, R, RC>> ruleMapperSource,
-            Supplier<RC> collectionFactory) {
+            RuleMapperSource<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> ruleMapperSource) {
 
         return createRuleMapper(
                 ruleMapperSource,
-                ctx -> oneToManyContext(ctx, idResolver, comparing(idResolver), collectionFactory));
+                ctx -> oneToManyContext(ctx, idResolver, comparing(idResolver)));
     }
 
-    private static <T, TC extends Collection<T>, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, TC, K, ID, EID, R, RRC>> RuleMapper<T, TC, K, ID, R, RRC> createRuleMapper(
-            RuleMapperSource<T, TC, K, ID, EID, R, RRC, CTX> ruleMapperSource,
-            Function<RuleContext<T, TC, K, ID, R, RRC>, CTX> ruleMapperContextProvider) {
+    private static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> RuleMapper<T, K, ID, R, RRC> createRuleMapper(
+            RuleMapperSource<T, K, ID, EID, R, RRC, CTX> ruleMapperSource,
+            Function<RuleContext<T, K, ID, R, RRC>, CTX> ruleMapperContextProvider) {
 
         return ctx -> {
             final var queryFunction = buildQueryFunction(ruleMapperSource, ruleMapperContextProvider.apply(ctx));
@@ -131,7 +94,7 @@ public interface RuleMapper<T, TC extends Collection<T>, K, ID, R, RRC>
         };
     }
 
-    private static <T, TC extends Collection<T>, K, ID, R, RRC> Mono<Map<K, RRC>> runQueryFunction(Function<Iterable<T>, Mono<Map<ID, RRC>>> queryFunction, Iterable<T> entities, RuleContext<T, TC, K, ID, R, RRC> ctx) {
+    private static <T, K, ID, R, RRC> Mono<Map<K, RRC>> runQueryFunction(Function<Iterable<T>, Mono<Map<ID, RRC>>> queryFunction, Iterable<T> entities, RuleContext<T, K, ID, R, RRC> ctx) {
 
         @SuppressWarnings("unchecked")
         final Function<Map<ID, RRC>, Map<K, RRC>> mappingFunction = ctx.topLevelIdResolver() == ctx.outerIdResolver()

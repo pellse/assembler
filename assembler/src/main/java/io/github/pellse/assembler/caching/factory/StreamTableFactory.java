@@ -22,7 +22,6 @@ import io.github.pellse.assembler.LifeCycleEventSource;
 import io.github.pellse.assembler.WindowingStrategy;
 import io.github.pellse.assembler.caching.CacheEvent;
 import io.github.pellse.assembler.caching.CacheEvent.Updated;
-import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;

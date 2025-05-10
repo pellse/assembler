@@ -19,7 +19,7 @@ package io.github.pellse.assembler;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -50,7 +50,7 @@ public interface Assembler<T, R> {
                 .flatMapSequential(after::assemblerWindow);
     }
 
-    static <T, TC extends Collection<T>, R, V> Function<TC, Publisher<V>> assemble(Function<TC, Publisher<R>> queryFunction, Assembler<R, V> assembler) {
+    static <T, R, V> Function<List<T>, Publisher<V>> assemble(Function<List<T>, Publisher<R>> queryFunction, Assembler<R, V> assembler) {
         return entities -> assembler.assemble(queryFunction.apply(entities));
     }
 }

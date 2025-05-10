@@ -18,10 +18,10 @@ package io.github.pellse.assembler.test;
 
 import io.github.pellse.assembler.Assembler;
 import io.github.pellse.assembler.Rule;
-import io.github.pellse.assembler.caching.factory.CacheContext.OneToManyCacheContext;
+import io.github.pellse.assembler.RuleMapperSource;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.factory.CacheFactory;
-import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
+import io.github.pellse.assembler.caching.factory.CacheTransformer;
 import io.github.pellse.assembler.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,9 +31,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -43,10 +41,12 @@ import java.util.stream.Stream;
 import static io.github.pellse.assembler.AssemblerBuilder.assemblerOf;
 import static io.github.pellse.assembler.LifeCycleEventBroadcaster.lifeCycleEventBroadcaster;
 import static io.github.pellse.assembler.QueryUtils.toPublisher;
+import static io.github.pellse.assembler.Rule.RuleResolver.withType;
 import static io.github.pellse.assembler.Rule.rule;
 import static io.github.pellse.assembler.RuleMapper.*;
 import static io.github.pellse.assembler.RuleMapperSource.call;
 import static io.github.pellse.assembler.caching.DefaultCache.cache;
+import static io.github.pellse.assembler.caching.factory.CacheTransformer.withIDType;
 import static io.github.pellse.assembler.caching.factory.StreamTableFactory.streamTable;
 import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.*;
@@ -56,7 +56,7 @@ import static io.github.pellse.assembler.test.CDCDelete.cdcDelete;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
 import static io.github.pellse.util.ObjectUtils.run;
 import static io.github.pellse.util.collection.CollectionUtils.transform;
-import static io.github.pellse.util.reactive.ReactiveUtils.*;
+import static io.github.pellse.util.reactive.ReactiveUtils.scheduler;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Thread.currentThread;
 import static java.time.Duration.*;
@@ -101,24 +101,6 @@ public class CacheTest {
     }
 
     private Publisher<OrderItem> getAllOrders(List<Customer> customers) {
-
-        var customerIds = transform(customers, Customer::customerId);
-
-        return Flux.just(orderItem11, orderItem12, orderItem13, orderItem21, orderItem22)
-                .filter(orderItem -> customerIds.contains(orderItem.customerId()))
-                .doOnComplete(ordersInvocationCount::incrementAndGet);
-    }
-
-    private Publisher<BillingInfo> getBillingInfoWithIdSet(Set<Customer> customers) {
-
-        var customerIds = transform(customers, Customer::customerId);
-
-        return Flux.just(billingInfo1, billingInfo3)
-                .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
-                .doOnComplete(billingInvocationCount::incrementAndGet);
-    }
-
-    private Publisher<OrderItem> getAllOrdersWithIdSet(Set<Customer> customers) {
 
         var customerIds = transform(customers, Customer::customerId);
 
@@ -189,7 +171,7 @@ public class CacheTest {
         var billingInfoFlux = fromIterable(billingInfoList).repeat().delayElements(ofMillis(1), billingInfoScheduler);
         var orderItemFlux = fromIterable(orderItemList).repeat().delayElements(ofMillis(1), orderItemScheduler);
 
-        Function<String, Consumer<Object>> simulateIO = tag -> __  -> {
+        Function<String, Consumer<Object>> simulateIO = tag -> __ -> {
             parkNanos(ofMillis(600).toNanos()); // Simulate blocking I/O
             System.out.println(currentThread().getName() + ": " + tag);
         };
@@ -439,53 +421,6 @@ public class CacheTest {
     }
 
     @Test
-    public void testReusableAssemblerBuilderWithCachingSet() {
-
-        var assembler = assemblerOf(TransactionSet.class)
-                .withCorrelationIdResolver(Customer::customerId)
-                .withRules(
-                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
-                        rule(OrderItem::customerId, HashSet::new, oneToManyAsSet(OrderItem::id, cachedMany(this::getAllOrdersWithIdSet))),
-                        TransactionSet::new)
-                .build(immediate());
-
-        StepVerifier.create(getCustomers()
-                        .window(3)
-                        .flatMapSequential(assembler::assemble))
-                .expectSubscription()
-                .expectNext(transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3, transactionSet1, transactionSet2, transactionSet3)
-                .expectComplete()
-                .verify();
-
-        assertEquals(1, billingInvocationCount.get());
-        assertEquals(1, ordersInvocationCount.get());
-    }
-
-    @Test
-    public void testReusableAssemblerBuilderWithCachingWithIDsAsSet() {
-
-        var assembler = assemblerOf(Transaction.class)
-                .withCorrelationIdResolver(Customer::customerId)
-                .withRules(
-                        rule(BillingInfo::customerId, HashSet::new, oneToOne(cached(this::getBillingInfoWithIdSet), BillingInfo::new)),
-                        rule(OrderItem::customerId, HashSet::new, oneToMany(OrderItem::id, cachedMany(this::getAllOrdersWithIdSet))),
-                        Transaction::new)
-                .build();
-
-        StepVerifier.create(getCustomers()
-                        .window(2)
-                        .delayElements(ofMillis(100))
-                        .flatMapSequential(assembler::assemble))
-                .expectSubscription()
-                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
-                .expectComplete()
-                .verify();
-
-        assertEquals(2, billingInvocationCount.get());
-        assertEquals(2, ordersInvocationCount.get());
-    }
-
-    @Test
     public void testReusableAssemblerBuilderWithAutoCaching() {
 
         Flux<BillingInfo> billingInfoFlux = Flux.just(billingInfo1, billingInfo2, billingInfo3)
@@ -679,18 +614,21 @@ public class CacheTest {
         Transaction transaction2 = new Transaction(customer2, updatedBillingInfo2, List.of(orderItem21, updatedOrderItem22));
         Transaction transaction3 = new Transaction(customer3, billingInfo3, List.of(orderItem33));
 
-        CacheTransformer<Long, BillingInfo, BillingInfo, OneToOneCacheContext<Long, BillingInfo>> billingInfoStreamTable =
-                streamTableBuilder(billingInfoEventFlux)
-                        .maxWindowSize(3)
-                        .build();
+        var billingInfoStreamTable = streamTableBuilder(billingInfoEventFlux)
+                .maxWindowSize(3)
+                .build(Long.class);
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>, OneToManyCacheContext<Long, String, OrderItem, List<OrderItem>>> orderItemStreamTable =
-                streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
+        var orderItemStreamTable = withIDType(Long.class)
+                .andElementIDType(String.class)
+                .resolve(streamTableBuilder(orderItemFlux, CDCAdd.class::isInstance, CDC::item)
                         .maxWindowSize(3)
-                        .build();
+                        .build());
 
-        var billingInfoRule = Rule.<Customer, Long, BillingInfo, BillingInfo>rule(BillingInfo::customerId, oneToOne(cached(billingInfoStreamTable)));
-        var orderItemRule = Rule.<Customer, Long, OrderItem, List<OrderItem>>rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(cache(), orderItemStreamTable)));
+        var billingInfoRule = withType(Customer.class)
+                .resolve(rule(BillingInfo::customerId, oneToOne(cached(billingInfoStreamTable))));
+
+        var orderItemRule = withType(Customer.class)
+                .resolve(rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(cache(), orderItemStreamTable))));
 
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
@@ -723,18 +661,21 @@ public class CacheTest {
                 new CDCAdd<>(orderItem31), new CDCAdd<>(orderItem32), new CDCAdd<>(orderItem33),
                 new CDCDelete<>(orderItem31), new CDCDelete<>(orderItem32), new CDCDelete<>(orderItem33));
 
-        CacheTransformer<Long, BillingInfo, BillingInfo, OneToOneCacheContext<Long, BillingInfo>> billingInfoStreamTable =
-                streamTable(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value);
+        var billingInfoStreamTable = CacheTransformer.resolve(streamTable(billingInfoFlux, MyOtherEvent::isAddEvent, MyOtherEvent::value), Long.class);
+        var orderItemStreamTable = CacheTransformer.resolve(streamTable(orderItemFlux, CDCAdd.class::isInstance, CDC::item), Long.class, String.class);
 
-        CacheTransformer<Long, OrderItem, List<OrderItem>, OneToManyCacheContext<Long, String, OrderItem, List<OrderItem>>> orderItemStreamTable =
-                streamTable(orderItemFlux, CDCAdd.class::isInstance, CDC::item);
+        var cachedBillingInfos = RuleMapperSource.resolve(cached(this::getBillingInfo, billingInfoStreamTable), Long.class);
+        var cachedOrderItems = RuleMapperSource.resolve(cachedMany(this::getAllOrders, orderItemStreamTable), Long.class);
+
+        var billingInfoRuleMapper = oneToOne(cachedBillingInfos, BillingInfo::new);
+        var orderItemsRuleMapper = oneToMany(OrderItem::id, cachedOrderItems);
+
+        var billingInfoRule = Rule.resolve(rule(BillingInfo::customerId, billingInfoRuleMapper), Customer.class);
+        var orderItemRule = Rule.resolve(rule(OrderItem::customerId, orderItemsRuleMapper), Customer.class);
 
         Assembler<Customer, Transaction> assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
-                .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(this::getBillingInfo, billingInfoStreamTable), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, orderItemStreamTable))),
-                        Transaction::new)
+                .withRules(billingInfoRule, orderItemRule, Transaction::new)
                 .build();
 
         StepVerifier.create(getCustomers()

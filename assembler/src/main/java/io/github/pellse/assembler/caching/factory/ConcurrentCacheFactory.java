@@ -16,7 +16,6 @@
 
 package io.github.pellse.assembler.caching.factory;
 
-import io.github.pellse.assembler.caching.factory.CacheFactory.CacheTransformer;
 import io.github.pellse.concurrent.Lock;
 import io.github.pellse.concurrent.LockStrategy;
 import io.github.pellse.concurrent.ReactiveGuard.ReactiveGuardBuilder;
