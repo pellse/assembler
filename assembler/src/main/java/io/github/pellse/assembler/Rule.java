@@ -85,7 +85,7 @@ public interface Rule<T, K, RRC> extends Function<Function<T, K>, Function<Itera
     interface RuleResolver<T> {
         <K, RRC> Rule<T, K, RRC> resolve(Rule<?, K, RRC> rule);
 
-        static <T> RuleResolver<T> with(@SuppressWarnings("unused") Class<T> entityClass) {
+        static <T> RuleResolver<T> withType(@SuppressWarnings("unused") Class<T> entityClass) {
             return new RuleResolver<>() {
 
                 @Override
