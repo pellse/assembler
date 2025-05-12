@@ -57,7 +57,6 @@ public interface CacheTransformer<ID, R, RRC, CTX extends CacheContext<ID, R, RR
         };
     }
 
-    @FunctionalInterface
     interface ElementIDResolver<ID> extends OneToOneCacheTransformerResolver<ID> {
         <EID> OneToManyCacheTransformerResolver<ID, EID> andElementIDType(@SuppressWarnings("unused") Class<EID> elementIdType);
     }
