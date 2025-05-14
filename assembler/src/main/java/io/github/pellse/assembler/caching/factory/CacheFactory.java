@@ -43,6 +43,7 @@ import static io.github.pellse.assembler.caching.factory.DeferCacheFactory.defer
 import static io.github.pellse.assembler.caching.OneToManyCache.oneToManyCache;
 import static io.github.pellse.assembler.caching.OneToOneCache.oneToOneCache;
 import static io.github.pellse.assembler.caching.factory.SerializeCacheFactory.serialize;
+import static io.github.pellse.assembler.caching.merge.MergeFunctionContext.mergeFunctionContext;
 import static io.github.pellse.util.ObjectUtils.*;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Arrays.stream;
@@ -180,7 +181,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
 
     @SafeVarargs
     static <T, K, ID, EID, R> RuleMapperSource<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> cachedMany(
-            MergeFunctionFactory<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> mergeFunctionFactory,
+            MergeFunctionFactory<ID, EID, R> mergeFunctionFactory,
             Function<CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>, CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>>... delegateCacheFactories) {
 
         return cachedMany(cache(), mergeFunctionFactory, delegateCacheFactories);
@@ -197,7 +198,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
     @SafeVarargs
     static <T, K, ID, EID, R> RuleMapperSource<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> cachedMany(
             CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> cacheFactory,
-            MergeFunctionFactory<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> mergeFunctionFactory,
+            MergeFunctionFactory<ID, EID, R> mergeFunctionFactory,
             Function<CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>, CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>>... delegateCacheFactories) {
 
         return cachedMany(emptySource(), cacheFactory, mergeFunctionFactory, delegateCacheFactories);
@@ -214,7 +215,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
     @SafeVarargs
     static <T, K, ID, EID, R> RuleMapperSource<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> cachedMany(
             Function<List<T>, Publisher<R>> queryFunction,
-            MergeFunctionFactory<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> mergeFunctionFactory,
+            MergeFunctionFactory<ID, EID, R> mergeFunctionFactory,
             Function<CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>, CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>>... delegateCacheFactories) {
 
         return cachedMany(from(queryFunction), mergeFunctionFactory, delegateCacheFactories);
@@ -231,7 +232,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
     @SafeVarargs
     static <T, K, ID, EID, R> RuleMapperSource<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> cachedMany(
             RuleMapperSource<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> ruleMapperSource,
-            MergeFunctionFactory<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> mergeFunctionFactory,
+            MergeFunctionFactory<ID, EID, R> mergeFunctionFactory,
             Function<CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>, CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>>... delegateCacheFactories) {
 
         return cachedMany(ruleMapperSource, cache(), mergeFunctionFactory, delegateCacheFactories);
@@ -250,7 +251,7 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
     static <T, K, ID, EID, R> RuleMapperSource<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> cachedMany(
             Function<List<T>, Publisher<R>> queryFunction,
             CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> cacheFactory,
-            MergeFunctionFactory<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> mergeFunctionFactory,
+            MergeFunctionFactory<ID, EID, R> mergeFunctionFactory,
             Function<CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>, CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>>... delegateCacheFactories) {
 
         return cachedMany(from(queryFunction), cacheFactory, mergeFunctionFactory, delegateCacheFactories);
@@ -269,13 +270,13 @@ public interface CacheFactory<ID, R, RRC, CTX extends CacheContext<ID, R, RRC, C
     static <T, K, ID, EID, R> RuleMapperSource<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> cachedMany(
             RuleMapperSource<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> ruleMapperSource,
             CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> cacheFactory,
-            MergeFunctionFactory<T, K, ID, EID, R, List<R>, OneToManyContext<T, K, ID, EID, R>> mergeFunctionFactory,
+            MergeFunctionFactory<ID, EID, R> mergeFunctionFactory,
             Function<CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>, CacheFactory<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>>>... delegateCacheFactories) {
 
         final var wrappedCacheFactory = wrap(cacheFactory);
 
         return cached(
-                ctx -> oneToManyCacheContext(ctx, mergeFunctionFactory != null ? mergeFunctionFactory.create(ctx) : null),
+                ctx -> oneToManyCacheContext(ctx, mergeFunctionFactory != null ? mergeFunctionFactory.create(mergeFunctionContext(ctx)) : null),
                 ruleMapperSource,
                 cacheCtx -> oneToManyCache(cacheCtx, wrappedCacheFactory.create(cacheCtx)),
                 delegateCacheFactories);

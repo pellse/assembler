@@ -166,7 +166,7 @@ public interface CollectionUtils {
         return newMap(null, mapSupplier, map -> keys.forEach(key -> ifNotNull(sourceMap.get(key), value -> map.put(key, mappingFunction.apply(value)))));
     }
 
-    static <K, V> Collection<V> removeDuplicates(
+    static <K, V> List<V> removeDuplicates(
             Collection<V> coll,
             Function<? super V, K> keyExtractor) {
 

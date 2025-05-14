@@ -1,27 +1,25 @@
 package io.github.pellse.assembler.caching.merge;
 
-import io.github.pellse.assembler.RuleMapperContext;
-import io.github.pellse.assembler.RuleMapperContext.OneToOneContext;
-
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.function.Function.identity;
 
-public interface MergeFunctionFactory <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> extends Function<CTX, MergeFunction<ID, RRC>> {
+public interface MergeFunctionFactory <ID, EID, R> extends Function<MergeFunctionContext<EID, R>, MergeFunction<ID, List<R>>> {
 
-    MergeFunction<ID, RRC> create(CTX ctx);
+    MergeFunction<ID, List<R>> create(MergeFunctionContext<EID, R> ctx);
 
     @Override
-    default MergeFunction<ID, RRC> apply(CTX ctx) {
+    default MergeFunction<ID, List<R>> apply(MergeFunctionContext<EID, R> ctx) {
         return create(ctx);
     }
 
-    default  MergeFunctionFactory<T, K, ID, EID, R, RRC, CTX> pipe(Function<RRC, RRC> finisher) {
+    default  MergeFunctionFactory<ID, EID, R> pipe(Function<List<R>, List<R>> finisher) {
         return pipeWith(__ -> finisher);
     }
 
-    default  MergeFunctionFactory<T, K, ID, EID, R, RRC, CTX> pipeWith(Function<CTX, Function<RRC, RRC>> finisherFactory) {
+    default  MergeFunctionFactory<ID, EID, R> pipeWith(Function<MergeFunctionContext<EID, R>, Function<List<R>, List<R>>> finisherFactory) {
         return ctx -> {
             final var mergeFunction = create(ctx);
             final var finisher = finisherFactory.apply(ctx);
@@ -30,22 +28,26 @@ public interface MergeFunctionFactory <T, K, ID, EID, R, RRC, CTX extends RuleMa
         };
     }
 
-    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> MergeFunctionFactory<T, K, ID, EID, R, RRC, CTX> with(MergeFunctionFactory<T, K, ID, EID, R, RRC, CTX> mergeFunctionFactory) {
+    static <ID, EID, R> MergeFunctionFactory<ID, EID, R> from(MergeFunctionFactory<ID, EID, R> mergeFunctionFactory) {
         return mergeFunctionFactory;
     }
 
-    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> MergeFunctionFactory<T, K, ID, EID, R, RRC, CTX> with(MergeFunction<ID, RRC> mergeFunction) {
-        return __ -> mergeFunction;
-    }
-
-    static <T, K, ID, R> MergeFunctionFactory<T, K, ID, ID, R, R, OneToOneContext<T, K, ID, R>> withOneToOne(MergeFunction<ID, R> mergeFunction) {
+    static <ID, EID, R> MergeFunctionFactory<ID, EID, R> from(MergeFunction<ID, List<R>> mergeFunction) {
         return __ -> mergeFunction;
     }
 
     @SafeVarargs
-    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> MergeFunctionFactory<T, K, ID, EID, R, RRC, CTX> pipe(
-            MergeFunctionFactory<T, K, ID, EID, R, RRC, CTX> mergeFunctionFactory,
-            Function<RRC, RRC>... finishers) {
+    static <ID, EID, R> MergeFunctionFactory<ID, EID, R> pipe(
+            MergeFunction<ID, List<R>> mergeFunction,
+            Function<List<R>, List<R>>... finishers) {
+
+        return pipe(from(mergeFunction), finishers);
+    }
+
+    @SafeVarargs
+    static <ID, EID, R> MergeFunctionFactory<ID, EID, R> pipe(
+            MergeFunctionFactory<ID, EID, R> mergeFunctionFactory,
+            Function<List<R>, List<R>>... finishers) {
 
         final var finisher = Stream.of(finishers)
                 .reduce(identity(), (f, acc) -> acc.andThen(f));
@@ -54,9 +56,17 @@ public interface MergeFunctionFactory <T, K, ID, EID, R, RRC, CTX extends RuleMa
     }
 
     @SafeVarargs
-    static <T, K, ID, EID, R, RRC, CTX extends RuleMapperContext<T, K, ID, EID, R, RRC>> MergeFunctionFactory<T, K, ID, EID, R, RRC, CTX> pipeWith(
-            MergeFunctionFactory<T, K, ID, EID, R, RRC, CTX> mergeFunctionFactory,
-            Function<CTX, Function<RRC, RRC>>... finisherFactories) {
+    static <ID, EID, R> MergeFunctionFactory<ID, EID, R> pipeWith(
+            MergeFunction<ID, List<R>> mergeFunction,
+            Function<MergeFunctionContext<EID, R>, Function<List<R>, List<R>>>... finisherFactories) {
+
+        return pipeWith(from(mergeFunction), finisherFactories);
+    }
+
+    @SafeVarargs
+    static <ID, EID, R> MergeFunctionFactory<ID, EID, R> pipeWith(
+            MergeFunctionFactory<ID, EID, R> mergeFunctionFactory,
+            Function<MergeFunctionContext<EID, R>, Function<List<R>, List<R>>>... finisherFactories) {
 
         return ctx -> {
             final var finisher = Stream.of(finisherFactories)

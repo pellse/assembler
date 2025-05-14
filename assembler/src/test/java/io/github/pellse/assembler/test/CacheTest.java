@@ -51,6 +51,7 @@ import static io.github.pellse.assembler.caching.factory.StreamTableFactory.stre
 import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.*;
 import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
+import static io.github.pellse.assembler.caching.merge.MergeFunctionFactory.*;
 import static io.github.pellse.assembler.caching.merge.MergeFunctions.*;
 import static io.github.pellse.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.assembler.test.CDCDelete.cdcDelete;
@@ -272,7 +273,8 @@ public class CacheTest {
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(call(getBillingInfo), replace()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, removeDuplicates()))),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, pipe(removeDuplicates(), keepLastN(20))))),
+//                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, pipeWith(keepLast(20), removeAllDuplicates())))),
                         Transaction::new)
                 .build();
 
