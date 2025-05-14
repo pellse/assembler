@@ -27,6 +27,7 @@ import java.util.function.IntFunction;
 import java.util.stream.Collector;
 
 import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
+import static io.github.pellse.assembler.caching.merge.MergeFunctions.replace;
 import static io.github.pellse.util.collection.CollectionUtils.*;
 import static java.util.Objects.requireNonNullElse;
 
@@ -48,7 +49,7 @@ public sealed interface CacheContext<ID, R, RRC, CTX extends CacheContext<ID, R,
             CacheTransformer<ID, R, R, OneToOneCacheContext<ID, R>> cacheTransformer) implements CacheContext<ID, R, R, OneToOneCacheContext<ID, R>> {
 
         public OneToOneCacheContext {
-                mergeFunction = requireNonNullElse(mergeFunction, (k, r1, r2) -> r2 != null ? r2 : r1);
+                mergeFunction = requireNonNullElse(mergeFunction, replace());
         }
 
         static <ID, R> OneToOneCacheContext<ID, R> oneToOneCacheContext(OneToOneContext<?, ?, ID, R> ctx) {

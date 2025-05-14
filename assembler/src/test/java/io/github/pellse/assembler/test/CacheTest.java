@@ -51,6 +51,7 @@ import static io.github.pellse.assembler.caching.factory.StreamTableFactory.stre
 import static io.github.pellse.assembler.caching.factory.StreamTableFactoryBuilder.streamTableBuilder;
 import static io.github.pellse.assembler.caching.factory.CacheFactory.*;
 import static io.github.pellse.assembler.caching.factory.ConcurrentCacheFactory.concurrent;
+import static io.github.pellse.assembler.caching.merge.MergeFunctions.*;
 import static io.github.pellse.assembler.test.CDCAdd.cdcAdd;
 import static io.github.pellse.assembler.test.CDCDelete.cdcDelete;
 import static io.github.pellse.assembler.test.AssemblerTestUtils.*;
@@ -243,6 +244,35 @@ public class CacheTest {
                 .withRules(
                         rule(BillingInfo::customerId, oneToOne(cached(call(getBillingInfo)), BillingInfo::new)),
                         rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders))),
+                        Transaction::new)
+                .build();
+
+        StepVerifier.create(getCustomers()
+                        .window(3)
+                        .delayElements(ofMillis(100))
+                        .flatMapSequential(assembler::assemble))
+                .expectSubscription()
+                .expectNext(transaction1, transaction2, transaction3, transaction1, transaction2, transaction3, transaction1, transaction2, transaction3)
+                .expectComplete()
+                .verify();
+
+        assertEquals(1, billingInvocationCount.get(), "BillingInfo error");
+        assertEquals(1, ordersInvocationCount.get(), "OrderItem error");
+    }
+
+    @Test
+    public void testReusableAssemblerBuilderWithMergeFunctions() {
+
+        Function<List<Long>, Publisher<BillingInfo>> getBillingInfo = customerIds ->
+                Flux.just(billingInfo1, billingInfo3)
+                        .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
+                        .doOnComplete(billingInvocationCount::incrementAndGet);
+
+        var assembler = assemblerOf(Transaction.class)
+                .withCorrelationIdResolver(Customer::customerId)
+                .withRules(
+                        rule(BillingInfo::customerId, oneToOne(cached(call(getBillingInfo), replace()), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, removeDuplicates()))),
                         Transaction::new)
                 .build();
 
