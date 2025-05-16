@@ -22,6 +22,8 @@ import io.github.pellse.assembler.RuleMapperSource;
 import io.github.pellse.assembler.caching.factory.CacheContext.OneToOneCacheContext;
 import io.github.pellse.assembler.caching.factory.CacheFactory;
 import io.github.pellse.assembler.caching.factory.CacheTransformer;
+import io.github.pellse.assembler.caching.merge.MergeFunctionFactory;
+import io.github.pellse.assembler.caching.merge.MergeFunctions;
 import io.github.pellse.assembler.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -269,11 +271,16 @@ public class CacheTest {
                         .filter(billingInfo -> customerIds.contains(billingInfo.customerId()))
                         .doOnComplete(billingInvocationCount::incrementAndGet);
 
+        MergeFunctionFactory<Long, String, OrderItem> mff = pipe(MergeFunctions::removeDuplicates, keepLastN(20));
+        var mff2 = MergeFunctions.<Long, String, OrderItem>removeDuplicates().pipe(keepLastN(20));
+        var mff3 = MergeFunctionFactory.<Long, String, OrderItem>from(MergeFunctions::removeDuplicates).pipe(keepLastN(20));
+
         var assembler = assemblerOf(Transaction.class)
                 .withCorrelationIdResolver(Customer::customerId)
                 .withRules(
-                        rule(BillingInfo::customerId, oneToOne(cached(call(getBillingInfo), replace()), BillingInfo::new)),
-                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, pipe(removeDuplicates(), keepLastN(20))))),
+                        rule(BillingInfo::customerId, oneToOne(cached(call(getBillingInfo), MergeFunctions::replace), BillingInfo::new)),
+                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, mff))),
+//                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, pipe(removeDuplicates(), keepLastN(20))))),
 //                        rule(OrderItem::customerId, oneToMany(OrderItem::id, cachedMany(this::getAllOrders, pipeWith(keepLast(20), removeAllDuplicates())))),
                         Transaction::new)
                 .build();

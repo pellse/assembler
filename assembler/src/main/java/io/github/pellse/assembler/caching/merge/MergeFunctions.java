@@ -14,7 +14,11 @@ import static java.util.List.copyOf;
 public interface MergeFunctions {
 
     static <ID, EID, R> MergeFunctionFactory<ID, EID, R> removeDuplicates() {
-        return ctx -> removeDuplicates(ctx.idResolver());
+        return MergeFunctions::removeDuplicates;
+    }
+
+    static <ID, EID, R> MergeFunction<ID, List<R>> removeDuplicates(MergeFunctionContext<EID, R> ctx) {
+        return removeDuplicates(ctx.idResolver());
     }
 
     static <ID, EID, R> MergeFunction<ID, List<R>> removeDuplicates(Function<R, EID> idResolver) {
@@ -22,7 +26,11 @@ public interface MergeFunctions {
     }
 
     static <EID, R> Function<MergeFunctionContext<EID, R>, Function<List<R>, List<R>>> removeAllDuplicates() {
-        return ctx -> list -> CollectionUtils.removeDuplicates(list, ctx.idResolver());
+        return MergeFunctions::removeAllDuplicates;
+    }
+
+    static <EID, R> Function<List<R>, List<R>> removeAllDuplicates(MergeFunctionContext<EID, R> ctx) {
+        return list -> CollectionUtils.removeDuplicates(list, ctx.idResolver());
     }
 
     static <ID, R> MergeFunction<ID, List<R>> keepFirst(int nbElements) {
@@ -50,7 +58,11 @@ public interface MergeFunctions {
     }
 
     static <ID, R> MergeFunction<ID, R> replace() {
-        return (k, r1, r2) -> r2 != null ? r2 : r1;
+        return MergeFunctions::replace;
+    }
+
+    static <ID, R> R replace(ID id, R r1, R r2) {
+        return r2 != null ? r2 : r1;
     }
 
     private static <R> Function<List<R>, List<R>> keep(int nbElements, Function<List<R>, List<R>> subListFunction) {
