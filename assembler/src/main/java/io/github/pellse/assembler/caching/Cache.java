@@ -16,12 +16,14 @@
 
 package io.github.pellse.assembler.caching;
 
+import io.github.pellse.util.function.Function3;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.util.Map;
 import java.util.function.Function;
 
+import static io.github.pellse.util.collection.CollectionUtils.mergeMaps;
 import static io.github.pellse.util.reactive.ReactiveUtils.subscribeMonoOn;
 
 public interface Cache<ID, RRC> {
@@ -44,5 +46,11 @@ public interface Cache<ID, RRC> {
 
     default Mono<?> updateAll(Map<ID, RRC> mapToAdd, Map<ID, RRC> mapToRemove) {
         return putAll(mapToAdd).then(removeAll(mapToRemove));
+    }
+
+    default <UUC> Mono<?> putAllWith(Map<ID, UUC> map, Function3<ID, RRC, UUC, RRC> mergeFunction) {
+        return getAll(map.keySet())
+                .map(existingMap -> mergeMaps(existingMap, map, mergeFunction))
+                .flatMap(this::putAll);
     }
 }
