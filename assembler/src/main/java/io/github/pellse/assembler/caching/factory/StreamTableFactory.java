@@ -61,14 +61,6 @@ public interface StreamTableFactory {
     }
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U> CacheTransformer<ID, R, RRC, CTX> streamTable(
-            Supplier<Flux<U>> dataSourceSupplier,
-            Predicate<U> isAddOrUpdateEvent,
-            Function<U, R> cacheEventValueExtractor) {
-
-        return streamTable(dataSourceSupplier.get(), isAddOrUpdateEvent, cacheEventValueExtractor);
-    }
-
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U> CacheTransformer<ID, R, RRC, CTX> streamTable(
             Flux<U> dataSource,
             Predicate<U> isAddOrUpdateEvent,
             Function<U, R> cacheEventValueExtractor) {
@@ -76,9 +68,9 @@ public interface StreamTableFactory {
         return streamTable(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, U extends CacheEvent<R>> CacheTransformer<ID, R, RRC, CTX> streamTable(
-            Flux<U> dataSource,
-            WindowingStrategy<U> windowingStrategy,
+    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>, C extends CacheEvent<R>> CacheTransformer<ID, R, RRC, CTX> streamTable(
+            Flux<C> dataSource,
+            WindowingStrategy<C> windowingStrategy,
             ErrorHandler errorHandler,
             LifeCycleEventSource lifeCycleEventSource,
             Scheduler scheduler,

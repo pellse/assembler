@@ -62,7 +62,7 @@ public interface StreamTableFactoryBuilder {
         return new Builder<>(dataSource.map(toCacheEvent(isAddOrUpdateEvent, cacheEventValueExtractor)), null, null, null, null, null);
     }
 
-    interface WindowingStrategyBuilder<R, U extends CacheEvent<R>> extends ConfigBuilder<R> {
+    interface WindowingStrategyBuilder<R, C extends CacheEvent<R>> extends ConfigBuilder<R> {
 
         default ConfigBuilder<R> maxWindowSize(int maxWindowSize) {
             return windowingStrategy(flux -> flux.window(maxWindowSize));
@@ -76,7 +76,7 @@ public interface StreamTableFactoryBuilder {
             return windowingStrategy(flux -> flux.windowTimeout(maxWindowSize, maxWindowTime));
         }
 
-        ConfigBuilder<R> windowingStrategy(WindowingStrategy<U> windowingStrategy);
+        ConfigBuilder<R> windowingStrategy(WindowingStrategy<C> windowingStrategy);
     }
 
     interface ConfigBuilder<R> extends LifeCycleEventSourceBuilder<R> {
@@ -165,16 +165,16 @@ public interface StreamTableFactoryBuilder {
         }
     }
 
-    record Builder<R, U extends CacheEvent<R>>(
-            Flux<U> dataSource,
-            WindowingStrategy<U> windowingStrategy,
+    record Builder<R, C extends CacheEvent<R>>(
+            Flux<C> dataSource,
+            WindowingStrategy<C> windowingStrategy,
             ErrorHandler errorHandler,
             Scheduler scheduler,
             LifeCycleEventSource eventSource,
-            CacheTransformer<?, R, ?, ?> cacheTransformer) implements WindowingStrategyBuilder<R, U> {
+            CacheTransformer<?, R, ?, ?> cacheTransformer) implements WindowingStrategyBuilder<R, C> {
 
         @Override
-        public ConfigBuilder<R> windowingStrategy(WindowingStrategy<U> windowingStrategy) {
+        public ConfigBuilder<R> windowingStrategy(WindowingStrategy<C> windowingStrategy) {
             return new Builder<>(dataSource, windowingStrategy, null, null, null, null);
         }
 
