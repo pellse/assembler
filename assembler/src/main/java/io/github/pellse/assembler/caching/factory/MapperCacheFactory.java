@@ -26,6 +26,7 @@ import java.util.function.Function;
 
 import static io.github.pellse.util.collection.CollectionUtils.transformMapValues;
 
+@Deprecated
 public interface MapperCacheFactory {
 
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> mapper(Function<CTX, BiFunction<ID, RRC, RRC>> mappingFunction) {

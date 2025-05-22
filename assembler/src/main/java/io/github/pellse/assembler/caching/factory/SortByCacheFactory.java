@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import static io.github.pellse.assembler.caching.factory.MapperCacheFactory.mapper;
 
+@Deprecated
 public interface SortByCacheFactory {
 
     static <ID, EID, R> CacheTransformer<ID, R, List<R>, OneToManyCacheContext<ID, EID, R>> sortBy() {
