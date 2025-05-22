@@ -7,7 +7,6 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 import static io.github.pellse.assembler.caching.OptimizedCache.optimizedCache;
-import static io.github.pellse.util.collection.CollectionUtils.mergeMaps;
 
 public interface OneToOneCache {
 
@@ -34,9 +33,7 @@ public interface OneToOneCache {
 
             @Override
             public <U> Mono<?> putAllWith(Map<ID, U> map, Function3<ID, R, U, R> mergeFunction) {
-                return optimizedCache.getAll(map.keySet())
-                        .map(existingMap -> mergeMaps(existingMap, map, mergeFunction))
-                        .flatMap(optimizedCache::putAll);
+                return optimizedCache.putAllWith(map, mergeFunction);
             }
 
             @Override

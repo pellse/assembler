@@ -37,9 +37,7 @@ public interface OneToManyCache {
 
             @Override
             public <UC> Mono<?> putAllWith(Map<ID, UC> map, Function3<ID, List<R>, UC, List<R>> mergeFunction) {
-                return optimizedCache.getAll(map.keySet())
-                        .map(existingCacheItems -> mergeMaps(existingCacheItems, map, mergeFunction))
-                        .flatMap(optimizedCache::putAll);
+                return optimizedCache.putAllWith(map, mergeFunction);
             }
 
             @Override

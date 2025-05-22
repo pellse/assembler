@@ -17,6 +17,7 @@
 package io.github.pellse.assembler.caching.factory;
 
 import io.github.pellse.assembler.caching.Cache;
+import io.github.pellse.util.function.Function3;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -48,6 +49,11 @@ public interface DeferCacheFactory {
             @Override
             public Mono<?> putAll(Map<ID, RRC> map) {
                 return Mono.defer(() -> delegateCache.putAll(map));
+            }
+
+            @Override
+            public <UUC> Mono<?> putAllWith(Map<ID, UUC> map, Function3<ID, RRC, UUC, RRC> mergeFunction) {
+                return Mono.defer(() -> delegateCache.putAllWith(map, mergeFunction));
             }
 
             @Override

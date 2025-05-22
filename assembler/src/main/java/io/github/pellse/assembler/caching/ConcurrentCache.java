@@ -19,6 +19,7 @@ package io.github.pellse.assembler.caching;
 import io.github.pellse.concurrent.LockStrategy;
 import io.github.pellse.concurrent.ReactiveGuard;
 import io.github.pellse.concurrent.ReactiveGuard.ReactiveGuardBuilder;
+import io.github.pellse.util.function.Function3;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
@@ -73,6 +74,11 @@ public interface ConcurrentCache<ID, RRC> extends Cache<ID, RRC> {
             @Override
             public Mono<?> putAll(Map<ID, RRC> map) {
                 return guard.withLock(delegateCache.putAll(map));
+            }
+
+            @Override
+            public <UUC> Mono<?> putAllWith(Map<ID, UUC> map, Function3<ID, RRC, UUC, RRC> mergeFunction) {
+                return guard.withLock(delegateCache.putAllWith(map, mergeFunction));
             }
 
             @Override
