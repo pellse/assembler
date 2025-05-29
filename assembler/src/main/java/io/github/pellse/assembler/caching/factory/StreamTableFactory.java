@@ -52,10 +52,6 @@ public interface StreamTableFactory {
 
     Logger logger = getLogger(StreamTableFactory.class.getName());
 
-    static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> streamTable(Supplier<Flux<R>> dataSourceSupplier) {
-        return streamTable(dataSourceSupplier.get());
-    }
-
     static <ID, R, RRC, CTX extends CacheContext<ID, R, RRC, CTX>> CacheTransformer<ID, R, RRC, CTX> streamTable(Flux<R> dataSource) {
         return streamTable(dataSource, __ -> true, identity());
     }
