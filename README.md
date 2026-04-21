@@ -205,15 +205,15 @@ Assembler<PostDetails, Post> assembler = assemblerOf(Post.class)
 This would be semantically equivalent to the following SQL query if all entities were stored in the same relational database:
 ```sql
 SELECT 
-    p.id AS post_id,
-    p.userId AS post_userId,
-    p.content AS post_content,
-    u.id AS author_id,
-    u.username AS author_username,
-    r.id AS reply_id,
-    r.postId AS reply_postId,
-    r.userId AS reply_userId,
-    r.content AS reply_content
+    p.id,
+    p.userId,
+    p.content,
+    u.id,
+    u.username,
+    r.id,
+    r.postId,
+    r.userId,
+    r.content
 FROM 
     PostDetails p
 JOIN 
