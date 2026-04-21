@@ -223,6 +223,61 @@ LEFT JOIN
 WHERE 
     p.id IN (1, 2, 3); -- withCorrelationIdResolver(PostDetails::id)
 ```
+Example Output:
+```json
+[
+  {
+    "id": 1,
+    "userId": 10,
+    "content": "Hello world",
+    "author": {
+      "id": 10,
+      "username": "alice"
+    },
+    "replies": [
+      {
+        "id": 100,
+        "postId": 1,
+        "userId": 11,
+        "content": "Nice post"
+      },
+      {
+        "id": 101,
+        "postId": 1,
+        "userId": 12,
+        "content": "I agree"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "userId": 20,
+    "content": "Another post",
+    "author": {
+      "id": 20,
+      "username": "bob"
+    },
+    "replies": []
+  },
+  {
+    "id": 3,
+    "userId": 30,
+    "content": "Third post",
+    "author": {
+      "id": 30,
+      "username": "charlie"
+    },
+    "replies": [
+      {
+        "id": 102,
+        "postId": 3,
+        "userId": 10,
+        "content": "Interesting"
+      }
+    ]
+  }
+]
+```
 [:arrow_up:](#table-of-contents)
 
 ## Complex Relationship Graph And Cartesian Product
